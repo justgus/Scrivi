@@ -232,12 +232,13 @@ void control(ManuscriptEditor* e, Qt::Key k, Qt::KeyboardModifiers extra = Qt::N
     settle();
 }
 
-bool reloading(ScriviWindow* w, const std::function<void()>& act)
+// [SP-191] `act` starts a structural edit: wait for it to land (on a worker; nothing reloads).
+bool landing(ScriviWindow* w, const std::function<void()>& act)
 {
     QEventLoop loop;
     bool ok = false;
     bool done = false;
-    QObject::connect(w->editorShell(), &EditorShell::loadFinished, &loop, [&](bool r) {
+    QObject::connect(w->editorShell(), &EditorShell::structuralEditFinished, &loop, [&](bool r) {
         ok = r;
         done = true;
         loop.quit();
@@ -349,18 +350,19 @@ int main(int argc, char** argv)
     check(noRunOverridesTheFace(doc) && drawsIn(wa, QStringLiteral("Courier Prime"), 20.0),
           QStringLiteral("§3 the face survives typing, Return, undo and a paste"));
     {
-        // A structured paste: Ctrl+C across the scene break, Ctrl+V — the manuscript reloads.
+        // A structured paste: Ctrl+C across the scene break, Ctrl+V — ✅ [SP-191] its delta re-renders only the scenes it
+        // touched (the new run must carry the face too).
         QTextCursor c = ea->textCursor();
         c.setPosition(positionOf(ea, QStringLiteral("text.")));
         c.setPosition(positionOf(ea, QStringLiteral("Bravo")) + 3, QTextCursor::KeepAnchor);
         ea->setTextCursor(c);
         control(ea, Qt::Key_C);
         caretAt(ea, positionOf(ea, QStringLiteral("Body")));
-        check(reloading(wa, [&] { control(ea, Qt::Key_V); }), QStringLiteral("§3 the structured paste reloaded"));
+        check(landing(wa, [&] { control(ea, Qt::Key_V); }), QStringLiteral("§3 the structured paste landed"));
     }
     doc = editorOf(wa)->document();
     check(noRunOverridesTheFace(doc) && drawsIn(wa, QStringLiteral("Courier Prime"), 20.0),
-          QStringLiteral("§3 … the face survives a structured paste and its reload (%1 %2)")
+          QStringLiteral("§3 … the face survives a structured paste (%1 %2)")
               .arg(doc->defaultFont().family()).arg(doc->defaultFont().pointSizeF()));
 
     // ── §4 Markup Hints: Ctrl+Shift+H, OFF reveals nothing, the caret rules hold, persisted ───────────────────────────

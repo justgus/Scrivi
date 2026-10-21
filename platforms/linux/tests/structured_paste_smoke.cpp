@@ -10,8 +10,11 @@
 //   • typing not yet saved survives the paste ([I-0294]); the next edit's undo returns to what the paste left ([I-0293]);
 //   • anything copied since (here, from another app) expires the structure: the paste is flat (Q1);
 //   • the copy buffers hold the structure — Ctrl+1 / Alt+3 across scenes, Ctrl+Shift+N rebuilds, and a slot the Mac wrote;
-//   • a history made on the Mac — a `structuredPaste` and an old collapsing `structuredCut` — undoes and redoes here;
-//   • a Linux paste's history node carries Apple's payload, key for key.
+//   • a history made on the Mac before SP-191 — an old `structuredPaste` and a collapsing `structuredCut` — undoes and
+//     redoes here, CONVERTED to a Range ([SP-187] Q2);
+//   • a Linux paste's history node carries what the Mac reads: a `rangePaste` with its Range and caret.
+// ✅ [SP-191]: every paste, and every undo and redo across one, LANDS without a reload (one range call on a worker, the
+//   delta applied); the copy buffers hold Ranges, and a slot holding an old fragment reads as EMPTY (Q4a).
 // ⚠️ NOT covered (live pass only): drag and drop, the rig's clipboard across apps, how it feels.
 //
 //   argv[1] = project dir to create; $XDG_DATA_HOME drives appSupportRoot; Qt offscreen (set by the script).
@@ -80,7 +83,7 @@ struct Rig {
     QString projectID;
     std::unique_ptr<EditorShell> shell;
     ManuscriptEditor* editor = nullptr;
-    qint64 lastReloadMs = -1;
+    qint64 lastEditMs = -1;
 
     bool load()
     {
@@ -165,34 +168,37 @@ struct Rig {
         QTest::sendKeyEvent(QTest::Release, editor, k, text, Qt::ControlModifier | extra);
         settle();
     }
-    // `act` reloads the manuscript (a structured paste, or an undo/redo across one): wait for the reload, timed.
-    bool reloading(const std::function<void()>& act)
+    // `act` starts a structural edit (a structured paste, or an undo/redo across one): wait for it to LAND, timed. ✅ [SP-191]:
+    // it reloads nothing — the project is never re-read.
+    bool landing(const std::function<void()>& act)
     {
         QEventLoop loop;
         bool ok = false;
         bool done = false;
         QElapsedTimer t;
-        QObject::connect(shell.get(), &EditorShell::loadFinished, &loop, [&](bool r) {
+        QObject::connect(shell.get(), &EditorShell::structuralEditFinished, &loop, [&](bool r) {
             ok = r;
             done = true;
-            lastReloadMs = t.elapsed();
+            lastEditMs = t.elapsed();
             loop.quit();
         });
         QTimer::singleShot(30000, &loop, &QEventLoop::quit);
+        const int loads = shell->loadCount();
         t.start();
         act();
-        if (!done) {   // ⚠️ the reload can finish inside `act`'s own wait — a quit before exec() is lost
+        if (!done) {   // ⚠️ the edit can land inside `act`'s own wait — a quit before exec() is lost
             loop.exec();
         }
         settle();
+        check(shell->loadCount() == loads, QStringLiteral("[SP-191] the structural edit reloaded nothing"));
         return ok;
     }
     void copy() { control(Qt::Key_C); }
-    bool paste() { return reloading([this] { control(Qt::Key_V); }); }
+    bool paste() { return landing([this] { control(Qt::Key_V); }); }
     void undo() { control(Qt::Key_Z); }
     void redo() { control(Qt::Key_Z, Qt::ShiftModifier); }
-    bool undoStructural() { return reloading([this] { undo(); }); }
-    bool redoStructural() { return reloading([this] { redo(); }); }
+    bool undoStructural() { return landing([this] { undo(); }); }
+    bool redoStructural() { return landing([this] { redo(); }); }
     void bufferCopy(int n) { QTest::keyClick(editor, Qt::Key(Qt::Key_0 + n), Qt::ControlModifier); settle(); }
     void bufferCut(int n) { QTest::keyClick(editor, Qt::Key(Qt::Key_0 + n), Qt::AltModifier); settle(); }
     bool bufferPaste(int n)
@@ -200,7 +206,7 @@ struct Rig {
         static const Qt::Key shifted[] = {Qt::Key_Exclam, Qt::Key_At, Qt::Key_NumberSign, Qt::Key_Dollar, Qt::Key_Percent,
                                           Qt::Key_AsciiCircum, Qt::Key_Ampersand, Qt::Key_Asterisk, Qt::Key_ParenLeft};
         static const char* marks = "!@#$%^&*(";
-        return reloading([this, n] {
+        return landing([this, n] {
             const QString t(QChar::fromLatin1(marks[n - 1]));
             QTest::sendKeyEvent(QTest::Press, editor, shifted[n - 1], t, Qt::ControlModifier | Qt::ShiftModifier);
             QTest::sendKeyEvent(QTest::Release, editor, shifted[n - 1], t, Qt::ControlModifier | Qt::ShiftModifier);
@@ -303,21 +309,21 @@ int main(int argc, char** argv)
               QStringLiteral("[I-0307] … and no structured copy (no fragment token)"));
     }
     rig.caretAt(QStringLiteral("Charlie one."));
-    check(rig.paste(), QStringLiteral("Ctrl+V reloaded the manuscript ([I-0307]: the mouse selection left the copy alone)"));
-    const qint64 pasteMs = rig.lastReloadMs;
+    check(rig.paste(), QStringLiteral("Ctrl+V landed ([I-0307]: the mouse selection left the copy alone)"));
+    const qint64 pasteMs = rig.lastEditMs;
     const QStringList pasted{A, B, QStringLiteral("Charlie one.Alpha two."), QStringLiteral("Bravo one. Charlie two."), D};
     QList<Scene> m = rig.manuscript();
     check(rig.texts() == pasted, QStringLiteral("Ctrl+V rebuilt the scene break at the caret: %1").arg(shown(rig.texts())));
     check(m.size() == 5 && m.at(3).chapterID == m.at(2).chapterID,
           QStringLiteral("the new scene is in the target's chapter"));
     const int caretScene = rig.editor->document()->find(QStringLiteral("Charlie one.Alpha two.")).isNull() ? -1 : 0;
-    check(caretScene == 0, QStringLiteral("the editor shows the pasted text after the reload"));
+    check(caretScene == 0, QStringLiteral("the editor shows the pasted text"));
 
-    check(rig.undoStructural(), QStringLiteral("Ctrl+Z over the paste reloaded"));
+    check(rig.undoStructural(), QStringLiteral("Ctrl+Z over the paste landed"));
     check(rig.texts() == base, QStringLiteral("ONE Ctrl+Z took the whole paste back: %1").arg(shown(rig.texts())));
-    check(rig.redoStructural(), QStringLiteral("Ctrl+Shift+Z over the paste reloaded"));
+    check(rig.redoStructural(), QStringLiteral("Ctrl+Shift+Z over the paste landed"));
     check(rig.texts() == pasted, QStringLiteral("Ctrl+Shift+Z pasted it again: %1").arg(shown(rig.texts())));
-    check(rig.undoStructural(), QStringLiteral("Ctrl+Z again reloaded"));
+    check(rig.undoStructural(), QStringLiteral("Ctrl+Z again landed"));
     check(rig.texts() == base, QStringLiteral("and Ctrl+Z took it back again: %1").arg(shown(rig.texts())));
 
     // ── 2. Across a CHAPTER: the chapter comes back with its title; unsaved typing survives ([I-0294]); the next edit's
@@ -329,7 +335,7 @@ int main(int argc, char** argv)
           QStringLiteral("Q4: no chapter heading in the clipboard's text (got \"%1\")").arg(clip));
     rig.caretAt(QStringLiteral("Delta one."));
     rig.type(QStringLiteral(" Xray"));   // ⚠️ not saved yet — the paste follows at once
-    check(rig.paste(), QStringLiteral("the cross-chapter paste reloaded"));
+    check(rig.paste(), QStringLiteral("the cross-chapter paste landed"));
     m = rig.manuscript();
     const QStringList chapterPasted{A, B, C, QStringLiteral("Delta one. XrayBravo two."), QStringLiteral("Charlie one. Delta two.")};
     check(rig.texts() == chapterPasted,
@@ -342,7 +348,7 @@ int main(int argc, char** argv)
     rig.undo();
     check(rig.texts().value(3) == QStringLiteral("Delta one. XrayBravo two."),
           QStringLiteral("[I-0293] the next edit's undo returns to what the paste left (got \"%1\")").arg(rig.texts().value(3)));
-    check(rig.undoStructural(), QStringLiteral("Ctrl+Z over the cross-chapter paste reloaded"));
+    check(rig.undoStructural(), QStringLiteral("Ctrl+Z over the cross-chapter paste landed"));
     m = rig.manuscript();
     check(rig.texts() == QStringList({A, B, C, QStringLiteral("Delta one. Xray Delta two.")}) && m.size() == 4
               && m.at(3).chapterID != m.at(2).chapterID,
@@ -354,10 +360,10 @@ int main(int argc, char** argv)
     rig.select(QStringLiteral("Alpha two."), QStringLiteral("Bravo one."));
     rig.copy();
     rig.select(QStringLiteral("Delta"), QStringLiteral("Delta"));
-    check(rig.paste(), QStringLiteral("the paste over a selection reloaded"));
+    check(rig.paste(), QStringLiteral("the paste over a selection landed"));
     check(rig.texts() == QStringList({A, B, C, QStringLiteral("Alpha two."), QStringLiteral("Bravo one. one. Delta two.")}),
           QStringLiteral("the selected word was replaced: %1").arg(shown(rig.texts())));
-    check(rig.undoStructural(), QStringLiteral("Ctrl+Z over it reloaded"));
+    check(rig.undoStructural(), QStringLiteral("Ctrl+Z over it landed"));
     check(rig.texts() == QStringList({A, B, C, QStringLiteral(" one. Delta two.")}),
           QStringLiteral("Ctrl+Z took back the paste, not the removal: %1").arg(shown(rig.texts())));
     rig.undo();
@@ -399,27 +405,48 @@ int main(int argc, char** argv)
     rig.select(QStringLiteral("Alpha two."), QStringLiteral("Bravo one."));
     rig.copy();
     rig.caretAt(QStringLiteral("**Del"));
-    check(rig.paste(), QStringLiteral("the paste inside bold reloaded"));
+    check(rig.paste(), QStringLiteral("the paste inside bold landed"));
     check(rig.texts() == QStringList({A, B, C, QStringLiteral("**Del**Alpha two."), QStringLiteral("Bravo one.**ta** one. Delta two.")}),
           QStringLiteral("the bold closed before the paste and re-opened after it: %1").arg(shown(rig.texts())));
-    check(rig.undoStructural(), QStringLiteral("(undone, reloaded)"));
+    check(rig.undoStructural(), QStringLiteral("(undone, landed)"));
     rig.undo();
     check(rig.texts() == base, QStringLiteral("(the bold undone too): %1").arg(shown(rig.texts())));
 
     // ── 5. The copy buffers hold the structure ──────────────────────────────────────────────────────────────────
     rig.select(QStringLiteral("Alpha two."), QStringLiteral("Bravo one."));
     rig.bufferCopy(1);
-    check(ScriviBridge::buffersGet(rig.projectDir, QStringLiteral("1")).contains(QStringLiteral("fragment")),
-          QStringLiteral("Ctrl+1 across scenes stored the fragment"));
+    check(ScriviBridge::buffersGet(rig.projectDir, QStringLiteral("1")).contains(QStringLiteral("range")),
+          QStringLiteral("Ctrl+1 across scenes stored the Range ([SP-191] Q4a)"));
     check(rig.texts() == base, QStringLiteral("a copy into a slot changes nothing"));
     rig.caretAt(QStringLiteral("Charlie two."));
-    check(rig.bufferPaste(1), QStringLiteral("Ctrl+Shift+1 of a structured slot reloaded"));
+    check(rig.bufferPaste(1), QStringLiteral("Ctrl+Shift+1 of a structured slot landed"));
     check(rig.texts() == QStringList({A, B, C + QStringLiteral("Alpha two."), QStringLiteral("Bravo one."), D}),
           QStringLiteral("Ctrl+Shift+1 rebuilt the scene break: %1").arg(shown(rig.texts())));
-    check(rig.undoStructural(), QStringLiteral("(undone, reloaded)"));
+    check(rig.undoStructural(), QStringLiteral("(undone, landed)"));
     check(rig.texts() == base, QStringLiteral("(undone): %1").arg(shown(rig.texts())));
 
-    // A slot the MAC wrote (`buffers.json` is shared): its fragment rebuilds here too ([SP-179] Q1's notice is gone).
+    // A slot the MAC wrote (`buffers.json` is shared): its Range rebuilds here too ([SP-179] Q1's notice is gone).
+    const QJsonObject macRange{
+        {QStringLiteral("schema"), QStringLiteral("scrivi.range.v1")},
+        {QStringLiteral("scenes"), QJsonArray{
+             QJsonObject{{QStringLiteral("sceneID"), QString()}, {QStringLiteral("chapterID"), QStringLiteral("mac")},
+                         {QStringLiteral("chapterTitle"), QString()}, {QStringLiteral("sceneTitle"), QString()},
+                         {QStringLiteral("start"), 4}, {QStringLiteral("length"), 7}, {QStringLiteral("sceneLength"), 11},
+                         {QStringLiteral("text"), QStringLiteral("Mac one")}},
+             QJsonObject{{QStringLiteral("sceneID"), QString()}, {QStringLiteral("chapterID"), QStringLiteral("mac")},
+                         {QStringLiteral("chapterTitle"), QString()}, {QStringLiteral("sceneTitle"), QString()},
+                         {QStringLiteral("start"), 0}, {QStringLiteral("length"), 7}, {QStringLiteral("sceneLength"), 9},
+                         {QStringLiteral("text"), QStringLiteral("Mac two")}}}}};
+    ScriviBridge::buffersLoad(rig.projectDir, QStringLiteral("2"), QStringLiteral("Mac one\n\nMac two"), compact(macRange));
+    rig.shell->buffers()->refresh();
+    rig.caretAt(QStringLiteral("Delta two."));
+    check(rig.bufferPaste(2), QStringLiteral("Ctrl+Shift+2 of the Mac's slot landed"));
+    check(rig.texts() == QStringList({A, B, C, D + QStringLiteral("Mac one"), QStringLiteral("Mac two")}),
+          QStringLiteral("the Mac's structured slot rebuilt its scene break: %1").arg(shown(rig.texts())));
+    check(rig.undoStructural(), QStringLiteral("(undone, landed)"));
+    check(rig.texts() == base, QStringLiteral("(undone): %1").arg(shown(rig.texts())));
+
+    // ✅ [SP-191] Q4a: a slot written before the buffers held Ranges — an old `scrivi.fragment.v1` — reads as EMPTY.
     const QJsonObject macFragment{
         {QStringLiteral("schema"), QStringLiteral("scrivi.fragment.v1")},
         {QStringLiteral("pieces"), QJsonArray{
@@ -428,39 +455,40 @@ int main(int argc, char** argv)
              QJsonObject{{QStringLiteral("opensWith"), QStringLiteral("scene")}, {QStringLiteral("text"), QStringLiteral("Mac two")},
                          {QStringLiteral("partial"), QStringLiteral("tail")}}}},
         {QStringLiteral("plainText"), QStringLiteral("Mac one\n\nMac two")}};
-    ScriviBridge::buffersLoad(rig.projectDir, QStringLiteral("2"), QStringLiteral("Mac one\n\nMac two"), compact(macFragment));
+    {
+        QFile f(rig.projectDir + QStringLiteral("/history/buffers.json"));
+        check(f.open(QIODevice::WriteOnly | QIODevice::Truncate), QStringLiteral("(write an old-style buffers.json)"));
+        f.write(compact(QJsonObject{{QStringLiteral("schema"), QStringLiteral("scrivi.buffers.v1")},
+                                    {QStringLiteral("buffers"), QJsonArray{QJsonObject{
+                                        {QStringLiteral("bufferID"), QStringLiteral("4")},
+                                        {QStringLiteral("text"), QStringLiteral("Mac one\n\nMac two")},
+                                        {QStringLiteral("updatedAt"), QStringLiteral("2026-10-01T00:00:00Z")},
+                                        {QStringLiteral("fragment"), macFragment}}}}}).toUtf8());
+    }
     rig.shell->buffers()->refresh();
-    rig.caretAt(QStringLiteral("Delta two."));
-    check(rig.bufferPaste(2), QStringLiteral("Ctrl+Shift+2 of the Mac's slot reloaded"));
-    check(rig.texts() == QStringList({A, B, C, D + QStringLiteral("Mac one"), QStringLiteral("Mac two")}),
-          QStringLiteral("the Mac's structured slot rebuilt its scene break: %1").arg(shown(rig.texts())));
-    check(rig.undoStructural(), QStringLiteral("(undone, reloaded)"));
-    check(rig.texts() == base, QStringLiteral("(undone): %1").arg(shown(rig.texts())));
+    check(rig.shell->buffers()->text(QStringLiteral("4")).isEmpty() && rig.shell->buffers()->range(QStringLiteral("4")).isEmpty(),
+          QStringLiteral("Q4a: an old fragment slot reads as empty"));
 
     rig.select(QStringLiteral("Alpha two."), QStringLiteral("Bravo one."));
     rig.bufferCut(3);
-    check(ScriviBridge::buffersGet(rig.projectDir, QStringLiteral("3")).contains(QStringLiteral("fragment")),
-          QStringLiteral("Alt+3 across scenes stored the fragment"));
+    check(ScriviBridge::buffersGet(rig.projectDir, QStringLiteral("3")).contains(QStringLiteral("range")),
+          QStringLiteral("Alt+3 across scenes stored the Range"));
     check(rig.texts() == QStringList({QStringLiteral("Alpha one. "), QStringLiteral(" Bravo two."), C, D}),
           QStringLiteral("Alt+3 across scenes kept the scenes ([I-0270]): %1").arg(shown(rig.texts())));
     rig.undo();
     check(rig.texts() == base, QStringLiteral("(undone in one step): %1").arg(shown(rig.texts())));
     check(notices.isEmpty(), QStringLiteral("no notices so far (got: %1)").arg(notices.join(QStringLiteral(" | "))));
 
-    // ── 6. The Linux paste's history node carries Apple's payload, key for key ─────────────────────────────────────
+    // ── 6. The Linux paste's history node carries what the Mac reads: a `rangePaste`, its Range, its caret ─────────────
     {
         const QList<QJsonObject> payloads = structuralPayloads(rig.projectDir);
         check(!payloads.isEmpty(), QStringLiteral("the log holds structural nodes"));
-        const QStringList keys{QStringLiteral("op"), QStringLiteral("fragmentJSON"), QStringLiteral("caretSceneID"),
-                               QStringLiteral("caretByte"), QStringLiteral("createdSceneIDs"), QStringLiteral("createdChapterIDs"),
-                               QStringLiteral("removedSceneIDs"), QStringLiteral("removedChapterIDs")};
         for (const QJsonObject& p : payloads) {
-            QStringList have = p.keys();
-            have.sort();
-            QStringList want = keys;
-            want.sort();
-            check(have == want && p.value(QStringLiteral("op")).toString() == QStringLiteral("structuredPaste"),
-                  QStringLiteral("a payload with Apple's keys (got %1)").arg(have.join(QLatin1Char(','))));
+            const QJsonObject range = QJsonDocument::fromJson(p.value(QStringLiteral("rangeJSON")).toString().toUtf8()).object();
+            check(p.value(QStringLiteral("op")).toString() == QStringLiteral("rangePaste")
+                      && range.value(QStringLiteral("schema")).toString() == QStringLiteral("scrivi.range.v1")
+                      && !p.value(QStringLiteral("caretSceneID")).toString().isEmpty() && p.contains(QStringLiteral("caretByte")),
+                  QStringLiteral("a rangePaste node with its Range and caret (got %1)").arg(compact(p)));
         }
     }
 
@@ -503,13 +531,13 @@ int main(int argc, char** argv)
     check(rig.texts() == macPasted, QStringLiteral("(the Mac's paste, on disk): %1").arg(shown(rig.texts())));
     check(rig.load(), QStringLiteral("reopened after the Mac's paste"));
     notices.clear();
-    check(rig.undoStructural(), QStringLiteral("Ctrl+Z over the Mac's paste reloaded"));
+    check(rig.undoStructural(), QStringLiteral("Ctrl+Z over the Mac's paste landed"));
     // [I-0298]: the undo crossed into an earlier session — the warning, as for any undo.
     check(notices.contains(QStringLiteral("Undoing changes from a previous session")),
           QStringLiteral("[I-0298] the previous-session warning after a structural undo (notices: %1)")
               .arg(notices.join(QStringLiteral(" | "))));
     check(rig.texts() == kept, QStringLiteral("the Mac's paste undone on Linux: %1").arg(shown(rig.texts())));
-    check(rig.redoStructural(), QStringLiteral("Ctrl+Shift+Z reloaded"));
+    check(rig.redoStructural(), QStringLiteral("Ctrl+Shift+Z landed"));
     check(rig.texts() == macPasted, QStringLiteral("and redone on Linux: %1").arg(shown(rig.texts())));
     check(rig.undoStructural(), QStringLiteral("(undone again)"));
     check(rig.texts() == kept, QStringLiteral("(undone again): %1").arg(shown(rig.texts())));
@@ -546,20 +574,20 @@ int main(int argc, char** argv)
     const QStringList collapsed{QStringLiteral("Alpha one.  Bravo two."), C, D2};
     check(rig.texts() == collapsed, QStringLiteral("(the Mac's old cut, on disk): %1").arg(shown(rig.texts())));
     check(rig.load(), QStringLiteral("reopened after the Mac's cut"));
-    check(rig.undoStructural(), QStringLiteral("Ctrl+Z over the Mac's cut reloaded"));
+    check(rig.undoStructural(), QStringLiteral("Ctrl+Z over the Mac's cut landed"));
     check(rig.texts() == kept, QStringLiteral("the Mac's collapsing cut undone on Linux — scenes and text back: %1").arg(shown(rig.texts())));
-    check(rig.redoStructural(), QStringLiteral("Ctrl+Shift+Z reloaded"));
+    check(rig.redoStructural(), QStringLiteral("Ctrl+Shift+Z landed"));
     check(rig.texts() == collapsed, QStringLiteral("and redone on Linux: %1").arg(shown(rig.texts())));
     for (const QString& n : std::as_const(notices)) {
         check(!n.contains(QStringLiteral("outside Scrivi")),
               QStringLiteral("no outside-change barrier after the Mac's own writes (got: %1)").arg(n));
     }
 
-    std::printf("structured paste: paste + reload %lld ms (5 scenes)\n", static_cast<long long>(pasteMs));
+    std::printf("structured paste: landed in %lld ms (5 scenes)\n", static_cast<long long>(pasteMs));
     rig.close();
 
-    // ── 8. MEASURED, opt-in (SCRIVI_MEASURE_LARGE=1; CI does not pay for it): every structured paste and every structural
-    //       undo reloads the manuscript — timed on 1,186 scenes (~1.8 MB), the size of the writer's real manuscript ──────
+    // ── 8. MEASURED, opt-in (SCRIVI_MEASURE_LARGE=1; CI does not pay for it): a structured paste and its undo — ✅ [SP-191]
+    //       no reload — timed on 1,186 scenes (~1.8 MB), the size of the writer's real manuscript ─────────────────────
     if (qEnvironmentVariableIsSet("SCRIVI_MEASURE_LARGE")) {
         Rig big;
         big.projectDir = rig.projectDir + QStringLiteral("-large");
@@ -610,14 +638,14 @@ int main(int argc, char** argv)
         // Markers for a syscall trace ([I-0297]): a filesystem probe of a path that never exists, so `strace` can split
         // the calls one structured paste makes — and on which thread.
         (void)::open("/scrivi-mark/paste-begin", O_RDONLY);   // fails: ENOENT
-        check(big.paste(), QStringLiteral("the large paste reloaded"));
+        check(big.paste(), QStringLiteral("the large paste landed"));
         (void)::open("/scrivi-mark/paste-end", O_RDONLY);   // fails: ENOENT
-        std::printf("measure: structured paste + reload %lld ms\n", static_cast<long long>(big.lastReloadMs));
+        std::printf("measure: structured paste %lld ms\n", static_cast<long long>(big.lastEditMs));
         check(big.manuscript().size() == 1187, QStringLiteral("one scene more after the paste"));
         (void)::open("/scrivi-mark/undo-begin", O_RDONLY);   // fails: ENOENT
-        check(big.undoStructural(), QStringLiteral("the large undo reloaded"));
+        check(big.undoStructural(), QStringLiteral("the large undo landed"));
         (void)::open("/scrivi-mark/undo-end", O_RDONLY);   // fails: ENOENT
-        std::printf("measure: structural undo + reload %lld ms\n", static_cast<long long>(big.lastReloadMs));
+        std::printf("measure: structural undo %lld ms\n", static_cast<long long>(big.lastEditMs));
         check(big.manuscript().size() == 1186, QStringLiteral("back to 1,186 after the undo"));
         big.close();
     }

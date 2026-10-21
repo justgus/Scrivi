@@ -252,30 +252,8 @@ public:
                                            const QString& chapterID,
                                            const QString& afterChapterID);
 
-    // Merge one scene into the scene immediately BEFORE it in the SAME chapter
-    // (EP-028 / SP-076, T-0305 — the Linux analogue of Apple's ⌘⌫). Calls
-    // scrivi_merge_scene(projectRootPath, sceneID) and returns its ok "result":
-    // {survivorSceneID, mergedSceneID, chapterID, survivorMetadataPath,
-    // survivorContentPath, chapterMetadataPath, merged}. The survivor keeps its own
-    // files; `sceneID`'s body is appended (blank-line join) and its files removed. The
-    // caller (EditorShell) enforces the start-of-scene / first-scene-of-chapter no-op
-    // BEFORE invoking. No author identity (structural, not an authored edit). On
-    // failure emits errorOccurred and returns {}.
-    Q_INVOKABLE QVariantMap mergeScene(const QString& projectRootPath,
-                                       const QString& sceneID);
-
-    // Merge a whole chapter into the chapter immediately BEFORE it in manuscript order
-    // (EP-028 / SP-076, T-0305 — the analogue of ⇧⌘⌫). Calls
-    // scrivi_merge_chapter(projectRootPath, chapterID): every scene file of `chapterID`
-    // is RELOCATED into the predecessor's folder (order-key files renamed after its last
-    // scene), then the emptied chapter is removed. Returns its ok "result":
-    // {survivorChapterID, mergedChapterID, survivorChapterMetadataPath, scenesRelocated,
-    // merged}. This is the atomic, no-scene-loss fix (I-0083) — the caller does NOT
-    // compose it from deleteChapter. The caller enforces the first-scene-of-chapter /
-    // manuscript-start no-op. No author identity. On failure emits errorOccurred,
-    // returns {}.
-    Q_INVOKABLE QVariantMap mergeChapter(const QString& projectRootPath,
-                                         const QString& chapterID);
+    // ⛔ [SP-191] `mergeScene` / `mergeChapter` RETIRED with `scrivi_merge_scene` / `scrivi_merge_chapter`: a scene merge is
+    // `rangeCut` of the zero-length range across the break, a chapter merge `rangeRelabel`.
 
     // Renames one scene — writes the sidecar `title` field (EP-023 / SP-066, T-0254).
     // Calls scrivi_rename_scene(projectRootPath, metadataPath, newTitle) and returns its
@@ -543,6 +521,10 @@ public:
     Q_INVOKABLE QVariantMap rangePaste(const QString& projectRootPath, const QString& rangeJson, const QString& caretSceneID,
                                        long long caretByteOffset, const QString& caretSceneText, const QString& displayName);
     Q_INVOKABLE QVariantMap rangeCut(const QString& projectRootPath, const QString& rangeJson, const QString& displayName);
+    // [SP-191] Q3e: a chapter merge, and its undo — the run of whole scenes in `rangeJson` moves into `targetChapterID` (the
+    // chapter before, after, or a new one; "" = fresh). Answers { delta, range, fromChapterID }.
+    Q_INVOKABLE QVariantMap rangeRelabel(const QString& projectRootPath, const QString& rangeJson,
+                                         const QString& targetChapterID, const QString& displayName);
     Q_INVOKABLE QVariantMap getSceneNotes(const QString& projectRootPath, const QString& sceneID);
     Q_INVOKABLE QVariantMap getWorldBinding(const QString& projectRootPath, const QString& worldID);
     Q_INVOKABLE QVariantMap getWorldStatus(const QString& projectRootPath, const QString& worldID);
@@ -632,12 +614,13 @@ public:
     // ── EP-026 S5 (SP-179 / T-0606): the copy buffers 1–9 (`scrivi_buffers_*`, `history/buffers.json`) ──
     // ✅ Static and best-effort, as the capture calls above: a failure is logged and returns {} (⛔ never `errorOccurred`).
     // Stateless in the core — no open / close. A bufferID outside "1"–"9" fails. Text is STORED text (escapes included).
-    // `fragmentJson` "" = a plain-text slot; a cross-scene copy stores its `scrivi.fragment.v1` too (EP-026 S4, SP-180).
+    // `rangeJson` "" = a plain-text slot; a cross-scene copy stores its `scrivi.range.v1` too ([SP-191] Q4a — anything
+    // else is refused, and a slot written before that reads as empty).
     static QVariantMap buffersLoad(const QString& projectRootPath, const QString& bufferID, const QString& text,
-                                   const QString& fragmentJson = {});
-    // {bufferID, text, updatedAt, present[, fragment]}
+                                   const QString& rangeJson = {});
+    // {bufferID, text, updatedAt, present[, range]}
     static QVariantMap buffersGet(const QString& projectRootPath, const QString& bufferID);
-    // {count, buffers: [{bufferID, text, updatedAt[, fragment]}]} — ⚠️ `buffers` is ABSENT for an empty list.
+    // {count, buffers: [{bufferID, text, updatedAt[, range]}]} — ⚠️ `buffers` is ABSENT for an empty list.
     static QVariantMap buffersList(const QString& projectRootPath);
     // {bufferID, cleared}
     static QVariantMap buffersClear(const QString& projectRootPath, const QString& bufferID);

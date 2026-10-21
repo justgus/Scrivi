@@ -69,10 +69,10 @@ final class BufferService {
         slots.first(where: { $0.bufferID == bufferID })?.text
     }
 
-    // The structured fragment in slot `bufferID`, or nil when the slot is empty or holds
-    // only plain text (T-0355 / AC4). A non-nil result drives structured paste reconstruction.
-    func fragment(inSlot bufferID: String) -> FragmentResult? {
-        slots.first(where: { $0.bufferID == bufferID })?.fragment
+    // The structured Range in slot `bufferID`, or nil when the slot is empty or holds only plain text. A non-nil result
+    // drives the structured paste ([SP-191] Q4a: the buffers hold Ranges, as history does).
+    func range(inSlot bufferID: String) -> ScriviRange? {
+        slots.first(where: { $0.bufferID == bufferID })?.range
     }
 
     // A short single-line preview for slot `bufferID`, or nil when empty. Used by the
@@ -99,14 +99,13 @@ final class BufferService {
     // false on a store failure. No-op for empty text is the caller's call — an empty
     // selection never reaches here.
     @discardableResult
-    func load(_ text: String, intoSlot bufferID: String, fragmentJSON: String = "") -> Bool {
-        // fragmentJSON (a serialized scrivi.fragment.v1) is optional — a cross-boundary
-        // copy/cut passes it so the slot can later reconstruct structure (T-0355 / AC4);
-        // a single-scene copy passes "" and the slot is plain text (AC5). A load always
-        // replaces both, so re-copying plain text into a structured slot clears the fragment.
+    func load(_ text: String, intoSlot bufferID: String, rangeJSON: String = "") -> Bool {
+        // rangeJSON (a serialized scrivi.range.v1) is optional — a cross-scene copy/cut passes it so the slot can later
+        // reconstruct structure; a single-scene copy passes "" and the slot is plain text (AC5). A load always replaces
+        // both, so re-copying plain text into a structured slot clears the Range.
         do {
             try engine.buffersLoad(projectRootPath: projectRootPath, bufferID: bufferID,
-                                   text: text, fragmentJSON: fragmentJSON)
+                                   text: text, rangeJSON: rangeJSON)
             refresh()
             return true
         } catch {

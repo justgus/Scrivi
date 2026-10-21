@@ -35,8 +35,8 @@ constexpr int kRuleInset = 20;
 // EP-049: Scrivi's own clipboard data carries the STORED source here, so an in-app paste restores it
 // exactly (Apple remembers its own pasteboard write — `ownCopy`; same result, Qt means).
 const QString kSourceMime = QStringLiteral("application/x-scrivi-manuscript-source");
-// EP-026 S4 ([SP-180] Q1): a cross-scene copy's clipboard data carries this editor's token for the fragment it holds —
-// ✅ never the fragment itself (T2=A: the system clipboard carries flat text only).
+// EP-026 S4 ([SP-180] Q1): a cross-scene copy's clipboard data carries this editor's token for the Range it holds —
+// ✅ never the Range itself (T2=A: the system clipboard carries flat text only).
 const QString kFragmentTokenMime = QStringLiteral("application/x-scrivi-fragment-token");
 }   // namespace
 
@@ -842,13 +842,13 @@ QMimeData* ManuscriptEditor::createMimeDataFromSelection() const
     int end = cursor.selectionEnd();
     widenOverPairs(start, end);
     auto* mime = new QMimeData;
-    // ✅ EP-026 S4: across scenes, the fragment is held here for Scrivi's own paste and its token rides on the clipboard;
+    // ✅ EP-026 S4: across scenes, the Range is held here for Scrivi's own paste and its token rides on the clipboard;
     // the clipboard's text is the pieces joined by a blank line, no headings ([SP-180] Q4).
     if (const auto cross = clipboardCopy_ ? crossSceneCopy() : std::nullopt) {   // [I-0307]: the clipboard's only
-        heldFragment_ = cross->fragment;
+        heldRange_ = cross->range;
         heldToken_ = QStringLiteral("%1:%2").arg(quintptr(this)).arg(++copySerial_);
         mime->setText(cross->presented);
-        mime->setData(kSourceMime, cross->fragment.value(QStringLiteral("plainText")).toString().toUtf8());
+        mime->setData(kSourceMime, cross->source.toUtf8());
         mime->setData(kFragmentTokenMime, heldToken_.toUtf8());
         return mime;
     }
@@ -865,9 +865,9 @@ void ManuscriptEditor::pasteClipboard()
     const QMimeData* clip = QApplication::clipboard()->mimeData();
     // [SP-180] Q1: only THIS editor's last cross-scene copy, and only while the clipboard still holds it — anything copied
     // since, here or in any other app, replaced the token. A copy from another project's window carries its own token.
-    if (sceneDoc_ != nullptr && clip != nullptr && !heldFragment_.isEmpty() && clip->hasFormat(kFragmentTokenMime)
+    if (sceneDoc_ != nullptr && clip != nullptr && !heldRange_.isEmpty() && clip->hasFormat(kFragmentTokenMime)
         && QString::fromUtf8(clip->data(kFragmentTokenMime)) == heldToken_) {
-        emit structuredPasteRequested(heldFragment_);
+        emit structuredPasteRequested(heldRange_);
         return;
     }
     // The flat paste: widen a selection that would split an escape pair, then Qt's paste → `insertFromMimeData`.
@@ -886,18 +886,18 @@ void ManuscriptEditor::pasteClipboard()
 std::optional<ManuscriptEditor::CrossSceneCopy> ManuscriptEditor::crossSceneCopy() const
 {
     const QTextCursor cursor = textCursor();
-    if (sceneDoc_ == nullptr || !extractFragment_ || !cursor.hasSelection()) {
+    if (sceneDoc_ == nullptr || !cursor.hasSelection()) {
         return std::nullopt;
     }
     int start = cursor.selectionStart();
     int end = cursor.selectionEnd();
     widenOverPairs(start, end);
-    // One span per scene the selection touches, in reading order (Apple: `fragmentSpans`): the selected part of each body,
-    // as scene-local UTF-8 bytes — and a ZERO-length span for a scene whose start lies inside the selection with none of
-    // its text selected (a boundary crossed). Crossing needs two scenes with text selected (`selectionCrossesBoundary`).
-    struct Part { int index; int from; int to; };
-    QList<Part> parts;
-    QJsonArray spans;
+    // One entry per scene the selection touches, in reading order (Apple: `copiedRange`): the selected part of each body —
+    // and an EMPTY entry for a scene whose start lies inside the selection with none of its text selected (a boundary
+    // crossed). Crossing needs two scenes with text selected (`selectionCrossesBoundary`).
+    QJsonArray entries;
+    QStringList sources;
+    QStringList presented;
     int withText = 0;
     const QList<SceneSegment>& segs = sceneDoc_->segments();
     for (int i = 0; i < segs.size(); ++i) {
@@ -912,39 +912,42 @@ std::optional<ManuscriptEditor::CrossSceneCopy> ManuscriptEditor::crossSceneCopy
         const int from = b > a ? a - seg.bodyStart : 0;
         const int to = b > a ? b - seg.bodyStart : 0;
         const QString body = sceneDoc_->bodyText(i);
-        spans.append(QJsonObject{{QStringLiteral("sceneID"), seg.sceneID},
-                                 {QStringLiteral("startByte"), qint64(body.left(from).toUtf8().size())},
-                                 {QStringLiteral("endByte"), qint64(body.left(to).toUtf8().size())}});
-        parts.append({i, from, to});
+        // ✅ [T-0591]: each scene's piece is BALANCED (EP-046 AC12) — the stateless markdown call, on the piece's text.
+        const auto copy = ScriviBridge::markdownBalancedCopy(body, from, to);
+        entries.append(QJsonObject{{QStringLiteral("sceneID"), seg.sceneID},
+                                   {QStringLiteral("chapterID"), seg.chapterID},
+                                   {QStringLiteral("chapterTitle"), seg.chapterTitle},
+                                   {QStringLiteral("sceneTitle"), seg.title},
+                                   {QStringLiteral("start"), qint64(body.left(from).toUtf8().size())},
+                                   {QStringLiteral("length"), 0},
+                                   {QStringLiteral("sceneLength"), qint64(body.toUtf8().size())},
+                                   {QStringLiteral("text"), copy.first}});
+        sources.append(copy.first);
+        presented.append(copy.second);
     }
     if (withText < 2) {
         return std::nullopt;
     }
-    QJsonObject fragment = extractFragment_(spans);
-    QJsonArray pieces = fragment.value(QStringLiteral("pieces")).toArray();
-    if (pieces.isEmpty()) {
-        return std::nullopt;   // refused (logged by the bridge) — the flat copy runs
+    const QJsonObject range{{QStringLiteral("schema"), QStringLiteral("scrivi.range.v1")}, {QStringLiteral("scenes"), entries}};
+    return CrossSceneCopy{normalizedRange(range), sources.join(QStringLiteral("\n\n")), presented.join(QStringLiteral("\n\n"))};
+}
+
+QJsonObject ManuscriptEditor::normalizedRange(QJsonObject range)
+{
+    QJsonArray entries = range.value(QStringLiteral("scenes")).toArray();
+    const qsizetype n = entries.size();
+    for (qsizetype i = 0; i < n; ++i) {
+        QJsonObject e = entries.at(i).toObject();
+        const qint64 length = e.value(QStringLiteral("text")).toString().toUtf8().size();
+        const qint64 start = i > 0 ? 0 : e.value(QStringLiteral("start")).toInteger();
+        const qint64 whole = e.value(QStringLiteral("sceneLength")).toInteger();
+        e.insert(QStringLiteral("start"), start);
+        e.insert(QStringLiteral("length"), length);
+        e.insert(QStringLiteral("sceneLength"), i + 1 < n ? start + length : std::max(whole, start + length));
+        entries.replace(i, e);
     }
-    if (pieces.size() != parts.size()) {
-        const QString flat = fragment.value(QStringLiteral("plainText")).toString();
-        return CrossSceneCopy{fragment, ManuscriptEscapes::map(flat).presented};
-    }
-    // ✅ [T-0591]: each scene's piece is BALANCED (EP-046 AC12) — the text comes from the editor, the structure (scene and
-    // chapter breaks, titles) from the core (Apple: `balancedFragment`).
-    QStringList sources;
-    QStringList presented;
-    for (int k = 0; k < parts.size(); ++k) {
-        const Part& p = parts.at(k);
-        const auto copy = ScriviBridge::markdownBalancedCopy(sceneDoc_->bodyText(p.index), p.from, p.to);
-        QJsonObject piece = pieces.at(k).toObject();
-        piece.insert(QStringLiteral("text"), copy.first);
-        pieces.replace(k, piece);
-        sources.append(copy.first);
-        presented.append(copy.second);
-    }
-    fragment.insert(QStringLiteral("pieces"), pieces);
-    fragment.insert(QStringLiteral("plainText"), sources.join(QStringLiteral("\n\n")));
-    return CrossSceneCopy{fragment, presented.join(QStringLiteral("\n\n"))};
+    range.insert(QStringLiteral("scenes"), entries);
+    return range;
 }
 
 bool ManuscriptEditor::removeSelectionForPaste()
@@ -1106,7 +1109,7 @@ QString ManuscriptEditor::selectionSource() const
 }
 
 bool ManuscriptEditor::cutSelectionIntoBuffer(const QString& bufferID,
-                                              const std::function<bool(const QString& source, const QJsonObject& fragment)>& store)
+                                              const std::function<bool(const QString& source, const QJsonObject& range)>& store)
 {
     const QTextCursor cursor = textCursor();
     if (sceneDoc_ == nullptr || !cursor.hasSelection()) {
@@ -1119,10 +1122,9 @@ bool ManuscriptEditor::cutSelectionIntoBuffer(const QString& bufferID,
     if (!inOneScene && sceneDoc_->crossSceneCuts(start, end).isEmpty()) {
         return false;   // it touches only a boundary — refused, as Ctrl+X refuses it
     }
-    // The slot FIRST: the text must survive a store failure and the delete being undone. Across scenes, the fragment
-    // (EP-026 S4).
+    // The slot FIRST: the text must survive a store failure and the delete being undone. Across scenes, the Range.
     const auto cross = inOneScene ? std::nullopt : crossSceneCopy();
-    const bool stored = cross ? store(cross->fragment.value(QStringLiteral("plainText")).toString(), cross->fragment)
+    const bool stored = cross ? store(cross->source, cross->range)
                               : store(balancedCopyOf(start, end).first, QJsonObject());
     if (!stored) {
         return false;

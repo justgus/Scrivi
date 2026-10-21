@@ -755,14 +755,11 @@ target_link_libraries(scrivi_linux_chapter_reorder_smoke
 target_include_directories(scrivi_linux_chapter_reorder_smoke PRIVATE src)
 target_compile_features(scrivi_linux_chapter_reorder_smoke PRIVATE cxx_std_23)
 
-# --- Headless scene/chapter merge smoke (SP-076 / T-0306, EP-028 AC5/AC6/AC7) --
-# Builds a 5-scene/2-chapter fixture, then through the bridge (the layer EditorShell's
-# merge slots call): merges a scene into the previous same-chapter scene via
-# ScriviBridge::mergeScene (asserts on reopen that the absorbed scene's files are gone
-# and the survivor holds both bodies, blank-line joined); and merges a whole chapter into
-# the previous one via ScriviBridge::mergeChapter (asserts every scene relocated —
-# nothing lost, the I-0083 fix — the emptied chapter removed, bodies intact). Needs
-# Widgets for QApplication. scene_merge_smoke.sh.
+# --- Headless scene/chapter merge smoke (SP-076 / T-0306, EP-028 AC5/AC6/AC7; ✅ [SP-191] as range calls) --
+# Builds a 5-scene/2-chapter fixture, then through the bridge: merges a scene into the previous same-chapter scene — a
+# rangeCut of the break (the survivor holds both bodies, joined directly) — and undoes it; and merges a whole chapter into
+# the previous one — a rangeRelabel (every scene relocated, nothing lost: the I-0083 fix; the emptied chapter removed) — and
+# undoes it. Needs Widgets for QApplication. scene_merge_smoke.sh.
 qt_add_executable(scrivi_linux_scene_merge_smoke
     tests/scene_merge_smoke.cpp
     src/AppSupport.cpp

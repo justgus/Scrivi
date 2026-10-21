@@ -55,10 +55,13 @@ Result<std::vector<BufferSlot>> BufferStore::readAll() {
         slot.bufferID  = item.getString("bufferID");
         slot.text      = item.getString("text");
         slot.updatedAt = item.getString("updatedAt");
-        // Optional structured fragment (T-0355 / AC4). Stored as a nested object; read it
-        // back to its serialized string form. Absent for plain-text slots (SP-056).
+        // ✅ [SP-191] Q4a: an old-style slot (a `fragment`) is EMPTY — skipped, and gone at the next write.
         if (item.contains("fragment")) {
-            slot.fragment = item.getSubDoc("fragment").dump(0);
+            continue;
+        }
+        // Optional structured content: a nested scrivi.range.v1 object, read back to its serialized string form.
+        if (item.contains("range")) {
+            slot.range = item.getSubDoc("range").dump(-1);
         }
         if (isValidBufferID(slot.bufferID)) {   // ignore out-of-range/garbage entries
             slots.push_back(std::move(slot));
@@ -92,14 +95,13 @@ Result<void> BufferStore::writeAll(std::vector<BufferSlot> slots) {
         // so the on-disk shape matches Appendix A.3 without a null-writing helper.
         item.setString("text",      slot.text);
         item.setString("updatedAt", slot.updatedAt);
-        // Embed the structured fragment as a nested object when present (T-0355 / AC4).
-        // Additive (T4=A): plain-text slots write no "fragment" key, so old readers and old
-        // files are unaffected. A malformed fragment string is simply skipped (never blocks
-        // a write — the flat `text` remains authoritative).
-        if (!slot.fragment.empty()) {
-            auto fragR = util::parseJson(slot.fragment);
-            if (fragR.ok()) {
-                item.setSubDoc("fragment", std::move(fragR.value()));
+        // The structured content as a nested scrivi.range.v1 object when present. Plain-text
+        // slots write no "range" key. A malformed string is simply skipped (never blocks a
+        // write — the flat `text` remains authoritative).
+        if (!slot.range.empty()) {
+            auto rangeR = util::parseJson(slot.range);
+            if (rangeR.ok()) {
+                item.setSubDoc("range", std::move(rangeR.value()));
             }
         }
         doc.appendToArray("buffers", std::move(item));
@@ -108,7 +110,7 @@ Result<void> BufferStore::writeAll(std::vector<BufferSlot> slots) {
 }
 
 Result<std::string> BufferStore::load(const std::string& bufferID, const std::string& text,
-                                      const std::string& fragment,
+                                      const std::string& range,
                                       const std::string& nowTimestamp) {
     if (!isValidBufferID(bufferID)) {
         return Result<std::string>::failure(
@@ -123,16 +125,16 @@ Result<std::string> BufferStore::load(const std::string& bufferID, const std::st
         ? (clock_ ? clock_->nowUTC() : std::string{})
         : nowTimestamp;
 
-    // Create-or-replace the slot. A load always replaces BOTH text and fragment, so
-    // re-copying plain text into a slot that previously held a fragment clears the fragment.
+    // Create-or-replace the slot. A load always replaces BOTH text and range, so
+    // re-copying plain text into a slot that previously held a range clears the range.
     auto it = std::find_if(slots.begin(), slots.end(),
                            [&](const BufferSlot& s) { return s.bufferID == bufferID; });
     if (it != slots.end()) {
         it->text = text;
-        it->fragment = fragment;
+        it->range = range;
         it->updatedAt = stamp;
     } else {
-        slots.push_back(BufferSlot{bufferID, text, stamp, fragment});
+        slots.push_back(BufferSlot{bufferID, text, stamp, range});
     }
 
     auto writeR = writeAll(std::move(slots));

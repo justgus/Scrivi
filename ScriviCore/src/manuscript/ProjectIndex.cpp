@@ -213,6 +213,21 @@ bool ProjectIndex::insertScenesAfter(const SceneID& after, std::vector<SceneLoca
     return true;
 }
 
+bool ProjectIndex::insertScenesBefore(const SceneID& before, std::vector<SceneLocation> scenes) {
+    if (!valid_) { return false; }
+    const auto at = bySceneID_.find(before.value);
+    if (at == bySceneID_.end()) { return false; }
+    std::unordered_set<std::string> seen;
+    for (const auto& s : scenes) {
+        if (bySceneID_.count(s.sceneID.value) > 0 || !seen.insert(s.sceneID.value).second) { return false; }
+    }
+    for (const auto& s : scenes) { storyTimes_.try_emplace(s.sceneID.value, SceneStoryTime{}); }
+    scenes_.insert(scenes_.begin() + static_cast<std::ptrdiff_t>(at->second),
+                   std::make_move_iterator(scenes.begin()), std::make_move_iterator(scenes.end()));
+    restampOrdinals();
+    return true;
+}
+
 bool ProjectIndex::removeScenes(const std::vector<SceneID>& sceneIDs) {
     if (!valid_) { return false; }
     std::unordered_set<std::string> gone;

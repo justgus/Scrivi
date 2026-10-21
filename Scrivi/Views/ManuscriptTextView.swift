@@ -385,12 +385,12 @@ struct ManuscriptTextView: NSViewRepresentable {
         // returned full scene text into that scene's storage range, restores the
         // cursor, and saves immediately.
         func performUndo() {
-            guard !isWritingOffMain, let capture = parent.session.historyCapture else { return }
+            guard !isWritingOffMain, !parent.loader.structuralInFlight, let capture = parent.session.historyCapture else { return }
             apply(step: capture.undo(), fallbackMessage: "Nothing to undo")
         }
 
         func performRedo() {
-            guard !isWritingOffMain, let capture = parent.session.historyCapture else { return }
+            guard !isWritingOffMain, !parent.loader.structuralInFlight, let capture = parent.session.historyCapture else { return }
             apply(step: capture.redo(), fallbackMessage: nil)
         }
 
@@ -408,8 +408,8 @@ struct ManuscriptTextView: NSViewRepresentable {
                 return
             }
 
-            // Reversible structural step (T-0356 / AC6): the pointer crossed a structuredCut/
-            // structuredPaste node. Run the inverse fragment op on disk + reload — no text change.
+            // Reversible structural step: the pointer crossed a structural node. ✅ [SP-191]: the inverse range call, off the
+            // main actor, the delta applied — no reload.
             if let inverse = step.structuralInverse {
                 applyStructuralInverse(inverse)
                 capture.refreshCanState()
@@ -596,65 +596,130 @@ struct ManuscriptTextView: NSViewRepresentable {
             alert.runModal()
         }
 
-        // redo-of-a-cut needs the scene/chapter IDs that undo-of-that-cut re-pasted, so it can
-        // remove them again. Keyed by the structural payload's stable identity (op + caret +
-        // fragment), which is identical on the undo and the matching redo (same history node).
-        // Session-local: a redo only ever follows an undo within the same run. (T-0356)
-        private var structuralRedoCreated: [String: (scenes: [String], chapters: [String])] = [:]
-
-        private func structuralCacheKey(_ p: HistoryStructuralPayload) -> String {
-            "\(p.op)|\(p.caretSceneID)|\(p.caretByte)|\(p.fragmentJSON.hashValue)"
-        }
-
-        // Runs the inverse of a structuredCut/structuredPaste on disk, then reloads (T-0356 / AC6).
-        // The four directions reduce to two disk ops — a paste-splice or its uncut inverse:
-        //   undo-cut    → paste the extracted fragment back at the fold point
-        //   redo-paste  → paste the same fragment at the target again
-        //   undo-paste  → uncut the created scenes/chapters (strip pasted text, re-join target)
-        //   redo-cut    → uncut the scenes the undo-cut just re-pasted
+        // ✅ [SP-191] Undo and redo of a structural node: the inverse range call, through the same off-main path as the edit
+        // itself — the delta applied, one run rendered, nothing re-opened. Each node holds the ONE Range both directions use
+        // (see `HistoryStructuralPayload`):
+        //   rangePaste    undo = cut what it inserted          redo = paste that again at its caret
+        //   rangeCut      undo = paste what it removed back at the survivor's seam (sidecars restored, Q3b)
+        //                 redo = cut that again (the undo restored it exactly)
+        //   rangeRelabel  undo = relabel the run back into the chapter it left (re-created from its sidecar when it was
+        //                 removed)                             redo = into the chapter it went to
+        // ✅ [SP-187] Q2: the nodes written before SP-191 (`structuredPaste` / `structuredCut`, a scrivi.fragment.v1) are
+        // CONVERTED to a Range and take the same path. ⚠️ An inverse the core refuses steps the history back, so the pointer
+        // never says the manuscript is somewhere it is not.
         private func applyStructuralInverse(_ inverse: HistoryStructuralInverse) {
             let p = inverse.payload
-            guard let rootPath = parent.session.projectRootPath,
-                  let ref = parent.env.authorshipRef,
-                  let projectID = parent.session.openProjectResult?.projectID else { return }
-            let key = structuralCacheKey(p)
-
-            // Does this direction re-INSERT the fragment (a paste) or REMOVE it (an uncut)?
-            let isPaste = (p.op == "structuredCut" && inverse.direction == "undo")
-                       || (p.op == "structuredPaste" && inverse.direction == "redo")
-
-            if isPaste {
-                guard let result = try? parent.env.engine.fragmentPaste(
-                    projectRootPath: rootPath,
-                    appSupportRoot: parent.session.appSupportRoot,
-                    projectID: projectID,
-                    fragmentJSON: p.fragmentJSON,
-                    caretSceneID: p.caretSceneID,
-                    caretByteOffset: p.caretByte,
-                    authorshipRef: ref) else {
-                    print("[Scrivi] applyStructuralInverse: paste failed"); return
-                }
-                // Remember what this paste created so the matching uncut direction can remove it.
-                structuralRedoCreated[key] = (result.createdSceneIDs, result.createdChapterIDs)
-                reloadManuscriptFromDisk(caretSceneID: result.targetSceneID, caretByteOffset: p.caretByte)
-            } else {
-                // Uncut: remove the created scenes/chapters and re-join the target. For undo-paste
-                // the created IDs are the paste's own (carried in the payload); for redo-cut they
-                // are what the preceding undo-cut re-pasted (from the session cache).
-                let created = structuralRedoCreated[key]
-                let sceneIDs   = created?.scenes   ?? p.createdSceneIDs
-                let chapterIDs = created?.chapters ?? p.createdChapterIDs
-                guard let result = try? parent.env.engine.fragmentUncutPaste(
-                    projectRootPath: rootPath,
-                    fragmentJSON: p.fragmentJSON,
-                    targetSceneID: p.caretSceneID,
-                    createdSceneIDs: sceneIDs,
-                    createdChapterIDs: chapterIDs) else {
-                    print("[Scrivi] applyStructuralInverse: uncut failed"); return
-                }
-                structuralRedoCreated[key] = nil   // consumed; a later paste re-populates it
-                reloadManuscriptFromDisk(caretSceneID: result.survivingSceneID, caretByteOffset: p.caretByte)
+            let undo = inverse.direction == "undo"
+            let stepBack: @MainActor () -> Void = { [weak self] in
+                guard let capture = self?.parent.session.historyCapture else { return }
+                _ = undo ? capture.redo() : capture.undo()
             }
+            switch p.op {
+            case "rangePaste", "rangeCut", "rangeRelabel":
+                guard let range = try? JSONDecoder().decode(ScriviRange.self, from: Data(p.rangeJSON.utf8)) else {
+                    NSSound.beep(); stepBack(); return
+                }
+                let removes = (p.op == "rangePaste") == undo        // paste's undo and cut's redo both cut
+                if p.op == "rangeRelabel" {
+                    let target = undo ? p.fromChapterID : p.targetChapterID
+                    let keep = caretInScene()?.seg.sceneID ?? range.scenes.first?.sceneID ?? ""
+                    inverseEdit({ engine, root, ref in
+                        try engine.rangeRelabel(projectRootPath: root, range: range, targetChapterID: target,
+                                                authorshipRef: ref)
+                    }, caret: { _ in (keep, 0) }, failed: stepBack)
+                } else if removes {
+                    inverseEdit({ engine, root, ref in
+                        try engine.rangeCut(projectRootPath: root, range: range, authorshipRef: ref)
+                    }, caret: { r in r.undoCaretSceneID.map { ($0, r.undoCaretByte ?? 0) } }, failed: stepBack)
+                } else {
+                    pasteInverse(range, at: p.caretSceneID, byte: p.caretByte, failed: stepBack)
+                }
+            case "structuredPaste":
+                // The paste's undo is a cut of what it inserted — the fragment's pieces under the IDs it created.
+                guard let inserted = oldPasteRange(p) else { NSSound.beep(); stepBack(); return }
+                if undo {
+                    inverseEdit({ engine, root, ref in
+                        try engine.rangeCut(projectRootPath: root, range: inserted, authorshipRef: ref)
+                    }, caret: { r in r.undoCaretSceneID.map { ($0, r.undoCaretByte ?? 0) } }, failed: stepBack)
+                } else {
+                    pasteInverse(inserted.normalized(), at: p.caretSceneID, byte: p.caretByte, failed: stepBack)
+                }
+            case "structuredCut":
+                // The collapsing cut (retired by [I-0270]): its undo pastes the fragment back at the survivor; its redo cuts
+                // what that paste inserted, remembered for this session.
+                let key = "\(p.caretSceneID)|\(p.caretByte)|\(p.fragmentJSON.hashValue)"
+                if undo {
+                    guard let range = Self.rangeFromFragment(p.fragmentJSON) else { NSSound.beep(); stepBack(); return }
+                    pasteInverse(range, at: p.caretSceneID, byte: p.caretByte, failed: stepBack) { [weak self] r in
+                        self?.oldCutRedo[key] = r.range
+                    }
+                } else {
+                    guard let inserted = oldCutRedo.removeValue(forKey: key) else { NSSound.beep(); stepBack(); return }
+                    inverseEdit({ engine, root, ref in
+                        try engine.rangeCut(projectRootPath: root, range: inserted, authorshipRef: ref)
+                    }, caret: { r in r.undoCaretSceneID.map { ($0, r.undoCaretByte ?? 0) } }, failed: stepBack)
+                }
+            default:
+                NSSound.beep()
+                stepBack()
+            }
+        }
+
+        /// An old `structuredCut`'s redo needs what its undo's paste inserted — kept for this session only (as before).
+        private var oldCutRedo: [String: ScriviRange] = [:]
+
+        private func inverseEdit(_ call: @escaping @Sendable (ScriviEngine, String, AuthorshipRef) throws -> RangeOperationResult,
+                                 caret: @escaping StructuralCaret, failed: @escaping @MainActor () -> Void) {
+            if !runStructuralEdit("Undoing…", call, node: nil, caret: caret, failed: failed) { failed() }
+        }
+
+        /// A paste of `range` at (sceneID, byte), the caret at the end of what it put back.
+        private func pasteInverse(_ range: ScriviRange, at sceneID: String, byte: Int, failed: @escaping @MainActor () -> Void,
+                                  inserted: (@MainActor (RangeOperationResult) -> Void)? = nil) {
+            guard let text = parent.loader.segments.first(where: { $0.sceneID == sceneID })?.text else { failed(); return }
+            inverseEdit({ engine, root, ref in
+                try engine.rangePaste(projectRootPath: root, range: range, caretSceneID: sceneID, caretByteOffset: byte,
+                                      caretSceneText: text, authorshipRef: ref)
+            }, caret: { r in
+                inserted?(r)
+                return r.range.scenes.last.map { ($0.sceneID, $0.start + $0.length) }
+            }, failed: failed)
+        }
+
+        /// [SP-187] Q2: what an old `structuredPaste` inserted, as a Range — the fragment's pieces under the target and the
+        /// scenes and chapters it created, each with its length as the scene list holds it now.
+        private func oldPasteRange(_ p: HistoryStructuralPayload) -> ScriviRange? {
+            guard let frag = try? JSONDecoder().decode(FragmentResult.self, from: Data(p.fragmentJSON.utf8)),
+                  !frag.pieces.isEmpty, frag.pieces.count == p.createdSceneIDs.count + 1 else { return nil }
+            let byID = Dictionary(parent.loader.segments.map { ($0.sceneID, $0) }, uniquingKeysWith: { a, _ in a })
+            var chapter = byID[p.caretSceneID]?.chapterID ?? ""
+            var created = p.createdChapterIDs.makeIterator()
+            var entries: [ScriviRange.Entry] = []
+            for (i, piece) in frag.pieces.enumerated() {
+                let id = i == 0 ? p.caretSceneID : p.createdSceneIDs[i - 1]
+                if piece.opensWith == "chapter" { chapter = created.next() ?? "" }
+                let start = i == 0 ? p.caretByte : 0
+                let length = piece.text.utf8.count
+                entries.append(.init(sceneID: id, chapterID: byID[id]?.chapterID ?? chapter,
+                                     chapterTitle: piece.chapterTitle ?? "", sceneTitle: piece.sceneTitle ?? "",
+                                     start: start, length: length,
+                                     sceneLength: byID[id]?.text.utf8.count ?? start + length, text: piece.text))
+            }
+            return ScriviRange(scenes: entries)
+        }
+
+        /// [SP-187] Q2: an old scrivi.fragment.v1 as a Range with no identity — a paste of it mints fresh IDs.
+        static func rangeFromFragment(_ json: String) -> ScriviRange? {
+            guard let frag = try? JSONDecoder().decode(FragmentResult.self, from: Data(json.utf8)), !frag.pieces.isEmpty
+            else { return nil }
+            var chapter = 0
+            let entries = frag.pieces.map { piece -> ScriviRange.Entry in
+                if piece.opensWith == "chapter" { chapter += 1 }
+                return .init(sceneID: "", chapterID: "~fragment-chapter-\(chapter)", chapterTitle: piece.chapterTitle ?? "",
+                             sceneTitle: piece.sceneTitle ?? "", start: 0, length: piece.text.utf8.count,
+                             sceneLength: piece.text.utf8.count, text: piece.text)
+            }
+            return ScriviRange(scenes: entries)
         }
 
         // [I-0273] The restore's centring target, held until the scroll view has a height
@@ -968,17 +1033,11 @@ struct ManuscriptTextView: NSViewRepresentable {
             guard let tv = textView else { return }
             let sel = tv.selectedRange()
             guard sel.length > 0 else { return }
-            // Cross-boundary selection → store a STRUCTURED fragment (flat text + fragment) so
-            // ⌃⌘N can reconstruct the scene/chapter boundaries (T-0355 / AC4). Single-scene keeps
-            // the flat-text slot (AC5). Copy is not a text change → no history event (Trade T3).
-            if selectionCrossesBoundary(sel),
-               let spans = fragmentSpans(for: sel),
-               let rootPath = parent.session.projectRootPath,
-               let raw = try? parent.env.engine.fragmentExtract(projectRootPath: rootPath, spans: spans) {
-                // ✅ [I-0289]: each scene's piece balanced, as ⌘C's are ([T-0591]).
-                let frag = balancedFragment(raw, sel).fragment
-                parent.session.bufferService?.load(frag.plainText, intoSlot: bufferID,
-                                                   fragmentJSON: frag.toJSON())
+            // Cross-scene selection → store a STRUCTURED slot (flat text + a Range) so ⌃⌘N can reconstruct the scene and
+            // chapter breaks. ✅ [SP-191]: the Range is built from the scene list — no core call, no disk read (§4.2b).
+            // Single-scene keeps the flat-text slot (AC5). Copy is not a text change → no history event (Trade T3).
+            if selectionCrossesBoundary(sel), let copied = copiedRange(sel), let json = try? copied.range.toJSON() {
+                parent.session.bufferService?.load(copied.source, intoSlot: bufferID, rangeJSON: json)
                 return
             }
             parent.session.bufferService?.load(balancedSource(tv, sel), intoSlot: bufferID)
@@ -1040,11 +1099,10 @@ struct ManuscriptTextView: NSViewRepresentable {
             // No-op on the keyboard path. This is why the earlier row-click paste failed.
             tv.window?.makeFirstResponder(tv)
 
-            // Structured slot → reconstruct the carried scene/chapter boundaries at the caret
-            // (T-0355 / AC4), the same path as ⌘V of a cross-boundary copy. A heading caret is
-            // refused (flash) inside pasteStructuredFragment.
-            if let frag = parent.session.bufferService?.fragment(inSlot: bufferID) {
-                _ = pasteStructuredFragment(frag)
+            // Structured slot → reconstruct the carried scene/chapter breaks at the caret, the same path as ⌘V of a
+            // cross-scene copy. A heading caret is refused (flash) inside pasteStructuredRange.
+            if let range = parent.session.bufferService?.range(inSlot: bufferID) {
+                _ = pasteStructuredRange(range)
                 return
             }
 
@@ -1207,519 +1265,220 @@ struct ManuscriptTextView: NSViewRepresentable {
 
         // MARK: — Scene/Chapter creation and split/merge (called from ManuscriptNSTextView)
 
-        // Cmd-Enter: split scene at cursor, or append empty scene if at end.
+        // MARK: — [SP-191] Structural edits: ONE range call, off the main actor, the delta applied
+
+        /// What a structural edit brings back from off the main actor: the core's answer, the history state after its node
+        /// was recorded THERE, and the timeline's story times read THERE — so the main actor makes no core call for it.
+        struct StructuralLanding: Sendable {
+            let result: RangeOperationResult
+            let history: CaptureState?
+            let storyTimes: StoryTimesResult?
+        }
+
+        /// The history node a structural edit records, built from the core's answer (off the main actor). An undo or redo
+        /// passes nil: it crosses a node, it does not add one.
+        typealias StructuralNode = @Sendable (RangeOperationResult) -> HistoryStructuralPayload?
+        /// Where the caret goes once the delta is applied: a scene and a scene-local UTF-8 byte offset.
+        typealias StructuralCaret = @MainActor (RangeOperationResult) -> (sceneID: String, byte: Int)?
+
+        /// ✅ [SP-191] The ONE path every structural edit takes — paste, split, chapter split, merge, chapter merge, and the
+        /// undo and redo of each (user, 2026-10-17: *"one range call, apply in memory"*):
+        ///  1. the cue, in THIS event-loop turn (Q5): the editor stops taking input, so the caret goes;
+        ///  2. off the main actor: the unsaved scenes written, the pending typing committed, the ONE range call, its history
+        ///     node, the story times;
+        ///  3. back on it: the delta applied to the scene list, ONE run rendered, the caret placed. Nothing re-opens the
+        ///     project (⛔ `reloadManuscriptFromDisk` is gone).
+        /// Returns false, doing nothing, while another is in flight — Q5: ignored, not queued.
+        @discardableResult
+        func runStructuralEdit(_ label: String,
+                               _ call: @escaping @Sendable (ScriviEngine, String, AuthorshipRef) throws -> RangeOperationResult,
+                               node: StructuralNode?,
+                               caret: @escaping StructuralCaret,
+                               failed: (@MainActor () -> Void)? = nil) -> Bool {
+            let loader = parent.loader
+            guard !loader.structuralInFlight, let tv = textView,
+                  let root = parent.session.projectRootPath, let ref = parent.env.authorshipRef else { return false }
+            let historyRoot = node == nil ? nil : parent.session.historyCapture?.offMainRoot
+            // What each scene held before — the node needs it for the scenes the edit rewrites or removes ([I-0293]).
+            let before = Dictionary(loader.segments.map { ($0.sceneID, $0.text) }, uniquingKeysWith: { a, _ in a })
+            tv.isEditable = false                                   // ✅ Q5: the cue — at once, before any core call
+            let started = loader.runStructural(label, ref: ref, { engine -> StructuralLanding in
+                if let historyRoot { _ = try? engine.captureFlush(projectRootPath: historyRoot, trigger: "flush") }
+                let result = try call(engine, root, ref)
+                var history: CaptureState?
+                if let historyRoot, let payload = node?(result) {
+                    var after: [String: String] = [:], was: [String: String] = [:]
+                    for s in result.delta.scenes {
+                        guard let text = s.text else { continue }
+                        after[s.sceneID] = text
+                        if let old = before[s.sceneID] { was[s.sceneID] = old }
+                    }
+                    for id in result.delta.removedSceneIDs { was[id] = before[id] }
+                    history = try? engine.captureRecordBarrier(projectRootPath: historyRoot, barrierKind: payload.op,
+                                                               note: "", structuralPayload: payload,
+                                                               sceneTexts: after, sceneTextsBefore: was)
+                }
+                return StructuralLanding(result: result, history: history,
+                                         storyTimes: try? engine.listStoryTimes(projectRootPath: root))
+            }, landed: { [weak self] outcome in
+                self?.structuralEditLanded(outcome, caret: caret, failed: failed)
+            })
+            if !started { tv.isEditable = true }
+            return started
+        }
+
+        private func structuralEditLanded(_ outcome: Result<StructuralLanding, Error>, caret: StructuralCaret,
+                                          failed: (@MainActor () -> Void)?) {
+            let loader = parent.loader
+            guard let tv = textView else { return }
+            tv.isEditable = true
+            let landing: StructuralLanding
+            switch outcome {
+            case .success(let l): landing = l
+            case .failure(let error):
+                print("[Scrivi] structural edit failed: \(error)")
+                NSSound.beep()
+                failed?()
+                return
+            }
+            if let history = landing.history { parent.session.historyCapture?.adopt(history) }
+            let delta = landing.result.delta
+            if let run = loader.apply(delta) {
+                if !delta.createdChapters.isEmpty || !delta.removedChapterIDs.isEmpty {
+                    loader.renumberChapterTitlesFrom(segmentIndex: run.new.lowerBound)
+                }
+                renderRun(tv, old: run.old, new: run.new)
+            }
+            ensureBoundaries(tv)
+            if let target = caret(landing.result),
+               let i = loader.segments.firstIndex(where: { $0.sceneID == target.sceneID }),
+               sceneBoundaries.indices.contains(i) {
+                let loc = sceneBoundaries[i].location + charOffsetForByteOffset(target.byte, in: loader.segments[i].text)
+                // ⚠️ The caret's move tells the history which scene the caret is in (`captureCaretMoved`, in memory — the
+                // edit flushed the pending typing first): every caret move makes it, so it is counted apart.
+                StructuralCallAccounting.$placingCaret.withValue(true) {
+                    revealCaretAfterRebuild(min(loc, (tv.string as NSString).length), in: tv)
+                }
+                lastCursorSegmentIndex = i
+                loader.setCurrentIndex(i)
+                loader.setViewportScene(target.sceneID)
+            }
+            if let timeline = parent.session.timelineModel {
+                timeline.reloadSceneDots(explicitByScene: TimelineViewModel.explicitStoryTimes(landing.storyTimes),
+                                         scenes: loader.allScenes)
+                timeline.updateDotTitles(liveTitles: loader.liveTitles, allScenes: loader.allScenes)
+            }
+        }
+
+        /// The caret's scene, its index, and the caret's scene-local UTF-8 byte offset — where a range call is anchored.
+        private func caretInScene() -> (segIdx: Int, seg: SceneSegment, byte: Int)? {
+            guard let tv = textView else { return nil }
+            ensureBoundaries(tv)
+            let loc = tv.selectedRange().location
+            guard let i = segmentIndex(for: loc), parent.loader.segments.indices.contains(i),
+                  sceneBoundaries.indices.contains(i) else { return nil }
+            let seg = parent.loader.segments[i]
+            return (i, seg, byteOffset(charOffset: loc - sceneBoundaries[i].location, in: seg.text))
+        }
+
+        /// A Range entry naming a scene's place without its text — a break's sides, a relabel's run.
+        private static func bare(_ seg: SceneSegment, at byte: Int = 0, of whole: Int = 0) -> ScriviRange.Entry {
+            .init(sceneID: seg.sceneID, chapterID: seg.chapterID, chapterTitle: "", sceneTitle: "",
+                  start: byte, length: 0, sceneLength: whole, text: "")
+        }
+
+        // ⌘-Return: a new scene at the caret. ✅ [SP-191] Q1: a PASTE OF A BREAK — an empty two-entry Range — so it is one
+        // range call off the main actor, and Undo reverses it in one step (Q3: no "Can't undo past…").
+        // ✅ Q7 (user, 2026-10-21): at a scene's very start the new scene goes BEFORE it — the scene keeps its text, title and
+        // sidecar (I-0096) — and the caret goes into the new scene; elsewhere the scene splits and the caret starts the new
+        // one. (A plain Return at a scene's start is just a newline: not this path.)
         func handleCreateScene() {
-            // ⚠️ I-0213 — TIME THE STRUCTURAL OP ITSELF.
-            // The ⌘-chord paths RETURN EARLY from `keyDown`, so its `defer` timer never
-            // sees them. A 2.7 s hang was logged against a PLAIN Return and could not be
-            // attributed to any action; this makes each op report its own cost.
-            let __t0 = Date()
-            defer {
-                let ms = Date().timeIntervalSince(__t0) * 1000
-                if ms > 0.5 { NSLog("[SCRIVI-STRUCT] createScene=%.1f ms", ms) }
-            }
-            guard let tv = textView else { return }
-            let loc = tv.selectedRange().location
-            guard let segIdx = segmentIndex(for: loc) else { return }
-
-            let loader = parent.loader
-            let env = parent.env
-            let session = parent.session
-
-            // Determine split offset within this segment's text.
-            let segRange = sceneBoundaries.indices.contains(segIdx) ? sceneBoundaries[segIdx] : NSRange(location: loc, length: 0)
-            let splitOffsetInSeg = max(0, loc - segRange.location)
-            let currentText = loader.segments.indices.contains(segIdx) ? loader.segments[segIdx].text : ""
-            let isAtEnd = splitOffsetInSeg >= currentText.count
-
-            Task { @MainActor in
-                guard let ref = env.authorshipRef,
-                      let rootPath = session.projectRootPath,
-                      let proj = session.openProjectResult,
-                      loader.segments.indices.contains(segIdx)
-                else { return }
-
-                let currentSeg = loader.segments[segIdx]
-                await loader.saveCurrentIfDirty(engine: env.engine, ref: ref)
-
-                // Caret at the very start of a (non-empty) scene → insert a new empty scene
-                // BEFORE this one, exactly as a newline at position 0 would in one big buffer.
-                // The current scene keeps all its text + title; the new empty scene precedes it.
-                // This is the ONLY correct behaviour at offset 0 for any scene, including a
-                // chapter's first scene (handled by the engine's beforeSceneID prepend). I-0096.
-                let insertBefore = splitOffsetInSeg == 0 && !isAtEnd
-
-                do {
-                    let result = try env.engine.createScene(
-                        projectRootPath: rootPath,
-                        appSupportRoot: env.appSupportRoot,
-                        projectID: proj.projectID,
-                        chapterID: currentSeg.chapterID,
-                        afterSceneID: insertBefore ? "" : currentSeg.sceneID,
-                        beforeSceneID: insertBefore ? currentSeg.sceneID : "",
-                        authorshipRef: ref
-                    )
-                    // Structural op — record a barrier so undo stops here (§4.5). [I-0287]: AFTER the create, so a
-                    // mid-scene split can say what it leaves in each half — the head here, the tail in the new scene.
-                    let splitsText = !insertBefore && !isAtEnd
-                    session.historyCapture?.recordBarrier(
-                        kind: "sceneSplit", note: "Can't undo past creating a scene",
-                        sceneTexts: splitsText
-                            ? [currentSeg.sceneID: splitHead(of: currentText, at: splitOffsetInSeg),
-                               result.sceneID: splitTail(of: currentText, at: splitOffsetInSeg)]
-                            : [:])
-
-                    if insertBefore {
-                        // Empty scene inserted before the current one; current scene untouched.
-                        let newIdx = loader.insertScene(result, before: segIdx)
-                        loader.setCurrentIndex(newIdx)
-                        // Render the new empty scene and the one it precedes; drop the caret at the start of the new one.
-                        renderRunAndPlaceCursor(old: segIdx..<segIdx + 1, new: segIdx..<segIdx + 2,
-                                                at: newIdx, textOffset: 0)
-                    } else if isAtEnd {
-                        // Append empty scene — original behaviour.
-                        let newIdx = loader.insertScene(result, after: segIdx)
-                        loader.setCurrentIndex(newIdx)
-                        insertDividerAndMoveCursor(after: segIdx, placeCursorAtStart: true)
-                    } else {
-                        // Split: head stays in current scene, tail goes to the new scene.
-                        let headText = splitHead(of: currentText, at: splitOffsetInSeg)
-                        let tailText = splitTail(of: currentText, at: splitOffsetInSeg)
-
-                        // Save head into current scene.
-                        // ⛔ [I-0259] — success is CAPTURED: `splitScene` marks both halves
-                        // clean ("saved by caller"), so a failed half is re-marked dirty below.
-                        let headSaved = (try? env.engine.saveScene(
-                            projectID: proj.projectID,
-                            projectRootPath: rootPath,
-                            appSupportRoot: env.appSupportRoot,
-                            sceneID: currentSeg.sceneID,
-                            sceneMetadataPath: currentSeg.metadataPath,
-                            sceneContentPath: currentSeg.contentPath,
-                            markdown: headText,
-                            authorshipRef: ref
-                        )) != nil
-                        // Save tail into new scene.
-                        let tailSaved = (try? env.engine.saveScene(
-                            projectID: proj.projectID,
-                            projectRootPath: rootPath,
-                            appSupportRoot: env.appSupportRoot,
-                            sceneID: result.sceneID,
-                            sceneMetadataPath: result.metadataPath,
-                            sceneContentPath: result.contentPath,
-                            markdown: tailText,
-                            authorshipRef: ref
-                        )) != nil
-                        let newIdx = loader.splitScene(result, at: segIdx, headText: headText, tailText: tailText)
-                        if !headSaved { loader.markDirty(at: segIdx) }   // [I-0259]
-                        if !tailSaved { loader.markDirty(at: newIdx) }
-                        loader.setCurrentIndex(newIdx)
-                        insertDividerAndMoveCursor(after: segIdx, placeCursorAtStart: true)
-                    }
-
-                    // ⚠️ I-0213 — the other untimed block on this path. `reloadSceneDots`
-                    // does one `getSceneStoryTime` C ABI call PER SCENE (1,174 of them),
-                    // so it is a candidate for the remaining 2.1 s. Measured, not assumed.
-                    // ⚠️ I-0213 — TIMED SEPARATELY. One timer spanning BOTH was misleading:
-                    // it was labelled `reloadSceneDots` while most of the cost was actually
-                    // in `updateDotTitles`, which `load()` never calls.
-                    let __r0 = Date()
-                    session.timelineModel?.reloadSceneDots(
-                        engine: env.engine, projectRootPath: rootPath, scenes: loader.allScenes)
-                    let __rMs = Date().timeIntervalSince(__r0) * 1000
-                    let __t0t = Date()
-                    session.timelineModel?.updateDotTitles(liveTitles: loader.liveTitles, allScenes: loader.allScenes)
-                    let __tMs = Date().timeIntervalSince(__t0t) * 1000
-                    if __rMs > 0.5 { NSLog("[SCRIVI-STRUCT]   reloadSceneDots=%.1f ms", __rMs) }
-                    if __tMs > 0.5 { NSLog("[SCRIVI-STRUCT]   updateDotTitles=%.1f ms", __tMs) }
-                } catch {
-                    print("[Scrivi] createScene failed: \(error)")
-                }
-            }
+            insertBreak(newChapter: false, label: "Splitting the scene…")
         }
 
-        // Shift-Cmd-Enter: split at cursor creating a new chapter, or append empty chapter at end.
+        // ⇧⌘-Return: a new chapter at the caret — the same paste, its second entry in another chapter, so the core creates
+        // the chapter in place and moves the rest of this chapter into it ([I-0311]; ✅ [I-0314]: in place ON DISK too).
+        // ✅ Q8: at a scene's very start it is a RELABEL — the scene and the rest of its chapter move into a new chapter; no
+        // empty scene, no text moves. At a chapter's first scene a chapter already starts there: nothing happens.
+        // ✅ Q9: no confirmation — Undo reverses it.
         func handleCreateChapter() {
-            // ⚠️ I-0213 — DO **NOT** TIME THE WHOLE FUNCTION HERE.
-            //
-            // It did, and the number was MEANINGLESS: `handleCreateChapter` shows a
-            // CONFIRMATION MODAL (`alert.runModal()`, below) that blocks until the user
-            // clicks. The logged 2959.5 / 2092.5 / 3638.6 ms were dominated by HUMAN
-            // REACTION TIME — which is also why they varied so wildly, and why the
-            // apparent "29% improvement" after the batching fixes was noise, not signal.
-            //
-            // ✅ The work is timed from AFTER the modal instead (see `__w0`), so the
-            // number reports computation only.
-            guard let tv = textView else { return }
-            let loc = tv.selectedRange().location
-            guard let segIdx = segmentIndex(for: loc) else { return }
-
-            let loader = parent.loader
-            let env = parent.env
-            let session = parent.session
-
-            let segRange = sceneBoundaries.indices.contains(segIdx) ? sceneBoundaries[segIdx] : NSRange(location: loc, length: 0)
-            let splitOffsetInSeg = max(0, loc - segRange.location)
-            let currentText = loader.segments.indices.contains(segIdx) ? loader.segments[segIdx].text : ""
-            let isAtEnd = splitOffsetInSeg >= currentText.count
-
-            // Count chapters that follow the current one — these will be renumbered.
-            // If splitting at end there are no following scenes in the current chapter so
-            // renumbering only affects chapters after the current one (if any).
-            let currentChapterID = loader.segments.indices.contains(segIdx)
-                ? loader.segments[segIdx].chapterID : ""
-            let orderedChapterIDs: [String] = {
-                var seen = Set<String>()
-                return loader.allScenes.compactMap {
-                    seen.insert($0.chapterID).inserted ? $0.chapterID : nil
-                }
-            }()
-            let currentChapterOrdinal = (orderedChapterIDs.firstIndex(of: currentChapterID) ?? 0) + 1
-            let chaptersAfter = orderedChapterIDs.count - currentChapterOrdinal
-
-            // Show confirmation dialog when the split will renumber subsequent chapters.
-            if chaptersAfter > 0 {
-                let alert = NSAlert()
-                alert.messageText = "Split into New Chapter?"
-                alert.informativeText = "Splitting here will create a new chapter and renumber \(chaptersAfter) subsequent chapter\(chaptersAfter == 1 ? "" : "s"). This cannot be undone."
-                alert.addButton(withTitle: "Split")
-                alert.addButton(withTitle: "Cancel")
-                alert.alertStyle = .warning
-                guard alert.runModal() == .alertFirstButtonReturn else { return }
+            guard let at = caretInScene() else { return }
+            guard at.byte == 0 else {
+                insertBreak(newChapter: true, label: "Splitting the chapter…")
+                return
             }
-
-            // ✅ I-0213 — the timer starts AFTER the modal, so it measures WORK, not the
-            // user's click latency. Reported at the end of the async block below.
-            let __w0 = Date()
-
-            Task { @MainActor in
-                guard let ref = env.authorshipRef,
-                      let rootPath = session.projectRootPath,
-                      let proj = session.openProjectResult,
-                      loader.segments.indices.contains(segIdx)
-                else { return }
-
-                let currentSeg = loader.segments[segIdx]
-                await loader.saveCurrentIfDirty(engine: env.engine, ref: ref)
-
-                do {
-                    // ⚠️ I-0213 — the C ABI call is SYNCHRONOUS ON THE MAIN ACTOR and was
-                    // untimed. After batching the loader mutations, createChapter fell
-                    // 2959.5 → 2092.5 ms — a real 29% gain, but 2.1 s remains unexplained.
-                    // This splits the engine call out from the Swift-side work so the next
-                    // run says WHICH it is, instead of another inference.
-                    let __e0 = Date()
-                    let result = try env.engine.createChapter(
-                        projectRootPath: rootPath,
-                        appSupportRoot: env.appSupportRoot,
-                        projectID: proj.projectID,
-                        authorshipRef: ref
-                    )
-                    let __eMs = Date().timeIntervalSince(__e0) * 1000
-                    if __eMs > 0.5 {
-                        NSLog("[SCRIVI-STRUCT]   engine.createChapter (C ABI)=%.1f ms", __eMs)
-                    }
-                    // Structural op — record a barrier so undo stops here (§4.5). [I-0287]: AFTER the create, with what
-                    // a mid-scene split leaves in each half — the head here, the tail in the new chapter's first scene.
-                    session.historyCapture?.recordBarrier(
-                        kind: "chapterSplit", note: "Can't undo past creating a chapter",
-                        sceneTexts: isAtEnd
-                            ? [:]
-                            : [currentSeg.sceneID: splitHead(of: currentText, at: splitOffsetInSeg),
-                               result.firstSceneID: splitTail(of: currentText, at: splitOffsetInSeg)])
-
-                    if isAtEnd {
-                        // Append empty chapter after current — original behaviour.
-                        let newIdx = loader.insertChapterFirstScene(result, after: segIdx)
-                        loader.renumberChapterTitlesFrom(segmentIndex: newIdx)
-                        loader.setCurrentIndex(newIdx)
-                        insertDividerAndMoveCursor(after: segIdx, placeCursorAtStart: true)
-                    } else {
-                        // Split scene at cursor: head stays in current scene (current chapter),
-                        // tail becomes first scene of new chapter.
-                        let headText = splitHead(of: currentText, at: splitOffsetInSeg)
-                        let tailText = splitTail(of: currentText, at: splitOffsetInSeg)
-
-                        // Save head into current scene.
-                        // ⛔ [I-0259] — success is CAPTURED: `splitScene` marks both halves
-                        // clean ("saved by caller"), so a failed half is re-marked dirty below.
-                        let headSaved = (try? env.engine.saveScene(
-                            projectID: proj.projectID,
-                            projectRootPath: rootPath,
-                            appSupportRoot: env.appSupportRoot,
-                            sceneID: currentSeg.sceneID,
-                            sceneMetadataPath: currentSeg.metadataPath,
-                            sceneContentPath: currentSeg.contentPath,
-                            markdown: headText,
-                            authorshipRef: ref
-                        )) != nil
-                        // Save tail into new chapter's first scene.
-                        let tailSaved = (try? env.engine.saveScene(
-                            projectID: proj.projectID,
-                            projectRootPath: rootPath,
-                            appSupportRoot: env.appSupportRoot,
-                            sceneID: result.firstSceneID,
-                            sceneMetadataPath: result.firstSceneMetadataPath,
-                            sceneContentPath: result.firstSceneContentPath,
-                            markdown: tailText,
-                            authorshipRef: ref
-                        )) != nil
-
-                        // Capture old chapter ID before splitScene changes the segment.
-                        let oldChapterID = loader.segments.indices.contains(segIdx)
-                            ? loader.segments[segIdx].chapterID : ""
-
-                        // Update in-memory state for the new chapter's first scene.
-                        let chapterFirstResult = CreateSceneResult(
-                            sceneID: result.firstSceneID,
-                            chapterID: result.chapterID,
-                            metadataPath: result.firstSceneMetadataPath,
-                            contentPath: result.firstSceneContentPath
-                        )
-                        let newIdx = loader.splitScene(chapterFirstResult, at: segIdx,
-                                                       headText: headText, tailText: tailText)
-                        if !headSaved { loader.markDirty(at: segIdx) }   // [I-0259]
-                        if !tailSaved { loader.markDirty(at: newIdx) }
-                        // Re-assign subsequent scenes in the old chapter to the new chapter.
-                        loader.splitChapter(result, movingFrom: newIdx, oldChapterID: oldChapterID)
-                        // Fix chapter titles in-memory — engine wrote correct ordinals to disk.
-                        loader.renumberChapterTitlesFrom(segmentIndex: newIdx)
-                        loader.setCurrentIndex(newIdx)
-                        insertDividerAndMoveCursor(after: segIdx, placeCursorAtStart: true)
-                    }
-
-                    // ⚠️ I-0213 — the other untimed block on this path. `reloadSceneDots`
-                    // does one `getSceneStoryTime` C ABI call PER SCENE (1,174 of them),
-                    // so it is a candidate for the remaining 2.1 s. Measured, not assumed.
-                    // ⚠️ I-0213 — TIMED SEPARATELY. One timer spanning BOTH was misleading:
-                    // it was labelled `reloadSceneDots` while most of the cost was actually
-                    // in `updateDotTitles`, which `load()` never calls.
-                    let __r0 = Date()
-                    session.timelineModel?.reloadSceneDots(
-                        engine: env.engine, projectRootPath: rootPath, scenes: loader.allScenes)
-                    let __rMs = Date().timeIntervalSince(__r0) * 1000
-                    let __t0t = Date()
-                    session.timelineModel?.updateDotTitles(liveTitles: loader.liveTitles, allScenes: loader.allScenes)
-                    let __tMs = Date().timeIntervalSince(__t0t) * 1000
-                    if __rMs > 0.5 { NSLog("[SCRIVI-STRUCT]   reloadSceneDots=%.1f ms", __rMs) }
-                    if __tMs > 0.5 { NSLog("[SCRIVI-STRUCT]   updateDotTitles=%.1f ms", __tMs) }
-
-                    // ✅ WORK ONLY — excludes the confirmation modal (see `__w0`).
-                    let __wMs = Date().timeIntervalSince(__w0) * 1000
-                    if __wMs > 0.5 {
-                        NSLog("[SCRIVI-STRUCT] createChapter WORK=%.1f ms (modal excluded)", __wMs)
-                    }
-                } catch {
-                    print("[Scrivi] createChapter failed: \(error)")
-                }
-            }
+            let segments = parent.loader.segments
+            guard at.segIdx > 0, segments[at.segIdx - 1].chapterID == at.seg.chapterID else { return }
+            let run = segments[at.segIdx...].prefix { $0.chapterID == at.seg.chapterID }
+            relabel(ScriviRange(scenes: run.map { Self.bare($0) }), into: "", keepingCaretIn: at.seg.sceneID,
+                    label: "Splitting the chapter…")
         }
 
-        // Cmd-Backspace: merge scene with previous scene (only if cursor at position 0 of scene,
-        // and the scene is not the first scene in its chapter).
+        private func insertBreak(newChapter: Bool, label: String) {
+            guard let at = caretInScene() else { return }
+            var opening = Self.bare(at.seg)
+            opening.sceneID = ""                                    // ✅ Q1: an empty ID mints a fresh one
+            if newChapter { opening.chapterID = "" }                // another chapter: the paste opens one there
+            var first = Self.bare(at.seg)
+            first.sceneID = ""
+            let range = ScriviRange(scenes: [first, opening])
+            let caretSceneID = at.seg.sceneID, caretByte = at.byte, caretText = at.seg.text
+            runStructuralEdit(label, { engine, root, ref in
+                try engine.rangePaste(projectRootPath: root, range: range, caretSceneID: caretSceneID,
+                                      caretByteOffset: caretByte, caretSceneText: caretText, authorshipRef: ref)
+            }, node: { r in
+                HistoryStructuralPayload(op: "rangePaste", caretSceneID: caretSceneID, caretByte: caretByte,
+                                         rangeJSON: (try? r.range.toJSON()) ?? "")
+            }, caret: { r in
+                // The new scene — after the caret scene, or before it at a scene's start (Q7).
+                r.range.scenes.first { $0.sceneID != caretSceneID }.map { ($0.sceneID, 0) }
+            })
+        }
+
+        // ⌘-Backspace at a scene's very start: merge it into the scene before (same chapter only). ✅ [SP-191] Q3e: a CUT of
+        // the zero-length sub-range across the break — the two texts join DIRECTLY (Q3a: no blank line), the removed scene's
+        // sidecar travels in the Range (Q3b), and Undo puts the break back exactly.
         func handleMergeScene() {
-            // ⚠️ I-0213 — TIME THE STRUCTURAL OP ITSELF.
-            // The ⌘-chord paths RETURN EARLY from `keyDown`, so its `defer` timer never
-            // sees them. A 2.7 s hang was logged against a PLAIN Return and could not be
-            // attributed to any action; this makes each op report its own cost.
-            let __t0 = Date()
-            defer {
-                let ms = Date().timeIntervalSince(__t0) * 1000
-                if ms > 0.5 { NSLog("[SCRIVI-STRUCT] mergeScene=%.1f ms", ms) }
-            }
-            guard let tv = textView else { return }
-            let loc = tv.selectedRange().location
-            guard let segIdx = segmentIndex(for: loc) else { return }
-            guard segIdx > 0 else { return }
-
-            let loader = parent.loader
-            let env = parent.env
-            let session = parent.session
-
-            // Only fire if cursor is at the very start of this segment's content.
-            let segRange = sceneBoundaries.indices.contains(segIdx) ? sceneBoundaries[segIdx] : nil
-            guard let range = segRange, loc == range.location else { return }
-
-            // Do nothing if this is the first scene in its chapter.
-            guard loader.segments.indices.contains(segIdx),
-                  loader.segments.indices.contains(segIdx - 1),
-                  loader.segments[segIdx].chapterID == loader.segments[segIdx - 1].chapterID
-            else { return }
-
-            Task { @MainActor in
-                guard let ref = env.authorshipRef,
-                      let rootPath = session.projectRootPath,
-                      let _ = session.openProjectResult,
-                      loader.segments.indices.contains(segIdx),
-                      loader.segments.indices.contains(segIdx - 1)
-                else { return }
-
-                let currentSeg  = loader.segments[segIdx]
-                let predecessorSeg = loader.segments[segIdx - 1]
-                // Flush BOTH scenes to disk first — the endpoint joins the on-disk bodies, so
-                // any unsaved edits in either scene must be persisted before the merge. (In the
-                // normal flow only the current scene can be dirty, but the predecessor may hold
-                // edits too; save it explicitly.)
-                await loader.saveCurrentIfDirty(engine: env.engine, ref: ref)
-                await loader.saveScene(at: segIdx - 1, engine: env.engine, ref: ref)
-
-                // Atomic same-chapter merge in ScriviCore: the current scene joins into the
-                // predecessor (survivor), which keeps its own files; the current scene's files
-                // are removed and the chapter cache is rebuilt (EP-028 SP-075). Replaces the
-                // former saveScene(joinText)+deleteScene composition.
-                let joinPoint = predecessorSeg.text.count  // cursor lands at the seam
-                do {
-                    _ = try env.engine.mergeScene(projectRootPath: rootPath, sceneID: currentSeg.sceneID)
-                } catch {
-                    print("[Scrivi] mergeScene failed: \(error)")
-                    return
-                }
-
-                // Mirror the on-disk join in memory. The endpoint joins with a blank line
-                // (SceneMerger.joinBodies), elided when either side is empty — match it so the
-                // in-memory text equals disk.
-                let joinText = Self.joinedMergeBody(predecessorSeg.text, currentSeg.text)
-                // Structural op — record a barrier so undo stops here (§4.5). [I-0287]: AFTER the merge, with the
-                // survivor's joined text — what the editor now holds for it.
-                session.historyCapture?.recordBarrier(kind: "sceneMerge", note: "Can't undo past a scene merge",
-                                                      sceneTexts: [predecessorSeg.sceneID: joinText])
-                let mergedIdx = loader.mergeSceneIntoPredecessor(at: segIdx, joinText: joinText)
-                loader.setCurrentIndex(mergedIdx)
-                // EP-053 S2a: render the two scenes that became one — nothing else.
-                renderRunAndPlaceCursor(old: segIdx - 1..<segIdx + 1, new: mergedIdx..<mergedIdx + 1,
-                                        at: mergedIdx, textOffset: joinPoint)
-
-                session.timelineModel?.reloadSceneDots(
-                    engine: env.engine, projectRootPath: rootPath, scenes: loader.allScenes)
-                session.timelineModel?.updateDotTitles(liveTitles: loader.liveTitles, allScenes: loader.allScenes)
-            }
+            guard let at = caretInScene(), at.byte == 0, at.segIdx > 0 else { return }
+            let segments = parent.loader.segments
+            let previous = segments[at.segIdx - 1]
+            guard previous.chapterID == at.seg.chapterID else { return }   // the first scene of a chapter: nothing
+            let prevBytes = previous.text.utf8.count
+            let range = ScriviRange(scenes: [Self.bare(previous, at: prevBytes, of: prevBytes),
+                                             Self.bare(at.seg, at: 0, of: at.seg.text.utf8.count)])
+            cut(range, label: "Merging the scenes…")
         }
 
-        // Join two scene bodies the way ScriviCore's SceneMerger.joinBodies does: a blank-line
-        // separator, elided when either side is empty (so no stray leading/trailing blanks).
-        static func joinedMergeBody(_ base: String, _ addition: String) -> String {
-            if base.isEmpty { return addition }
-            if addition.isEmpty { return base }
-            return base + "\n\n" + addition
-        }
-
-        // Shift-Cmd-Backspace: merge chapter with previous chapter (only if cursor at position 0
-        // of the first scene of a chapter, and not in the first chapter).
+        // ⇧⌘-Backspace at a chapter's first scene: merge the chapter into the one before. ✅ [SP-191] Q3e: a RELABEL of its
+        // scenes into that chapter — on disk their files move; no text changes. Undo re-creates the chapter from its sidecar,
+        // which the result carries (Q3b). Every scene of the chapter joins the earlier one (Q3d).
         func handleMergeChapter() {
-            // ⚠️ I-0213 — TIME THE STRUCTURAL OP ITSELF.
-            // The ⌘-chord paths RETURN EARLY from `keyDown`, so its `defer` timer never
-            // sees them. A 2.7 s hang was logged against a PLAIN Return and could not be
-            // attributed to any action; this makes each op report its own cost.
-            let __t0 = Date()
-            defer {
-                let ms = Date().timeIntervalSince(__t0) * 1000
-                if ms > 0.5 { NSLog("[SCRIVI-STRUCT] mergeChapter=%.1f ms", ms) }
-            }
-            guard let tv = textView else { return }
-            let loc = tv.selectedRange().location
-            guard let segIdx = segmentIndex(for: loc) else { return }
-            guard segIdx > 0 else { return }
-
-            let loader = parent.loader
-            let env = parent.env
-            let session = parent.session
-
-            // Only fire if cursor is at the very start of the segment.
-            let segRange = sceneBoundaries.indices.contains(segIdx) ? sceneBoundaries[segIdx] : nil
-            guard let range = segRange, loc == range.location else { return }
-
-            guard loader.segments.indices.contains(segIdx),
-                  loader.segments.indices.contains(segIdx - 1)
-            else { return }
-
-            let currentChapterID    = loader.segments[segIdx].chapterID
-            let predecessorChapterID = loader.segments[segIdx - 1].chapterID
-
-            // Must be a chapter boundary.
-            guard currentChapterID != predecessorChapterID else { return }
-
-            // Must be at the first scene of its chapter.
-            guard segIdx == loader.segments.firstIndex(where: { $0.chapterID == currentChapterID }) else { return }
-
-            Task { @MainActor in
-                guard let ref = env.authorshipRef,
-                      let rootPath = session.projectRootPath,
-                      let _ = session.openProjectResult,
-                      loader.segments.indices.contains(segIdx),
-                      loader.segments.indices.contains(segIdx - 1)
-                else { return }
-
-                await loader.saveCurrentIfDirty(engine: env.engine, ref: ref)
-                // Structural op — record a barrier so undo stops here (§4.5).
-                session.historyCapture?.recordBarrier(kind: "chapterMerge", note: "Can't undo past a chapter merge")
-
-                // Find predecessor chapter's metadata path/title from allScenes.
-                let predecessorMeta = loader.allScenes.first(where: { $0.chapterID == predecessorChapterID })?.chapterMetadataPath ?? ""
-                let predecessorTitle = loader.allScenes.first(where: { $0.chapterID == predecessorChapterID })?.chapterTitle ?? ""
-
-                // Atomic whole-chapter merge in ScriviCore (EP-028 SP-075): RELOCATES every
-                // scene file of the current chapter into the predecessor's folder, then removes
-                // the emptied chapter. Replaces the former in-memory-reassign + deleteChapter
-                // composition that deleted the scene files on disk (I-0083).
-                do {
-                    _ = try env.engine.mergeChapter(projectRootPath: rootPath, chapterID: currentChapterID)
-                } catch {
-                    print("[Scrivi] mergeChapter failed: \(error)")
-                    return
-                }
-
-                // Mirror the move in memory: re-assign the moved scenes to the predecessor chapter.
-                loader.mergeChapterIntoPredecessor(
-                    at: segIdx,
-                    predecessorChapterID: predecessorChapterID,
-                    predecessorChapterMetadataPath: predecessorMeta,
-                    predecessorChapterTitle: predecessorTitle
-                )
-                // The relocation minted NEW order-key filenames for every moved scene, so their
-                // in-memory metadataPath/contentPath are now stale (the I-0081 stale-path class).
-                // Refresh all scene paths from a fresh openProject before any later rename/save.
-                if let reopened = try? env.engine.openProject(projectRootPath: rootPath, appSupportRoot: env.appSupportRoot) {
-                    loader.refreshScenePaths(from: reopened.scenes)
-                }
-                // Renumber all chapters from the predecessor onward — the merged chapter
-                // shifts every subsequent chapter's ordinal down by one.
-                let renumberFrom = loader.segments.firstIndex(where: { $0.chapterID == predecessorChapterID }) ?? segIdx
-                loader.renumberChapterTitlesFrom(segmentIndex: renumberFrom)
-
-                // EP-053 S2a: render the scene at the seam (its divider is a scene break now) — nothing else. The caret
-                // stays at segIdx (now in the predecessor chapter).
-                if let tv = textView {
-                    renderRun(tv, old: segIdx..<segIdx + 1, new: segIdx..<segIdx + 1)
-                    if sceneBoundaries.indices.contains(segIdx) {
-                        revealCaretAfterRebuild(sceneBoundaries[segIdx].location, in: tv)
-                    }
-                }
-
-                session.timelineModel?.reloadSceneDots(
-                    engine: env.engine, projectRootPath: rootPath, scenes: loader.allScenes)
-                session.timelineModel?.updateDotTitles(liveTitles: loader.liveTitles, allScenes: loader.allScenes)
-            }
+            guard let at = caretInScene(), at.byte == 0, at.segIdx > 0 else { return }
+            let segments = parent.loader.segments
+            let previous = segments[at.segIdx - 1].chapterID
+            guard previous != at.seg.chapterID else { return }    // not a chapter's first scene
+            let run = segments[at.segIdx...].prefix { $0.chapterID == at.seg.chapterID }
+            relabel(ScriviRange(scenes: run.map { Self.bare($0) }), into: previous, keepingCaretIn: at.seg.sceneID,
+                    label: "Merging the chapters…")
         }
 
-        // After inserting a new segment after `segIdx`, render the two and position the cursor. EP-053 S2a: a run render —
-        // `segIdx`'s scene (a split rewrote it) and the new one after it, nothing else.
-        private func insertDividerAndMoveCursor(after segIdx: Int, placeCursorAtStart: Bool) {
-            guard let tv = textView else { return }
-            renderRun(tv, old: segIdx..<segIdx + 1, new: segIdx..<segIdx + 2)
-            let newSegIdx = segIdx + 1
-            if sceneBoundaries.indices.contains(newSegIdx) {
-                revealCaretAfterRebuild(sceneBoundaries[newSegIdx].location, in: tv)
-            }
+        private func cut(_ range: ScriviRange, label: String) {
+            runStructuralEdit(label, { engine, root, ref in
+                try engine.rangeCut(projectRootPath: root, range: range, authorshipRef: ref)
+            }, node: { r in
+                HistoryStructuralPayload(op: "rangeCut", caretSceneID: r.undoCaretSceneID ?? "",
+                                         caretByte: r.undoCaretByte ?? 0, rangeJSON: (try? r.range.toJSON()) ?? "")
+            }, caret: { r in r.undoCaretSceneID.map { ($0, r.undoCaretByte ?? 0) } })
         }
 
-        // Render the run that changed (EP-053 S2a) and place the cursor at `textOffset` characters into segment `segIdx`.
-        private func renderRunAndPlaceCursor(old: Range<Int>, new: Range<Int>, at segIdx: Int, textOffset: Int) {
-            guard let tv = textView else { return }
-            renderRun(tv, old: old, new: new)
-            if sceneBoundaries.indices.contains(segIdx) {
-                let loc = sceneBoundaries[segIdx].location + textOffset
-                revealCaretAfterRebuild(min(loc, tv.string.count), in: tv)
-            }
+        private func relabel(_ run: ScriviRange, into target: String, keepingCaretIn sceneID: String, label: String) {
+            runStructuralEdit(label, { engine, root, ref in
+                try engine.rangeRelabel(projectRootPath: root, range: run, targetChapterID: target, authorshipRef: ref)
+            }, node: { r in
+                HistoryStructuralPayload(op: "rangeRelabel", rangeJSON: (try? r.range.toJSON()) ?? "",
+                                         fromChapterID: r.fromChapterID ?? "",
+                                         targetChapterID: r.range.scenes.first?.chapterID ?? "")
+            }, caret: { _ in (sceneID, 0) })
         }
 
         // ⚠️ [I-0271] Place the caret after a FULL storage rebuild and make the viewport show
@@ -1887,20 +1646,6 @@ struct ManuscriptTextView: NSViewRepresentable {
             else { return nil }
             let offset = rect.minY - clip.bounds.minY
             return (0...clip.bounds.height).contains(offset) ? offset : nil
-        }
-
-        // Return the substring of `text` before `offset`.
-        private func splitHead(of text: String, at offset: Int) -> String {
-            guard offset > 0 else { return "" }
-            let idx = text.index(text.startIndex, offsetBy: min(offset, text.count))
-            return String(text[..<idx])
-        }
-
-        // Return the substring of `text` from `offset` onward.
-        private func splitTail(of text: String, at offset: Int) -> String {
-            guard offset < text.count else { return "" }
-            let idx = text.index(text.startIndex, offsetBy: offset)
-            return String(text[idx...])
         }
 
         // MARK: — Helpers
@@ -2442,35 +2187,6 @@ struct ManuscriptTextView: NSViewRepresentable {
             return storage.attribute(.scriviHeading, at: loc, effectiveRange: nil) != nil
         }
 
-        // Map a storage selection to ordered per-scene byte spans (reading order). Each span is
-        // (sceneID, startByte, endByte) with scene-local UTF-8 byte offsets. Only scenes the
-        // selection actually overlaps produce a span. Returns nil if any overlapped boundary has
-        // no backing segment (should not happen; guards against a rebuild race).
-        func fragmentSpans(for sel: NSRange) -> [FragmentSpanArg]? {
-            guard let tv = textView else { return nil }
-            let ns = tv.string as NSString
-            var spans: [FragmentSpanArg] = []
-            for (i, range) in sceneBoundaries.enumerated() {
-                let inter = NSIntersectionRange(range, sel)
-                if inter.length == 0 {
-                    // Include a zero-length touch only when the selection edge lands exactly at a
-                    // scene start inside the selection (a boundary crossed with 0 chars selected).
-                    let atStart = sel.location <= range.location && range.location < sel.location + sel.length
-                    if !(atStart) { continue }
-                }
-                guard parent.loader.segments.indices.contains(i) else { return nil }
-                let seg = parent.loader.segments[i]
-                // Scene-local char offsets, then convert each to a UTF-8 byte offset in the body.
-                let startChar = max(0, (inter.length == 0 ? range.location : inter.location) - range.location)
-                let endChar   = max(startChar, (inter.length == 0 ? range.location : inter.location + inter.length) - range.location)
-                let startByte = byteOffset(charOffset: startChar, in: seg.text)
-                let endByte   = byteOffset(charOffset: endChar,   in: seg.text)
-                spans.append(.init(sceneID: seg.sceneID, start: startByte, end: endByte))
-                _ = ns  // (kept for clarity; spans derive from the loader's canonical scene text)
-            }
-            return spans.isEmpty ? nil : spans
-        }
-
         // Scene-local UTF-16 char offset → scene-local UTF-8 byte offset (history's convention).
         private func byteOffset(charOffset: Int, in sceneText: String) -> Int {
             let nsText = sceneText as NSString
@@ -2478,55 +2194,15 @@ struct ManuscriptTextView: NSViewRepresentable {
             return nsText.substring(to: clamped).utf8.count
         }
 
-        // Reload the whole manuscript from disk after a structural fragment op (cut/paste create
-        // or delete scenes+chapters). Re-opens the project → fresh scene list → rebuilds storage,
-        // then places the caret at `caretSceneID` + scene-local byte offset. The robust path (vs
-        // the in-memory patching the single merge/split handlers do — too fragile for N scenes).
-        func reloadManuscriptFromDisk(caretSceneID: String, caretByteOffset: Int) {
-            guard let tv = textView else { return }
-            let loader = parent.loader
-            let session = parent.session
-            guard let rootPath = session.projectRootPath else { return }
-            let appSupport = session.appSupportRoot
-
-            // Re-open to get the authoritative post-op scene list.
-            guard let reopened = try? parent.env.engine.openProject(
-                projectRootPath: rootPath, appSupportRoot: appSupport) else {
-                print("[Scrivi] reloadManuscriptFromDisk: openProject failed")
-                return
-            }
-            loader.replaceScenes(reopened.scenes, activeSceneID: caretSceneID)
-            rebuildStorage(tv, segments: loader.segments)
-            ensureBoundaries(tv)
-
-            // Place the caret at the target scene + scene-local byte offset.
-            if let segIdx = loader.segments.firstIndex(where: { $0.sceneID == caretSceneID }),
-               sceneBoundaries.indices.contains(segIdx) {
-                let base = sceneBoundaries[segIdx].location
-                let charOff = charOffsetForByteOffset(caretByteOffset, in: loader.segments[segIdx].text)
-                revealCaretAfterRebuild(base + charOff, in: tv)   // [I-0271] + T-0573
-                takeFocus()
-                loader.setCurrentIndex(segIdx)
-                loader.setViewportScene(caretSceneID)
-            }
-
-            // Keep the timeline in sync (scene set changed).
-            session.timelineModel?.reloadSceneDots(
-                engine: parent.env.engine, projectRootPath: rootPath, scenes: loader.allScenes)
-            session.timelineModel?.updateDotTitles(liveTitles: loader.liveTitles, allScenes: loader.allScenes)
-        }
-
-        // The internal structured clipboard (T2=A): a fragment placed by a cross-boundary ⌘C/⌘X.
-        // The system pasteboard carries only the flat plainText for external apps; the structured
-        // fragment lives here so an internal ⌘V can reconstruct boundaries. Nil until a
-        // cross-boundary copy/cut runs; a single-scene copy/cut clears it (so ⌘V falls back to the
-        // plain system-pasteboard path).
-        private var internalClipboardFragment: FragmentResult? {
-            get { structuredClipboard.fragment(currentChangeCount: NSPasteboard.general.changeCount) }
+        // The internal structured clipboard (T2=A): the Range a cross-scene ⌘C / ⌘X placed. The system pasteboard carries
+        // only flat text for other apps; the Range lives here so Scrivi's own ⌘V can reconstruct the breaks. Nil until a
+        // cross-scene copy runs; a single-scene copy clears it (so ⌘V falls back to the plain pasteboard path).
+        private var internalClipboardRange: ScriviRange? {
+            get { structuredClipboard.range(currentChangeCount: NSPasteboard.general.changeCount) }
             set { structuredClipboard.hold(newValue, changeCount: NSPasteboard.general.changeCount) }
         }
-        /// ⛔ [I-0279]: the fragment used to be held FOREVER — every later ⌘V pasted it, whatever had been copied
-        /// since. ✅ Now it is tied to the system pasteboard's change count, as `ownCopy` is.
+        /// ⛔ [I-0279]: the copy used to be held FOREVER — every later ⌘V pasted it, whatever had been copied since.
+        /// ✅ Now it is tied to the system pasteboard's change count, as `ownCopy` is.
         private var structuredClipboard = StructuredClipboard()
 
         // Flash the screen + beep and do NOT paste — the caret sits in a non-editable chapter
@@ -2542,44 +2218,53 @@ struct ManuscriptTextView: NSViewRepresentable {
             }
         }
 
-        // Cross-boundary ⌘C: extract the fragment, put its flat plainText on the system pasteboard
-        // (external apps get clean text), and hold the structured fragment internally for ⌘V.
-        // Returns true if it handled the copy (selection crossed a boundary); false → caller uses
-        // the normal single-scene copy.
+        // Cross-scene ⌘C: the flat text on the system pasteboard (other apps get clean text), the Range held for Scrivi's
+        // own ⌘V. ✅ [SP-191] (§4.2b): built from the scene list — no core call, no disk read. Returns true if it handled
+        // the copy (the selection crossed a break); false → the caller uses the normal single-scene copy.
         func structuredCopyIfCrossBoundary() -> Bool {
             guard let tv = textView else { return false }
             let sel = tv.selectedRange()
-            guard selectionCrossesBoundary(sel), let spans = fragmentSpans(for: sel),
-                  let rootPath = parent.session.projectRootPath else { return false }
-            guard let raw = try? parent.env.engine.fragmentExtract(
-                projectRootPath: rootPath, spans: spans) else { return false }
-            let (frag, presented) = balancedFragment(raw, sel)
+            guard selectionCrossesBoundary(sel), let copied = copiedRange(sel) else { return false }
             let pb = NSPasteboard.general
             pb.clearContents()
-            // EP-045 AC4: other apps get what the writer SEES, not escape backslashes. ⌘V in
-            // Scrivi still reconstructs from `internalClipboardFragment`, which keeps the source.
-            pb.setString(presented, forType: .string)
+            // EP-045 AC4: other apps get what the writer SEES, not escape backslashes.
+            pb.setString(copied.presented, forType: .string)
             // ⚠️ [I-0279]: held AFTER the pasteboard write, so it matches the change count that write produced.
-            internalClipboardFragment = frag
+            internalClipboardRange = copied.range
             return true
         }
 
-        /// ✅ [T-0591] (ruled 2026-10-05: Apple-side): each scene's piece of a cross-scene copy is BALANCED — a piece that
-        /// starts or ends inside a bold span carries its own markers (AC12) — and other apps get what the writer SEES
-        /// ([SP-162] Q2: no markers, no `## `, no escapes), pieces joined by a blank line as ScriviCore joins them.
-        /// Shared by ⌘C and the copy buffers ([I-0289]).
-        func balancedFragment(_ raw: FragmentResult, _ sel: NSRange) -> (fragment: FragmentResult, presented: String) {
-            guard let storage = textView?.textStorage, let parts = sceneParts(of: sel), parts.count == raw.pieces.count else {
-                return (raw, MarkdownEscapes.map(raw.plainText).presented)
+        /// ✅ [SP-191] The Range of a cross-scene selection, from the scene list (§4.2b, R6): one entry per scene the
+        /// selection touches, with its identity, chapter and titles. ✅ [T-0591] (ruled 2026-10-05: Apple-side): each piece
+        /// is BALANCED — one that starts or ends inside a bold span carries its own markers (AC12) — so its offsets are the
+        /// balanced piece's (`normalized`): only a paste reads a copy, and a paste takes the texts. Other apps get what the
+        /// writer SEES ([SP-162] Q2), pieces joined by a blank line; `source` is the stored pieces joined the same way (a
+        /// buffer slot's flat text). Shared by ⌘C and the copy buffers ([I-0289]).
+        func copiedRange(_ sel: NSRange) -> (range: ScriviRange, presented: String, source: String)? {
+            guard let storage = textView?.textStorage else { return nil }
+            let loader = parent.loader
+            let infos = Dictionary(loader.allScenes.map { ($0.sceneID, $0) }, uniquingKeysWith: { a, _ in a })
+            var entries: [ScriviRange.Entry] = []
+            var presented: [String] = []
+            for (i, range) in sceneBoundaries.enumerated() where loader.segments.indices.contains(i) {
+                var part = NSIntersectionRange(range, sel)
+                if part.length == 0 {
+                    // A scene the selection only touches at its start (a break crossed with nothing selected in it).
+                    guard sel.location <= range.location, range.location < NSMaxRange(sel) else { continue }
+                    part = NSRange(location: range.location, length: 0)
+                }
+                let seg = loader.segments[i]
+                let copy = presenter.balancedCopy(in: storage, part)
+                let info = infos[seg.sceneID]
+                entries.append(.init(sceneID: seg.sceneID, chapterID: seg.chapterID,
+                                     chapterTitle: info?.chapterTitle ?? "", sceneTitle: info?.title ?? "",
+                                     start: byteOffset(charOffset: part.location - range.location, in: seg.text),
+                                     length: 0, sceneLength: seg.text.utf8.count, text: copy.source))
+                presented.append(copy.presented)
             }
-            let copies = parts.map { presenter.balancedCopy(in: storage, $0) }
-            let pieces = zip(raw.pieces, copies).map { piece, copy in
-                FragmentPiece(opensWith: piece.opensWith, chapterTitle: piece.chapterTitle,
-                              sceneTitle: piece.sceneTitle, text: copy.source, partial: piece.partial)
-            }
-            return (FragmentResult(schema: raw.schema, pieces: pieces,
-                                   plainText: pieces.map(\.text).joined(separator: "\n\n")),
-                    copies.map(\.presented).joined(separator: "\n\n"))
+            guard entries.count > 1 else { return nil }
+            return (ScriviRange(scenes: entries).normalized(), presented.joined(separator: "\n\n"),
+                    entries.map(\.text).joined(separator: "\n\n"))
         }
 
         /// ✅ [SP-164] Q2: Replace All is ONE undoable step, even across scenes — the replacements are applied with history
@@ -2718,94 +2403,55 @@ struct ManuscriptTextView: NSViewRepresentable {
             return true
         }
 
-        // ⌘V when the internal clipboard holds a structured fragment: reconstruct it at the caret.
-        // Refuses (flash) if the caret is in a heading. Returns true if handled; false → caller
-        // uses the normal system-pasteboard paste (no structured fragment, or single-scene).
+        // ⌘V when the internal clipboard holds a Range: reconstruct it at the caret. Refuses (flash) if the caret is in a
+        // heading. Returns true if handled; false → the caller uses the normal system-pasteboard paste.
         func structuredPasteIfAvailable() -> Bool {
-            guard let frag = internalClipboardFragment else { return false }
-            return pasteStructuredFragment(frag)
+            guard let range = internalClipboardRange else { return false }
+            return pasteStructuredRange(range)
         }
 
-        // Reconstruct `frag` at the caret (shared by ⌘V of the internal clipboard and ⌃⌘N of a
-        // structured buffer slot — T-0355). Refuses (flash) if the caret is in a heading.
-        // Returns true if handled (pasted or refused); false → caller should fall back.
-        func pasteStructuredFragment(_ frag: FragmentResult) -> Bool {
+        // Reconstruct `range` at the caret — ⌘V of the internal clipboard and ⌃⌘N of a structured buffer slot. ✅ [SP-191]:
+        // ONE `rangePaste` off the main actor, the delta applied, no reload; Undo cuts exactly what it inserted. ✅ Q7: at a
+        // scene's very start the pasted scenes go before it and the last part joins its start. The caret lands at the end of
+        // the pasted block. Refuses (flash) if the caret is in a heading. Returns true if handled (pasted, refused, or
+        // ignored while another structural edit is in flight).
+        func pasteStructuredRange(_ range: ScriviRange) -> Bool {
             guard let tv = textView else { return false }
             let sel = tv.selectedRange()
             if caretInHeading(sel.location) { flashRefuse(tv); return true }   // handled = refused, no super
+            if parent.loader.structuralInFlight { return true }               // ✅ Q5: ignored, not queued
             // ✅ [I-0295] ([SP-180] Q2): a selection is REPLACED, as a flat paste replaces it — removed first, as its own
-            // undo step (across scenes [I-0270]'s grouped delete, inside one scene an ordinary delete), then the fragment
-            // lands where it began. ⛔ It landed BEFORE the selection and left the selection in place.
+            // undo step (across scenes [I-0270]'s grouped delete, inside one scene an ordinary delete), then the Range
+            // lands where it began.
             if sel.length > 0, !deleteAcrossScenes(sel, kind: "delete") {
                 tv.insertText("", replacementRange: sel)
             }
-            let loc = tv.selectedRange().location
-            guard let segIdx = segmentIndex(for: loc),
-                  parent.loader.segments.indices.contains(segIdx),
-                  sceneBoundaries.indices.contains(segIdx),
-                  let rootPath = parent.session.projectRootPath,
-                  let ref = parent.env.authorshipRef,
-                  let projectID = parent.session.openProjectResult?.projectID else { return false }
-
-            let seg = parent.loader.segments[segIdx]
-            let caretChar = max(0, loc - sceneBoundaries[segIdx].location)
-            let caretByte = byteOffset(charOffset: caretChar, in: seg.text)
-
-            parent.session.historyCapture?.flush(trigger: "flush")
-            // ✅ [I-0294]: the core splits the target AS SAVED, and the reload below replaces EVERY scene with what is on
-            // disk — so each scene with unsaved typing is written first (a split saves first too). ⛔ That typing was lost.
-            for i in parent.loader.segments.indices where parent.loader.segments[i].isDirty {
-                parent.loader.saveSceneBlocking(at: i, engine: parent.env.engine, ref: ref)
-            }
-            // ✅ [T-0591]: pasting INSIDE a bold span — the first piece closes it, the last re-opens it for the text after
-            // the split. ✅ [SP-163] live pass (user): the pasted text KEEPS ITS OWN formatting (only what was bold is).
-            var frag = frag
+            guard let at = caretInScene() else { return false }
+            // ✅ [T-0591]: pasting INSIDE a bold span — the first piece closes it, the last re-opens it for the text after the
+            // split. ✅ [SP-163] live pass (user): the pasted text KEEPS ITS OWN formatting (only what was bold is).
+            var range = range
             if let storage = tv.textStorage {
-                let style = presenter.styleAtCaret(in: storage, loc)
-                let texts = ManuscriptPresenter.balancePastePieces(frag.pieces.map(\.text), caretStyle: style)
-                if texts != frag.pieces.map(\.text) {
-                    let pieces = zip(frag.pieces, texts).map { piece, text in
-                        FragmentPiece(opensWith: piece.opensWith, chapterTitle: piece.chapterTitle,
-                                      sceneTitle: piece.sceneTitle, text: text, partial: piece.partial)
-                    }
-                    frag = FragmentResult(schema: frag.schema, pieces: pieces, plainText: pieces.map(\.text).joined(separator: "\n\n"))
+                let style = presenter.styleAtCaret(in: storage, tv.selectedRange().location)
+                let texts = ManuscriptPresenter.balancePastePieces(range.scenes.map(\.text), caretStyle: style)
+                if texts != range.scenes.map(\.text) {
+                    for i in range.scenes.indices { range.scenes[i].text = texts[i] }
+                    range = range.normalized()
                 }
             }
-            guard let result = try? parent.env.engine.fragmentPaste(
-                projectRootPath: rootPath,
-                appSupportRoot: parent.session.appSupportRoot,
-                projectID: projectID,
-                fragmentJSON: frag.toJSON(),
-                caretSceneID: seg.sceneID,
-                caretByteOffset: caretByte,
-                authorshipRef: ref) else { return false }
-
-            // Reversible structural op (T-0356 / AC6): undo cuts away exactly the created
-            // scenes/chapters and re-joins the split target (undo-paste == cut-merge, §5); redo
-            // re-runs the paste.
-            // ✅ [I-0293]: with the texts the paste left and the target's text before it, so the next edit there diffs
-            // against what the writer now sees. ⛔ Without them its undo put the pre-paste text back, and the paste's own
-            // undo was then refused. ✅ [I-0297]: the texts come back with the paste — re-reading them rebuilt the
-            // project's scene index (a walk of every scene) on the main thread.
-            parent.session.historyCapture?.recordBarrier(
-                kind: "structuredPaste", note: "Can't undo past a cross-boundary paste",
-                structuralPayload: HistoryStructuralPayload(
-                    op: "structuredPaste",
-                    fragmentJSON: frag.toJSON(),
-                    caretSceneID: result.targetSceneID,
-                    caretByte: caretByte,
-                    createdSceneIDs: result.createdSceneIDs,
-                    createdChapterIDs: result.createdChapterIDs),
-                sceneTexts: result.sceneTexts,
-                sceneTextsBefore: [seg.sceneID: seg.text])
-            // Place the caret at the start of the paste target (the split point); the reload
-            // re-anchors to a valid scene.
-            reloadManuscriptFromDisk(caretSceneID: result.targetSceneID, caretByteOffset: caretByte)
+            let pasted = range
+            let caretSceneID = at.seg.sceneID, caretByte = at.byte, caretText = at.seg.text
+            runStructuralEdit("Pasting…", { engine, root, ref in
+                try engine.rangePaste(projectRootPath: root, range: pasted, caretSceneID: caretSceneID,
+                                      caretByteOffset: caretByte, caretSceneText: caretText, authorshipRef: ref)
+            }, node: { r in
+                HistoryStructuralPayload(op: "rangePaste", caretSceneID: caretSceneID, caretByte: caretByte,
+                                         rangeJSON: (try? r.range.toJSON()) ?? "")
+            }, caret: { r in r.range.scenes.last.map { ($0.sceneID, $0.start + $0.length) } })
             return true
         }
 
-        // True when a structured fragment is available for ⌘V (drives paste routing).
-        var hasInternalStructuredFragment: Bool { internalClipboardFragment != nil }
+        // True when a structured Range is available for ⌘V (drives paste routing).
+        var hasInternalStructuredRange: Bool { internalClipboardRange != nil }
     }
 }
 
@@ -3353,7 +2999,7 @@ final class ManuscriptNSTextView: NSTextView {
     override func paste(_ sender: Any?) {
         // A held structured fragment reconstructs at the caret (or refuses in a heading). Otherwise
         // the normal system-pasteboard paste runs (AC5). EP-029 SP-089.
-        if coordinator?.hasInternalStructuredFragment == true,
+        if coordinator?.hasInternalStructuredRange == true,
            coordinator?.structuredPasteIfAvailable() == true { return }
         coordinator?.parent.session.historyCapture?.beginPasteOrCut(kind: "paste")
         super.paste(sender)
@@ -3710,22 +3356,23 @@ enum SceneDivider {
 }
 
 
-// MARK: — [I-0279]: the held cross-scene fragment
+// MARK: — [I-0279]: the held cross-scene Range
 
-/// Scrivi's cross-scene copy (a structured fragment ScriviCore can paste back as scenes), valid only while the
-/// system pasteboard still holds what that copy put there. ⛔ It was held forever (SP-089), so after one cross-scene
-/// copy every ⌘V pasted it — whatever had been copied since ([I-0279], found in [SP-163]'s live pass).
+/// Scrivi's cross-scene copy (a Range ScriviCore can paste back as scenes), valid only while the system pasteboard still
+/// holds what that copy put there. ⛔ It was held forever (SP-089), so after one cross-scene copy every ⌘V pasted it —
+/// whatever had been copied since ([I-0279], found in [SP-163]'s live pass). ✅ [SP-191] Q4a: it holds a Range, as the
+/// buffers and history do.
 struct StructuredClipboard {
-    private var held: (fragment: FragmentResult, changeCount: Int)?
+    private var held: (range: ScriviRange, changeCount: Int)?
 
-    mutating func hold(_ fragment: FragmentResult?, changeCount: Int) {
-        held = fragment.map { ($0, changeCount) }
+    mutating func hold(_ range: ScriviRange?, changeCount: Int) {
+        held = range.map { ($0, changeCount) }
     }
 
-    /// The fragment, or nil once anything else has been copied (the change count moved on).
-    func fragment(currentChangeCount: Int) -> FragmentResult? {
+    /// The Range, or nil once anything else has been copied (the change count moved on).
+    func range(currentChangeCount: Int) -> ScriviRange? {
         guard let held, held.changeCount == currentChangeCount else { return nil }
-        return held.fragment
+        return held.range
     }
 }
 

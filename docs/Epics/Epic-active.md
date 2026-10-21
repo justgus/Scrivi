@@ -4,7 +4,7 @@
 
 **Status:** 🟡 **ACTIVE 2026-10-17** — created and started the same day (user: *"draft EP-053, start the first sprint and publish
 the design doc for my perusal"*). S1 = [SP-186], ✅ closed 2026-10-20. S2a = [SP-187], ✅ closed 2026-10-21.
-**Design:** [`../Scrivi_Structured_CutCopyPaste_Design_v0_2.md`](../Scrivi_Structured_CutCopyPaste_Design_v0_2.md) — ✅ ruled
+**Design:** [`../Scrivi_Structured_CutCopyPaste_Design_v0_3.md`](../Scrivi_Structured_CutCopyPaste_Design_v0_3.md) (v0.3, [SP-191]; supersedes v0.2) — ✅ ruled
 2026-10-17 (R1–R7, Q1–Q5). Supersedes v0.1 (EP-029) where they differ.
 **Codebase:** `[ScriviCore]` first, then `[Apple]` and `[Linux]` together — the same shape and the same threads on both (R5).
 **Absorbs:** [I-0297] (a paste's undo takes 40 s over the share — its last part, the reload), [I-0311] (a chapter-opening paste
@@ -26,7 +26,7 @@ thread, one core call per scene); a cut no longer removed structure, so paste an
 | ------ | ----- | ------ |
 | **[SP-186]** | **S1** — `[ScriviCore]` the Range (`scrivi.range.v1`) and the range operations: read, paste ([I-0311] fixed), structural cut, each returning the delta; the index patched in place; a two-scene paste = 3 reads + 5 writes (re-ruled 2026-10-20) | ✅ **CLOSED 2026-10-20** (user-approved) → [`../Sprints/Closed/Sprint-SP-186.md`](../Sprints/Closed/Sprint-SP-186.md) · [T-0614] verified |
 | **[SP-187]** | **S2a** — `[Apple]` + `[Linux]` the scene list as the model of record (design §4.2a), no visible change: the range endpoints bound on both, the delta types, Linux's list holding the text, Apple's partial re-render; baseline counts | ✅ **CLOSED 2026-10-21** (user-approved) → [`../Sprints/Closed/Sprint-SP-187.md`](../Sprints/Closed/Sprint-SP-187.md) · ✅ Q1–Q4 ruled |
-| **[SP-191]** | **S2b** — `[Apple]` + `[Linux]` copy builds the Range from memory; paste and its undo (a range cut); split, chapter split, merge and chapter merge as range calls (undoable, sidecars restored, no barriers); the delta applied, no reload, off the main thread on both; old history nodes converted; [I-0314] · ➡️ takes [SP-185] AC4 | 🟡 **ACTIVE 2026-10-21** → [`../Sprints/Sprint-SP-191.md`](../Sprints/Sprint-SP-191.md) · ✅ all questions ruled 2026-10-21 |
+| **[SP-191]** | **S2b** — `[Apple]` + `[Linux]` copy builds the Range from memory; paste and its undo (a range cut); split, chapter split, merge and chapter merge as range calls (undoable, sidecars restored, no barriers); the delta applied, no reload, off the main thread on both; old history nodes converted; [I-0314] · ➡️ takes [SP-185] AC4 | 🟡 **ACTIVE 2026-10-21** → [`../Sprints/Sprint-SP-191.md`](../Sprints/Sprint-SP-191.md) · ✅ all questions ruled · ✅ AC1–AC10 met 2026-10-21; ⏳ AC11 live passes |
 | **[SP-188]** | **S3** — `[Apple]` + `[Linux]` structural cut; Backspace / Delete over scenes = Cut minus the clipboard (Q4); cut's undo (a range paste); old `structuredCut` nodes still undo | 🔵 **PLANNING 2026-10-20** → [`../Sprints/Sprint-SP-188.md`](../Sprints/Sprint-SP-188.md) · ⏳ Q1–Q2 |
 | **[SP-189]** | **S4** — `[Cross]` the background sync verification (disk wins, silently — Q3) | 🔵 **PLANNING 2026-10-20** → [`../Sprints/Sprint-SP-189.md`](../Sprints/Sprint-SP-189.md) · ⏳ Q1–Q2 |
 | **[SP-190]** | **S5** — Mac and rig live passes over the share, timed by the diagnostic logs | 🔵 **PLANNING 2026-10-20** → [`../Sprints/Sprint-SP-190.md`](../Sprints/Sprint-SP-190.md) · ⏳ Q1 |

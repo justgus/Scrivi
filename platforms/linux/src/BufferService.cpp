@@ -34,7 +34,7 @@ void BufferService::refresh()
         const QVariantMap m = v.toMap();
         listedSlots.append({m.value(QStringLiteral("bufferID")).toString(), m.value(QStringLiteral("text")).toString(),
                       m.value(QStringLiteral("updatedAt")).toString(),
-                      QJsonObject::fromVariantMap(m.value(QStringLiteral("fragment")).toMap())});
+                      QJsonObject::fromVariantMap(m.value(QStringLiteral("range")).toMap())});
     }
     slots_ = listedSlots;
     emit changed();
@@ -65,13 +65,13 @@ QString BufferService::updatedAt(const QString& bufferID) const
 bool BufferService::isStructured(const QString& bufferID) const
 {
     const Slot* s = find(bufferID);
-    return s != nullptr && !s->fragment.isEmpty();
+    return s != nullptr && !s->range.isEmpty();
 }
 
-QJsonObject BufferService::fragment(const QString& bufferID) const
+QJsonObject BufferService::range(const QString& bufferID) const
 {
     const Slot* s = find(bufferID);
-    return s != nullptr ? s->fragment : QJsonObject();
+    return s != nullptr ? s->range : QJsonObject();
 }
 
 QString BufferService::preview(const QString& bufferID) const
@@ -86,11 +86,11 @@ QString BufferService::preview(const QString& bufferID) const
     return {};
 }
 
-bool BufferService::load(const QString& text, const QString& bufferID, const QJsonObject& fragment)
+bool BufferService::load(const QString& text, const QString& bufferID, const QJsonObject& range)
 {
-    const QString fragmentJson =
-        fragment.isEmpty() ? QString() : QString::fromUtf8(QJsonDocument(fragment).toJson(QJsonDocument::Compact));
-    if (ScriviBridge::buffersLoad(root_, bufferID, text, fragmentJson).isEmpty()) {
+    const QString rangeJson =
+        range.isEmpty() ? QString() : QString::fromUtf8(QJsonDocument(range).toJson(QJsonDocument::Compact));
+    if (ScriviBridge::buffersLoad(root_, bufferID, text, rangeJson).isEmpty()) {
         return false;   // {} = the call failed (logged by the bridge); a success carries {bufferID, updatedAt}
     }
     refresh();

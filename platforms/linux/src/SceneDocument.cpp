@@ -1,6 +1,7 @@
 #include "SceneDocument.hpp"
 
 #include <QPlainTextDocumentLayout>
+#include <QSet>
 #include <QTextCursor>
 
 #include <algorithm>
@@ -786,6 +787,94 @@ QList<int> SceneDocument::sceneSeparatorPositions() const
         }
     }
     return out;
+}
+
+int SceneDocument::applyRangeDelta(const RangeDelta& delta)
+{
+    const VerifyOnExit verify{*this};
+    const QSet<QString> removed(delta.removedSceneIDs.cbegin(), delta.removedSceneIDs.cend());
+    QSet<QString> named;
+    for (const RangeDelta::Scene& c : delta.scenes) {
+        named.insert(c.sceneID);
+    }
+    int oldLo = -1;
+    int oldHi = -1;
+    for (int i = 0; i < segments_.size(); ++i) {
+        if (removed.contains(segments_.at(i).sceneID) || named.contains(segments_.at(i).sceneID)) {
+            if (oldLo < 0) { oldLo = i; }
+            oldHi = i;
+        }
+    }
+    if (oldLo < 0) {
+        return -1;
+    }
+    // The document the old run holds: its scenes' leading boundaries and bodies, and the follower's leading boundary.
+    const int spanStart = oldLo == 0 ? 0 : segments_.at(oldLo - 1).bodyStart + segments_.at(oldLo - 1).bodyLength;
+    const int spanEnd = oldHi + 1 < segments_.size() ? segments_.at(oldHi + 1).bodyStart : doc_.characterCount() - 1;
+
+    // The new list: the removed scenes out, every named scene placed after its predecessor.
+    QList<SceneSegment> list;
+    list.reserve(segments_.size());
+    for (const SceneSegment& s : std::as_const(segments_)) {
+        if (!removed.contains(s.sceneID)) { list.append(s); }
+    }
+    for (const RangeDelta::Scene& c : delta.scenes) {
+        SceneSegment seg;
+        const auto was = std::find_if(list.begin(), list.end(), [&](const SceneSegment& s) { return s.sceneID == c.sceneID; });
+        if (was != list.end()) {
+            seg = *was;
+            list.erase(was);
+        }
+        seg.sceneID             = c.sceneID;
+        seg.chapterID           = c.chapterID;
+        seg.title               = c.title;
+        seg.chapterTitle        = c.chapterTitle;
+        seg.metadataPath        = c.metadataPath;
+        seg.contentPath         = c.contentPath;
+        seg.chapterMetadataPath = c.chapterMetadataPath;
+        if (c.hasText) { seg.text = c.text; }
+        auto at = list.begin();   // "" = the manuscript's first
+        if (!c.afterSceneID.isEmpty()) {
+            at = std::find_if(list.begin(), list.end(), [&](const SceneSegment& s) { return s.sceneID == c.afterSceneID; });
+            if (at != list.end()) { ++at; }
+        }
+        list.insert(at, seg);
+    }
+    int newHi = oldLo;
+    for (int i = 0; i < list.size(); ++i) {
+        if (named.contains(list.at(i).sceneID)) { newHi = std::max(newHi, i); }
+    }
+
+    // Render the run (oldLo…newHi of the new list) and the follower's leading boundary.
+    segments_ = list;   // ⚠️ chapterHeadingText reads the new order; the offsets are set below
+    const auto boundary = [&](int j) {
+        const bool first = j == 0;
+        const bool chapterStart = first || segments_.at(j).chapterID != segments_.at(j - 1).chapterID;
+        return leadingBoundaryFor(first, chapterStart, chapterHeadingText(j));
+    };
+    QString built;
+    for (int j = oldLo; j <= newHi && j < segments_.size(); ++j) {
+        built += boundary(j);
+        segments_[j].bodyStart = spanStart + int(built.size());
+        segments_[j].bodyLength = int(segments_.at(j).text.size());
+        built += segments_.at(j).text;
+    }
+    const int follower = newHi + 1;
+    if (follower < segments_.size()) { built += boundary(follower); }
+
+    QTextCursor cursor(&doc_);
+    cursor.beginEditBlock();
+    cursor.setPosition(spanStart);
+    cursor.setPosition(spanEnd, QTextCursor::KeepAnchor);
+    cursor.insertText(built);
+    cursor.endEditBlock();
+
+    const int shift = spanStart + int(built.size()) - (follower < segments_.size() ? segments_.at(follower).bodyStart : 0);
+    for (int j = follower; j < segments_.size(); ++j) {
+        segments_[j].bodyStart += shift;
+    }
+    reflowAllChapterHeadings();   // untitled chapters after the run renumber
+    return oldLo;
 }
 
 void SceneDocument::reflowAllChapterHeadings()

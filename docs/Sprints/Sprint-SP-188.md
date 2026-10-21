@@ -13,7 +13,7 @@ created: 2026-10-20
 **Epic:** [EP-053] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md).
 **Builds on:** [SP-186] (S1, `scrivi_range_cut`) · [SP-187] + [SP-191] (S2a + S2b: the scene list as the model of record, the delta applied,
 `rangePaste` history).
-**Authority:** [`../Scrivi_Structured_CutCopyPaste_Design_v0_2.md`](../Scrivi_Structured_CutCopyPaste_Design_v0_2.md) — R4,
+**Authority:** [`../Scrivi_Structured_CutCopyPaste_Design_v0_3.md`](../Scrivi_Structured_CutCopyPaste_Design_v0_3.md) (v0.3, 2026-10-21, supersedes v0.2) — R4,
 §4.3, §4.5, Q2, Q4. ⛔ R4 **reverses** the 2026-10-02 ruling ([I-0270]: a cross-scene cut deletes text and keeps scenes).
 **Ruling that shaped it (user, 2026-10-20):** ✅ each operation ships with its undo; ✅ the `rangeCut` history op name is
 approved, backward-compatible.

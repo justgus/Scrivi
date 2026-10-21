@@ -5,6 +5,9 @@
 // project loads (a structural reload is one), and full document builds. The manuscript is read back FROM DISK after each,
 // and every scene's text is checked against the document (SCRIVI_VERIFY_SCENE_TEXT, set by the script).
 // ⚠️ It asserts what the operations DO, not what they cost: the costs are the baseline, recorded in SP-187.
+// ✅ [SP-191]: and now that they are range calls — no project load and no document build per operation; the scene list
+// equal to the disk after every operation, undo and redo (`listMatchesDisk`, ⛔ [I-0314] shipped because nothing compared
+// them); each operation undone and redone in ONE step; Q5's cue and an ignored repeat; Q7 and Q8 at a scene's start.
 //
 //   argv[1] = project dir to create; $XDG_DATA_HOME drives appSupportRoot; Qt offscreen (set by the script).
 
@@ -89,6 +92,58 @@ struct Rig {
         for (const QString& id : ids) { out.append(t.value(id)); }
         return out;
     }
+    // ✅ [SP-191] The scene list IS the disk: identity, chapter, paths and text, against a fresh open.
+    void listMatchesDisk(const QString& what)
+    {
+        shell->saveDirtyScenes();
+        QStringList disk;
+        QStringList ids;
+        const QVariantList scenes = bridge.openProject(projectDir, appSupport).value(QStringLiteral("scenes")).toList();
+        for (const QVariant& v : scenes) { ids.append(v.toMap().value(QStringLiteral("sceneID")).toString()); }
+        const QHash<QString, QString> t = bridge.readSceneTexts(projectDir, ids);
+        for (const QVariant& v : scenes) {
+            const QVariantMap m = v.toMap();
+            disk.append(QStringList{m.value(QStringLiteral("sceneID")).toString(), m.value(QStringLiteral("chapterID")).toString(),
+                                    m.value(QStringLiteral("metadataPath")).toString(),
+                                    m.value(QStringLiteral("contentPath")).toString(),
+                                    t.value(m.value(QStringLiteral("sceneID")).toString())}.join(QLatin1Char('|')));
+        }
+        QStringList list;
+        for (const SceneSegment& seg : shell->sceneDocument().segments()) {
+            list.append(QStringList{seg.sceneID, seg.chapterID, seg.metadataPath, seg.contentPath, seg.text}.join(QLatin1Char('|')));
+        }
+        check(list == disk, QStringLiteral("%1: the scene list is what is on disk\n  list: %2\n  disk: %3")
+                                .arg(what, list.join(QStringLiteral(" ; ")), disk.join(QStringLiteral(" ; "))));
+    }
+    // The scenes as the editor holds them: identity, chapter, text.
+    QStringList state() const
+    {
+        QStringList out;
+        for (const SceneSegment& seg : shell->sceneDocument().segments()) {
+            out.append(seg.sceneID + QLatin1Char('|') + seg.chapterID + QLatin1Char('|') + seg.text);
+        }
+        return out;
+    }
+    // [SP-191] `act` starts a structural edit: wait for it to land.
+    bool landing(const std::function<void()>& act)
+    {
+        QEventLoop loop;
+        bool ok = false;
+        bool done = false;
+        QObject::connect(shell.get(), &EditorShell::structuralEditFinished, &loop, [&](bool r) { ok = r; done = true; loop.quit(); });
+        QTimer::singleShot(30000, &loop, &QEventLoop::quit);
+        act();
+        if (!done) { loop.exec(); }
+        QTest::qWait(60);
+        return ok;
+    }
+    void caretAtSceneStart(int index)
+    {
+        QTextCursor c = editor->textCursor();
+        c.setPosition(shell->sceneDocument().segments().at(index).bodyStart);
+        editor->setTextCursor(c);
+        QApplication::processEvents();
+    }
     int chapterCount()
     {
         QStringList seen;
@@ -123,13 +178,16 @@ struct Rig {
         QTest::sendKeyEvent(QTest::Release, editor, k, text, Qt::ControlModifier | extra);
     }
     // Runs `act`, lets any background work and reload land, then prints the baseline.
-    void measured(const char* what, const std::function<void()>& act)
+    void measured(const char* what, const std::function<void()>& act, bool structural = true)
     {
         const qint64 calls = ScriviBridge::guiThreadCallCount();
         const int loads = shell->loadCount();
         const int builds = shell->sceneDocument().builds();
         act();
-        for (int i = 0; i < 300; ++i) {   // ≤ 15 s for a worker + reload to land
+        if (structural) {
+            check(editor->isReadOnly(), QStringLiteral("%1: Q5's cue — read-only at once, in the key press's own turn").arg(what));
+        }
+        for (int i = 0; i < 300; ++i) {   // ≤ 15 s for a worker to land
             QTest::qWait(50);
             if (!editor->isReadOnly()) { break; }
         }
@@ -138,6 +196,10 @@ struct Rig {
                     qlonglong(ScriviBridge::guiThreadCallCount() - calls), shell->loadCount() - loads,
                     shell->sceneDocument().builds() - builds);
         check(shell->sceneDocument().textMatchesDocument(), QStringLiteral("%1: every scene's text is its body").arg(what));
+        // ✅ [SP-191]: nothing re-reads the project, and nothing rebuilds the document.
+        check(shell->loadCount() == loads, QStringLiteral("%1: no project load").arg(what));
+        check(shell->sceneDocument().builds() == builds, QStringLiteral("%1: no document build").arg(what));
+        listMatchesDisk(QString::fromUtf8(what));
     }
 };
 
@@ -202,12 +264,78 @@ int main(int argc, char* argv[])
     });
     check(r.chapterCount() == 1, QStringLiteral("merge chapter: one chapter on disk"));
 
-    r.measured("copy across scenes", [&] { r.select(QStringLiteral("one."), QStringLiteral("Beta")); r.control(Qt::Key_C); });
+    r.measured("copy across scenes", [&] { r.select(QStringLiteral("one."), QStringLiteral("Beta")); r.control(Qt::Key_C); },
+               /*structural=*/false);
     const QStringList beforePaste = r.texts();
     r.measured("structured paste", [&] { r.caretAt(QStringLiteral("Gamma ")); r.control(Qt::Key_V); });
     check(r.texts().size() == beforePaste.size() + 1, QStringLiteral("structured paste: one scene more on disk"));
     r.measured("undo of the paste", [&] { r.control(Qt::Key_Z); });
     check(r.texts() == beforePaste, QStringLiteral("undo of the paste: the manuscript as it was before the paste"));
+
+    // ── [SP-191] Q3: each structural edit undoes and redoes in ONE step — the list the disk after each ─────────────────
+    // (Starts from: chapter 1 [Alpha one. Alpha two. · Beta · Gamma body.] — whatever the above left — one chapter.)
+    const auto roundTrip = [&](const QString& what, const std::function<void()>& op) {
+        const QStringList before = r.state();
+        check(r.landing(op), QStringLiteral("%1 landed").arg(what));
+        const QStringList after = r.state();
+        check(after != before, QStringLiteral("%1 changed the manuscript").arg(what));
+        r.listMatchesDisk(what);
+        check(r.landing([&] { r.control(Qt::Key_Z); }), QStringLiteral("%1: its undo landed").arg(what));
+        check(r.state() == before, QStringLiteral("%1: undone in ONE step").arg(what));
+        r.listMatchesDisk(what + QStringLiteral(", undone"));
+        check(r.landing([&] { r.control(Qt::Key_Z, Qt::ShiftModifier); }), QStringLiteral("%1: its redo landed").arg(what));
+        check(r.state() == after, QStringLiteral("%1: redone exactly").arg(what));
+        r.listMatchesDisk(what + QStringLiteral(", redone"));
+        check(r.landing([&] { r.control(Qt::Key_Z); }), QStringLiteral("%1: undone again").arg(what));
+    };
+    const QStringList start = r.state();
+    roundTrip(QStringLiteral("split"), [&] { r.caretAt(QStringLiteral("Alpha one. ")); r.shell->splitScene(); });
+    roundTrip(QStringLiteral("split at a scene's start"), [&] { r.caretAtSceneStart(1); r.shell->splitScene(); });
+    roundTrip(QStringLiteral("merge"), [&] { r.caretAtSceneStart(1); r.shell->mergeScene(); });
+    roundTrip(QStringLiteral("chapter split"), [&] { r.caretAt(QStringLiteral("Alpha ")); r.shell->splitChapter(); });
+    roundTrip(QStringLiteral("chapter split at a scene's start"), [&] { r.caretAtSceneStart(1); r.shell->splitChapter(); });
+    check(r.landing([&] { r.caretAtSceneStart(1); r.shell->splitChapter(); }), QStringLiteral("(a second chapter, kept)"));
+    roundTrip(QStringLiteral("chapter merge"), [&] { r.caretAtSceneStart(1); r.shell->mergeChapter(); });
+    check(r.landing([&] { r.control(Qt::Key_Z); }), QStringLiteral("(the kept chapter undone)"));
+    check(r.state() == start, QStringLiteral("every scene kept its identity and text through all of it"));
+    r.listMatchesDisk(QStringLiteral("the end of the round trips"));
+
+    // ── [SP-191] Q7: ⌃↩ at a scene's start puts the new scene BEFORE it, the caret into it ─────────────────────────────
+    {
+        const QString second = r.shell->sceneDocument().segments().at(1).sceneID;
+        check(r.landing([&] { r.caretAtSceneStart(1); r.shell->splitScene(); }), QStringLiteral("Q7: the split landed"));
+        const QList<SceneSegment>& segs = r.shell->sceneDocument().segments();
+        check(segs.size() == start.size() + 1 && segs.at(1).text.isEmpty() && segs.at(2).sceneID == second,
+              QStringLiteral("Q7: a new, empty scene before it; the scene keeps its identity"));
+        check(r.editor->textCursor().position() == segs.at(1).bodyStart, QStringLiteral("Q7: the caret is in the new scene"));
+        check(r.landing([&] { r.control(Qt::Key_Z); }), QStringLiteral("(undone)"));
+    }
+    // ── [SP-191] Q8: ⌃⇧↩ at a scene's start is a relabel — no scene made, no text moved ───────────────────────────────
+    {
+        const QStringList texts = r.texts();
+        check(r.landing([&] { r.caretAtSceneStart(1); r.shell->splitChapter(); }), QStringLiteral("Q8: the relabel landed"));
+        check(r.texts() == texts && r.chapterCount() == 2, QStringLiteral("Q8: two chapters, the same scenes and texts"));
+        check(r.landing([&] { r.control(Qt::Key_Z); }), QStringLiteral("(undone)"));
+        r.caretAtSceneStart(0);
+        r.shell->splitChapter();   // a chapter's first scene: nothing happens
+        QTest::qWait(200);
+        check(r.chapterCount() == 1 && !r.editor->isReadOnly(), QStringLiteral("Q8: at a chapter's first scene, nothing"));
+    }
+    // ── [SP-191] Q5: a repeat while the edit is in flight is ignored, not queued ───────────────────────────────────────
+    {
+        const int scenes = int(r.shell->sceneDocument().segments().size());
+        check(r.landing([&] {
+            r.caretAt(QStringLiteral("Alpha one. "));
+            r.shell->splitScene();
+            r.shell->splitScene();    // pressed again at once
+            r.control(Qt::Key_Z);     // and Undo
+        }), QStringLiteral("Q5: the split landed"));
+        QTest::qWait(300);
+        check(int(r.shell->sceneDocument().segments().size()) == scenes + 1,
+              QStringLiteral("Q5: ONE new scene — the repeat and the undo were ignored"));
+        check(r.landing([&] { r.control(Qt::Key_Z); }), QStringLiteral("(undone)"));
+        r.listMatchesDisk(QStringLiteral("after Q5"));
+    }
 
     r.shell->flushHistory();
     r.shell->saveDirtyScenes();

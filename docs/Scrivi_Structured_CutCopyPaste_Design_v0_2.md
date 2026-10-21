@@ -1,6 +1,7 @@
 # Scrivi — Structured Cut / Copy / Paste Design (v0.2)
 
-**Status:** ✅ **RULED 2026-10-17 (user)** — R1–R7 and Q1–Q5 below; implementation is EP-053 (§6). Supersedes v0.1 (`Scrivi_Structured_CutCopyPaste_Design_v0_1.md`, EP-029, approved
+**Status:** ⚠️ **SUPERSEDED by v0.3** (`Scrivi_Structured_CutCopyPaste_Design_v0_3.md`, 2026-10-21, [SP-191]) wherever they
+differ; this stays the record of the 2026-10-17 rulings. ✅ **RULED 2026-10-17 (user)** — R1–R7 and Q1–Q5 below; implementation is EP-053 (§6). Supersedes v0.1 (`Scrivi_Structured_CutCopyPaste_Design_v0_1.md`, EP-029, approved
 2026-07-27) wherever they differ; v0.1 stays the record of how the current code came to be.
 **Date:** 2026-10-17 · **Author:** Claude, from the user's rulings of 2026-10-17 · **Platforms:** ScriviCore, Apple, Linux
 (the same shape on every platform, by rule).

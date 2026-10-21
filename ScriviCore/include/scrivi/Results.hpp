@@ -287,21 +287,8 @@ struct RenameChapterResult {
 };
 
 // ---------------------------------------------------------------------------
-// mergeScene / mergeChapter (EP-028 SP-074)
+// mergeChapter (EP-028 SP-074) — ⚠️ [SP-191]: `ChapterMerger`'s, for `FragmentCutter` only.
 // ---------------------------------------------------------------------------
-
-struct MergeSceneResult {
-    SceneID   survivorSceneID;   // the predecessor scene that absorbed the merged body
-    SceneID   mergedSceneID;     // the scene that was joined in and removed
-    ChapterID chapterID;         // the chapter both scenes belonged to
-    // The survivor's paths AFTER the merge. The survivor keeps its own order-key files, so
-    // these are its unchanged paths — reported so callers can always refresh from the result
-    // (mirrors ReorderSceneResult / I-0081).
-    RelativePath survivorMetadataPath;
-    RelativePath survivorContentPath;
-    RelativePath chapterMetadataPath;
-    bool      merged = false;
-};
 
 struct MergeChapterResult {
     ChapterID survivorChapterID;   // the predecessor chapter that absorbed the scenes

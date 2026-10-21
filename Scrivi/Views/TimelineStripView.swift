@@ -409,8 +409,12 @@ private struct ImportedTimelinesPayload: Decodable {
         // has an explicit story time, so the sparse list is legitimately empty and every
         // dot takes its defaults. A throw is the only failure signal — and on a throw we
         // keep going with defaults rather than drawing a blank timeline.
-        let explicitByScene = Self.explicitStoryTimes(engine: engine,
-                                                      projectRootPath: projectRootPath)
+        reloadSceneDots(explicitByScene: Self.explicitStoryTimes(engine: engine, projectRootPath: projectRootPath),
+                        scenes: scenes)
+    }
+
+    /// The same, from story times already read — [SP-191]: a structural edit reads them OFF the main actor.
+    func reloadSceneDots(explicitByScene: [String: SceneStoryTimeEntry], scenes: [SceneInfo]) {
 
         // ⚠️ `dots.first(where:)` INSIDE the map was a second O(N²). One map instead.
         var bandByScene: [String: String] = [:]

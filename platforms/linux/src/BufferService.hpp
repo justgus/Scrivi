@@ -29,7 +29,7 @@ public:
         QString bufferID;
         QString text;        // STORED text (escapes included)
         QString updatedAt;   // ISO-8601
-        QJsonObject fragment;      // a cross-scene copy's `scrivi.fragment.v1` (EP-026 S4); empty for a plain-text slot
+        QJsonObject range;   // a cross-scene copy's `scrivi.range.v1` ([SP-191] Q4a); empty for a plain-text slot
     };
 
     // The persistent slot IDs. Buffer 0 (the system clipboard) is deliberately not one.
@@ -48,14 +48,15 @@ public:
     [[nodiscard]] QString text(const QString& bufferID) const;
     [[nodiscard]] QString updatedAt(const QString& bufferID) const;
     [[nodiscard]] bool isStructured(const QString& bufferID) const;
-    // Slot `bufferID`'s fragment, or empty (a plain-text slot, or an empty one).
-    [[nodiscard]] QJsonObject fragment(const QString& bufferID) const;
+    // Slot `bufferID`'s Range, or empty (a plain-text slot, or an empty one). ✅ [SP-191] Q4a: the buffers hold Ranges, as
+    // history does; a slot written before that (an old fragment) reads as empty in the core.
+    [[nodiscard]] QJsonObject range(const QString& bufferID) const;
     // One line for the palette: the first non-blank line of what the writer SEES (no escapes), or empty.
     [[nodiscard]] QString preview(const QString& bufferID) const;
 
-    // Create-or-replace slot `bufferID` with `text` (stored form) and, for a cross-scene copy, its `fragment` (EP-026 S4)
-    // — `text` is then the fragment's flat form. Refreshes. False on a store failure.
-    bool load(const QString& text, const QString& bufferID, const QJsonObject& fragment = {});
+    // Create-or-replace slot `bufferID` with `text` (stored form) and, for a cross-scene copy, its `range` — `text` is then
+    // the pieces joined by a blank line. Refreshes. False on a store failure.
+    bool load(const QString& text, const QString& bufferID, const QJsonObject& range = {});
     // Empties slot `bufferID`. Refreshes. Whether a slot was removed.
     bool clear(const QString& bufferID);
 

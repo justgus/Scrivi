@@ -8,14 +8,14 @@ created: 2026-10-20
 
 # SP-191 — `[Apple]` + `[Linux]` [EP-053] **S2b**: copy, paste and its undo, split and merge — as deltas, off the main thread, no reload
 
-**Status:** 🟡 **ACTIVE 2026-10-21** (user: *"activate SP-191"*) — ✅ all questions ruled 2026-10-21 (Q1–Q6, Q3a–Q3e, Q4a) · created 2026-10-20 by [SP-187]'s Q1 ruling (user: split S2). ✅ Its questions were ruled in
+**Status:** 🟡 **ACTIVE 2026-10-21** (user: *"activate SP-191"*) — ✅ AC1–AC10 met 2026-10-21; ⏳ AC11 live passes (user) — ✅ all questions ruled 2026-10-21 (Q1–Q6, Q3a–Q3e, Q4a) · created 2026-10-20 by [SP-187]'s Q1 ruling (user: split S2). ✅ Its questions were ruled in
 [SP-187] (Q2: old history nodes convert; Q3: `ViewportSceneLoader` applies the delta).
 **Carries:** [I-0314] (Q6) · [T-0619] → [`../Tasks/Task-backlog.md`](../Tasks/Task-backlog.md) · [SP-185] AC4 (user, 2026-10-20: *"AC4 goes
 to EP-053 S2"*) · [I-0297]'s reload half · [I-0311] (the apps reach `scrivi_range_paste`).
 **Epic:** [EP-053] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md).
 **Builds on:** [SP-186] (S1, the endpoints) · [SP-187] (S2a: the list as the model of record, the bindings, the delta types,
 the partial re-render, the baseline counts).
-**Authority:** [`../Scrivi_Structured_CutCopyPaste_Design_v0_2.md`](../Scrivi_Structured_CutCopyPaste_Design_v0_2.md) — R1,
+**Authority:** [`../Scrivi_Structured_CutCopyPaste_Design_v0_3.md`](../Scrivi_Structured_CutCopyPaste_Design_v0_3.md) (v0.3, 2026-10-21, supersedes v0.2) — R1,
 R3, R5, R7, P3, P5, §4.2b, §4.4, §4.5, Q5.
 **Size:** XL (core changes in Plan 1–2, then both apps).
 
@@ -92,8 +92,23 @@ history does."* The second "Q3c" is read as **Q3d** (its recommendation was "no 
 | **Q3b** | ⚠️ **What an undo restores.** A Range entry carries a scene's ID, chapter, titles and text, but not the rest of its sidecar: tags, story time, timeline band, outline, to-dos, status. A merge (and [SP-188]'s cut) deletes the removed scene's sidecar, so undoing it would bring the scene back with its text but without those. | ✅ **AGREED. The Range carries each whole scene's sidecar** (and the chapter's metadata, where a chapter is removed). A paste of a copy ignores it (the new scene starts fresh, as today); the undo of a removal restores it exactly. This also decides [SP-188]'s cut undo. |
 | **Q3c** | ⚠️ **Superseded by Q3e.** **A chapter merge as a range operation** removes the chapter break but keeps the scene break, while a cut over the break removes both. | ✅ **AGREED.** **The core gains a break-only form of the range cut and the range paste:** a two-entry Range of zero length at the break says "remove (or insert) the break between these two scenes", and the scene IDs on either side stay. Merge, chapter merge and their undos then all use `rangeCut` / `rangePaste`, and `scrivi_merge_scene` / `scrivi_merge_chapter` retire. |
 | **Q3d** | **A chapter merge pulls the next chapter's scenes into the merged one.** You noted this; today it is intended (the whole chapter is merged). | ✅ **RULED: no change.** **No change:** a chapter merge removes one chapter break, so every scene of the later chapter joins the earlier one, and its undo puts them back. |
-| **Q3e** | **The manuscript is itself a Range** (user, 2026-10-21: *"the full manuscript is also a range, and each operation operates on subranges of the full manuscript range"*). Q3c gave a zero-length Range a different meaning at a chapter break (merge the chapters, keep the scenes) than at a scene break (join the scenes), while a cut of a sub-range must mean one thing. | ✅ **APPROVED (all three):** (1) a scene merge is a general `rangeCut` of the zero-length break, with no special form; (2) a chapter merge is a **relabel** of the later chapter's scenes (new `scrivi_range_relabel`), and its undo is the inverse relabel; (3) no general replace endpoint, so the ABI goes 100 → 99. User: *"In memory it is true that a chapter merge would be a relabel, not a cut, but that will require in ScriviCore that the scene files are moved and possibly new chapter folders be created when the in memory model is written to disk … Q3e: Approved for all three."* |
+| **Q3e** | **The manuscript is itself a Range** (user, 2026-10-21: *"the full manuscript is also a range, and each operation operates on subranges of the full manuscript range"*). Q3c gave a zero-length Range a different meaning at a chapter break (merge the chapters, keep the scenes) than at a scene break (join the scenes), while a cut of a sub-range must mean one thing. | ✅ **APPROVED (all three):** (1) a scene merge is a general `rangeCut` of the zero-length break, with no special form; (2) a chapter merge is a **relabel** of the later chapter's scenes (new `scrivi_range_relabel`), and its undo is the inverse relabel; (3) no general replace endpoint, so the ABI goes 100 → 99 (⚠️ the count was wrong: 136 → 135, Plan 4). User: *"In memory it is true that a chapter merge would be a relabel, not a cut, but that will require in ScriviCore that the scene files are moved and possibly new chapter folders be created when the in memory model is written to disk … Q3e: Approved for all three."* |
 | **Q4a** | **What "removed" means** for an older structure. | ✅ **RULED: the clipboard and copy buffers only.** An old-style object found on the clipboard or in a copy buffer (a `scrivi.fragment.v1` fragment rather than a Range) is discarded: the clipboard or buffer reads as **empty**, so paste does nothing; no flat-text fallback. **The clipboard and copy buffers store Ranges, as history does.** History is NOT affected: old `structuredPaste` / `structuredCut` nodes still convert to the delta path ([SP-187] Q2). |
+
+### Raised while implementing — ✅ ruled 2026-10-21
+
+User, Q7: *"Position caret at the first character of a scene and type Return simply adds a new blank line to the beginning of
+the Scene. Cmd-Return creates a new scene before the current scene and pushes the caret inside the new scene (the assumption
+is that the writer created a new scene and now wants to type in it). A range paste at scene offset 0 should paste everything
+before the scene, creating any new scenes before is as are necessary. The last part of the scene is merged with the
+beginning of the current scene and the caret is placed at the end of the paste block (the assumption being that the writer
+wants to add the copied text to this part of the manuscript and continue on from there)."* Q8, Q9: as recommended.
+
+| # | Question | Ruling |
+| - | - | - |
+| **Q7** | A split or paste at a scene's very START (offset 0) | ✅ **Before the scene.** The new scenes go before it; the scene keeps its text, identity and sidecar, and takes the last part in front of its text. Cmd-Return there leaves the caret in the new scene; a paste leaves it at the end of the pasted block. ⚠️ **What follows for the cut (so every undo is exact):** a cut that begins at a scene's first character keeps the END scene — the scene whose text survives keeps its identity. [SP-188]'s cuts follow the same rule. |
+| **Q8** | Chapter split with the caret at a scene's start | ✅ **Relabel:** the scene and the rest of its chapter move into a new chapter; no empty scene, no text moves (the exact inverse of a chapter merge). At a chapter's first scene it does nothing. |
+| **Q9** | The chapter-split confirmation ("… This cannot be undone.") | ✅ **Removed:** the split is immediate and Undo reverses it. |
 
 ## Goal
 
@@ -139,7 +154,8 @@ chapter split, merge and chapter merge.
      removed.
    - The scene moves inside a chapter split ([I-0311]'s promotion) share this code.
 4. **Endpoints.** Retire `scrivi_merge_scene` and `scrivi_merge_chapter` (`scrivi.h:548`, `:559`) and add
-   `scrivi_range_relabel`, which takes the ABI from **100 to 99**; update the gap audit to match. ⛔ There is no general
+   `scrivi_range_relabel`: **136 endpoints → 135** (⚠️ corrected 2026-10-21 while implementing: "100 → 99" was the gap
+   audit's 2026-08-24 snapshot, not today's `scrivi.h`). The gap audit records the retirement. ⛔ There is no general
    "replace" endpoint (Q3e): cut, paste and relabel cover every operation. Remove `SceneMerger`, and fold `ChapterMerger`'s
    relocation into the relabel, unless `FragmentCutter` still needs them. Boundary tests go through `scrivi_*`.
 
@@ -193,29 +209,32 @@ chapter split, merge and chapter merge.
 
 ## Acceptance Criteria
 
-- [ ] AC1 — **Core:** `RangeEntry` carries `sceneMeta` / `chapterMeta`. A paste that keeps an ID restores its sidecar
+- [x] AC1 — **Core:** `RangeEntry` carries `sceneMeta` / `chapterMeta`. A paste that keeps an ID restores its sidecar
       exactly, and a fresh ID gets a fresh one. Boundary-tested through `scrivi_*`.
-- [ ] AC2 — **Core:** breaks and relabels.
+- [x] AC2 — **Core:** breaks and relabels.
       - A scene merge is a general `rangeCut` of the zero-length break, joining with no blank line.
       - A chapter merge is `scrivi_range_relabel`: the scene files move to the earlier chapter's folder and the empty
         chapter is deleted, with no text rewritten, held to its count guard.
       - Each undo brings back the IDs, the sidecars, the chapter's folder and its metadata.
-      - `scrivi_merge_scene` / `scrivi_merge_chapter` are retired, and the gap audit reads 99.
-- [ ] AC3 — Copy and copy-into-buffer build the Range from memory, with zero core calls and zero disk reads, on both. The
+      - `scrivi_merge_scene` / `scrivi_merge_chapter` are retired (`scrivi.h` 136 → 135), recorded in the gap audit.
+- [x] AC3 — Copy and copy-into-buffer build the Range from memory, with zero core calls and zero disk reads, on both. The
       clipboard and buffers hold Ranges, and an old fragment in a buffer reads as empty.
-- [ ] AC4 — Paste across scenes and chapters is one `rangePaste` off the main thread, with the delta applied and no reload, on
+      ✅ ⚠️ one stateless balancing call per piece (`scrivi_markdown_*`, SP-174) — nothing reads the project.
+- [x] AC4 — Paste across scenes and chapters is one `rangePaste` off the main thread, with the delta applied and no reload, on
       both. [I-0311]'s order is right in the editor and on disk.
-- [ ] AC5 — Split, chapter split, merge and chapter merge are each one range call off the main thread, with the delta applied
+- [x] AC5 — Split, chapter split, merge and chapter merge are each one range call off the main thread, with the delta applied
       and no reload, on both. The list equals the disk afterwards ([I-0314]).
-- [ ] AC6 — Each of these operations undoes and redoes in one step:
+- [x] AC6 — Each of these operations undoes and redoes in one step:
       - no "Can't undo past…" stop remains for split, merge or paste;
       - old `structuredPaste` / `structuredCut` nodes still undo, through the same path.
-- [ ] AC7 — Q5 on both: the cue comes in the key press's own event-loop turn; repeats, typing and undo are ignored while the
+- [x] AC7 — Q5 on both: the cue comes in the key press's own event-loop turn; repeats, typing and undo are ignored while the
       operation is in flight; a progress row appears after 400 ms.
-- [ ] AC8 — [SP-185] AC4: a structured paste's undo over the share makes no project re-open. The three reload paths are gone.
-- [ ] AC9 — Tests on both: list = disk after every operation, undo and redo; the sidecar round trip; zero re-opens; zero
+- [x] AC8 — [SP-185] AC4: a structured paste's undo over the share makes no project re-open. The three reload paths are gone.
+      ✅ by test (no load, no re-open, both); ⏳ over the share: AC11.
+- [x] AC9 — Tests on both: list = disk after every operation, undo and redo; the sidecar round trip; zero re-opens; zero
       main-thread core calls. All mutation-checked, with ctest (Mac and Linux), interop and the Linux smokes green.
-- [ ] AC10 — The design doc is at v0.3 with these rulings.
+      ✅ — Mac: 0 own main-thread calls (1 caret bookkeeping); Linux: 0 own (the rest are [I-0315]). ctest 748 Mac / 752 Linux, interop 301, smokes 38; mutations core 13, Mac 10, Linux 11, all caught.
+- [x] AC10 — The design doc is at v0.3 with these rulings.
 - [ ] AC11 — ✅ **Live passes (user):** Mac and rig, over the share, each operation timed.
 
 ## Progress log
@@ -269,3 +288,114 @@ chapter split, merge and chapter merge.
 
 ### 🟡 2026-10-21 — ACTIVATED
 - User: *"activate SP-191"*. [T-0619] → active; [I-0314] and [I-0311] assigned here.
+
+### 🟡 2026-10-21 — ScriviCore done (Plan 1–3, the buffers half of 7); Q7–Q9 raised and ruled
+- User: *"implement SP-191"*.
+- **The Range carries sidecars (Q3b):** `RangeEntry::sceneMeta` / `chapterMeta` (`Range.hpp`), optional strings in
+  `scrivi.range.v1`; an empty `sceneID` / `chapterID` is now accepted (Q1). A cut fills them for every scene and chapter it
+  removes (one sidecar read each); a paste that keeps an entry's ID writes them back, and patches the story-time index.
+- **Relabel (Q3e):** `RangeOperations::relabel` + `scrivi_range_relabel` — into the chapter before (append), after
+  (prepend), or a new one (from `chapterMeta` on an undo). The files move; texts are never rewritten; an emptied chapter is
+  deleted after its scenes are out ([I-0083]) and its sidecar travels for the undo. Result: `{delta, range, fromChapterID}`.
+  Shared move helpers (`movedInto`, `moveSceneFiles`, `removeChapterFolder`) now serve cut, paste and relabel.
+- **Q7 in the core:** a paste at offset 0 creates its scenes before the caret scene (`ProjectIndex::insertScenesBefore`,
+  new); a cut from a scene's first character keeps the end scene, and every cut now returns `undoCaretSceneID` /
+  `undoCaretByte` for its inverse paste.
+- **Buffers (Q4a):** `scrivi.buffers.v1` slots hold `range`; `scrivi_buffers_load` refuses anything that is not a
+  `scrivi.range.v1`; a slot holding an old `fragment` reads as empty and the next write drops it.
+- **Tests:** 16 new `[sp191]` C ABI cases (sidecar round trips incl. story time through the patched index, scene merge as a
+  zero-length cut at scene and chapter breaks, split and chapter split via paste incl. [I-0314]'s on-disk order, chapter
+  merge and its undo and redo, relabel refusals, every Q7 case) + 1 budget case (a 20-scene chapter merge: 23 reads,
+  63 writes, no listing; its undo 2 reads, 44 writes) + 2 buffer cases. ⚠️ The two-scene cut's budget is now **5 reads**
+  (was 4): the removed scene's sidecar, which Q3b needs. ctest **757/757** (Mac, Debug).
+- **Mutations: 13 caught, 1 equivalent** (removed): restored scene/chapter sidecars ignored, sidecar not captured, relabel
+  keeping colliding names, leaving the emptied folder, not capturing it, story time not patched, never prepending, never
+  keeping the end scene, the wrong index insert at the manuscript's start, the caret scene not opening the last chapter,
+  the wrong promotion anchor.
+- ⏳ Next: the Mac app, then Linux; then the merge endpoints retire.
+
+### 🟡 2026-10-21 — The Mac app done (Plan 5–11 on Apple); interop 304/304
+- **One path for every structural edit** (`Coordinator.runStructuralEdit`, `ViewportSceneLoader.runStructural`): the cue
+  in the key press's own turn (the editor goes read-only, so the caret goes; Q5); off the main actor the unsaved scenes
+  are written, the pending typing committed, the ONE range call made, its history node recorded and the story times read;
+  back on it `ViewportSceneLoader.apply(delta)` updates the scene list (new) and ONE run is rendered. Repeats and undo
+  while in flight are ignored; the progress row ("Splitting the scene…") shows after 400 ms (`EditorView`). A close or quit
+  waits for it.
+- ⌘-Return / ⇧⌘-Return = `rangePaste` of a break (✅ [I-0314]: the chapter in place on disk; Q7 at a scene's start; Q8 a
+  relabel; Q9 the confirmation removed); ⌘⌫ = `rangeCut` of the zero-length break (joined directly); ⇧⌘⌫ =
+  `rangeRelabel`. ⌘C and copy-into-buffer build the Range from the list (`copiedRange`; ⛔ `fragmentExtract` read every
+  selected scene from disk); ⌘V and ⌃⌘N = `rangePaste`. The clipboard holder and the buffers hold Ranges.
+- **History:** every edit records ONE `rangePaste` / `rangeCut` / `rangeRelabel` node holding the Range both its undo and
+  its redo use; the split/merge/paste barriers are gone. Old `structuredPaste` / `structuredCut` nodes convert to a Range
+  ([SP-187] Q2). An inverse the core refuses steps the pointer back.
+- ⛔ **Retired:** `reloadManuscriptFromDisk`, the per-op `createScene`/`saveScene`/`createChapter`/`mergeScene`/`mergeChapter`
+  sequences, `fragmentSpans`, `balancedFragment`, the structural redo cache.
+- **Measured** (interop, `RunRenderTests`, serialized): every structural operation makes **0 core calls of its own on the
+  main thread** (was 5–33) and **re-opens nothing** (was up to 1), with ONE run render. ⚠️ Placing the caret afterwards
+  makes **1** in-memory history call (`captureCaretMoved`, as every caret move does) — counted apart, per editor
+  (`StructuralCallSink`, a task-local, so parallel tests cannot inflate it). A cross-scene ⌘C makes only the stateless
+  balancing calls, one per piece (SP-174), and reads nothing from the project.
+- **Tests (new / changed):** each of split, split at a scene's start, merge, chapter split, chapter split at a scene's
+  start and chapter merge undoes and redoes in ONE step with the list equal to the disk after each (`listMatchesDisk`, a
+  fresh open); Q7, Q8; a merge's undo restores the merged-away scene's tags and outline through the history JSON; Q5's cue,
+  ignored repeat and undo; the 400 ms progress row; the copy; the buffer Range round trip (and an old fragment refused);
+  the structured-paste tests moved to Ranges and now also redo. The merge tests expect no blank line (Q3a). The I-0302
+  barrier test uses a scene-delete barrier (a split is no longer one).
+- ⏳ Next: mutation checks on the Mac code, then Linux.
+
+### 🟡 2026-10-21 — Linux done (Plan 5–11 on Linux); smokes 38/38; design v0.3
+- **The same one path** (`EditorShell::runRangeEdit`, Apple's `runStructuralEdit`): `lockForWork` is the cue in the key
+  press's own turn (read-only, the progress row after 400 ms); on the WORKER the unsaved scenes are written, the pending typing
+  committed, the ONE range call made, its history node recorded (`HistoryCapture::barrierParams` + the static, thread-safe
+  `captureRecordBarrier`) and the timeline read; on the GUI thread `SceneDocument::applyRangeDelta` (new) re-renders only the
+  run that changed, and the caret is placed. A repeat while one is in flight is ignored. `structuralEditFinished` (new
+  signal) tells the smokes it landed.
+- ⌃↩ / ⌃⇧↩ / ⌃⌫ / ⌃⇧⌫, ⌃V and ⌃⇧N are the same range calls as the Mac's, with the same history payloads (`rangePaste` /
+  `rangeCut` / `rangeRelabel`, `rangeJSON`); old `structuredPaste` / `structuredCut` nodes convert ([SP-187] Q2). The copy
+  builds the Range from the scene list (`ManuscriptEditor::crossSceneCopy`; ⛔ `fragmentExtract` read every selected scene
+  from disk on the GUI thread). The clipboard holder and the buffers hold Ranges; an old fragment slot reads empty.
+- ⛔ **Retired on Linux:** `reloadThen`, `reloadThenPlaceCaret`, `runStructural`, [I-0297]'s `reloadTexts_` (and the load's
+  "known texts" path), `structuralRedoCreated_`, the per-op `createScene`/`saveScene`/`createChapter`/`reorderScene`/
+  `mergeScene`/`mergeChapter` sequences and their barriers.
+- **Measured** (`structural_baseline_smoke`, Docker Qt 6.4 Debug): every operation now makes **0 project loads and 0
+  document builds** (was 1 and 1). GUI-thread core calls: split 6, merge 3, chapter split 6, chapter merge 0, copy 3, paste
+  6, undo of the paste 3 (was 9, 5, 10, 4, 4, 9, 6). ⚠️ Traced (a temporary envelope trace, removed): **none of them is
+  the edit's own** — every one is the Scene Inspector's reaction to the caret moving into another scene (the copy's too: the
+  selection moved it): it reads the new scene's notes and REWRITES the previous scene's outline and to-do whether or not they
+  changed → **[I-0315]** `[Linux]` filed to the backlog.
+- ⚠️ **A known divergence kept as it was:** after a chapter is created or removed, Linux renames the stored "Chapter N"
+  titles on disk (I-0063, `renumberCreatedChapters`, GUI thread); the Mac renumbers them in memory only. Not changed here.
+- **Tests (Linux):** `structural_baseline_smoke` now checks, after every operation, undo and redo, that the scene list
+  equals the disk (`listMatchesDisk`), no load and no document build; round-trips split, split at a scene's start, merge,
+  chapter split, chapter split at a scene's start and chapter merge (each ONE step); Q7, Q8 (and nothing at a chapter's
+  first scene), Q5's cue and an ignored repeat. `undo_smoke`: the split is undoable (the I-0302 barrier test uses a scene
+  delete barrier), the merge joins directly. `structured_paste_smoke`: waits for the landing, asserts no reload, the buffers
+  hold Ranges, a Mac-written Range slot pastes, an old fragment slot reads empty, the nodes are `rangePaste`, and the Mac's
+  OLD `structuredPaste` and collapsing `structuredCut` nodes undo and redo converted. `settings_smoke`: the face survives a
+  structured paste that no longer reloads.
+- **Mac mutations: 10/10 caught** (after two test additions — the loader's own in-flight refusal, the caret after a
+  mid-scene split): the delta ignoring `afterSceneID`, no cue, no refusal in flight, no history node, a cut's redo pasting,
+  an unbalanced copy, the progress row at once, a chapter split at a scene's start pasting, the split's caret, the story
+  times read on the main thread.
+- **Design:** `Scrivi_Structured_CutCopyPaste_Design_v0_3.md` (new; v0.2 marked superseded) records Q1–Q9 (§1b), the sidecar
+  fields, relabel (§4.4a), the one-Range history nodes; the active Sprint and Epic docs point at it.
+- ⚠️ **Corrected:** Plan 4's "100 → 99" was the gap audit's 2026-08-24 snapshot; `scrivi.h` goes **136 → 135**.
+
+### 🟡 2026-10-21 — The merge endpoints retired; every suite green; ⏳ AC11 live passes (user)
+- ⛔ **Retired:** `scrivi_merge_scene` / `scrivi_merge_chapter` (`scrivi.h` 136 → 135), the facade's `mergeScene` /
+  `mergeChapter`, `SceneMerger`, `MergeSceneRequest` / `Result`; Swift `ScriviEngine.mergeScene` / `mergeChapter` (+ stub,
+  + result types, + 4 interop tests); Linux `ScriviBridge::mergeScene` / `mergeChapter`. `ChapterMerger` stays for
+  `FragmentCutter` (neither app calls it). The 9 facade tests in `MergeSceneTests.cpp` went; its 2 tests of the I-0083
+  composition stay. `scene_merge_smoke` now merges through `rangeCut` / `rangeRelabel` and undoes both. The gap audit
+  records the retirement.
+- **Linux mutations: 11/11 caught** (the delta ignoring `afterSceneID`, unsaved scenes not written first, no history node,
+  no cue, no refusal in flight, a cut's redo pasting, an unbalanced copy, a chapter split at a scene's start pasting, the
+  split's caret, a balanced paste not normalized, a written scene left dirty).
+- **Fixed on the way:** `MergeSceneTests`' `TempDir` named directories by the clock alone; under `ctest -j6` on Linux two
+  collided once (a kept test failed, then passed alone). Now the process ID and a counter too; 3 full Linux runs green.
+- **Mac quit:** `saveAllDirtyBlocking` now also waits for a structural edit in flight (the close/quit wait panel already
+  did, through `isWritingInBackground`).
+- **Final:** ctest **748/748** (Mac, Debug) and **752/752** (Linux, Qt 6.4 container, non-root, Debug); interop **301/301**;
+  Linux smokes **38/38** (`SCRIVI_VERIFY_SCENE_TEXT=1`); stub parity and the ABI project guards clean.
+- ⏳ **AC11 — the live passes (user):** steps in the chat reply.
+

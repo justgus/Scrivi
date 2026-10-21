@@ -54,7 +54,6 @@ target_sources(ScriviCore
         src/manuscript/SceneDeleter.cpp
         src/manuscript/SceneRenamer.cpp
         src/manuscript/SceneReorderer.cpp
-        src/manuscript/SceneMerger.cpp
         src/manuscript/ChapterMerger.cpp
         src/manuscript/SceneReader.cpp
         src/manuscript/SceneWriter.cpp

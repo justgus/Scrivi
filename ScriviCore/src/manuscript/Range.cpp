@@ -28,6 +28,8 @@ util::JsonDoc Range::toJson() const
         item.setInt64("length", static_cast<int64_t>(e.length));
         item.setInt64("sceneLength", static_cast<int64_t>(e.sceneLength));
         item.setString("text", e.text);
+        if (!e.sceneMeta.empty()) { item.setString("sceneMeta", e.sceneMeta); }
+        if (!e.chapterMeta.empty()) { item.setString("chapterMeta", e.chapterMeta); }
         doc.appendToArray("scenes", std::move(item));
     }
     return doc;
@@ -53,8 +55,8 @@ Result<Range> Range::fromJson(const util::JsonDoc& doc)
         e.sceneTitle      = item.getString("sceneTitle");
         const int64_t start = item.getInt64("start"), length = item.getInt64("length"), whole = item.getInt64("sceneLength");
         e.text            = item.getString("text");
-        if (e.sceneID.value.empty() || e.chapterID.value.empty())
-            return R::failure(invalid("range entry " + std::to_string(i) + " has no sceneID or chapterID"));
+        e.sceneMeta       = item.getString("sceneMeta");
+        e.chapterMeta     = item.getString("chapterMeta");
         if (start < 0 || length < 0 || whole < 0 || start + length > whole)
             return R::failure(invalid("range entry " + std::to_string(i) + " has offsets outside its scene"));
         if (static_cast<std::size_t>(length) != e.text.size())

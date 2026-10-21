@@ -478,7 +478,9 @@ import os
 
     /// Scenes holding edits that have not reached disk.
     /// [I-0305] — true while scenes are being written off the main actor (a Replace All's). A close waits for them.
-    var isWritingInBackground: Bool { (viewportLoader?.scenesWritingOffMain ?? 0) > 0 }
+    var isWritingInBackground: Bool {
+        (viewportLoader?.scenesWritingOffMain ?? 0) > 0 || viewportLoader?.structuralInFlight == true   // [SP-191]
+    }
 
     /// [I-0305] — runs `then` once those writes have landed (at once when none is running).
     func whenBackgroundWritesLand(_ then: @escaping @MainActor () -> Void) {

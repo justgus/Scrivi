@@ -139,6 +139,28 @@ struct Rig {
     }
     void undo() { control(Qt::Key_Z); }
     void redo() { control(Qt::Key_Z, Qt::ShiftModifier); }
+    // [SP-191] `act` starts a structural edit — a split, a merge, or an undo / redo across one: wait for it to LAND (it runs
+    // on a worker; nothing reloads). True when it was applied.
+    bool landing(const std::function<void()>& act)
+    {
+        QEventLoop loop;
+        bool ok = false;
+        bool done = false;
+        QObject::connect(shell.get(), &EditorShell::structuralEditFinished, &loop, [&](bool r) {
+            ok = r;
+            done = true;
+            loop.quit();
+        });
+        QTimer::singleShot(30000, &loop, &QEventLoop::quit);
+        const int loads = shell->loadCount();
+        act();
+        if (!done) {
+            loop.exec();
+        }
+        settle();
+        check(shell->loadCount() == loads, QStringLiteral("[SP-191] the structural edit reloaded nothing"));
+        return ok;
+    }
     static void settle() { QTest::qWait(60); }   // the notice catcher and queued work
 };
 
@@ -264,23 +286,18 @@ int main(int argc, char** argv)
 
     // ── 4b. A merge rewrites the survivor on disk: the next edit there, undone, must keep the merged-in text ─────────
     rig.caretAt(QStringLiteral("Bravo two."), /*before=*/true);   // the start of the second scene
-    {
-        QEventLoop loop;
-        QObject::connect(rig.shell.get(), &EditorShell::loadFinished, &loop, &QEventLoop::quit);
-        QTimer::singleShot(30000, &loop, &QEventLoop::quit);
-        QTest::keyClick(rig.editor, Qt::Key_Backspace, Qt::ControlModifier);   // merge into the previous scene → a reload
-        loop.exec();
-    }
+    check(rig.landing([&] { QTest::keyClick(rig.editor, Qt::Key_Backspace, Qt::ControlModifier); }),   // merge into the previous
+          QStringLiteral("the merge landed"));
     rig.editor->setFocus();
     Rig::settle();
     notices.clear();
     const QString merged = rig.disk(0);
     check(merged.contains(QStringLiteral("Bravo two.")), QStringLiteral("the merge joined the scenes (got: \"%1\")").arg(merged));
     {
-        // [I-0300]: the caret lands at the JOIN SEAM — the end of the predecessor's own text, before the blank-line join —
-        // once the reload has finished (it was placed on the document the reload replaced).
-        const int seam = rig.editor->document()->find(QStringLiteral("Bravo two.")).selectionStart()
-                         - (merged.contains(QStringLiteral("\n\nBravo two.")) ? 2 : 0);
+        // [I-0300]: the caret lands at the JOIN SEAM — the end of the predecessor's own text. ✅ [SP-191] Q3a: joined
+        // DIRECTLY, no blank line.
+        check(!merged.contains(QStringLiteral("\n\nBravo two.")), QStringLiteral("Q3a: the merge joined directly (got: \"%1\")").arg(merged));
+        const int seam = rig.editor->document()->find(QStringLiteral("Bravo two.")).selectionStart();
         check(rig.editor->textCursor().position() == seam,
               QStringLiteral("[I-0300] after a merge the caret is at the seam (at %1, want %2)")
                   .arg(rig.editor->textCursor().position()).arg(seam));
@@ -293,36 +310,22 @@ int main(int argc, char** argv)
               .arg(rig.disk(0), merged));
 
 
-    // ── 5. A split stops undo with Apple's notice; its reload keeps the SAME history ───────────────────────────────
+    // ── 5. ✅ [SP-191] Q3: a split is ONE undoable step — no "Can't undo past…"; it keeps the SAME history ────────────
     HistoryCapture* before = rig.shell->history();
     rig.caretAt(QStringLiteral("Charlie three."));
     rig.type(QStringLiteral(" Then more."));
     rig.caretAt(QStringLiteral("Then"), /*before=*/true);
-    {
-        QEventLoop loop;
-        QObject::connect(rig.shell.get(), &EditorShell::loadFinished, &loop, &QEventLoop::quit);
-        QTimer::singleShot(30000, &loop, &QEventLoop::quit);
-        QTest::keyClick(rig.editor, Qt::Key_Return, Qt::ControlModifier);   // mid-scene split → a reload
-        loop.exec();
-    }
+    check(rig.landing([&] { QTest::keyClick(rig.editor, Qt::Key_Return, Qt::ControlModifier); }),   // a mid-scene split
+          QStringLiteral("the split landed"));
     rig.editor->setFocus();
     Rig::settle();
-    // [I-0300]: the caret lands at the start of the new (tail) scene — placed AFTER the asynchronous reload, not before it.
+    // [I-0300]: the caret lands at the start of the new (tail) scene.
     check(rig.editor->textCursor().position() == rig.editor->document()->find(QStringLiteral("Then more")).selectionStart(),
           QStringLiteral("[I-0300] after the split the caret is at the start of the new scene (at %1, want %2)")
               .arg(rig.editor->textCursor().position())
               .arg(rig.editor->document()->find(QStringLiteral("Then more")).selectionStart()));
-    check(rig.shell->history() == before && before->isOpen(), QStringLiteral("the split's reload kept the SAME history"));
-    // [I-0302]: at the split's barrier nothing can be undone, but Edit ▸ Undo stays available — to show the notice.
-    check(!rig.shell->canUndo() && rig.shell->undoAvailable(),
-          QStringLiteral("[I-0302] at the barrier Undo is available (canUndo %1, undoAvailable %2)")
-              .arg(rig.shell->canUndo()).arg(rig.shell->undoAvailable()));
-    notices.clear();
-    rig.undo();
-    check(notices == QStringList{QStringLiteral("Can't undo past creating a scene")},
-          QStringLiteral("undo stopped at the split with Apple's notice — and no session warning (notices: %1)")
-              .arg(notices.join(QStringLiteral(" / "))));
-
+    check(rig.shell->history() == before && before->isOpen(), QStringLiteral("the split kept the SAME history"));
+    check(rig.shell->canUndo(), QStringLiteral("Q3: the split is undoable — no barrier"));
 
     // After the split the scene holds only the HEAD of its old text. The next edit there, undone, takes back that edit
     // alone — it must not bring back the tail that moved to the new scene.
@@ -333,6 +336,28 @@ int main(int argc, char** argv)
     check(rig.disk(2) == head,
           QStringLiteral("undoing an edit after a split restores the split scene's HEAD, not its pre-split text (got: \"%1\", want \"%2\")")
               .arg(rig.disk(2), head));
+    // The split itself undoes in ONE step, and redoes. (The tail as STORED: a typed '.' is escaped, EP-045.)
+    QString tail;
+    for (const SceneSegment& seg : rig.shell->sceneDocument().segments()) {
+        if (seg.text.startsWith(QStringLiteral("Then more"))) { tail = seg.text; }
+    }
+    const QString whole = head + tail;
+    check(rig.landing([&] { rig.undo(); }), QStringLiteral("Ctrl+Z over the split landed"));
+    check(rig.disk(2) == whole, QStringLiteral("ONE Ctrl+Z took the split back (got: \"%1\", want \"%2\")").arg(rig.disk(2), whole));
+    check(rig.landing([&] { rig.redo(); }), QStringLiteral("Ctrl+Shift+Z over the split landed"));
+    check(rig.disk(2) == head, QStringLiteral("and Ctrl+Shift+Z split it again (got: \"%1\")").arg(rig.disk(2)));
+
+    // [I-0302]: at a barrier (a scene delete still records one) nothing can be undone, but Edit ▸ Undo stays available — to
+    // show the notice.
+    rig.shell->history()->recordBarrier(QStringLiteral("sceneDelete"), QStringLiteral("Can't undo past deleting a scene"));
+    check(!rig.shell->canUndo() && rig.shell->undoAvailable(),
+          QStringLiteral("[I-0302] at the barrier Undo is available (canUndo %1, undoAvailable %2)")
+              .arg(rig.shell->canUndo()).arg(rig.shell->undoAvailable()));
+    notices.clear();
+    rig.undo();
+    check(notices == QStringList{QStringLiteral("Can't undo past deleting a scene")},
+          QStringLiteral("undo stopped at the barrier with Apple's notice — and no session warning (notices: %1)")
+              .arg(notices.join(QStringLiteral(" / "))));
 
     // ── 6. The split wrote the scene files directly; reported to history, a clean reopen raises no external change ──
     rig.close();
@@ -347,14 +372,8 @@ int main(int argc, char** argv)
 
     // ── 7. [I-0300] A new chapter mid-scene (Ctrl+Shift+Return): the caret moves INTO the new chapter ─────────────────
     rig.caretAt(QStringLiteral("two."), /*before=*/true);
-    {
-        QEventLoop loop;
-        QObject::connect(rig.shell.get(), &EditorShell::loadFinished, &loop, &QEventLoop::quit);
-        QTimer::singleShot(30000, &loop, &QEventLoop::quit);
-        QTest::keyClick(rig.editor, Qt::Key_Return, Qt::ControlModifier | Qt::ShiftModifier);
-        loop.exec();
-    }
-    Rig::settle();
+    check(rig.landing([&] { QTest::keyClick(rig.editor, Qt::Key_Return, Qt::ControlModifier | Qt::ShiftModifier); }),
+          QStringLiteral("the chapter split landed"));
     check(rig.editor->textCursor().position() == rig.editor->document()->find(QStringLiteral("two.")).selectionStart(),
           QStringLiteral("[I-0300] after a new chapter the caret is at the start of its first scene (at %1, want %2)")
               .arg(rig.editor->textCursor().position())
@@ -365,13 +384,9 @@ int main(int argc, char** argv)
         end.movePosition(QTextCursor::End);
         rig.editor->setTextCursor(end);
         QApplication::processEvents();
-        QEventLoop loop;
-        QObject::connect(rig.shell.get(), &EditorShell::loadFinished, &loop, &QEventLoop::quit);
-        QTimer::singleShot(30000, &loop, &QEventLoop::quit);
-        QTest::keyClick(rig.editor, Qt::Key_Return, Qt::ControlModifier | Qt::ShiftModifier);
-        loop.exec();
+        check(rig.landing([&] { QTest::keyClick(rig.editor, Qt::Key_Return, Qt::ControlModifier | Qt::ShiftModifier); }),
+              QStringLiteral("the chapter split at the end landed"));
     }
-    Rig::settle();
     {
         QTextCursor docEnd(rig.editor->document());
         docEnd.movePosition(QTextCursor::End);

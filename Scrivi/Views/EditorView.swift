@@ -364,8 +364,18 @@ private struct ManuscriptEditorView: View {
             }
             // ✅ [I-0303] — a Replace All's scenes being written off the main actor; the manuscript is locked until they land.
             // An overlay for the same reason as the two above ([I-0263]).
+            // ✅ [SP-191] Q5 — a structural edit that has run 400 ms says what it is doing (the editor is read-only meanwhile).
             .overlay(alignment: .topTrailing) {
-                if loader.scenesWritingOffMain > 0 {
+                if let working = loader.structuralProgress {
+                    HStack(spacing: 6) {
+                        ProgressView().controlSize(.small)
+                        Text(working).font(.callout)
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(.regularMaterial, in: Capsule())
+                    .padding(8)
+                } else if loader.scenesWritingOffMain > 0 {
                     HStack(spacing: 6) {
                         ProgressView().controlSize(.small)
                         Text(loader.scenesWritingOffMain == 1 ? "Saving 1 scene…"

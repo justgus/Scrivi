@@ -73,6 +73,14 @@ public:
     // each scene that EXISTED before the op held then.
     void recordBarrier(const QString& kind, const QString& note, const QHash<QString, QString>& sceneTexts = {},
                        const QJsonObject& structuralPayload = {}, const QHash<QString, QString>& sceneTextsBefore = {});
+    // ✅ [SP-191] A structural edit records its node ON ITS WORKER (Apple's shape: the C side is thread-safe): the params
+    // `recordBarrier` sends, built anywhere, for `ScriviBridge::captureRecordBarrier(root, params)` — and `adopt`, on the
+    // GUI thread, takes the state that call answered.
+    [[nodiscard]] static QString barrierParams(const QString& kind, const QString& note,
+                                               const QHash<QString, QString>& sceneTexts,
+                                               const QJsonObject& structuralPayload = {},
+                                               const QHash<QString, QString>& sceneTextsBefore = {});
+    void adopt(const QVariantMap& state) { if (open_) { take(state); } }
 
     // ── Undo / Redo — the shell applies what comes back ──
     // {} when history is closed or the call failed.

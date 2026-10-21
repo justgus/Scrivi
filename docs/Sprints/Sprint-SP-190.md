@@ -12,7 +12,7 @@ created: 2026-10-20
 **Carries:** [T-0618] → [`../Tasks/Task-backlog.md`](../Tasks/Task-backlog.md).
 **Epic:** [EP-053] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md).
 **Builds on:** [SP-187], [SP-188], [SP-189].
-**Authority:** [`../Scrivi_Structured_CutCopyPaste_Design_v0_2.md`](../Scrivi_Structured_CutCopyPaste_Design_v0_2.md) §6
+**Authority:** [`../Scrivi_Structured_CutCopyPaste_Design_v0_3.md`](../Scrivi_Structured_CutCopyPaste_Design_v0_3.md) (v0.3, 2026-10-21, supersedes v0.2) §6
 step 5 · EP-053's Goal (the same behaviour and performance on the Mac and on Linux, over a network share as on a local disk).
 **Size:** S — mostly the user's passes; the code work is a Mac-side timing log if Q1 rules one.
 

@@ -1049,128 +1049,6 @@ struct ScriviInteropTests {
         #expect(reopenedScenes2[1].chapterID == chapter.chapterID)
     }
 
-    // MARK: - Merge endpoints (EP-028 SP-075, T-0302)
-
-    @Test("mergeScene joins a scene into its predecessor; body survives reopen")
-    func mergeSceneJoinsPredecessor() throws {
-        let (engine, _, ref, projectDir, appSupport) = try makeProjectFixture()
-
-        let opened = try engine.openProject(
-            projectRootPath: projectDir.path, appSupportRoot: appSupport.path)
-        guard let scene1 = opened.scenes.first else {
-            Issue.record("Expected a first scene"); return
-        }
-
-        // Give scene 1 a body.
-        _ = try engine.saveScene(
-            projectID: opened.projectID, projectRootPath: projectDir.path,
-            appSupportRoot: appSupport.path, sceneID: scene1.sceneID,
-            sceneMetadataPath: scene1.metadataPath, sceneContentPath: scene1.contentPath,
-            markdown: "SCENE-ONE-BODY", authorshipRef: ref)
-
-        // Add scene 2 in the same chapter with its own body.
-        let scene2 = try engine.createScene(
-            projectRootPath: projectDir.path, appSupportRoot: appSupport.path,
-            projectID: opened.projectID, chapterID: scene1.chapterID,
-            afterSceneID: scene1.sceneID, authorshipRef: ref)
-        _ = try engine.saveScene(
-            projectID: opened.projectID, projectRootPath: projectDir.path,
-            appSupportRoot: appSupport.path, sceneID: scene2.sceneID,
-            sceneMetadataPath: scene2.metadataPath, sceneContentPath: scene2.contentPath,
-            markdown: "SCENE-TWO-BODY", authorshipRef: ref)
-
-        let result = try engine.mergeScene(
-            projectRootPath: projectDir.path, sceneID: scene2.sceneID)
-        #expect(result.merged)
-        #expect(result.survivorSceneID == scene1.sceneID)
-        #expect(result.mergedSceneID == scene2.sceneID)
-        #expect(result.chapterID == scene1.chapterID)
-        #expect(!result.survivorContentPath.isEmpty)
-
-        // Reopen: one scene, with both bodies on disk in order.
-        let reopened = try engine.openProject(
-            projectRootPath: projectDir.path, appSupportRoot: appSupport.path)
-        #expect(reopened.scenes.count == 1)
-        #expect(reopened.scenes[0].sceneID == scene1.sceneID)
-
-        let survivor = try engine.openScene(
-            projectRootPath: projectDir.path, appSupportRoot: appSupport.path,
-            projectID: reopened.projectID, sceneID: scene1.sceneID)
-        #expect(survivor.markdown.contains("SCENE-ONE-BODY"))
-        #expect(survivor.markdown.contains("SCENE-TWO-BODY"))
-    }
-
-    @Test("mergeScene on the first scene of a chapter throws (no predecessor)")
-    func mergeSceneFirstSceneThrows() throws {
-        let (engine, _, _, projectDir, appSupport) = try makeProjectFixture()
-        let opened = try engine.openProject(
-            projectRootPath: projectDir.path, appSupportRoot: appSupport.path)
-        guard let scene1 = opened.scenes.first else {
-            Issue.record("Expected a first scene"); return
-        }
-        #expect(throws: (any Error).self) {
-            _ = try engine.mergeScene(projectRootPath: projectDir.path, sceneID: scene1.sceneID)
-        }
-    }
-
-    @Test("mergeChapter relocates all scenes into the predecessor; nothing lost on reopen (I-0083)")
-    func mergeChapterRelocatesScenes() throws {
-        let (engine, _, ref, projectDir, appSupport) = try makeProjectFixture()
-
-        let opened = try engine.openProject(
-            projectRootPath: projectDir.path, appSupportRoot: appSupport.path)
-        guard let scene1 = opened.scenes.first else {
-            Issue.record("Expected a first scene"); return
-        }
-        _ = try engine.saveScene(
-            projectID: opened.projectID, projectRootPath: projectDir.path,
-            appSupportRoot: appSupport.path, sceneID: scene1.sceneID,
-            sceneMetadataPath: scene1.metadataPath, sceneContentPath: scene1.contentPath,
-            markdown: "CH1-BODY", authorshipRef: ref)
-
-        // Chapter 2 with a distinctive body.
-        let chapter2 = try engine.createChapter(
-            projectRootPath: projectDir.path, appSupportRoot: appSupport.path,
-            projectID: opened.projectID, authorshipRef: ref)
-        _ = try engine.saveScene(
-            projectID: opened.projectID, projectRootPath: projectDir.path,
-            appSupportRoot: appSupport.path, sceneID: chapter2.firstSceneID,
-            sceneMetadataPath: chapter2.firstSceneMetadataPath,
-            sceneContentPath: chapter2.firstSceneContentPath,
-            markdown: "CH2-BODY", authorshipRef: ref)
-
-        let result = try engine.mergeChapter(
-            projectRootPath: projectDir.path, chapterID: chapter2.chapterID)
-        #expect(result.merged)
-        #expect(result.survivorChapterID == scene1.chapterID)
-        #expect(result.mergedChapterID == chapter2.chapterID)
-        #expect(result.scenesRelocated == 1)
-
-        // Reopen: both scenes survive (I-0083 fix), now both in chapter 1, bodies intact.
-        let reopened = try engine.openProject(
-            projectRootPath: projectDir.path, appSupportRoot: appSupport.path)
-        #expect(reopened.scenes.count == 2)
-        #expect(reopened.scenes.allSatisfy { $0.chapterID == scene1.chapterID })
-
-        let ch2Scene = try engine.openScene(
-            projectRootPath: projectDir.path, appSupportRoot: appSupport.path,
-            projectID: reopened.projectID, sceneID: chapter2.firstSceneID)
-        #expect(ch2Scene.markdown.contains("CH2-BODY"))
-    }
-
-    @Test("mergeChapter on the first chapter throws (no predecessor)")
-    func mergeChapterFirstChapterThrows() throws {
-        let (engine, _, _, projectDir, appSupport) = try makeProjectFixture()
-        let opened = try engine.openProject(
-            projectRootPath: projectDir.path, appSupportRoot: appSupport.path)
-        guard let scene1 = opened.scenes.first else {
-            Issue.record("Expected a first scene"); return
-        }
-        #expect(throws: (any Error).self) {
-            _ = try engine.mergeChapter(projectRootPath: projectDir.path, chapterID: scene1.chapterID)
-        }
-    }
-
     // MARK: - Test 18: extractSearchableText decodes the indexing envelope (T-0181)
 
     @Test("extractSearchableText returns decoded project, scene, and object records")
@@ -1547,30 +1425,32 @@ struct ScriviInteropTests {
         #expect(got.text == "Kazd'ul")
     }
 
-    @Test("buffersLoad with a fragment round-trips structure through Swift (T-0355)")
-    func buffersFragmentRoundTrip() throws {
+    @Test("buffersLoad with a Range round-trips structure through Swift ([SP-191] Q4a), sidecars included")
+    func buffersRangeRoundTrip() throws {
         let engine = ScriviEngine()
         let dir = try TempDir()
 
-        let fragJSON = """
-        {"schema":"scrivi.fragment.v1","plainText":"a\\n\\nb",\
-        "pieces":[{"opensWith":"none","partial":"tail","text":"a"},\
-        {"opensWith":"scene","text":"b"}]}
-        """
+        var range = UndoAfterStructuralOpTests.Harness.range(["a", "b"])
+        range.scenes[1].sceneMeta = #"{"schema":"scrivi.scene.v1"}"#
         try engine.buffersLoad(projectRootPath: dir.path, bufferID: "4",
-                               text: "a\n\nb", fragmentJSON: fragJSON)
+                               text: "a\n\nb", rangeJSON: try range.toJSON())
 
         let got = try engine.buffersGet(projectRootPath: dir.path, bufferID: "4")
         #expect(got.present)
         #expect(got.text == "a\n\nb")
-        #expect(got.fragment != nil)                        // structured slot decoded
-        #expect(got.fragment?.pieces.count == 2)
+        #expect(got.range == range, "the Range comes back as it went in")
 
-        // Re-loading plain text clears the fragment (load replaces both).
+        // Re-loading plain text clears the Range (load replaces both).
         try engine.buffersLoad(projectRootPath: dir.path, bufferID: "4", text: "plain")
         let got2 = try engine.buffersGet(projectRootPath: dir.path, bufferID: "4")
         #expect(got2.text == "plain")
-        #expect(got2.fragment == nil)
+        #expect(got2.range == nil)
+
+        // ⛔ An old fragment is refused.
+        #expect(throws: ScriviError.self) {
+            try engine.buffersLoad(projectRootPath: dir.path, bufferID: "5", text: "x",
+                                   rangeJSON: #"{"schema":"scrivi.fragment.v1","pieces":[],"plainText":""}"#)
+        }
     }
 
     @Test("buffersGet on an unset slot reports present=false")
@@ -4994,14 +4874,13 @@ struct FormatCommandTests {
         #expect(k.text == "x **Abolds** y")
     }
 
-    @Test("I-0279: a held cross-scene fragment goes stale the moment anything else is copied")
+    @Test("I-0279: a held cross-scene Range goes stale the moment anything else is copied")
     func structuredClipboardGoesStale() throws {
-        let json = #"{"schema":"scrivi.fragment.v1","pieces":[{"opensWith":"none","text":"**w** a"},{"opensWith":"scene","text":"b"}],"plainText":"w a\n\nb"}"#
-        let frag = try JSONDecoder().decode(FragmentResult.self, from: Data(json.utf8))
+        let range = UndoAfterStructuralOpTests.Harness.range(["**w** a", "b"])
         var clip = StructuredClipboard()
-        clip.hold(frag, changeCount: 41)
-        #expect(clip.fragment(currentChangeCount: 41) != nil, "still the pasteboard's contents: paste it")
-        #expect(clip.fragment(currentChangeCount: 42) == nil, "something else was copied: the normal paste runs")
+        clip.hold(range, changeCount: 41)
+        #expect(clip.range(currentChangeCount: 41) != nil, "still the pasteboard's contents: paste it")
+        #expect(clip.range(currentChangeCount: 42) == nil, "something else was copied: the normal paste runs")
     }
 
     @Test("live pass: the Format menu sits BETWEEN Edit and View")
@@ -7130,6 +7009,31 @@ struct UndoAfterStructuralOpTests {
         func waitForSceneCount(_ n: Int) async throws {
             for _ in 0..<500 where loader.segments.count != n { try await Task.sleep(for: .milliseconds(10)) }
             #expect(loader.segments.count == n, "the structural op finished")
+            try await landed()
+        }
+        /// [SP-191] Waits until no structural edit is in flight (they run off the main actor).
+        func landed() async throws {
+            for _ in 0..<500 where loader.structuralInFlight { try await Task.sleep(for: .milliseconds(10)) }
+            #expect(!loader.structuralInFlight, "the structural edit landed")
+        }
+        /// A Range of `texts` with no identity, in one chapter — what a cross-scene copy holds.
+        nonisolated static func range(_ texts: [String]) -> ScriviRange {
+            ScriviRange(scenes: texts.map {
+                .init(sceneID: "", chapterID: "copied", chapterTitle: "", sceneTitle: "", start: 0, length: 0,
+                      sceneLength: 0, text: $0)
+            }).normalized()
+        }
+        /// ✅ [SP-191] The scene list IS the disk — identity, chapter, paths and text, against a fresh open. ⛔ [I-0314] shipped
+        /// because no test compared them.
+        func listMatchesDisk(_ what: String) throws {
+            let opened = try env.engine.openProject(projectRootPath: root.path, appSupportRoot: env.appSupportRoot,
+                                                    identityID: identityID)
+            let disk = try opened.scenes.map { s in
+                [s.sceneID, s.chapterID, s.metadataPath, s.contentPath,
+                 try String(contentsOf: root.url.appendingPathComponent(s.contentPath), encoding: .utf8)]
+            }
+            let list = loader.segments.map { [$0.sceneID, $0.chapterID, $0.metadataPath, $0.contentPath, $0.text] }
+            #expect(list == disk, "\(what): the scene list is what is on disk")
         }
     }
 
@@ -7246,15 +7150,15 @@ struct UndoAfterStructuralOpTests {
         h.caret(scene: 1, at: 0)
         h.c.handleMergeScene()
         try await h.waitForSceneCount(1)
-        #expect(h.loader.segments[0].text == "Alpha. Pre\n\nBeta.")
+        #expect(h.loader.segments[0].text == "Alpha. PreBeta.", "✅ [SP-191] Q3a: joined directly, no blank line")
 
-        h.caret(scene: 0, at: "Alpha. Pre\n\nBeta.".utf16.count)
+        h.caret(scene: 0, at: "Alpha. PreBeta.".utf16.count)
         h.tv.insertText(" Zed", replacementRange: h.tv.selectedRange())
-        #expect(h.loader.segments[0].text == "Alpha. Pre\n\nBeta. Zed")
+        #expect(h.loader.segments[0].text == "Alpha. PreBeta. Zed")
         h.c.performUndo()
 
-        #expect(h.loader.segments[0].text == "Alpha. Pre\n\nBeta.", "undo keeps the merged-in text")
-        #expect(try h.onDisk(survivor) == "Alpha. Pre\n\nBeta.", "and saves it")
+        #expect(h.loader.segments[0].text == "Alpha. PreBeta.", "undo keeps the merged-in text")
+        #expect(try h.onDisk(survivor) == "Alpha. PreBeta.", "and saves it")
     }
 
     /// [I-0293] — the same gap for a STRUCTURED paste (a reversible structural node): ⛔ the next edit's undo put the
@@ -7267,13 +7171,11 @@ struct UndoAfterStructuralOpTests {
         // Saved first, so this test isolates [I-0293] (unsaved typing is [I-0294]'s test, below).
         await h.loader.saveScene(at: 0, engine: h.env.engine, ref: try #require(h.env.authorshipRef))
         h.caret(scene: 0, at: 6)                                    // after "Alpha "
-        let frag = FragmentResult(schema: "scrivi.fragment.v1", pieces: [
-            FragmentPiece(opensWith: "none", chapterTitle: nil, sceneTitle: nil, text: "one", partial: "head"),
-            FragmentPiece(opensWith: "scene", chapterTitle: nil, sceneTitle: nil, text: "two", partial: nil),
-            FragmentPiece(opensWith: "scene", chapterTitle: nil, sceneTitle: nil, text: "three", partial: "tail"),
-        ], plainText: "one\n\ntwo\n\nthree")
-        #expect(h.c.pasteStructuredFragment(frag))
+        let frag = Harness.range(["one", "two", "three"])
+        #expect(h.c.pasteStructuredRange(frag))
+        try await h.landed()
         #expect(h.loader.segments.map(\.text) == ["Alpha one", "two", "threeBravo Pre"])
+        try h.listMatchesDisk("the paste")
 
         h.caret(scene: 0, at: 9)                                    // end of "Alpha one"
         h.tv.insertText(" Zed", replacementRange: h.tv.selectedRange())
@@ -7282,8 +7184,16 @@ struct UndoAfterStructuralOpTests {
         #expect(h.loader.segments[0].text == "Alpha one", "undo returns the target to what the paste left")
         #expect(try h.onDisk(target) == "Alpha one", "and saves it")
 
-        h.c.performUndo()                                           // crosses the paste: the app uncuts it
+        h.c.performUndo()                                           // crosses the paste: a cut of what it inserted
+        try await h.landed()
         #expect(h.loader.segments.map(\.text) == ["Alpha Bravo Pre"], "the paste's own undo is accepted")
+        try h.listMatchesDisk("the paste's undo")
+        h.c.performRedo()                                           // [SP-191]: the paste again, the same scenes
+        try await h.landed()
+        #expect(h.loader.segments.map(\.text) == ["Alpha one", "two", "threeBravo Pre"])
+        try h.listMatchesDisk("the paste's redo")
+        h.c.performUndo()
+        try await h.landed()
         #expect(try h.onDisk(target) == "Alpha Bravo Pre")
     }
 
@@ -7296,33 +7206,199 @@ struct UndoAfterStructuralOpTests {
         h.typeBeforeTheOp(scene: 0)                                 // "Alpha Bravo Pre", not saved
         let second = h.loader.segments[1].sceneID
         h.caret(scene: 0, at: 6)                                    // after "Alpha "
-        let frag = FragmentResult(schema: "scrivi.fragment.v1", pieces: [
-            FragmentPiece(opensWith: "none", chapterTitle: nil, sceneTitle: nil, text: "one", partial: "head"),
-            FragmentPiece(opensWith: "scene", chapterTitle: nil, sceneTitle: nil, text: "two", partial: nil),
-            FragmentPiece(opensWith: "scene", chapterTitle: nil, sceneTitle: nil, text: "three", partial: "tail"),
-        ], plainText: "one\n\ntwo\n\nthree")
-        #expect(h.c.pasteStructuredFragment(frag))
+        let frag = Harness.range(["one", "two", "three"])
+        #expect(h.c.pasteStructuredRange(frag))
+        try await h.landed()
         #expect(h.loader.segments.map(\.text) == ["Alpha one", "two", "threeBravo Pre", "Second Pre"])
         #expect(try h.onDisk(second) == "Second Pre")
     }
 
     /// [I-0302] — at a barrier there is nothing to undo, but ⌘Z must SAY so: Edit ▸ Undo stays enabled (through the same
     /// validation AppKit calls), and the undo shows the barrier's notice. ⛔ It was disabled, and ⌘Z only flashed.
+    /// ⚠️ [SP-191] Q3: a split is no longer a barrier — a scene DELETE still is (the navigator records it).
     @Test("at a barrier, Undo stays enabled and ⌘Z shows the barrier's notice")
     func undoAtBarrierShowsTheNotice() async throws {
-        let h = try await harness(["Alpha one. Alpha two."])
-        h.caret(scene: 0, at: 11)
-        h.c.handleCreateScene()                                     // a split: a barrier is now the newest step
-        try await h.waitForSceneCount(2)
+        let h = try await harness(["Alpha one.", "Alpha two."])
+        h.session.historyCapture?.recordBarrier(kind: "sceneDelete", note: "Can't undo past deleting a scene")
         h.session.historyCapture?.refreshCanState()
         let undo = NSMenuItem(title: "Undo", action: #selector(ManuscriptNSTextView.undo(_:)), keyEquivalent: "z")
         #expect(h.tv.validateUserInterfaceItem(undo), "Edit ▸ Undo is enabled at the barrier")
         var notices: [String] = []
         h.c.onBarrierNotice = { notices.append($0) }
         h.tv.undo(nil)
-        #expect(notices == ["Can't undo past creating a scene"], "the barrier's notice (\(notices))")
+        #expect(notices == ["Can't undo past deleting a scene"], "the barrier's notice (\(notices))")
         #expect(h.loader.segments.count == 2, "and nothing changed")
     }
+
+    /// ✅ [SP-191] Q3 (user, 2026-10-21): *"I do not believe that we should keep the 'Can't undo past' stops."* A split, a
+    /// merge, a chapter split and a chapter merge each undo and redo in ONE step, and the list is the disk after each.
+    @Test("split, merge, chapter split and chapter merge each undo and redo in one step; the list is the disk after each")
+    func structuralEditsUndoAndRedo() async throws {
+        let h = try await harness(["Alpha one. Alpha two.", "Beta.", "Gamma."])
+        let start = h.loader.segments.map(\.text)
+        let ids = h.loader.segments.map(\.sceneID)
+        func state() -> [[String]] { h.loader.segments.map { [$0.sceneID, $0.chapterID, $0.text] } }
+        func roundTrip(_ what: String, _ op: () -> Void) async throws {
+            let before = state()
+            op()
+            try await h.landed()
+            let after = state()
+            #expect(after != before, "\(what) changed the manuscript")
+            try h.listMatchesDisk(what)
+            h.c.performUndo()
+            try await h.landed()
+            #expect(state() == before, "\(what): undone exactly, in ONE step")
+            try h.listMatchesDisk("\(what), undone")
+            h.c.performRedo()
+            try await h.landed()
+            #expect(state() == after, "\(what): redone exactly")
+            try h.listMatchesDisk("\(what), redone")
+            h.c.performUndo()
+            try await h.landed()
+        }
+        try await roundTrip("split") { h.caret(scene: 0, at: 11); h.c.handleCreateScene() }
+        try await roundTrip("split at a scene's start") { h.caret(scene: 1, at: 0); h.c.handleCreateScene() }
+        try await roundTrip("merge") { h.caret(scene: 1, at: 0); h.c.handleMergeScene() }
+        try await roundTrip("chapter split") { h.caret(scene: 0, at: 6); h.c.handleCreateChapter() }
+        try await roundTrip("chapter split at a scene's start") { h.caret(scene: 1, at: 0); h.c.handleCreateChapter() }
+        // A chapter merge needs two chapters: split one off (kept), round-trip its merge, then undo the split.
+        h.caret(scene: 1, at: 0)
+        h.c.handleCreateChapter()
+        try await h.landed()
+        try await roundTrip("chapter merge") { h.caret(scene: 1, at: 0); h.c.handleMergeChapter() }
+        h.c.performUndo()
+        try await h.landed()
+        #expect(h.loader.segments.map(\.text) == start)
+        #expect(h.loader.segments.map(\.sceneID) == ids, "every scene kept its identity through all of it")
+        try h.listMatchesDisk("the end")
+    }
+
+    /// ✅ [SP-191] Q7 (user, 2026-10-21): *"Cmd-Return creates a new scene before the current scene and pushes the caret
+    /// inside the new scene."* The scene keeps its identity and text (I-0096).
+    @Test("⌘-Return at a scene's start: the new scene goes BEFORE it, the caret into it; the scene keeps its identity")
+    func splitAtSceneStart() async throws {
+        let h = try await harness(["Alpha.", "Beta."])
+        let beta = h.loader.segments[1].sceneID
+        h.caret(scene: 1, at: 0)
+        h.c.handleCreateScene()
+        try await h.waitForSceneCount(3)
+        #expect(h.loader.segments.map(\.text) == ["Alpha.", "", "Beta."])
+        #expect(h.loader.segments[2].sceneID == beta, "the scene keeps its identity")
+        h.c.ensureBoundaries(h.tv)
+        #expect(h.tv.selectedRange().location == h.c.sceneBoundaries[1].location, "the caret is in the new scene")
+        try h.listMatchesDisk("the split at a scene's start")
+    }
+
+    @Test("⌘-Return mid-scene: the scene splits and the caret starts the new scene")
+    func splitMidSceneCaret() async throws {
+        let h = try await harness(["Alpha one. Alpha two."])
+        h.caret(scene: 0, at: 11)
+        h.c.handleCreateScene()
+        try await h.waitForSceneCount(2)
+        h.c.ensureBoundaries(h.tv)
+        #expect(h.tv.selectedRange().location == h.c.sceneBoundaries[1].location, "the caret is at the new scene's start")
+    }
+
+    /// ✅ [SP-191] Q8: a chapter split at a scene's start is a RELABEL — no empty scene, no text moves.
+    @Test("⇧⌘-Return at a scene's start: it and the rest of its chapter start a new chapter; nothing else changes")
+    func chapterSplitAtSceneStart() async throws {
+        let h = try await harness(["Alpha.", "Beta.", "Gamma."])
+        let texts = h.loader.segments.map(\.text)
+        h.caret(scene: 1, at: 0)
+        h.c.handleCreateChapter()
+        try await h.landed()
+        #expect(h.loader.segments.map(\.text) == texts, "no scene made, no text moved")
+        #expect(h.loader.segments[1].chapterID != h.loader.segments[0].chapterID)
+        #expect(h.loader.segments[2].chapterID == h.loader.segments[1].chapterID)
+        try h.listMatchesDisk("the relabel")
+        h.caret(scene: 0, at: 0)
+        h.c.handleCreateChapter()                                   // a chapter's first scene: nothing happens
+        try await h.landed()
+        #expect(ManuscriptTextView.Coordinator.chapterCount(h.loader.segments) == 2)
+    }
+
+    /// ✅ [SP-191] Q3b, through the app: what Undo restores travels in the Range — through the history node's JSON and the
+    /// Swift codec — so a merged-away scene comes back with its tags and outline.
+    @Test("a merge's undo brings the merged-away scene back with its tags and outline")
+    func mergeUndoRestoresTheSidecar() async throws {
+        let h = try await harness(["Alpha.", "Beta."])
+        let beta = h.loader.segments[1].sceneID
+        try h.env.engine.setSceneTags(projectRootPath: h.root.path, sceneID: beta, tags: ["night", "storm"])
+        try h.env.engine.setSceneOutline(projectRootPath: h.root.path, sceneID: beta, outline: "Beta's outline")
+        h.caret(scene: 1, at: 0)
+        h.c.handleMergeScene()
+        try await h.waitForSceneCount(1)
+        h.c.performUndo()
+        try await h.waitForSceneCount(2)
+        #expect(h.loader.segments[1].sceneID == beta)
+        let notes = try h.env.engine.getSceneNotes(projectRootPath: h.root.path, sceneID: beta)
+        #expect(notes.tags == ["night", "storm"])
+        #expect(notes.outline == "Beta's outline")
+        try h.listMatchesDisk("the merge's undo")
+    }
+
+    /// ✅ [SP-191] Q5 (user, 2026-10-21): an immediate cue, then read-only; repeats, typing and undo are ignored, not queued.
+    @Test("a structural edit: the cue in the same turn; a repeat and an undo while it is in flight are ignored")
+    func structuralEditCueAndRepeats() async throws {
+        let h = try await harness(["Alpha one. Alpha two."])
+        h.caret(scene: 0, at: 11)
+        h.c.handleCreateScene()
+        #expect(!h.tv.isEditable, "the cue: read-only before any core call, in the key press's own turn")
+        #expect(h.loader.structuralInFlight)
+        h.c.handleCreateScene()                                     // the writer presses it again at once
+        h.c.performUndo()                                           // and Undo
+        try await h.waitForSceneCount(2)
+        try await Task.sleep(for: .milliseconds(200))
+        #expect(h.loader.segments.count == 2, "ONE new scene: the repeat was ignored, not queued")
+        #expect(h.tv.isEditable, "editable again once it landed")
+        #expect(h.loader.structuralProgress == nil)
+    }
+
+    @Test("the progress row appears once a structural edit has run 400 ms, and goes when it lands")
+    func structuralProgressAfter400ms() async throws {
+        let h = try await harness(["Alpha."])
+        let ref = try #require(h.env.authorshipRef)
+        var landed = false
+        let t0 = Date()
+        let started = h.loader.runStructural("Working…", ref: ref, { _ in Thread.sleep(forTimeInterval: 1.5); return 1 },
+                                             landed: { _ in landed = true })
+        #expect(started)
+        let again = h.loader.runStructural("Again", ref: ref, { _ in 2 }, landed: { _ in Issue.record("a second edit ran") })
+        #expect(!again, "a second edit while one is in flight is refused, not queued (Q5)")
+        #expect(h.loader.structuralProgress == nil, "not at once")
+        var shownAfter: TimeInterval?
+        for _ in 0..<300 where !landed {
+            if h.loader.structuralProgress == "Working…" { shownAfter = Date().timeIntervalSince(t0); break }
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        let shown = try #require(shownAfter, "the row showed while the edit ran")
+        #expect(shown >= 0.4, "not before 400 ms (shown after \(shown) s)")
+        for _ in 0..<300 where !landed { try await Task.sleep(for: .milliseconds(10)) }
+        #expect(landed && h.loader.structuralProgress == nil, "and gone once it landed")
+    }
+
+    /// ✅ [SP-191] Copy builds the Range from the scene list: nothing reads the project (§4.2b). ⛔ It called
+    /// `fragmentExtract`, which read every selected scene from disk.
+    @Test("a cross-scene ⌘C reads nothing from the project; its ⌘V lands the scenes")
+    func copyMakesNoCoreCall() async throws {
+        let h = try await harness(["Alpha Bravo", "Charlie Delta"])
+        h.c.ensureBoundaries(h.tv)
+        let from = h.c.sceneBoundaries[0].location + 6
+        h.tv.setSelectedRange(NSRange(location: from, length: h.c.sceneBoundaries[1].location + 7 - from))
+        // ⚠️ Main-thread calls only: other suites run in parallel, but nothing else runs on the main actor in this stretch.
+        // The only calls are the two STATELESS balancing calls, one per piece ([T-0591] via `scrivi_markdown_*`, SP-174:
+        // computation on the piece's text, no project) — nothing that opens or reads the project.
+        let calls = coreCallCounts.withLock { $0 }
+        #expect(h.c.structuredCopyIfCrossBoundary())
+        let after = coreCallCounts.withLock { $0 }
+        #expect(after.mainThreadCalls == calls.mainThreadCalls + 2, "one stateless balance per piece, nothing else")
+        h.caret(scene: 1, at: 13)
+        #expect(h.c.structuredPasteIfAvailable())
+        try await h.landed()
+        #expect(h.loader.segments.map(\.text) == ["Alpha Bravo", "Charlie DeltaBravo", "Charlie"])
+        try h.listMatchesDisk("the paste of the copy")
+    }
+
 
     /// [I-0299] — the Mac's reopen flagged two scenes it had itself deleted text across. A cross-scene delete followed by a
     /// CLEAN close and reopen does not: its saves record their bytes (measured 2026-10-13; the probe stays as a guard).
@@ -7354,16 +7430,15 @@ struct UndoAfterStructuralOpTests {
         let h = try await harness(["Alpha Bravo"])
         h.typeBeforeTheOp(scene: 0)                                 // an edit in the first session, before the paste
         h.caret(scene: 0, at: 6)
-        let frag = FragmentResult(schema: "scrivi.fragment.v1", pieces: [
-            FragmentPiece(opensWith: "none", chapterTitle: nil, sceneTitle: nil, text: "one", partial: "head"),
-            FragmentPiece(opensWith: "scene", chapterTitle: nil, sceneTitle: nil, text: "two", partial: "tail"),
-        ], plainText: "one\n\ntwo")
-        #expect(h.c.pasteStructuredFragment(frag))
+        let frag = Harness.range(["one", "two"])
+        #expect(h.c.pasteStructuredRange(frag))
+        try await h.landed()
         let again = try await h.reopened()
         #expect(again.loader.segments.map(\.text) == ["Alpha one", "twoBravo Pre"])
         var warned: [String?] = []
         again.c.onSessionBoundary = { warned.append($0) }
         again.c.performUndo()
+        try await again.landed()
         #expect(again.loader.segments.map(\.text) == ["Alpha Bravo Pre"], "the paste is undone")
         #expect(warned.count == 1, "the previous-session warning was shown once (\(warned.count))")
     }
@@ -7377,11 +7452,9 @@ struct UndoAfterStructuralOpTests {
         h.typeBeforeTheOp(scene: 0)
         await h.loader.saveScene(at: 0, engine: h.env.engine, ref: try #require(h.env.authorshipRef))
         h.caret(scene: 0, at: 6)
-        let frag = FragmentResult(schema: "scrivi.fragment.v1", pieces: [
-            FragmentPiece(opensWith: "none", chapterTitle: nil, sceneTitle: nil, text: "one", partial: "head"),
-            FragmentPiece(opensWith: "scene", chapterTitle: nil, sceneTitle: nil, text: "two", partial: "tail"),
-        ], plainText: "one\n\ntwo")
-        #expect(h.c.pasteStructuredFragment(frag))
+        let frag = Harness.range(["one", "two"])
+        #expect(h.c.pasteStructuredRange(frag))
+        try await h.landed()
         #expect(h.loader.segments.map(\.text) == ["Alpha one", "twoBravo Pre"])
 
         h.session.closeHistoryBlocking()
@@ -7398,18 +7471,16 @@ struct UndoAfterStructuralOpTests {
     /// undo step), then the fragment lands where it began. ⛔ It used to land BEFORE the selection and leave it in place.
     @Test("structured paste over a selection replaces it — inside one scene, and across a scene break")
     func structuredPasteReplacesTheSelection() async throws {
-        let frag = FragmentResult(schema: "scrivi.fragment.v1", pieces: [
-            FragmentPiece(opensWith: "none", chapterTitle: nil, sceneTitle: nil, text: "one", partial: "head"),
-            FragmentPiece(opensWith: "scene", chapterTitle: nil, sceneTitle: nil, text: "two", partial: nil),
-            FragmentPiece(opensWith: "scene", chapterTitle: nil, sceneTitle: nil, text: "three", partial: "tail"),
-        ], plainText: "one\n\ntwo\n\nthree")
+        let frag = Harness.range(["one", "two", "three"])
 
         let h = try await harness(["Alpha Bravo Charlie"])
         h.caret(scene: 0, at: 6)
         h.tv.setSelectedRange(NSRange(location: h.tv.selectedRange().location, length: 5))   // "Bravo"
-        #expect(h.c.pasteStructuredFragment(frag))
+        #expect(h.c.pasteStructuredRange(frag))
+        try await h.landed()
         #expect(h.loader.segments.map(\.text) == ["Alpha one", "two", "three Charlie"])
         h.c.performUndo()                                           // the paste
+        try await h.landed()
         #expect(h.loader.segments.map(\.text) == ["Alpha  Charlie"])
         h.c.performUndo()                                           // the removal
         #expect(h.loader.segments.map(\.text) == ["Alpha Bravo Charlie"])
@@ -7419,7 +7490,8 @@ struct UndoAfterStructuralOpTests {
         let from = x.tv.selectedRange().location
         x.caret(scene: 1, at: 3)                                    // "Bravo" … across the break … "Sec"
         x.tv.setSelectedRange(NSRange(location: from, length: x.tv.selectedRange().location - from))
-        #expect(x.c.pasteStructuredFragment(frag))
+        #expect(x.c.pasteStructuredRange(frag))
+        try await x.landed()
         #expect(x.loader.segments.map(\.text) == ["Alpha one", "two", "three", "ond"])
     }
 
@@ -7530,8 +7602,9 @@ struct BufferBalanceTests {
         let h = try await harness(["x **bold** y", "next **two** z"])
         select(h, 0, 6, 1, 9)                                       // "ld** y" … "next **tw"
         h.c.copyIntoBuffer("3")
-        let frag = try #require(h.session.bufferService?.fragment(inSlot: "3"))
-        #expect(frag.pieces.map(\.text) == ["**ld** y", "next **tw**"])
+        let range = try #require(h.session.bufferService?.range(inSlot: "3"))
+        #expect(range.scenes.map(\.text) == ["**ld** y", "next **tw**"])
+        #expect(range.scenes.map(\.sceneID) == h.loader.segments.map(\.sceneID), "✅ [SP-191] built from the scene list")
         #expect(h.session.bufferService?.text(inSlot: "3") == "**ld** y\n\nnext **tw**")
     }
 
@@ -7745,7 +7818,7 @@ struct RangeBindingInteropTests {
 /// storage must be EXACTLY a full render of the list, the boundary table must say where each body is — and the operation
 /// must not have re-rendered everything. The core-call counts are printed: they are the baseline S2b ([SP-191]) removes.
 @MainActor
-@Suite("Run renders after structural operations (EP-053 S2a)")
+@Suite("Run renders after structural operations (EP-053 S2a)", .serialized)
 struct RunRenderTests {
     private let base = UndoAfterStructuralOpTests()
 
@@ -7769,11 +7842,16 @@ struct RunRenderTests {
                           expectRun: Bool = true, _ op: () async throws -> Void) async throws {
         let full = h.c.fullRenders, runs = h.c.runRenders
         let calls = coreCallCounts.withLock { $0 }
+        let own = h.loader.structuralCalls.counts.withLock { $0 }
         try await op()
         let after = coreCallCounts.withLock { $0 }
+        let ownAfter = h.loader.structuralCalls.counts.withLock { $0 }
         print("[EP-053 baseline] \(what): fullRenders=\(h.c.fullRenders - full) runRenders=\(h.c.runRenders - runs) "
               + "mainThreadCoreCalls=\(after.mainThreadCalls - calls.mainThreadCalls) "
-              + "projectReopens=\(after.openProjectCalls - calls.openProjectCalls)")
+              + "projectReopens=\(after.openProjectCalls - calls.openProjectCalls) "
+              + "structuralMainThread=\(ownAfter.own - own.own) caretBookkeeping=\(ownAfter.caret - own.caret)")
+        // ✅ [SP-191] AC5/AC9: the edit itself makes NO core call on the main thread (this editor's own tasks only).
+        #expect(ownAfter.own == own.own, "\(what): no core call on the main thread")
         if expectRun {
             #expect(h.c.fullRenders == full, "\(what): nothing re-rendered the whole manuscript")
             #expect(h.c.runRenders == runs + 1, "\(what): one run render")
@@ -7808,7 +7886,8 @@ struct RunRenderTests {
             h.c.handleMergeScene()
             try await h.waitForSceneCount(5)
         }
-        #expect(h.loader.segments[0].text == "Alpha one. \n\nAlpha two.")
+        #expect(h.loader.segments[0].text == "Alpha one. Alpha two.", "✅ [SP-191] Q3a: joined directly")
+        try h.listMatchesDisk("after the scene operations")
         // ✅ Typing after run renders lands in the right scene: the spliced table is the one the edit path reads.
         // ⚠️ Into a scene WITH text: typing into an empty scene that sits before another empty one is attributed to the
         // next scene, after a full render too — [I-0313], not this Sprint's.
@@ -7825,13 +7904,17 @@ struct RunRenderTests {
             h.caret(scene: 0, at: 11)
             h.c.handleCreateChapter()
             try await waitForChapters(h, 2)
+            try await h.landed()
         }
+        try h.listMatchesDisk("the chapter split ([I-0314]: the disk keeps the order the editor shows)")
         let second = try #require(h.loader.segments.firstIndex { $0.chapterID != h.loader.segments[0].chapterID })
         try await measured(h, "merge chapter") {
             h.caret(scene: second, at: 0)
             h.c.handleMergeChapter()
             try await waitForChapters(h, 1)
+            try await h.landed()
         }
+        try h.listMatchesDisk("the chapter merge")
     }
 
     @Test("with chapter titles showing, a chapter split renders everything (titles renumber) and still matches the list")

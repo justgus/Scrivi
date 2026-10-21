@@ -39,6 +39,11 @@ struct RangeEntry {
     std::size_t length = 0;     // how much of it the range covers (UTF-8 bytes)
     std::size_t sceneLength = 0;// the scene's whole text (UTF-8 bytes): the entry is the whole scene when start 0, length = this
     std::string text;           // the covered text, exactly as stored in the file
+    // ✅ [SP-191] Q3b (user, 2026-10-21): what an undo needs to bring a REMOVED scene or chapter back exactly. Filled by the
+    // core when it removes one (a cut, a relabel that empties a chapter); empty in a Range the editor builds. A paste that
+    // keeps the entry's ID (the manuscript no longer has it) writes these back; a fresh ID ignores them.
+    std::string sceneMeta;      // the scene's whole sidecar (`scrivi.scene.v1`, serialized), as it was on disk
+    std::string chapterMeta;    // on the entry that OPENS a chapter: that chapter's sidecar (serialized), as it was
 
     [[nodiscard]] bool coversWholeScene() const { return start == 0 && length == sceneLength; }
 };
@@ -59,6 +64,8 @@ public:
     }
 
     // `scrivi.range.v1`: { "schema": "scrivi.range.v1", "scenes": [ entry, … ] } — the array's order IS the links.
+    // ✅ `sceneMeta` / `chapterMeta` are optional STRINGS (serialized JSON), so a platform's codec carries them through
+    // untouched. ✅ An empty `sceneID` / `chapterID` is allowed (Q1): a paste mints a fresh one.
     [[nodiscard]] util::JsonDoc toJson() const;
     [[nodiscard]] static Result<Range> fromJson(const util::JsonDoc& doc);
     [[nodiscard]] std::string toJsonString() const;

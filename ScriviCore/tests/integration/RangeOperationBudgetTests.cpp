@@ -185,7 +185,8 @@ TEST_CASE("[EP-053] a two-scene paste stays within 3 reads and 5 writes", "[ep05
 
 // AC4: a two-scene cut (the end of one scene + the start of the next) — the start scene's text and sidecar, the end
 // scene's text, the chapter sidecar; the start scene's two files written, the end scene's two removed, the chapter sidecar.
-TEST_CASE("[EP-053] a two-scene cut stays within 4 reads and 5 writes", "[ep053][budget]") {
+// ✅ [SP-191] Q3b: + ONE read — the removed scene's sidecar, which the Range carries so the cut's undo restores it exactly.
+TEST_CASE("[EP-053] a two-scene cut stays within 5 reads and 5 writes", "[ep053][budget]") {
     Harness h;
     h.build(6, 20);
     auto indexR = ms::ProjectIndex::build(h.root(), h.services);
@@ -203,10 +204,53 @@ TEST_CASE("[EP-053] a two-scene cut stays within 4 reads and 5 writes", "[ep053]
     report("two-scene cut", h.counting);
     const auto& t = h.counting.total();
     CHECK(t.listDirectory == 0);
-    CHECK(t.readTextFile <= 4);
+    CHECK(t.readTextFile <= 5);
     CHECK(writesOf(t) <= 5);
     CHECK(r.value().indexCurrent);
     CHECK(index.sceneCount() == 119);
+}
+
+// [SP-191] Q3e: a chapter merge is a RELABEL — the 20 scenes of chapter 2 move into chapter 1's folder. Every chapter's keys
+// start from the same first key, so each scene is renamed there and its sidecar rewritten (slug, contentPath); its text is
+// only moved. Reads: each moved sidecar, the emptied chapter's sidecar (it travels for the undo), chapter 1's sidecar, the
+// manuscript sidecar. Writes: per scene, the text moved, the sidecar written anew and the old one removed; chapter 1's
+// sidecar; the emptied chapter's sidecar removed; the manuscript sidecar. ⛔ No listing, no text read.
+TEST_CASE("[SP-191] a chapter merge (relabel) of N scenes stays within N + 3 reads and 3N + 3 writes", "[ep053][budget]") {
+    Harness h;
+    h.build(6, 20);
+    auto indexR = ms::ProjectIndex::build(h.root(), h.services);
+    REQUIRE(indexR.ok());
+    ms::ProjectIndex& index = indexR.value();
+    const scrivi::ChapterID first = index.scenesInOrder().at(0).chapterID;
+    ms::Range run;
+    for (std::size_t i = 20; i < 40; ++i) {
+        const auto& s = index.scenesInOrder().at(i);
+        run.append({s.sceneID, s.chapterID, s.chapterTitle, s.title, 0, 0, 0, ""});
+    }
+    h.counting.reset();
+
+    ms::RangeOperations ops{h.services, h.root(), index};
+    auto r = ops.relabel(run, first, author());
+    REQUIRE(r.ok());
+    report("chapter merge (relabel) of 20 scenes", h.counting);
+    const auto& t = h.counting.total();
+    CHECK(t.listDirectory == 0);
+    CHECK(t.readTextFile <= 20 + 3);
+    CHECK(writesOf(t) <= 3 * 20 + 3);
+    CHECK(r.value().indexCurrent);
+
+    // Its undo re-creates the chapter in an empty folder: the scenes keep their names, so nothing is read but the two
+    // sidecars it edits. Writes: per scene, the two files moved; the folder, the new chapter's sidecar, chapter 1's, the
+    // manuscript's.
+    h.counting.reset();
+    auto back = ops.relabel(r.value().range, r.value().fromChapterID, author());
+    REQUIRE(back.ok());
+    report("undo of the chapter merge", h.counting);
+    const auto& u = h.counting.total();
+    CHECK(u.listDirectory == 0);
+    CHECK(u.readTextFile <= 2);
+    CHECK(writesOf(u) <= 2 * 20 + 4);
+    CHECK(back.value().indexCurrent);
 }
 
 // AC2: a range read reads its scenes' texts and nothing else.

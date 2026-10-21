@@ -212,12 +212,12 @@ public:
     void copyIntoBuffer(const QString& bufferID);
     void cutIntoBuffer(const QString& bufferID);
     void pasteFromBuffer(const QString& bufferID);
-    // --- EP-026 S4 structured paste (SP-180, T-0607) -----------------------
-    // Paste `fragment` (a `scrivi.fragment.v1`) at the caret, rebuilding its scenes and chapters — Ctrl+V of a cross-scene
-    // copy, and Ctrl+Shift+N of a slot holding one. Apple: `pasteStructuredFragment`. A selection is removed first, as
-    // its own undo step ([SP-180] Q2); unsaved scenes are saved ([I-0294]); the paste is ONE reversible structural step
-    // with the texts on both sides of it ([I-0293]); then the manuscript reloads, the caret at the split.
-    void pasteFragment(const QJsonObject& fragment);
+    // --- EP-026 S4 structured paste (SP-180, T-0607; ✅ [SP-191] a Range) -----
+    // Paste `range` (a `scrivi.range.v1`) at the caret, rebuilding its scenes and chapters — Ctrl+V of a cross-scene copy,
+    // and Ctrl+Shift+N of a slot holding one. Apple: `pasteStructuredRange`. A selection is removed first, as its own undo
+    // step ([SP-180] Q2); the paste is ONE range call off the GUI thread and ONE history node with the texts on both sides
+    // of it ([I-0293]); the delta is applied (no reload) and the caret lands at the end of the pasted block.
+    void pasteRange(const QJsonObject& range);
     // This project's slots (the palette shows the FRONT project's), or nullptr before a load.
     [[nodiscard]] BufferService* buffers() const { return buffers_; }
 
@@ -290,6 +290,9 @@ signals:
     // T-0499 ([I-0195]): `load()` finished. `ok` is what `load()` used to return.
     // ⚠️ The caller MUST switch its view stack from here, not from load()'s return.
     void loadFinished(bool ok);
+
+    // [SP-191]: a structural edit (`runRangeEdit`) has landed — applied (`ok`) or not — and the editor takes input again.
+    void structuralEditFinished(bool ok);
 
     // T-0500 ([I-0195]): progress through the per-scene body reads.
     //
@@ -727,8 +730,6 @@ private:
     // True while load() is programmatically assembling the document, so the
     // contentsChange / cursor hooks ignore those (non-user) events.
     bool                loading_ = false;
-    // [I-0297]: the texts the next `load()` of THIS project takes from memory instead of the disk (`reloadThen`).
-    QHash<QString, QString> reloadTexts_;
     int                 timelineBuilds_ = 0;   // [I-0285] see timelineBuildCount()
     int                 loads_ = 0;            // EP-053 S2a: see loadCount()
     int                 timelineUiReads_ = 0;  // [I-0285] see timelineUiThreadReadCount()
@@ -756,9 +757,9 @@ private:
     // EP-026 S5 (SP-179): this project's copy buffers — owned here for the same reason as `history_`. Created on load,
     // released in `releaseProject()`.
     BufferService*          buffers_ = nullptr;
-    // EP-026 S4 (SP-180): what each structural RE-PASTE created, so the uncut that follows removes those scenes (Apple:
-    // `structuralRedoCreated`). Keyed by op | caret scene | caret byte | fragment; this window's session only.
-    QHash<QString, QPair<QStringList, QStringList>> structuralRedoCreated_;
+    // [SP-187] Q2: an old `structuredCut` node's redo cuts what its undo's paste inserted — kept for this window's session
+    // only (Apple: `oldCutRedo`). Keyed by caret scene | caret byte | fragment.
+    QHash<QString, QString> oldCutRedo_;
     // Each scene's text as history last saw it — the "text before" of the next report (Apple keeps the text before the
     // edit, `preEditText`; Qt's `contentsChange` arrives AFTER the change). Refilled on every load.
     QHash<QString, QString> historyText_;
@@ -777,28 +778,41 @@ private:
     int storedOffset(int index, int docPos) const;
     // Apply one undo/redo result (Apple's `apply(step:)`).
     void applyHistoryStep(const QVariantMap& step, bool isUndo);
-    // EP-026 S4: undo/redo crossed a structural node — run its inverse on disk, then reload (Apple's
-    // `applyStructuralInverse`). Two disk ops cover four directions: a re-paste (undo of a cut, redo of a paste) and an
-    // uncut (undo of a paste, redo of a cut).
+    // Undo/redo crossed a structural node — ✅ [SP-191] its inverse range call, off the GUI thread, the delta applied (Apple's
+    // `applyStructuralInverse`); an old fragment node is converted to a Range ([SP-187] Q2).
     void applyStructuralInverse(const QVariantMap& inverse, bool isUndo);
     // The step crossed into a previous session's work: Apple's warning, once per crossing (§5, T-0209). Every kind of step
     // — text or structural ([I-0298]).
     void warnIfSessionBoundary(const QVariantMap& step);
-    // Reload the manuscript from disk (a structural op changed it), then put the caret `byteOffset` UTF-8 bytes into
-    // `sceneID` (Apple: `reloadManuscriptFromDisk(caretSceneID:caretByteOffset:)`).
-    // ✅ [I-0297] (SP-185, Q2 "cut the reads"): `writtenTexts` = EVERY scene the step wrote, as the core reports them
-    // (`sceneTexts`). Given it, the reload reads no other scene's text: the rest come from memory (unchanged, and saved —
-    // the step saved any dirty scene first). ⛔ Only for a step that reports all it wrote: paste, uncut-paste.
-    void reloadThenPlaceCaret(const QString& sceneID, qint64 byteOffset, const QVariantMap& writtenTexts = {});
-    // ⚠️ [I-0300]: `load()` reloads ASYNCHRONOUSLY ([T-0499]) — anything that must see the NEW manuscript (the caret, a
-    // renumber) runs in `after`, once the reload has finished. Never straight after `load()`.
-    void reloadThen(std::function<void()> after, const QVariantMap& writtenTexts = {});
-    // ✅ [I-0297]: a structural step's ScriviCore `work` runs OFF the UI thread (over a network share it walks the whole
-    // manuscript — it froze the app for minutes), with the progress row showing `label`. The editor is read-only and
-    // `loading_` set until `then` has run and its reload has landed (or, on failure, `failed`).
-    // ✅ [I-0309]: `work` is handed the worker's OWN bridge — it must never capture `bridge_`.
-    void runStructural(const QString& label, std::function<QVariantMap(ScriviBridge&)> work,
-                       std::function<void(const QVariantMap&)> then, std::function<void()> failed);
+    // ✅ [SP-191] The ONE path every structural edit takes — paste, split, chapter split, merge, chapter merge, and the
+    // undo and redo of each (Apple: `runStructuralEdit` + `ViewportSceneLoader.runStructural`):
+    //  1. the cue, in the key press's own turn (Q5): read-only (`lockForWork`), the progress row after 400 ms;
+    //  2. on a WORKER: the unsaved scenes written, the pending typing committed, the ONE range call (`call`), its history
+    //     node (`node`, on the worker too — empty for an undo/redo, which crosses a node rather than adding one), the
+    //     timeline's read;
+    //  3. back on the GUI thread: the delta applied (`applyRangeResult`), the caret placed (`caret`). Nothing re-reads the
+    //     project (⛔ `reloadThen` and [I-0297]'s `reloadTexts_` are gone).
+    // ✅ [I-0309]: `call` is handed the worker's OWN bridge — it must never capture `bridge_`. `node` runs on the worker.
+    // Returns false, doing nothing, while another edit is in flight (Q5: ignored, not queued).
+    using RangeCall  = std::function<QVariantMap(ScriviBridge&)>;
+    using RangeNode  = std::function<QJsonObject(const QVariantMap&)>;
+    using RangeCaret = std::function<std::pair<QString, qint64>(const QVariantMap&)>;
+    bool runRangeEdit(const QString& label, RangeCall call, RangeNode node, RangeCaret caret,
+                      std::function<void()> failed = {});
+    // The delta of a range call's result → the scene list and the document (`SceneDocument::applyRangeDelta`); the
+    // written scenes clean, history's view of their text, the navigator.
+    void applyRangeResult(const QVariantMap& result);
+    // ⌃↩ / ⌃⇧↩: a paste of a break at the caret (Q1); `newChapter` puts its second entry in another chapter.
+    void insertBreak(bool newChapter, const QString& label);
+    // A merge: a cut of `rangeJson` (the zero-length range across a break), recorded as a `rangeCut` node.
+    void cutRange(const QString& rangeJson, const QString& label);
+    // A chapter merge / a chapter split at a scene's start (Q8): a relabel of the run into `target` ("" = a new chapter).
+    void relabel(const QString& rangeJson, const QString& target, const QString& keepCaretIn, const QString& label);
+    // A paste of `rangeJson` at (caretScene, caretByte); `records` = a new `rangePaste` node (false for an undo/redo).
+    // `inserted` sees the result (the Range it inserted). The caret goes to the end of what it put in.
+    bool pasteRangeAt(const QString& rangeJson, const QString& caretScene, qint64 caretByte, const QString& caretText,
+                      const QString& label, bool records, std::function<void()> failed,
+                      std::function<void(const QVariantMap&)> inserted = {});
     // The caret `byteOffset` UTF-8 bytes into `sceneID`'s body, the navigator following; false when the scene is not loaded.
     bool placeCaret(const QString& sceneID, qint64 byteOffset);
     // Replace segment `index`'s body with `text`, under `isApplying`; returns the document position of `caretUtf16`.

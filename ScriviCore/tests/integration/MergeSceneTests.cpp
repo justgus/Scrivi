@@ -9,6 +9,10 @@
 // wipes them on disk. On reopen the scenes are LOST. These tests document that loss (the
 // chapter-merge asserts data is lost — it will be inverted once scrivi_merge_chapter lands
 // in T-0300) and prove the simpler same-chapter scene-merge is already coherent.
+//
+// ✅ [SP-191] (Q3e): `scrivi_merge_scene` and `scrivi_merge_chapter` RETIRED — a scene merge is a range cut of the break
+// and a chapter merge a range relabel; their tests are `RangeOperationCApiTests.cpp`'s `[sp191]` cases. The two tests below
+// stay: they record the I-0083 composition, which still describes `deleteChapter`.
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -24,10 +28,13 @@
 #include "manuscript/ManuscriptOrderResolver.hpp"
 #include "util/PathUtils.hpp"
 
+#include <atomic>
 #include <chrono>
 #include <filesystem>
 #include <fstream>
 #include <string>
+
+#include <unistd.h>
 
 namespace fs = std::filesystem;
 
@@ -38,9 +45,13 @@ namespace fs = std::filesystem;
 struct TempDir {
     fs::path path;
 
+    // ⚠️ [SP-191] (seen once on Linux, `ctest -j6`): the clock alone named two directories alike — the two TempDirs of one
+    // test, or two tests in parallel processes — so one test's project landed in the other's. The process and a counter too.
     TempDir() {
-        path = fs::temp_directory_path() / ("scrivi-merge-" + std::to_string(
-            std::chrono::steady_clock::now().time_since_epoch().count()));
+        static std::atomic<int> counter{0};
+        path = fs::temp_directory_path() / ("scrivi-merge-" + std::to_string(::getpid()) + "-" +
+                                            std::to_string(counter.fetch_add(1)) + "-" +
+                                            std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
         fs::create_directories(path);
     }
 
@@ -186,7 +197,7 @@ TEST_CASE("chapter-merge via saveScene+deleteChapter LOSES scenes on reopen (I-0
     // wholesale — including the scene file the merge intended to keep — so the manuscript
     // loses a scene and its body vanishes from disk. This documents WHY the Swift-composed
     // merge is lossy and guards against re-adopting it. The correct path is the atomic
-    // scrivi_merge_chapter endpoint (T-0300), whose own test below proves the scenes SURVIVE.
+    // relocation — ✅ [SP-191] `scrivi_range_relabel` (RangeOperationCApiTests' `[sp191]` cases prove the scenes SURVIVE).
     auto after = resolver.resolve(p.projectDir.str());
     REQUIRE(after.ok());
     CHECK(after.value().size() == 1);                    // was 2 — scene 2 lost
@@ -272,411 +283,4 @@ TEST_CASE("same-chapter scene-merge via saveScene+deleteScene SURVIVES reopen",
         readFileAt(projectDir.str(), after.value()[0].contentPath);
     CHECK(mergedBody.find("SCENE-ONE-BODY") != std::string::npos);
     CHECK(mergedBody.find("SCENE-TWO-BODY") != std::string::npos);
-}
-
-// ---------------------------------------------------------------------------
-// T-0299 — scrivi_merge_scene endpoint (same-chapter join into predecessor)
-// ---------------------------------------------------------------------------
-
-// A single-chapter project with two scenes, each carrying distinctive body text.
-struct TwoSceneOneChapterProject {
-    TempDir projectDir;
-    TempDir appSupportDir;
-    scrivi::platform::LocalFileSystem        lfs;
-    scrivi::mocks::DeterministicUUIDProvider uuids;
-    scrivi::mocks::FixedClock                clock{"2026-07-20T00:00:00Z"};
-    scrivi::mocks::MockSecureStore           store;
-    scrivi::mocks::MockGitProvider           git;
-    scrivi::CoreServices                     services;
-    scrivi::ScriviCore                       core;
-
-    scrivi::ProjectID projectID;
-    scrivi::ChapterID chapterID;
-    scrivi::SceneID   scene1ID;   // predecessor / survivor
-    scrivi::SceneID   scene2ID;   // merged away
-
-    TwoSceneOneChapterProject()
-        : services(makeServices(lfs, uuids, clock, store, git))
-        , core(services)
-    {
-        scrivi::CreateProjectRequest req;
-        req.projectRootPath = projectDir.str();
-        req.appSupportRoot  = appSupportDir.str();
-        req.title           = "Merge Test Novel";
-        req.slug            = "merge-test";
-        req.author          = testAuthor();
-        auto created = core.createProject(req);
-        REQUIRE(created.ok());
-        projectID = created.value().project.projectID;
-        chapterID = created.value().firstChapterID;
-        scene1ID  = created.value().firstSceneID;
-
-        // Give scene 1 a body.
-        scrivi::SaveSceneRequest s1Save;
-        s1Save.projectID         = projectID;
-        s1Save.projectRootPath   = projectDir.str();
-        s1Save.appSupportRoot    = appSupportDir.str();
-        s1Save.sceneID           = scene1ID;
-        s1Save.sceneMetadataPath = created.value().firstSceneMetadataPath;
-        s1Save.sceneContentPath  = created.value().firstSceneContentPath;
-        s1Save.markdown          = "SCENE-ONE-BODY";
-        s1Save.author            = testAuthor();
-        REQUIRE(core.saveScene(s1Save).ok());
-
-        // Add scene 2 after scene 1 in the same chapter, with its own body.
-        scrivi::CreateSceneRequest s2Req;
-        s2Req.projectRootPath = projectDir.str();
-        s2Req.appSupportRoot  = appSupportDir.str();
-        s2Req.projectID       = projectID;
-        s2Req.chapterID       = chapterID;
-        s2Req.afterSceneID    = scene1ID;
-        s2Req.author          = testAuthor();
-        auto s2 = core.createScene(s2Req);
-        REQUIRE(s2.ok());
-        scene2ID = s2.value().sceneID;
-
-        scrivi::SaveSceneRequest s2Save;
-        s2Save.projectID         = projectID;
-        s2Save.projectRootPath   = projectDir.str();
-        s2Save.appSupportRoot    = appSupportDir.str();
-        s2Save.sceneID           = scene2ID;
-        s2Save.sceneMetadataPath = s2.value().metadataPath;
-        s2Save.sceneContentPath  = s2.value().contentPath;
-        s2Save.markdown          = "SCENE-TWO-BODY";
-        s2Save.author            = testAuthor();
-        REQUIRE(core.saveScene(s2Save).ok());
-    }
-};
-
-TEST_CASE("mergeScene - joins a scene into its predecessor; both bodies survive reopen",
-          "[integration][T-0299]")
-{
-    TwoSceneOneChapterProject p;
-
-    scrivi::MergeSceneRequest req;
-    req.projectRootPath = p.projectDir.str();
-    req.sceneID         = p.scene2ID;   // merge scene 2 INTO scene 1
-
-    auto r = p.core.mergeScene(req);
-    REQUIRE(r.ok());
-    CHECK(r.value().merged);
-    CHECK(r.value().survivorSceneID.value == p.scene1ID.value);
-    CHECK(r.value().mergedSceneID.value   == p.scene2ID.value);
-    CHECK(r.value().chapterID.value       == p.chapterID.value);
-
-    // Reopen: exactly one scene remains — scene 1 (the survivor keeps its own key) — and its
-    // on-disk body now holds BOTH scenes' text, in order.
-    scrivi::manuscript::ManuscriptOrderResolver resolver{p.services};
-    auto after = resolver.resolve(p.projectDir.str());
-    REQUIRE(after.ok());
-    REQUIRE(after.value().size() == 1);
-    CHECK(after.value()[0].sceneID.value == p.scene1ID.value);
-
-    const std::string body = readFileAt(p.projectDir.str(), after.value()[0].contentPath);
-    const auto one = body.find("SCENE-ONE-BODY");
-    const auto two = body.find("SCENE-TWO-BODY");
-    CHECK(one != std::string::npos);
-    CHECK(two != std::string::npos);
-    CHECK(one < two);   // survivor body first, merged body appended after
-
-    // The survivor path reported in the result matches where the body actually lives.
-    CHECK(r.value().survivorContentPath == after.value()[0].contentPath);
-}
-
-TEST_CASE("mergeScene - merging an empty scene preserves the survivor body (no stray blanks)",
-          "[integration][T-0299]")
-{
-    // scene 1 has a body; scene 2 is created but never given content (empty/absent `.md`).
-    // The join must elide the separator so the survivor gains no trailing blank lines, and
-    // the absent-content branch must not error.
-    TempDir projectDir;
-    TempDir appSupportDir;
-
-    scrivi::platform::LocalFileSystem        lfs;
-    scrivi::mocks::DeterministicUUIDProvider uuids;
-    scrivi::mocks::FixedClock                clock{"2026-07-20T00:00:00Z"};
-    scrivi::mocks::MockSecureStore           store;
-    scrivi::mocks::MockGitProvider           git;
-    auto services = makeServices(lfs, uuids, clock, store, git);
-    scrivi::ScriviCore core{services};
-
-    scrivi::CreateProjectRequest req;
-    req.projectRootPath = projectDir.str();
-    req.appSupportRoot  = appSupportDir.str();
-    req.title           = "Merge Test Novel";
-    req.slug            = "merge-test";
-    req.author          = testAuthor();
-    auto created = core.createProject(req);
-    REQUIRE(created.ok());
-    const auto projectID = created.value().project.projectID;
-    const auto ch1ID     = created.value().firstChapterID;
-    const auto scene1ID  = created.value().firstSceneID;
-
-    {
-        scrivi::SaveSceneRequest save;
-        save.projectID         = projectID;
-        save.projectRootPath   = projectDir.str();
-        save.appSupportRoot    = appSupportDir.str();
-        save.sceneID           = scene1ID;
-        save.sceneMetadataPath = created.value().firstSceneMetadataPath;
-        save.sceneContentPath  = created.value().firstSceneContentPath;
-        save.markdown          = "ONLY-BODY";
-        save.author            = testAuthor();
-        REQUIRE(core.saveScene(save).ok());
-    }
-
-    // Second scene, no saveScene → its content is empty/default.
-    scrivi::CreateSceneRequest s2Req;
-    s2Req.projectRootPath = projectDir.str();
-    s2Req.appSupportRoot  = appSupportDir.str();
-    s2Req.projectID       = projectID;
-    s2Req.chapterID       = ch1ID;
-    s2Req.afterSceneID    = scene1ID;
-    s2Req.author          = testAuthor();
-    auto s2 = core.createScene(s2Req);
-    REQUIRE(s2.ok());
-
-    scrivi::MergeSceneRequest mReq;
-    mReq.projectRootPath = projectDir.str();
-    mReq.sceneID         = s2.value().sceneID;
-    auto r = core.mergeScene(mReq);
-    REQUIRE(r.ok());
-    CHECK(r.value().merged);
-
-    scrivi::manuscript::ManuscriptOrderResolver resolver{services};
-    auto after = resolver.resolve(projectDir.str());
-    REQUIRE(after.ok());
-    REQUIRE(after.value().size() == 1);
-
-    const std::string body = readFileAt(projectDir.str(), after.value()[0].contentPath);
-    CHECK(body.find("ONLY-BODY") != std::string::npos);
-    // Empty merged body elided: the survivor body is unchanged (no appended blank lines).
-    CHECK(body == "ONLY-BODY");
-}
-
-TEST_CASE("mergeScene - fails when the scene is first in its chapter (no predecessor)",
-          "[integration][T-0299]")
-{
-    TwoSceneOneChapterProject p;
-
-    scrivi::MergeSceneRequest req;
-    req.projectRootPath = p.projectDir.str();
-    req.sceneID         = p.scene1ID;   // first scene — nothing before it in the chapter
-
-    auto r = p.core.mergeScene(req);
-    CHECK_FALSE(r.ok());
-    CHECK(r.error().code == scrivi::ErrorCode::invalidArgument);
-}
-
-TEST_CASE("mergeScene - fails for empty sceneID", "[integration][T-0299]")
-{
-    TwoSceneOneChapterProject p;
-
-    scrivi::MergeSceneRequest req;
-    req.projectRootPath = p.projectDir.str();
-    req.sceneID         = scrivi::SceneID{""};
-
-    auto r = p.core.mergeScene(req);
-    CHECK_FALSE(r.ok());
-    CHECK(r.error().code == scrivi::ErrorCode::invalidArgument);
-}
-
-TEST_CASE("mergeScene - fails for unknown sceneID", "[integration][T-0299]")
-{
-    TwoSceneOneChapterProject p;
-
-    scrivi::MergeSceneRequest req;
-    req.projectRootPath = p.projectDir.str();
-    req.sceneID         = scrivi::SceneID{"scene-does-not-exist"};
-
-    auto r = p.core.mergeScene(req);
-    CHECK_FALSE(r.ok());
-    CHECK(r.error().code == scrivi::ErrorCode::invalidArgument);
-}
-
-// ---------------------------------------------------------------------------
-// T-0300 — scrivi_merge_chapter endpoint (whole-chapter relocation; fixes I-0083)
-// ---------------------------------------------------------------------------
-
-// Append a scene with `body` to `chapterID` (after the chapter's current last scene) and
-// return its sceneID.
-static scrivi::SceneID addSceneWithBody(
-    scrivi::ScriviCore& core,
-    const std::string& projectDir, const std::string& appSupportDir,
-    const scrivi::ProjectID& projectID, const scrivi::ChapterID& chapterID,
-    const std::string& body)
-{
-    scrivi::CreateSceneRequest sReq;
-    sReq.projectRootPath = projectDir;
-    sReq.appSupportRoot  = appSupportDir;
-    sReq.projectID       = projectID;
-    sReq.chapterID       = chapterID;
-    sReq.author          = testAuthor();   // afterSceneID empty = append to end of chapter
-    auto s = core.createScene(sReq);
-    REQUIRE(s.ok());
-
-    scrivi::SaveSceneRequest save;
-    save.projectID         = projectID;
-    save.projectRootPath   = projectDir;
-    save.appSupportRoot    = appSupportDir;
-    save.sceneID           = s.value().sceneID;
-    save.sceneMetadataPath = s.value().metadataPath;
-    save.sceneContentPath  = s.value().contentPath;
-    save.markdown          = body;
-    save.author            = testAuthor();
-    REQUIRE(core.saveScene(save).ok());
-    return s.value().sceneID;
-}
-
-TEST_CASE("mergeChapter - relocates all scenes into predecessor; nothing lost (I-0083 fixed)",
-          "[integration][T-0300][I-0083]")
-{
-    TempDir projectDir;
-    TempDir appSupportDir;
-
-    scrivi::platform::LocalFileSystem        lfs;
-    scrivi::mocks::DeterministicUUIDProvider uuids;
-    scrivi::mocks::FixedClock                clock{"2026-07-20T00:00:00Z"};
-    scrivi::mocks::MockSecureStore           store;
-    scrivi::mocks::MockGitProvider           git;
-    auto services = makeServices(lfs, uuids, clock, store, git);
-    scrivi::ScriviCore core{services};
-
-    scrivi::CreateProjectRequest req;
-    req.projectRootPath = projectDir.str();
-    req.appSupportRoot  = appSupportDir.str();
-    req.title           = "Merge Test Novel";
-    req.slug            = "merge-test";
-    req.author          = testAuthor();
-    auto created = core.createProject(req);
-    REQUIRE(created.ok());
-    const auto projectID = created.value().project.projectID;
-    const auto ch1ID     = created.value().firstChapterID;
-    const auto ch1s1ID   = created.value().firstSceneID;
-
-    // Chapter 1: scene 1 (existing) gets a body, plus a second scene.
-    {
-        scrivi::SaveSceneRequest save;
-        save.projectID         = projectID;
-        save.projectRootPath   = projectDir.str();
-        save.appSupportRoot    = appSupportDir.str();
-        save.sceneID           = ch1s1ID;
-        save.sceneMetadataPath = created.value().firstSceneMetadataPath;
-        save.sceneContentPath  = created.value().firstSceneContentPath;
-        save.markdown          = "CH1-SCENE-1";
-        save.author            = testAuthor();
-        REQUIRE(core.saveScene(save).ok());
-    }
-    const auto ch1s2ID = addSceneWithBody(
-        core, projectDir.str(), appSupportDir.str(), projectID, ch1ID, "CH1-SCENE-2");
-
-    // Chapter 2 with two scenes of its own.
-    scrivi::CreateChapterRequest chReq;
-    chReq.projectRootPath = projectDir.str();
-    chReq.appSupportRoot  = appSupportDir.str();
-    chReq.projectID       = projectID;
-    chReq.author          = testAuthor();
-    auto ch2 = core.createChapter(chReq);
-    REQUIRE(ch2.ok());
-    const auto ch2ID       = ch2.value().chapterID;
-    const auto ch2s1ID     = ch2.value().firstSceneID;
-    const auto ch2MetaPath = ch2.value().chapterMetadataPath;
-    {
-        scrivi::SaveSceneRequest save;
-        save.projectID         = projectID;
-        save.projectRootPath   = projectDir.str();
-        save.appSupportRoot    = appSupportDir.str();
-        save.sceneID           = ch2s1ID;
-        save.sceneMetadataPath = ch2.value().firstSceneMetadataPath;
-        save.sceneContentPath  = ch2.value().firstSceneContentPath;
-        save.markdown          = "CH2-SCENE-1";
-        save.author            = testAuthor();
-        REQUIRE(core.saveScene(save).ok());
-    }
-    const auto ch2s2ID = addSceneWithBody(
-        core, projectDir.str(), appSupportDir.str(), projectID, ch2ID, "CH2-SCENE-2");
-
-    scrivi::manuscript::ManuscriptOrderResolver resolver{services};
-    auto before = resolver.resolve(projectDir.str());
-    REQUIRE(before.ok());
-    REQUIRE(before.value().size() == 4);   // 2 + 2
-
-    // Merge chapter 2 into chapter 1.
-    scrivi::MergeChapterRequest mReq;
-    mReq.projectRootPath = projectDir.str();
-    mReq.chapterID       = ch2ID;
-    auto r = core.mergeChapter(mReq);
-    REQUIRE(r.ok());
-    CHECK(r.value().merged);
-    CHECK(r.value().survivorChapterID.value == ch1ID.value);
-    CHECK(r.value().mergedChapterID.value   == ch2ID.value);
-    CHECK(r.value().scenesRelocated         == 2);
-
-    // Chapter 2's folder is gone.
-    CHECK_FALSE(projectDir.exists(ch2MetaPath));
-
-    // Reopen: ALL FOUR scenes survive, now all in chapter 1, in manuscript order, each with
-    // its body intact on disk. This is the I-0083 fix — no scene deleted.
-    auto after = resolver.resolve(projectDir.str());
-    REQUIRE(after.ok());
-    REQUIRE(after.value().size() == 4);
-    for (const auto& s : after.value()) {
-        CHECK(s.chapterID.value == ch1ID.value);
-    }
-
-    std::vector<std::string> ids;
-    std::vector<std::string> bodies;
-    for (const auto& s : after.value()) {
-        ids.push_back(s.sceneID.value);
-        bodies.push_back(readFileAt(projectDir.str(), s.contentPath));
-    }
-    // Order: ch1's own scenes first (unchanged keys), then ch2's scenes appended in order.
-    CHECK(ids[0] == ch1s1ID.value);
-    CHECK(ids[1] == ch1s2ID.value);
-    CHECK(ids[2] == ch2s1ID.value);
-    CHECK(ids[3] == ch2s2ID.value);
-    CHECK(bodies[0].find("CH1-SCENE-1") != std::string::npos);
-    CHECK(bodies[1].find("CH1-SCENE-2") != std::string::npos);
-    CHECK(bodies[2].find("CH2-SCENE-1") != std::string::npos);
-    CHECK(bodies[3].find("CH2-SCENE-2") != std::string::npos);
-}
-
-TEST_CASE("mergeChapter - fails when the chapter is first in the manuscript (no predecessor)",
-          "[integration][T-0300]")
-{
-    TwoChapterProject p;   // ch1 (first) + ch2
-
-    scrivi::MergeChapterRequest req;
-    req.projectRootPath = p.projectDir.str();
-    req.chapterID       = p.ch1ID;   // first chapter — nothing before it
-
-    auto r = p.core.mergeChapter(req);
-    CHECK_FALSE(r.ok());
-    CHECK(r.error().code == scrivi::ErrorCode::invalidArgument);
-}
-
-TEST_CASE("mergeChapter - fails for empty chapterID", "[integration][T-0300]")
-{
-    TwoChapterProject p;
-
-    scrivi::MergeChapterRequest req;
-    req.projectRootPath = p.projectDir.str();
-    req.chapterID       = scrivi::ChapterID{""};
-
-    auto r = p.core.mergeChapter(req);
-    CHECK_FALSE(r.ok());
-    CHECK(r.error().code == scrivi::ErrorCode::invalidArgument);
-}
-
-TEST_CASE("mergeChapter - fails for unknown chapterID", "[integration][T-0300]")
-{
-    TwoChapterProject p;
-
-    scrivi::MergeChapterRequest req;
-    req.projectRootPath = p.projectDir.str();
-    req.chapterID       = scrivi::ChapterID{"chapter-does-not-exist"};
-
-    auto r = p.core.mergeChapter(req);
-    CHECK_FALSE(r.ok());
-    CHECK(r.error().code == scrivi::ErrorCode::invalidArgument);
 }

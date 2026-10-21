@@ -537,28 +537,9 @@ const char* scrivi_rename_chapter(
     const char* metadataPath,
     const char* newTitle);
 
-/* ---- Merge (EP-028 SP-074) --------------------------------------------- */
-
-/* Join a scene into the scene immediately BEFORE it in the same chapter. The predecessor
- * (the survivor) keeps its own order-key files and gains the merged scene's body appended;
- * the merged scene's files are removed. Fails if `sceneID` is first in its chapter (no
- * predecessor — that is the whole-chapter merge, scrivi_merge_chapter). Result JSON carries
- * survivorSceneID, mergedSceneID, chapterID, survivorMetadataPath, survivorContentPath,
- * chapterMetadataPath, merged. */
-const char* scrivi_merge_scene(
-    const char* projectRootPath,
-    const char* sceneID);
-
-/* Merge a whole chapter into the chapter immediately BEFORE it in manuscript order. Every
- * scene file in `chapterID` is RELOCATED into the predecessor chapter's folder (appended
- * after its last scene, order-key files renamed, sidecar slug/contentPath rewritten), then
- * the emptied chapter folder + its manuscript.meta.json entry are removed. Atomic fix for
- * I-0083 (no scene is deleted). Fails if `chapterID` is first in the manuscript (no
- * predecessor). Result JSON carries survivorChapterID, mergedChapterID,
- * survivorChapterMetadataPath, scenesRelocated, merged. */
-const char* scrivi_merge_chapter(
-    const char* projectRootPath,
-    const char* chapterID);
+/* ---- Merge — ⛔ RETIRED [SP-191] (Q3e) ----------------------------------- */
+/* scrivi_merge_scene and scrivi_merge_chapter are gone: a scene merge is scrivi_range_cut of the zero-length range across
+ * the break, a chapter merge scrivi_range_relabel (below, with the range operations). */
 
 /* ---- Timeline (EP-016 SP-039) ------------------------------------------ */
 
@@ -1030,7 +1011,10 @@ const char* scrivi_fragment_uncut_paste(const char* projectRootPath,
  *     removedChapterIDs: [...] }
  * ⚠️ An empty list is an ABSENT key. `afterSceneID` is the scene before it in reading order now ("" = the first).
  * While the project's history is open, every scene text written is recorded as Scrivi's own [I-0296].
- * Standard envelope conventions (heap JSON, free with scrivi_free). Neither app calls these yet (EP-053 S2).
+ * Standard envelope conventions (heap JSON, free with scrivi_free).
+ * ✅ [SP-191] Q3b: a Range entry may carry `sceneMeta` / `chapterMeta` — the removed scene's / chapter's sidecar, serialized
+ * as a STRING. A cut and a relabel that empties a chapter fill them; a paste that keeps an entry's ID (the manuscript no
+ * longer has it) writes them back, so an undo restores the sidecar exactly. An empty `sceneID` / `chapterID` mints one.
  */
 
 /* Reads the Range from (startSceneID, startByte) to (endSceneID, endByte), walking the manuscript's order — reads only
@@ -1044,7 +1028,9 @@ const char* scrivi_range_read(const char* projectRootPath,
  * entry's text; each later entry creates a scene, or a chapter and its first scene where the chapter changes; the tail
  * goes onto the last created scene. When the Range opens a chapter, the caret chapter's scenes after the caret move into
  * the last created chapter [I-0311]. A scene or chapter is re-created under the Range's own ID when the manuscript does
- * not have it (it was cut), else under a fresh one (it was copied). `caretSceneText` is the caret scene's text as the
+ * not have it (it was cut), else under a fresh one (it was copied). ✅ [SP-191] Q7: at a scene's very start (offset 0,
+ * more than one entry) the new scenes go BEFORE the caret scene, which keeps its identity and takes the LAST entry's text
+ * in front of its own. `caretSceneText` is the caret scene's text as the
  * editor holds it: ⛔ refused (invalidArgument) when it is not what is on disk. result: { delta, range } — `range` is what
  * the paste INSERTED, under the real IDs (its undo is scrivi_range_cut of exactly that). */
 const char* scrivi_range_paste(const char* projectRootPath,
@@ -1060,13 +1046,32 @@ const char* scrivi_range_paste(const char* projectRootPath,
  * text after it in the end scene; every other scene in it is deleted; every chapter left empty is deleted; the end
  * chapter's scenes after it join the start scene's chapter. Relationship edges are NOT pruned (a paste of the same Range
  * brings the IDs back). ⛔ Refused (invalidArgument) when the Range is not what the manuscript holds — its scenes
- * consecutive, in the chapters it names, its first and last texts as on disk. result: { delta, range } — `range` is the
- * Range removed (the clipboard's content; its undo is scrivi_range_paste of it at the cut's start). */
+ * consecutive, in the chapters it names, its first and last texts as on disk. ✅ [SP-191] Q7: when the Range begins at
+ * the start scene's very first character the END scene survives instead (with its tail): the scene whose text survives
+ * keeps its identity. result: { delta, range, undoCaretSceneID, undoCaretByte } — `range` is the Range removed (the
+ * clipboard's content); its undo is scrivi_range_paste of it at (undoCaretSceneID, undoCaretByte). */
 const char* scrivi_range_cut(const char* projectRootPath,
                              const char* rangeJson,
                              const char* identityID,
                              const char* personaID,
                              const char* displayName);
+
+/* Relabels a run of whole scenes into another chapter ([SP-191] Q3e — a chapter merge, and its undo). `rangeJson` names the
+ * run: one chapter's consecutive scenes (their text is not read; entries may carry empty text). `targetChapterID` is:
+ *   • the chapter BEFORE the run's — the run must open its chapter; it is appended there (a chapter merge);
+ *   • the chapter AFTER it — the run must close its chapter; it goes before that chapter's first scene;
+ *   • a chapter the manuscript does not have ("" = a fresh ID) — the run must close its chapter; the chapter is created
+ *     right after it, from the first entry's `chapterMeta` when it has one (an undo), else new.
+ * The reading order never changes. On disk the scene files MOVE to the target chapter's folder (their sidecars' slug and
+ * contentPath rewritten only when their names would collide there); no text is rewritten. A chapter left empty is deleted
+ * after its scenes are out, and its sidecar travels as the result range's first entry's `chapterMeta`.
+ * result: { delta, range, fromChapterID } — the inverse is scrivi_range_relabel(range, fromChapterID). */
+const char* scrivi_range_relabel(const char* projectRootPath,
+                                 const char* rangeJson,
+                                 const char* targetChapterID,
+                                 const char* identityID,
+                                 const char* personaID,
+                                 const char* displayName);
 
 /* ---- Copy buffers (EP-019 SP-056 — T-0213) ------------------------------ */
 
@@ -1084,23 +1089,25 @@ const char* scrivi_range_cut(const char* projectRootPath,
  */
 
 /* Loads `textUtf8` into slot `bufferID` (create-or-replace), stamping updatedAt.
- * `fragmentJson` is an OPTIONAL serialized scrivi.fragment.v1 object ("" / NULL =
- * plain-text slot, the SP-056 behaviour); when present the slot holds a structured
- * fragment for cross-boundary paste (T-0355 / AC4). A load always replaces both text
- * and fragment. result: {bufferID, updatedAt} */
+ * `rangeJson` is an OPTIONAL serialized scrivi.range.v1 object ("" / NULL = plain-text
+ * slot, the SP-056 behaviour); when present the slot holds a structured Range for
+ * cross-boundary paste. ⛔ Anything else (the old scrivi.fragment.v1 included) is refused
+ * (invalidArgument). A load always replaces both text and range. result: {bufferID, updatedAt}
+ * ✅ [SP-191] Q4a: a slot written before the buffers held Ranges (it holds a `fragment`)
+ * reads as EMPTY, and the next write drops it. */
 const char* scrivi_buffers_load(const char* projectRootPath,
                                 const char* bufferID,
                                 const char* textUtf8,
-                                const char* fragmentJson);
+                                const char* rangeJson);
 
-/* Reads one slot. result: {bufferID, text, updatedAt, present[, fragment]} —
- * `present` is false and text/updatedAt are empty when the slot is unset; `fragment`
- * (a nested scrivi.fragment.v1 object) appears only for structured slots. */
+/* Reads one slot. result: {bufferID, text, updatedAt, present[, range]} —
+ * `present` is false and text/updatedAt are empty when the slot is unset; `range`
+ * (a nested scrivi.range.v1 object) appears only for structured slots. */
 const char* scrivi_buffers_get(const char* projectRootPath,
                                const char* bufferID);
 
 /* Lists all non-empty slots (ascending by bufferID).
- * result: {count, buffers:[{bufferID, text, updatedAt[, fragment]}, ...]} */
+ * result: {count, buffers:[{bufferID, text, updatedAt[, range]}, ...]} */
 const char* scrivi_buffers_list(const char* projectRootPath);
 
 /* Clears one slot (removes its entry). result: {bufferID, cleared} — `cleared`

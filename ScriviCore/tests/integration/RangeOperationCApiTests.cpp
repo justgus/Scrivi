@@ -10,6 +10,7 @@
 
 #include "manuscript/ProjectIndex.hpp"
 #include "platform/LocalFileSystem.hpp"
+#include "schemas/ChapterMetaJson.hpp"
 #include "schemas/SceneMetaJson.hpp"
 #include "scrivi/Services.hpp"
 #include "scrivi/scrivi.h"
@@ -153,6 +154,29 @@ struct Project {
         }
         return out;
     }
+    scrivi::manuscript::SceneLocation locationOf(const std::string& sceneID) const {
+        scrivi::platform::LocalFileSystem lfs;
+        scrivi::CoreServices services;
+        services.fileSystem = &lfs;
+        auto index = scrivi::manuscript::ProjectIndex::build(root.string(), services);
+        REQUIRE(index.ok());
+        const auto loc = index.value().findScene(scrivi::SceneID{sceneID});
+        REQUIRE(loc);
+        return *loc;
+    }
+    scrivi::schemas::SceneMetaData sidecar(const std::string& sceneID) const {
+        auto meta = scrivi::schemas::parseSceneMeta(readFile(root / locationOf(sceneID).metadataPath));
+        REQUIRE(meta.ok());
+        return meta.value();
+    }
+    void writeSidecar(const std::string& sceneID, const scrivi::schemas::SceneMetaData& meta) const {
+        std::ofstream(root / locationOf(sceneID).metadataPath, std::ios::binary) << scrivi::schemas::serializeSceneMeta(meta);
+    }
+    scrivi::schemas::ChapterMetaData chapterSidecar(const std::string& sceneID) const {
+        auto meta = scrivi::schemas::parseChapterMeta(readFile(root / locationOf(sceneID).chapterMetadataPath));
+        REQUIRE(meta.ok());
+        return meta.value();
+    }
     fs::path contentOf(const std::string& sceneID) const {
         scrivi::platform::LocalFileSystem lfs;
         scrivi::CoreServices services;
@@ -195,6 +219,47 @@ struct Project {
     JsonDoc cut(const JsonDoc& range) const {
         const std::string json = range.dump(-1);
         return ok(scrivi_range_cut(r(), json.c_str(), kIdentity, kPersona, kName));
+    }
+    JsonDoc relabel(const JsonDoc& range, const std::string& target) const {
+        const std::string json = range.dump(-1);
+        return ok(scrivi_range_relabel(r(), json.c_str(), target.c_str(), kIdentity, kPersona, kName));
+    }
+    // A chapter's scenes, whole and without their text — what an editor sends for a chapter merge.
+    JsonDoc chapterRun(int c) const {
+        JsonDoc run;
+        run.setString("schema", "scrivi.range.v1");
+        for (const auto& id : sceneIDs.at(std::size_t(c - 1))) {
+            const auto loc = locationOf(id);
+            JsonDoc e;
+            e.setString("sceneID", id);
+            e.setString("chapterID", loc.chapterID.value);
+            e.setString("chapterTitle", loc.chapterTitle);
+            e.setString("sceneTitle", loc.title);
+            e.setInt64("start", 0);
+            e.setInt64("length", 0);
+            e.setInt64("sceneLength", 0);
+            e.setString("text", "");
+            run.appendToArray("scenes", std::move(e));
+        }
+        return run;
+    }
+    // An empty two-entry Range — a split (Q1). `newChapter` gives the second entry a different (empty) chapter ID.
+    static JsonDoc breakRange(const std::string& caretChapterID, bool newChapter) {
+        JsonDoc range;
+        range.setString("schema", "scrivi.range.v1");
+        for (int i = 0; i < 2; ++i) {
+            JsonDoc e;
+            e.setString("sceneID", "");
+            e.setString("chapterID", i == 1 && newChapter ? "" : caretChapterID);
+            e.setString("chapterTitle", "");
+            e.setString("sceneTitle", "");
+            e.setInt64("start", 0);
+            e.setInt64("length", 0);
+            e.setInt64("sceneLength", 0);
+            e.setString("text", "");
+            range.appendToArray("scenes", std::move(e));
+        }
+        return range;
     }
 };
 
@@ -414,4 +479,421 @@ TEST_CASE("[EP-053] the patched index answers as a fresh one would", "[ep053][ra
     p.cut(p.read(p.id(1, 3), 1, p.id(3, 2), 1));                      // across chapters: removes, promotes (Q2)
     const auto rows = p.rows();
     sameAsDisk(rows.front().sceneID, rows.back().sceneID);
+}
+
+// ── [SP-191] ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+namespace {
+
+// What Q3b says an undo must bring back — everything but where the files live (slug, contentPath) and the counts.
+// ⚠️ `restored` — a scene removed and brought back keeps even its modification stamp; a scene that SURVIVED an operation
+// that rewrote its text is stamped as modified, as every save stamps it.
+void sameSidecar(const scrivi::schemas::SceneMetaData& a, const scrivi::schemas::SceneMetaData& b, bool restored = true) {
+    CHECK(a.sceneID.value == b.sceneID.value);
+    CHECK(a.title == b.title);
+    CHECK(a.status == b.status);
+    CHECK(a.createdAt == b.createdAt);
+    if (restored) { CHECK(a.modifiedAt == b.modifiedAt); }
+    CHECK(a.storyTime.offsetMs == b.storyTime.offsetMs);
+    CHECK(a.storyTime.durationMs == b.storyTime.durationMs);
+    CHECK(a.storyTime.bandID == b.storyTime.bandID);
+    CHECK(a.tags == b.tags);
+    CHECK(a.outline == b.outline);
+    REQUIRE(a.todo.size() == b.todo.size());
+    for (std::size_t i = 0; i < a.todo.size(); ++i) { CHECK(a.todo[i].text == b.todo[i].text); }
+}
+
+// Gives a scene a sidecar worth restoring: status, story time, band, tags, outline, a to-do.
+void decorate(const Project& p, const std::string& sceneID, int n) {
+    auto meta = p.sidecar(sceneID);
+    meta.status               = "revised";
+    meta.storyTime.offsetMs   = 1000 * n;
+    meta.storyTime.durationMs = 60 * n;
+    meta.storyTime.bandID     = "band-" + std::to_string(n);
+    meta.tags                 = {"tag-" + std::to_string(n), "shared"};
+    meta.outline              = "Outline " + std::to_string(n);
+    meta.todo.push_back({});
+    meta.todo.back().text     = "To do " + std::to_string(n);
+    meta.modifiedAt           = "2026-07-0" + std::to_string(n) + "T00:00:00Z";
+    p.writeSidecar(sceneID, meta);
+}
+
+// Gives a scene's chapter a sidecar a re-created chapter would not have (its own creation stamp and status).
+void decorateChapter(const Project& p, const std::string& sceneID) {
+    const fs::path path = p.root / p.locationOf(sceneID).chapterMetadataPath;
+    auto meta = scrivi::schemas::parseChapterMeta(readFile(path));
+    REQUIRE(meta.ok());
+    meta.value().status    = "revised";
+    meta.value().createdAt = "2026-05-01T00:00:00Z";
+    std::ofstream(path, std::ios::binary) << scrivi::schemas::serializeChapterMeta(meta.value());
+}
+
+void sameChapterSidecar(const scrivi::schemas::ChapterMetaData& a, const scrivi::schemas::ChapterMetaData& b) {
+    CHECK(a.chapterID.value == b.chapterID.value);
+    CHECK(a.title == b.title);
+    CHECK(a.status == b.status);
+    CHECK(a.createdAt == b.createdAt);
+}
+
+// The scenes whose story time is set, as the timeline asks for them — served by the index a write PATCHED.
+std::vector<std::string> storyTimed(const Project& p) {
+    const JsonDoc r = ok(scrivi_list_story_times(p.r()));
+    std::vector<std::string> out;
+    for (std::size_t i = 0; i < r.arraySize("storyTimes"); ++i) {
+        out.push_back(r.arrayItem("storyTimes", i).getString("sceneID") + "|" +
+                      r.arrayItem("storyTimes", i).getString("bandID"));
+    }
+    return out;
+}
+
+}  // namespace
+
+TEST_CASE("[SP-191] Q3b: a cut's undo brings back each removed scene's sidecar exactly", "[sp191][range][capi]") {
+    Project p(3, 4);
+    decorate(p, p.id(1, 3), 3);
+    decorate(p, p.id(2, 1), 5);   // opens chapter 2, which the cut removes
+    decorateChapter(p, p.id(2, 1));
+    // The sidecars were written behind the core's back: drop the index it holds, as a reopen would.
+    scrivi_free(scrivi_close_project(p.r()));
+    ok(scrivi_open_project(p.r(), p.appSupport.c_str(), kIdentity));
+    const auto timed = storyTimed(p);
+    REQUIRE(timed.size() == 2);
+    const auto s13 = p.sidecar(p.id(1, 3));
+    const auto s21 = p.sidecar(p.id(2, 1));
+    const auto c2  = p.chapterSidecar(p.id(2, 1));
+    const auto before = p.rows();
+
+    const JsonDoc cut = p.cut(p.read(p.id(1, 2), 4, p.id(2, 2), 3));
+    const JsonDoc removed = cut.getSubDoc("range");
+    CHECK(removed.arrayItem("scenes", 0).getString("sceneMeta").empty());   // the start scene survives the cut
+    CHECK(!removed.arrayItem("scenes", 1).getString("sceneMeta").empty());
+    CHECK(removed.arrayItem("scenes", 2).getString("chapterMeta").empty());    // scene 1.4 opens nothing
+    CHECK(!removed.arrayItem("scenes", 3).getString("chapterMeta").empty());   // scene 2.1 opens chapter 2
+
+    CHECK(storyTimed(p).empty());
+
+    p.paste(removed, p.id(1, 2), 4);
+    CHECK(p.rows() == before);
+    sameSidecar(p.sidecar(p.id(1, 3)), s13);
+    sameSidecar(p.sidecar(p.id(2, 1)), s21);
+    sameChapterSidecar(p.chapterSidecar(p.id(2, 1)), c2);
+    CHECK(storyTimed(p) == timed);   // ✅ the timeline sees the restored story times at once
+    CHECK(p.clean());
+}
+
+TEST_CASE("[SP-191] Q3b: a paste of a COPY starts fresh sidecars, whatever the Range carries", "[sp191][range][capi]") {
+    Project p(2, 3);
+    decorate(p, p.id(1, 2), 2);
+    // The Range a cut would return — sidecars and all — pasted while its scenes are still in the manuscript.
+    const JsonDoc copied = p.read(p.id(1, 1), 3, p.id(1, 2), 4);
+    JsonDoc carrying;
+    carrying.setString("schema", "scrivi.range.v1");
+    carrying.appendToArray("scenes", copied.arrayItem("scenes", 0));
+    JsonDoc second = copied.arrayItem("scenes", 1);
+    second.setString("sceneMeta", scrivi::schemas::serializeSceneMeta(p.sidecar(p.id(1, 2))));
+    carrying.appendToArray("scenes", std::move(second));
+    const JsonDoc r = p.paste(carrying, p.id(2, 2), 2);
+    const JsonDoc delta = r.getSubDoc("delta");
+    const std::string created = delta.arrayItem("scenes", 1).getString("sceneID");
+    CHECK(created != p.id(1, 2));
+    const auto fresh = p.sidecar(created);
+    CHECK(fresh.tags.empty());
+    CHECK(fresh.outline.empty());
+    CHECK(fresh.status == "draft");
+    CHECK(p.clean());
+}
+
+TEST_CASE("[SP-191] Q3e: a scene merge is a cut of the zero-length break — joined directly, and undone exactly",
+          "[sp191][range][capi]") {
+    Project p(2, 3);
+    decorate(p, p.id(1, 3), 4);
+    const auto s13 = p.sidecar(p.id(1, 3));
+    const auto before = p.rows();
+    const long long end = static_cast<long long>(Project::body(1, 2).size());
+
+    const JsonDoc merged = p.cut(p.read(p.id(1, 2), end, p.id(1, 3), 0));
+    const auto after = p.rows();
+    REQUIRE(after.size() == before.size() - 1);
+    CHECK(after[1].sceneID == p.id(1, 2));
+    CHECK(after[1].text == Project::body(1, 2) + Project::body(1, 3));   // ✅ Q3a: no blank line
+    CHECK(merged.getSubDoc("delta").getStringArray("removedSceneIDs") == std::vector<std::string>{p.id(1, 3)});
+    CHECK(p.clean());
+
+    p.paste(merged.getSubDoc("range"), p.id(1, 2), end);   // the undo: a paste of the break
+    CHECK(p.rows() == before);
+    sameSidecar(p.sidecar(p.id(1, 3)), s13);
+    CHECK(p.clean());
+}
+
+TEST_CASE("[SP-191] Q3e: the zero-length cut at a CHAPTER break joins the scenes, as every cut does", "[sp191][range][capi]") {
+    Project p(3, 2);
+    const auto before = p.rows();
+    const long long end = static_cast<long long>(Project::body(1, 2).size());
+    const JsonDoc merged = p.cut(p.read(p.id(1, 2), end, p.id(2, 1), 0));
+    const auto after = p.rows();
+    CHECK(p.chapterCount() == 2);
+    CHECK(after[1].text == Project::body(1, 2) + Project::body(2, 1));
+    CHECK(after[2].sceneID == p.id(2, 2));
+    CHECK(after[2].chapterID == before[0].chapterID);   // chapter 2's rest joins chapter 1 (Q2)
+    CHECK(p.clean());
+    p.paste(merged.getSubDoc("range"), p.id(1, 2), end);
+    CHECK(p.rows() == before);
+    CHECK(p.clean());
+}
+
+TEST_CASE("[SP-191] Q1: a split is a paste of an empty two-entry Range; its undo is the cut of what it inserted",
+          "[sp191][range][capi]") {
+    Project p(2, 3);
+    const auto before = p.rows();
+    const JsonDoc split = p.paste(Project::breakRange(before[1].chapterID, false), p.id(1, 2), 3);
+    const auto after = p.rows();
+    REQUIRE(after.size() == before.size() + 1);
+    CHECK(after[1].text == Project::body(1, 2).substr(0, 3));
+    CHECK(after[2].text == Project::body(1, 2).substr(3));
+    CHECK(after[2].chapterID == before[1].chapterID);
+    CHECK(after[3].sceneID == p.id(1, 3));
+    CHECK(p.clean());
+    p.cut(split.getSubDoc("range"));
+    CHECK(p.rows() == before);
+    CHECK(p.clean());
+}
+
+TEST_CASE("[SP-191] Q1 + [I-0314]: a chapter split puts the new chapter IN PLACE on disk, the following scenes in it",
+          "[sp191][range][capi]") {
+    Project p(3, 4);
+    const auto before = p.rows();
+    const JsonDoc split = p.paste(Project::breakRange(before[4].chapterID, true), p.id(2, 2), 4);
+    const auto after = p.rows();   // ✅ from a FRESH index: the disk's order, not the editor's
+    REQUIRE(after.size() == before.size() + 1);
+    CHECK(flat(after) == flat(before));
+    CHECK(p.chapterCount() == 4);
+    CHECK(after[5].sceneID == p.id(2, 2));
+    CHECK(after[5].chapterID == before[4].chapterID);
+    CHECK(after[6].chapterID != before[4].chapterID);   // the tail opens the new chapter
+    CHECK(after[6].text == Project::body(2, 2).substr(4));
+    CHECK(after[7].sceneID == p.id(2, 3));
+    CHECK(after[8].sceneID == p.id(2, 4));
+    CHECK(after[7].chapterID == after[6].chapterID);
+    CHECK(after[9].chapterID == before[8].chapterID);   // chapter 3 stays after it
+    CHECK(p.clean());
+    p.cut(split.getSubDoc("range"));
+    CHECK(p.rows() == before);
+    CHECK(p.clean());
+}
+
+TEST_CASE("[SP-191] Q3e: a chapter merge is a relabel — the files move, no text changes — and its undo restores the chapter",
+          "[sp191][range][capi]") {
+    Project p(3, 3);
+    decorate(p, p.id(2, 2), 6);
+    decorateChapter(p, p.id(2, 1));
+    const auto s22 = p.sidecar(p.id(2, 2));
+    const auto c2  = p.chapterSidecar(p.id(2, 1));
+    const fs::path c2Dir = (p.root / p.locationOf(p.id(2, 1)).chapterMetadataPath).parent_path();
+    const auto before = p.rows();
+
+    const JsonDoc merged = p.relabel(p.chapterRun(2), before[0].chapterID);
+    const auto after = p.rows();
+    CHECK(p.chapterCount() == 2);
+    REQUIRE(after.size() == before.size());
+    for (std::size_t i = 0; i < after.size(); ++i) {
+        CHECK(after[i].sceneID == before[i].sceneID);   // the reading order never changes
+        CHECK(after[i].text == before[i].text);         // nor any text
+    }
+    for (std::size_t i = 3; i < 6; ++i) { CHECK(after[i].chapterID == before[0].chapterID); }
+    CHECK(fs::exists(p.root / p.locationOf(p.id(2, 1)).contentPath));
+    CHECK(!fs::exists(c2Dir));   // the emptied chapter is gone, folder and all
+    sameSidecar(p.sidecar(p.id(2, 2)), s22);   // a moved sidecar keeps everything
+    CHECK(merged.getString("fromChapterID") == before[3].chapterID);
+    const JsonDoc delta = merged.getSubDoc("delta");
+    CHECK(delta.getStringArray("removedChapterIDs") == std::vector<std::string>{before[3].chapterID});
+    CHECK(delta.arraySize("scenes") == 3);
+    CHECK(delta.arrayItem("scenes", 0).getString("change") == "moved");
+    CHECK(delta.arrayItem("scenes", 0).getString("afterSceneID") == p.id(1, 3));
+    deltaMatchesDisk(p, delta);
+    CHECK(p.clean());
+
+    const JsonDoc undone = p.relabel(merged.getSubDoc("range"), merged.getString("fromChapterID"));
+    CHECK(p.rows() == before);
+    sameChapterSidecar(p.chapterSidecar(p.id(2, 1)), c2);
+    sameSidecar(p.sidecar(p.id(2, 2)), s22);
+    CHECK(undone.getSubDoc("delta").arraySize("createdChapters") == 1);
+    CHECK(p.clean());
+
+    p.relabel(undone.getSubDoc("range"), undone.getString("fromChapterID"));   // redo
+    CHECK(p.rows() == after);
+    CHECK(p.clean());
+}
+
+TEST_CASE("[SP-191] a relabel refuses a run that cannot move where it is sent", "[sp191][range][capi]") {
+    Project p(3, 3);
+    const auto before = p.rows();
+    auto refusedRelabel = [&](const JsonDoc& run, const std::string& target) {
+        const std::string json = run.dump(-1);
+        return refused(scrivi_range_relabel(p.r(), json.c_str(), target.c_str(), kIdentity, kPersona, kName));
+    };
+    JsonDoc tail;   // chapter 2's last two scenes: they do not open it
+    tail.setString("schema", "scrivi.range.v1");
+    const JsonDoc whole = p.chapterRun(2);
+    tail.appendToArray("scenes", whole.arrayItem("scenes", 1));
+    tail.appendToArray("scenes", whole.arrayItem("scenes", 2));
+    CHECK(refusedRelabel(tail, before[0].chapterID));         // into the chapter before: must open its chapter
+    CHECK(refusedRelabel(p.chapterRun(1), before[6].chapterID));   // not a neighbour
+    CHECK(refusedRelabel(p.chapterRun(2), before[3].chapterID));   // already there
+    CHECK(p.rows() == before);
+}
+
+
+// ── [SP-191] Q7: at a scene's very start, the scene whose text survives keeps its identity ────────────────────────────────
+
+TEST_CASE("[SP-191] Q7: a split at a scene's start puts the new scene BEFORE it; the scene keeps its text and identity",
+          "[sp191][range][capi]") {
+    Project p(2, 3);
+    decorate(p, p.id(1, 2), 2);
+    const auto s12 = p.sidecar(p.id(1, 2));
+    const auto before = p.rows();
+    const JsonDoc split = p.paste(Project::breakRange(before[1].chapterID, false), p.id(1, 2), 0);
+    const auto after = p.rows();
+    REQUIRE(after.size() == before.size() + 1);
+    CHECK(after[1].text.empty());                       // the new, empty scene
+    CHECK(after[1].sceneID != p.id(1, 2));
+    CHECK(after[2].sceneID == p.id(1, 2));               // ✅ I-0096: the scene keeps its text, title, sidecar
+    CHECK(after[2].text == Project::body(1, 2));
+    sameSidecar(p.sidecar(p.id(1, 2)), s12, false);
+    CHECK(p.clean());
+    const JsonDoc undone = p.cut(split.getSubDoc("range"));   // begins at the new scene's start: the END scene survives
+    CHECK(p.rows() == before);
+    sameSidecar(p.sidecar(p.id(1, 2)), s12, false);
+    CHECK(undone.getString("undoCaretSceneID") == p.id(1, 2));
+    CHECK(undone.getInt64("undoCaretByte") == 0);
+    CHECK(p.clean());
+}
+
+TEST_CASE("[SP-191] Q7: a paste at a scene's start creates the scenes before it and joins the last part to its start",
+          "[sp191][range][capi]") {
+    Project p(2, 4);
+    const auto before = p.rows();
+    const JsonDoc copied = p.read(p.id(2, 1), 3, p.id(2, 2), 4);   // "S1 body text." | "C2S2"
+    const JsonDoc r = p.paste(copied, p.id(1, 3), 0);
+    const auto after = p.rows();
+    REQUIRE(after.size() == before.size() + 1);
+    CHECK(after[2].text == Project::body(2, 1).substr(3));          // a new scene before the caret scene
+    CHECK(after[2].chapterID == before[2].chapterID);
+    CHECK(after[3].sceneID == p.id(1, 3));                            // the caret scene keeps its identity…
+    CHECK(after[3].text == "C2S2" + Project::body(1, 3));             // …and takes the last part in front of its text
+    std::size_t caretAbs = 0;
+    for (std::size_t i = 0; i < 2; ++i) { caretAbs += before[i].text.size(); }
+    CHECK(flat(after) == flat(before).insert(caretAbs, Project::body(2, 1).substr(3) + "C2S2"));
+    deltaMatchesDisk(p, r.getSubDoc("delta"));
+    CHECK(p.clean());
+    p.cut(r.getSubDoc("range"));
+    CHECK(p.rows() == before);
+    CHECK(p.clean());
+}
+
+TEST_CASE("[SP-191] Q7: a paste at a scene's start that opens a chapter moves the scene and the rest of its chapter",
+          "[sp191][range][capi]") {
+    Project p(3, 4);
+    const auto before = p.rows();
+    const JsonDoc copied = p.read(p.id(1, 4), 5, p.id(2, 1), 4);    // the end of chapter 1, the start of chapter 2
+    const JsonDoc r = p.paste(copied, p.id(3, 2), 0);
+    const auto after = p.rows();
+    REQUIRE(after.size() == before.size() + 1);
+    const std::string chapter3 = before[8].chapterID;
+    CHECK(after[9].chapterID == chapter3);
+    CHECK(after[9].text == Project::body(1, 4).substr(5));           // created before, still in chapter 3
+    CHECK(after[10].sceneID == p.id(3, 2));                           // the caret scene opens the new chapter
+    CHECK(after[10].chapterID != chapter3);
+    CHECK(after[10].text == "C2S1" + Project::body(3, 2));
+    CHECK(after[11].sceneID == p.id(3, 3));
+    CHECK(after[11].chapterID == after[10].chapterID);
+    CHECK(p.chapterCount() == 4);
+    deltaMatchesDisk(p, r.getSubDoc("delta"));
+    CHECK(p.clean());
+    p.cut(r.getSubDoc("range"));
+    CHECK(p.rows() == before);
+    CHECK(p.clean());
+}
+
+TEST_CASE("[SP-191] Q7: a paste at the very start of the manuscript, and of a chapter", "[sp191][range][capi]") {
+    Project p(2, 2);
+    const auto before = p.rows();
+    const JsonDoc copied = p.read(p.id(2, 1), 2, p.id(2, 2), 3);
+    const JsonDoc first = p.paste(copied, p.id(1, 1), 0);
+    auto after = p.rows();
+    {   // ✅ the index the paste PATCHED (it inserted before the first scene) answers as the disk does
+        const JsonDoc served = p.read(after.front().sceneID, 0, after.back().sceneID, 0);
+        REQUIRE(served.arraySize("scenes") == after.size());
+        for (std::size_t i = 0; i < after.size(); ++i) {
+            CHECK(served.arrayItem("scenes", i).getString("sceneID") == after[i].sceneID);
+        }
+    }
+    CHECK(after[0].text == Project::body(2, 1).substr(2));
+    CHECK(after[1].sceneID == p.id(1, 1));
+    CHECK(after[1].text == "C2S" + Project::body(1, 1));
+    CHECK(p.clean());
+    p.cut(first.getSubDoc("range"));
+    CHECK(p.rows() == before);
+
+    const JsonDoc second = p.paste(copied, p.id(2, 1), 0);   // a chapter's first scene: the new scene opens the chapter
+    after = p.rows();
+    CHECK(after[2].chapterID == before[2].chapterID);
+    CHECK(after[2].text == Project::body(2, 1).substr(2));
+    CHECK(after[3].sceneID == p.id(2, 1));
+    CHECK(p.clean());
+    p.cut(second.getSubDoc("range"));
+    CHECK(p.rows() == before);
+    CHECK(p.clean());
+}
+
+TEST_CASE("[SP-191] Q7: a cut from a scene's first character keeps the END scene; its undo pastes before it",
+          "[sp191][range][capi]") {
+    Project p(3, 4);
+    decorate(p, p.id(1, 2), 2);
+    decorate(p, p.id(2, 2), 7);
+    const auto s12 = p.sidecar(p.id(1, 2));
+    const auto s22 = p.sidecar(p.id(2, 2));
+    const auto before = p.rows();
+
+    // Within a chapter.
+    JsonDoc cut = p.cut(p.read(p.id(1, 2), 0, p.id(1, 3), 4));
+    auto after = p.rows();
+    CHECK(after[1].sceneID == p.id(1, 3));                  // the end scene survives, with its tail
+    CHECK(after[1].text == Project::body(1, 3).substr(4));
+    CHECK(cut.getSubDoc("delta").getStringArray("removedSceneIDs") == std::vector<std::string>{p.id(1, 2)});
+    CHECK(p.clean());
+    p.paste(cut.getSubDoc("range"), cut.getString("undoCaretSceneID"), cut.getInt64("undoCaretByte"));
+    CHECK(p.rows() == before);
+    sameSidecar(p.sidecar(p.id(1, 2)), s12);
+
+    // Across chapters: the end scene survives and joins the start scene's chapter, with the rest of its own.
+    cut = p.cut(p.read(p.id(1, 4), 0, p.id(2, 2), 3));
+    after = p.rows();
+    CHECK(after[3].sceneID == p.id(2, 2));
+    CHECK(after[3].chapterID == before[0].chapterID);
+    CHECK(after[3].text == Project::body(2, 2).substr(3));
+    CHECK(after[4].sceneID == p.id(2, 3));
+    CHECK(after[4].chapterID == before[0].chapterID);
+    CHECK(p.chapterCount() == 2);
+    sameSidecar(p.sidecar(p.id(2, 2)), s22, false);           // a survivor keeps its sidecar
+    deltaMatchesDisk(p, cut.getSubDoc("delta"));
+    CHECK(p.clean());
+    p.paste(cut.getSubDoc("range"), cut.getString("undoCaretSceneID"), cut.getInt64("undoCaretByte"));
+    CHECK(p.rows() == before);
+    CHECK(p.clean());
+}
+
+TEST_CASE("[SP-191] Q7: merging an EMPTY scene into the next keeps the next scene's identity", "[sp191][range][capi]") {
+    Project p(1, 3);
+    std::ofstream(p.contentOf(p.id(1, 2)), std::ios::binary) << "";
+    scrivi_free(scrivi_close_project(p.r()));
+    ok(scrivi_open_project(p.r(), p.appSupport.c_str(), kIdentity));
+    const auto before = p.rows();
+    const JsonDoc merged = p.cut(p.read(p.id(1, 2), 0, p.id(1, 3), 0));
+    const auto after = p.rows();
+    REQUIRE(after.size() == 2);
+    CHECK(after[1].sceneID == p.id(1, 3));
+    CHECK(after[1].text == Project::body(1, 3));
+    p.paste(merged.getSubDoc("range"), merged.getString("undoCaretSceneID"), merged.getInt64("undoCaretByte"));
+    CHECK(p.rows() == before);
+    CHECK(p.clean());
 }

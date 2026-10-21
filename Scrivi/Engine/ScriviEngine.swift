@@ -20,6 +20,18 @@ let coreLockWaits = Mutex(LockWaitStats())
 struct CoreCallStats: Sendable, Equatable { var mainThreadCalls = 0; var openProjectCalls = 0 }
 let coreCallCounts = Mutex(CoreCallStats())
 
+/// [SP-191] The main-thread core calls ONE editor's structural edits make — their own work (`own`) and the history's caret
+/// bookkeeping when they place the caret (`caret`). Counted only inside that editor's edit tasks (a task-local), so other
+/// editors, or tests running beside it, cannot inflate them. Read by tests only.
+final class StructuralCallSink: Sendable {
+    struct Counts: Sendable, Equatable { var own = 0; var caret = 0 }
+    let counts = Mutex(Counts())
+}
+enum StructuralCallAccounting {
+    @TaskLocal static var sink: StructuralCallSink?
+    @TaskLocal static var placingCaret = false
+}
+
 #if os(macOS) || os(iOS)
 
 public final class ScriviEngine: @unchecked Sendable {
@@ -620,38 +632,6 @@ public final class ScriviEngine: @unchecked Sendable {
                 afterChapterID.withCString { after in
                     scrivi_reorder_chapter(prp, cid, after)
                 }
-            }
-        }
-        return try decodeC(raw)
-    }
-
-    // MARK: — mergeScene / mergeChapter (EP-028 SP-075)
-
-    /// Join a scene into the scene immediately before it in the same chapter (the survivor).
-    /// The survivor keeps its own files and gains the merged body; the merged scene's files
-    /// are removed. Fails if `sceneID` is first in its chapter (use `mergeChapter` there).
-    public func mergeScene(
-        projectRootPath: String,
-        sceneID: String
-    ) throws -> MergeSceneResult {
-        let raw = projectRootPath.withCString { prp in
-            sceneID.withCString { sid in
-                scrivi_merge_scene(prp, sid)
-            }
-        }
-        return try decodeC(raw)
-    }
-
-    /// Merge a whole chapter into the chapter immediately before it. Every scene file is
-    /// relocated into the predecessor's folder before the emptied chapter is removed — the
-    /// atomic fix for the I-0083 data-loss bug. Fails if `chapterID` is first in the manuscript.
-    public func mergeChapter(
-        projectRootPath: String,
-        chapterID: String
-    ) throws -> MergeChapterResult {
-        let raw = projectRootPath.withCString { prp in
-            chapterID.withCString { cid in
-                scrivi_merge_chapter(prp, cid)
             }
         }
         return try decodeC(raw)
@@ -1423,14 +1403,14 @@ public final class ScriviEngine: @unchecked Sendable {
 
     @discardableResult
     public func buffersLoad(projectRootPath: String, bufferID: String,
-                            text: String, fragmentJSON: String = "") throws -> BufferLoadResult {
-        // fragmentJSON (a serialized scrivi.fragment.v1) is optional — empty = plain-text slot
-        // (SP-056). A structured cross-boundary copy/cut stores the fragment too (T-0355 / AC4).
+                            text: String, rangeJSON: String = "") throws -> BufferLoadResult {
+        // rangeJSON (a serialized scrivi.range.v1) is optional — empty = plain-text slot (SP-056). A cross-scene copy/cut
+        // stores the Range too ([SP-191] Q4a: the buffers hold Ranges, as history does).
         let raw = projectRootPath.withCString { prp in
             bufferID.withCString { bid in
                 text.withCString { txt in
-                    fragmentJSON.withCString { frag in
-                        scrivi_buffers_load(prp, bid, txt, frag)
+                    rangeJSON.withCString { rj in
+                        scrivi_buffers_load(prp, bid, txt, rj)
                     }
                 }
             }
@@ -1638,6 +1618,31 @@ public final class ScriviEngine: @unchecked Sendable {
         }
         return try decodeC(raw)
     }
+
+    /// `scrivi_range_relabel` ([SP-191] Q3e): move the run of whole scenes in `range` into `targetChapterID` — the chapter
+    /// before (a chapter merge), the one after, or a new one ("" = fresh; an undo re-creates its chapter from the first
+    /// entry's `chapterMeta`). The scene files move; no text changes. The result's `fromChapterID` is where the run was:
+    /// the inverse is a relabel of its `range` back there.
+    public func rangeRelabel(projectRootPath: String,
+                             range: ScriviRange,
+                             targetChapterID: String,
+                             authorshipRef: AuthorshipRef) throws -> RangeOperationResult {
+        let rangeJSON = try range.toJSON()
+        let raw = projectRootPath.withCString { prp in
+            rangeJSON.withCString { rj in
+                targetChapterID.withCString { tc in
+                    authorshipRef.identityID.withCString { iid in
+                        authorshipRef.personaID.withCString { pers in
+                            authorshipRef.displayName.withCString { dn in
+                                scrivi_range_relabel(prp, rj, tc, iid, pers, dn)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return try decodeC(raw)
+    }
 }
 
 private struct FragmentCreatedIDs: Encodable {
@@ -1754,7 +1759,13 @@ func decodeCWithRevision<T: Decodable>(_ ptr: UnsafePointer<CChar>?) throws -> (
     }
     let json = String(cString: ptr)
     scrivi_free(ptr)
-    if Thread.isMainThread { coreCallCounts.withLock { $0.mainThreadCalls += 1 } }   // EP-053 S2a baseline
+    if Thread.isMainThread {   // EP-053 S2a baseline; [SP-191] a structural edit's own
+        coreCallCounts.withLock { $0.mainThreadCalls += 1 }
+        if let sink = StructuralCallAccounting.sink {
+            let caret = StructuralCallAccounting.placingCaret
+            sink.counts.withLock { if caret { $0.caret += 1 } else { $0.own += 1 } }
+        }
+    }
     let data = Data(json.utf8)
     let envelope = try JSONDecoder().decode(Envelope<T>.self, from: data)
     if let waited = envelope.lockWaitMs {
@@ -1814,19 +1825,12 @@ public final class ScriviEngine: @unchecked Sendable {
     // absence here was a hard compile error — ⚠️ and it went unnoticed because
     // nothing builds visionOS routinely.
     //
-    // ⚠️ `mergeScene`/`mergeChapter` were LATENT, not breaking: their only call sites
-    // are in `ManuscriptTextView.swift`, which is `#if os(macOS)`. ✅ They are added
-    // anyway — ⛔ the moment the iOS/visionOS manuscript surface is built (it is a
-    // stub today, `:2431`), they would have become the next two errors.
-    //
     // ⚠️ THE NOTE BELOW ABOUT `createObject`/`openObject` ALREADY WARNED THIS WOULD
     // RECUR: *"a stub that lags the engine breaks only visionOS, long after the
     // change that caused it."* ✅ It did. ⛔ The warning is not the fix — see [I-0253]
     // for the guard that makes drift impossible to ship silently.
     public func closeProject(projectRootPath: String) { /* no-op: nothing was ever opened */ }
     public func openSceneForBulkLoad(projectRootPath: String, appSupportRoot: String, projectID: String, sceneID: String) throws -> OpenSceneResult { try unavailable() }
-    public func mergeScene(projectRootPath: String, sceneID: String) throws -> MergeSceneResult { try unavailable() }
-    public func mergeChapter(projectRootPath: String, chapterID: String) throws -> MergeChapterResult { try unavailable() }
     public func saveScene(projectID: String, projectRootPath: String, appSupportRoot: String, sceneID: String, sceneMetadataPath: String, sceneContentPath: String, markdown: String, selectionAnchor: Int = 0, selectionFocus: Int = 0, scroll: Double = 0, authorshipRef: AuthorshipRef) throws -> SaveSceneResult { try unavailable() }
     public func scanForExternalChanges(projectRootPath: String, appSupportRoot: String, includeGitStatus: Bool = true) throws -> ScanResult { try unavailable() }
     public func applyRepair(issueID: String, projectRootPath: String, appSupportRoot: String, actionKind: String, targetPath: String = "", authorshipRef: AuthorshipRef) throws -> ApplyRepairResult { try unavailable() }
@@ -1941,7 +1945,7 @@ public final class ScriviEngine: @unchecked Sendable {
 
     // Copy buffers (EP-019 SP-056 — T-0213) — unavailable on this platform.
     @discardableResult
-    public func buffersLoad(projectRootPath: String, bufferID: String, text: String, fragmentJSON: String = "") throws -> BufferLoadResult { try unavailable() }
+    public func buffersLoad(projectRootPath: String, bufferID: String, text: String, rangeJSON: String = "") throws -> BufferLoadResult { try unavailable() }
     public func buffersGet(projectRootPath: String, bufferID: String) throws -> BufferGetResult { try unavailable() }
     public func buffersList(projectRootPath: String) throws -> BufferListResult { try unavailable() }
     @discardableResult
@@ -1956,6 +1960,7 @@ public final class ScriviEngine: @unchecked Sendable {
     public func rangeRead(projectRootPath: String, startSceneID: String, startByte: Int, endSceneID: String, endByte: Int) throws -> ScriviRange { try unavailable() }
     public func rangePaste(projectRootPath: String, range: ScriviRange, caretSceneID: String, caretByteOffset: Int, caretSceneText: String, authorshipRef: AuthorshipRef) throws -> RangeOperationResult { try unavailable() }
     public func rangeCut(projectRootPath: String, range: ScriviRange, authorshipRef: AuthorshipRef) throws -> RangeOperationResult { try unavailable() }
+    public func rangeRelabel(projectRootPath: String, range: ScriviRange, targetChapterID: String, authorshipRef: AuthorshipRef) throws -> RangeOperationResult { try unavailable() }
 
     // Relationship graph, object discovery, and worlds (EP-031 SP-099 T-0407) —
     // unavailable on this platform. Mirrors ScriviEngineGraph.swift, whose real
@@ -2389,18 +2394,6 @@ public struct ReorderChapterResult: Decodable, Sendable {
 
 // MARK: — Merge Result Types (EP-028 SP-075)
 
-public struct MergeSceneResult: Decodable, Sendable {
-    public let survivorSceneID:      String
-    public let mergedSceneID:        String
-    public let chapterID:            String
-    /// The survivor scene's paths AFTER the merge. The survivor keeps its own order-key
-    /// files, so these are its (unchanged) paths — callers must refresh their segment from
-    /// them regardless (the I-0081 stale-path contract).
-    public let survivorMetadataPath: String
-    public let survivorContentPath:  String
-    public let chapterMetadataPath:  String
-    public let merged:               Bool
-}
 
 // MARK: — Structured Cut/Copy/Paste results (EP-029 SP-089)
 
@@ -2530,12 +2523,19 @@ public struct ScriviRange: Codable, Sendable, Equatable {
         public var length: Int
         public var sceneLength: Int
         public var text: String
+        /// ✅ [SP-191] Q3b: a REMOVED scene's sidecar, and on the entry that opens a removed chapter that chapter's sidecar —
+        /// serialized JSON, filled by the core when it removes them and written back by the paste (or relabel) that undoes
+        /// it. nil in a Range the editor builds. ⚠️ Carried through untouched: an undo is only exact if they survive.
+        public var sceneMeta: String?
+        public var chapterMeta: String?
 
         public init(sceneID: String, chapterID: String, chapterTitle: String, sceneTitle: String,
-                    start: Int, length: Int, sceneLength: Int, text: String) {
+                    start: Int, length: Int, sceneLength: Int, text: String,
+                    sceneMeta: String? = nil, chapterMeta: String? = nil) {
             self.sceneID = sceneID; self.chapterID = chapterID; self.chapterTitle = chapterTitle
             self.sceneTitle = sceneTitle; self.start = start; self.length = length
             self.sceneLength = sceneLength; self.text = text
+            self.sceneMeta = sceneMeta; self.chapterMeta = chapterMeta
         }
     }
 
@@ -2543,6 +2543,21 @@ public struct ScriviRange: Codable, Sendable, Equatable {
 
     /// The wire form the range endpoints take.
     public func toJSON() throws -> String { String(decoding: try JSONEncoder().encode(self), as: UTF8.self) }
+
+    /// The offsets made consistent with the entries' texts, as `scrivi.range.v1` requires (only the first entry may start
+    /// mid-scene, only the last may end mid-scene). For a Range whose texts were rebuilt — a copy's balanced pieces, a
+    /// converted fragment — that only a PASTE reads: a paste takes the texts, never the offsets.
+    public func normalized() -> ScriviRange {
+        var out = self
+        let n = out.scenes.count
+        for i in out.scenes.indices {
+            out.scenes[i].length = out.scenes[i].text.utf8.count
+            if i > 0 { out.scenes[i].start = 0 }
+            let end = out.scenes[i].start + out.scenes[i].length
+            out.scenes[i].sceneLength = i + 1 < n ? end : max(out.scenes[i].sceneLength, end)
+        }
+        return out
+    }
 }
 
 /// The whole change a range operation made, in reading order (design P3) — what the editor applies to its scene list
@@ -2587,25 +2602,22 @@ public struct RangeDelta: Decodable, Sendable, Equatable {
     }
 }
 
-/// Result of `scrivi_range_paste` / `scrivi_range_cut`: the change, and the Range inserted (paste) or removed (cut).
+/// Result of `scrivi_range_paste` / `scrivi_range_cut` / `scrivi_range_relabel`: the change, and the Range inserted (paste),
+/// removed (cut) or moved (relabel).
 public struct RangeOperationResult: Decodable, Sendable {
     public let delta: RangeDelta
     public let range: ScriviRange
+    /// Relabel: the chapter the run left — its inverse relabels `range` back there.
+    public let fromChapterID: String?
+    /// Cut ([SP-191] Q7): where its inverse pastes `range` — the survivor's seam.
+    public let undoCaretSceneID: String?
+    public let undoCaretByte: Int?
 }
 
 struct RangeReadResult: Decodable, Sendable {
     let range: ScriviRange
 }
 
-public struct MergeChapterResult: Decodable, Sendable {
-    public let survivorChapterID:           String
-    public let mergedChapterID:             String
-    /// The predecessor chapter's chapter.meta.json path AFTER the merge (unchanged — the
-    /// predecessor folder is not renamed; only scenes are relocated into it).
-    public let survivorChapterMetadataPath: String
-    public let scenesRelocated:             Int
-    public let merged:                      Bool
-}
 
 // MARK: — Timeline Result Types (EP-016 SP-039)
 
@@ -3115,14 +3127,25 @@ public struct HistoryStructuralPayload: Codable, Sendable {
     public let createdChapterIDs: [String]
     public let removedSceneIDs:   [String]   // cut: scenes it merged away (paste: empty)
     public let removedChapterIDs: [String]
+    // ✅ [SP-191]: the range operations — op "rangePaste" | "rangeCut" | "rangeRelabel". Each node holds the ONE Range that
+    // both its undo and its redo use:
+    //   rangePaste:   the Range it INSERTED. Undo = cut it; redo = paste it again at (caretSceneID, caretByte).
+    //   rangeCut:     the Range it REMOVED, sidecars included. Undo = paste it at (caretSceneID, caretByte), the survivor's
+    //                 seam; redo = cut it again (the undo restored it exactly).
+    //   rangeRelabel: the run as it is after. Undo = relabel it into `fromChapterID`; redo = into `targetChapterID`.
+    public let rangeJSON:       String
+    public let fromChapterID:   String
+    public let targetChapterID: String
 
-    public init(op: String, fragmentJSON: String, caretSceneID: String, caretByte: Int,
+    public init(op: String, fragmentJSON: String = "", caretSceneID: String = "", caretByte: Int = 0,
                 createdSceneIDs: [String] = [], createdChapterIDs: [String] = [],
-                removedSceneIDs: [String] = [], removedChapterIDs: [String] = []) {
+                removedSceneIDs: [String] = [], removedChapterIDs: [String] = [],
+                rangeJSON: String = "", fromChapterID: String = "", targetChapterID: String = "") {
         self.op = op; self.fragmentJSON = fragmentJSON
         self.caretSceneID = caretSceneID; self.caretByte = caretByte
         self.createdSceneIDs = createdSceneIDs; self.createdChapterIDs = createdChapterIDs
         self.removedSceneIDs = removedSceneIDs; self.removedChapterIDs = removedChapterIDs
+        self.rangeJSON = rangeJSON; self.fromChapterID = fromChapterID; self.targetChapterID = targetChapterID
     }
 
     public init(from decoder: Decoder) throws {
@@ -3135,6 +3158,9 @@ public struct HistoryStructuralPayload: Codable, Sendable {
         createdChapterIDs = try c.decodeIfPresent([String].self, forKey: .createdChapterIDs) ?? []
         removedSceneIDs   = try c.decodeIfPresent([String].self, forKey: .removedSceneIDs) ?? []
         removedChapterIDs = try c.decodeIfPresent([String].self, forKey: .removedChapterIDs) ?? []
+        rangeJSON         = try c.decodeIfPresent(String.self, forKey: .rangeJSON) ?? ""
+        fromChapterID     = try c.decodeIfPresent(String.self, forKey: .fromChapterID) ?? ""
+        targetChapterID   = try c.decodeIfPresent(String.self, forKey: .targetChapterID) ?? ""
     }
 
     /// Serialize to the JSON object the engine stores as this node's opaque payload.
@@ -3146,7 +3172,8 @@ public struct HistoryStructuralPayload: Codable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case op, fragmentJSON, caretSceneID, caretByte,
-             createdSceneIDs, createdChapterIDs, removedSceneIDs, removedChapterIDs
+             createdSceneIDs, createdChapterIDs, removedSceneIDs, removedChapterIDs,
+             rangeJSON, fromChapterID, targetChapterID
     }
 }
 
@@ -3445,8 +3472,9 @@ public struct BufferSlot: Decodable, Sendable, Identifiable {
     public let bufferID: String
     public let text: String
     public let updatedAt: String
-    // Present only for structured (cross-boundary) slots (T-0355 / AC4); nil for plain-text.
-    public let fragment: FragmentResult?
+    // Present only for structured (cross-scene) slots; nil for plain-text. ✅ [SP-191] Q4a: a Range — a slot that held an
+    // old fragment reads as empty in the core and never reaches here.
+    public let range: ScriviRange?
     public var id: String { bufferID }
 
     public init(from decoder: Decoder) throws {
@@ -3454,9 +3482,9 @@ public struct BufferSlot: Decodable, Sendable, Identifiable {
         bufferID  = try c.decodeIfPresent(String.self, forKey: .bufferID) ?? ""
         text      = try c.decodeIfPresent(String.self, forKey: .text) ?? ""
         updatedAt = try c.decodeIfPresent(String.self, forKey: .updatedAt) ?? ""
-        fragment  = try c.decodeIfPresent(FragmentResult.self, forKey: .fragment)
+        range     = try c.decodeIfPresent(ScriviRange.self, forKey: .range)
     }
-    private enum CodingKeys: String, CodingKey { case bufferID, text, updatedAt, fragment }
+    private enum CodingKeys: String, CodingKey { case bufferID, text, updatedAt, range }
 }
 
 public struct BufferLoadResult: Decodable, Sendable {
@@ -3469,8 +3497,8 @@ public struct BufferGetResult: Decodable, Sendable {
     public let text: String
     public let updatedAt: String
     public let present: Bool
-    // Present only for structured slots (T-0355 / AC4); nil for plain-text or empty slots.
-    public let fragment: FragmentResult?
+    // Present only for structured slots; nil for plain-text or empty slots ([SP-191] Q4a: a Range).
+    public let range: ScriviRange?
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -3478,9 +3506,9 @@ public struct BufferGetResult: Decodable, Sendable {
         text      = try c.decodeIfPresent(String.self, forKey: .text) ?? ""
         updatedAt = try c.decodeIfPresent(String.self, forKey: .updatedAt) ?? ""
         present   = try c.decodeIfPresent(Bool.self, forKey: .present) ?? false
-        fragment  = try c.decodeIfPresent(FragmentResult.self, forKey: .fragment)
+        range     = try c.decodeIfPresent(ScriviRange.self, forKey: .range)
     }
-    private enum CodingKeys: String, CodingKey { case bufferID, text, updatedAt, present, fragment }
+    private enum CodingKeys: String, CodingKey { case bufferID, text, updatedAt, present, range }
 }
 
 public struct BufferListResult: Decodable, Sendable {

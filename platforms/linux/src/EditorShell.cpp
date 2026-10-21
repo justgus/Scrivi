@@ -384,15 +384,9 @@ EditorShell::EditorShell(QWidget* parent, AppEnvironment* env)
     connect(viewport_, &ManuscriptEditor::bufferPasteRequested, this, &EditorShell::pasteFromBuffer);
     connect(viewport_, &ManuscriptEditor::bufferCutRequested, this, &EditorShell::cutIntoBuffer);
 
-    // EP-026 S4 (SP-180 / T-0607): structured cut / copy / paste across scenes. The editor builds the spans; the core
-    // reads the scenes AS SAVED, so what is unsaved is written first.
-    viewport_->setFragmentExtractor([this](const QJsonArray& spans) {
-        saveDirtyScenes();
-        const QJsonObject params{{QStringLiteral("spans"), spans}};
-        return QJsonObject::fromVariantMap(bridge_->fragmentExtract(
-            projectPath_, QString::fromUtf8(QJsonDocument(params).toJson(QJsonDocument::Compact))));
-    });
-    connect(viewport_, &ManuscriptEditor::structuredPasteRequested, this, &EditorShell::pasteFragment);
+    // EP-026 S4 (SP-180 / T-0607): structured copy / paste across scenes. ✅ [SP-191]: the editor builds the Range from the
+    // scene list (no core call, no disk read); the paste is one range call off the GUI thread.
+    connect(viewport_, &ManuscriptEditor::structuredPasteRequested, this, &EditorShell::pasteRange);
 
     // Surface bridge errors inline rather than silently failing.
     //
@@ -483,13 +477,6 @@ void EditorShell::load(const QString& projectPath,
     const WorkerBridge::Handle bridgeHandle = WorkerBridge::handleFor(bridge_);
     const QString path   = projectPath;
     const QString appSup = appSupportRoot;
-    // ✅ [I-0297]: a reload after a paste or its undo reads only what the step wrote (`reloadThen`); any other load reads all.
-    const QHash<QString, QString> knownTexts = projectPath == projectPath_ ? std::exchange(reloadTexts_, {})
-                                                                           : QHash<QString, QString>{};
-    reloadTexts_.clear();
-    if (!knownTexts.isEmpty()) {
-        DiagnosticLog::note(QStringLiteral("load: %1 scene texts from memory (a structural step's reload)").arg(knownTexts.size()));
-    }
 
     // ⚠️ SP-144 ([I-0232] AC5) — THE PROJECT IS OPENED ONCE, NOT TWICE.
     //
@@ -521,7 +508,7 @@ void EditorShell::load(const QString& projectPath,
 
     AsyncCall::run<LoadPayload>(
         this,
-        [bridgeHandle, path, appSup, handedOver, openHistory, knownTexts]() -> LoadPayload {
+        [bridgeHandle, path, appSup, handedOver, openHistory]() -> LoadPayload {
             WorkerBridge bridge(bridgeHandle);
             ScriviBridgeRelay* const progress = bridge.relay();
             LoadPayload out;
@@ -602,14 +589,13 @@ void EditorShell::load(const QString& projectPath,
                 QStringList ids;
                 for (int i = start; i < end; ++i) {
                     const QString& id = out.inputs.at(i).sceneID;
-                    if (id != out.activeSceneID && !knownTexts.contains(id)) { ids.append(id); }
+                    if (id != out.activeSceneID) { ids.append(id); }
                 }
                 const QHash<QString, QString> texts = ids.isEmpty() ? QHash<QString, QString>{} : bridge->readSceneTexts(path, ids);
                 for (int i = start; i < end; ++i) {
                     SceneDocument::Input& in = out.inputs[i];
                     if (in.sceneID != out.activeSceneID) {
-                        const auto known = knownTexts.constFind(in.sceneID);
-                        in.markdown = known != knownTexts.cend() ? *known : texts.value(in.sceneID);
+                        in.markdown = texts.value(in.sceneID);
                     }
                 }
                 done = end;
@@ -1748,7 +1734,7 @@ void EditorShell::releaseProject()
         history_ = nullptr;
     }
     historyText_.clear();
-    structuralRedoCreated_.clear();
+    oldCutRedo_.clear();
     // EP-048 S5a ([SP-182]): the settings go with the project.
     if (prefs_ != nullptr) {
         prefs_->deleteLater();
@@ -1937,397 +1923,324 @@ void EditorShell::moveCaretToSegment(int index)
     activeSegment_ = index;
 }
 
-void EditorShell::onCreateSceneRequested()
+// ── [SP-191] Structural edits: ONE range call off the GUI thread, the delta applied — Apple's `runStructuralEdit` ──────
+
+namespace {
+QJsonObject rangeEntry(const SceneSegment& seg, qint64 start = 0, qint64 whole = 0)
 {
-    // Which scene are we in? The caret's owning segment (fall back to the tracked
-    // active segment). A create needs a valid host scene + chapter.
-    const int caretPos = viewport_->textCursor().position();
-    int idx = sceneDoc_.sceneIndexForCaret(caretPos);
-    if (idx < 0) {
-        idx = activeSegment_;
+    return QJsonObject{{QStringLiteral("sceneID"), seg.sceneID}, {QStringLiteral("chapterID"), seg.chapterID},
+                       {QStringLiteral("chapterTitle"), QString()}, {QStringLiteral("sceneTitle"), QString()},
+                       {QStringLiteral("start"), start}, {QStringLiteral("length"), 0},
+                       {QStringLiteral("sceneLength"), whole}, {QStringLiteral("text"), QString()}};
+}
+QString rangeJsonOf(const QJsonArray& entries)
+{
+    return QString::fromUtf8(QJsonDocument(QJsonObject{{QStringLiteral("schema"), QStringLiteral("scrivi.range.v1")},
+                                                       {QStringLiteral("scenes"), entries}})
+                                 .toJson(QJsonDocument::Compact));
+}
+QString rangeJsonOf(const QVariantMap& result)
+{
+    return QString::fromUtf8(QJsonDocument(QJsonObject::fromVariantMap(result.value(QStringLiteral("range")).toMap()))
+                                 .toJson(QJsonDocument::Compact));
+}
+QVariantList rangeScenes(const QVariantMap& result)
+{
+    return result.value(QStringLiteral("range")).toMap().value(QStringLiteral("scenes")).toList();
+}
+qint64 byteLength(const QString& s) { return s.toUtf8().size(); }
+}   // namespace
+
+bool EditorShell::runRangeEdit(const QString& label, RangeCall call, RangeNode node, RangeCaret caret,
+                               std::function<void()> failed)
+{
+    if (loading_ || projectPath_.isEmpty()) {
+        return false;   // ✅ Q5: a repeat (or anything else) while an edit is in flight is IGNORED, not queued
     }
-    if (idx < 0 || idx >= sceneDoc_.segments().size()) {
-        return;
-    }
-    const SceneSegment host = sceneDoc_.segments().at(idx);   // copy (list mutates)
-
-    // macOS ⌘↩ parity (ManuscriptTextView.swift:644-679): SPLIT the current scene at the
-    // caret. Mid-body → the head stays in the current scene and the tail moves to the new
-    // scene (caret follows the tail). At end-of-body → append an empty scene (nothing to
-    // move). Previously this ALWAYS appended empty regardless of caret position — so a
-    // mid-scene ⌃↩ left the text in place and dropped an empty scene below (the SP-076 VNC
-    // "splits at the bottom, not the middle" report).
-    const int bodyEnd = host.bodyStart + host.bodyLength;
-    const int splitOffset = qBound(0, caretPos - host.bodyStart, host.bodyLength);
-    const bool isAtEnd = (caretPos >= bodyEnd);
-    const QString fullBody = sceneDoc_.bodyText(idx);
-    const QString headText = fullBody.left(splitOffset);
-    const QString tailText = fullBody.mid(splitOffset);
-
-    // Save the current scene first so the create builds on persisted state (mirrors
-    // Apple's ⌘↩: save-then-create).
-    saveDirtyScenes();
-
-    // Create the (initially empty) scene after the host, in the host's chapter.
-    const QVariantMap result = bridge_->createScene(
-        projectPath_, appSupportRoot_, projectID_, host.chapterID, host.sceneID);
-    const QString newSceneID = result.value(QStringLiteral("sceneID")).toString();
-    if (newSceneID.isEmpty()) {
-        return;   // bridge already surfaced errorOccurred
-    }
-    // Structural op — undo stops here (§4.5; Apple's kind and note). [I-0287]: AFTER the create, so a mid-scene split
-    // can say what it leaves in each half — the head in the host, the tail in the new scene.
-    recordBarrier(QStringLiteral("sceneSplit"), tr("Can't undo past creating a scene"),
-                  isAtEnd ? QHash<QString, QString>{}
-                          : QHash<QString, QString>{{host.sceneID, headText}, {newSceneID, tailText}});
-    const QString newMeta    = result.value(QStringLiteral("metadataPath")).toString();
-    const QString newContent = result.value(QStringLiteral("contentPath")).toString();
-
-    if (!isAtEnd) {
-        // Mid-scene split: persist head → current scene, tail → new scene, then reload from
-        // disk so the document/map reflect the moved text (disk is authoritative; a split is
-        // a rare structural op, mirroring the chapter-split path).
-        const QVariantMap headR =
-            bridge_->saveScene(projectID_, projectPath_, appSupportRoot_,
-                               host.sceneID, host.metadataPath, host.contentPath,
-                               headText, 0, 0, 0.0);
-        const QVariantMap tailR =
-            bridge_->saveScene(projectID_, projectPath_, appSupportRoot_,
-                               newSceneID, newMeta, newContent,
-                               tailText, 0, 0, 0.0);
-        if (!headR.isEmpty()) { notePersisted(host.sceneID, headText); }
-        if (!tailR.isEmpty()) { notePersisted(newSceneID, tailText); }
-        if (headR.isEmpty() || tailR.isEmpty()) {
-            // A save failed (bridge surfaced errorOccurred). Reload to whatever persisted so
-            // the UI matches disk, then bail.
-            load(projectPath_, appSupportRoot_,
-                 findChild<QLabel*>(QStringLiteral("editorTitle")) != nullptr
-                     ? findChild<QLabel*>(QStringLiteral("editorTitle"))->text()
-                     : QString());
-            return;
+    viewport_->removePendingPair();   // SP-175: a structural edit drops the pending pair
+    // Every unsaved scene, written on the worker FIRST (the core refuses a caret scene that is not what is on disk) — and
+    // what each scene holds now, for the node's `sceneTextsBefore` ([I-0293]).
+    struct Job { QString sceneID; QString metadataPath; QString contentPath; QString text; };
+    QVector<Job> jobs;
+    QHash<QString, QString> before;
+    for (int i = 0; i < sceneDoc_.segments().size(); ++i) {
+        const SceneSegment& seg = sceneDoc_.segments().at(i);
+        const QString text = sceneDoc_.bodyText(i);
+        before.insert(seg.sceneID, text);
+        if (dirtyScenes_.remove(seg.sceneID)) {
+            jobs.append({seg.sceneID, seg.metadataPath, seg.contentPath, text});
         }
-        // Caret to the start of the new (tail) scene — where the split landed. ⛔ [I-0300]: once the (asynchronous) reload
-        // has finished, never on the document it replaces.
-        reloadThenPlaceCaret(newSceneID, 0);
+    }
+    saveTimer_->stop();
+    const QString historyRoot = node && history_ != nullptr && history_->isOpen() ? history_->projectRootPath() : QString();
+    lockForWork(label);      // ✅ Q5: the cue — read-only at once, in the key press's own turn; the progress row after 400 ms
+    beginBackgroundWork();   // [I-0305]: a close waits for it
+    DiagnosticLog::note(QStringLiteral("structural \"%1\": worker started").arg(label));
+    QElapsedTimer clock;
+    clock.start();
+    struct Outcome { QVariantMap result; bool failed = false; QVector<bool> saved; QVariantMap history; TimelineData timeline; };
+    const WorkerBridge::Handle bridgeHandle = WorkerBridge::handleFor(bridge_);   // ✅ [I-0309]: never `bridge_` itself
+    const QString projectID = projectID_, path = projectPath_, support = appSupportRoot_;
+    AsyncCall::run<Outcome>(
+        this,
+        // ⚠️ The WORKER: the C ABI only, on copies. The saves, the pending typing committed, the ONE range call, its history
+        // node and the timeline's read — so the GUI thread makes no core call for the edit.
+        [jobs, before, historyRoot, call = std::move(call), node = std::move(node), bridgeHandle, projectID, path, support]() {
+            WorkerBridge bridge(bridgeHandle);
+            Outcome o;
+            for (const Job& j : jobs) {
+                const QVariantMap r = bridge->saveScene(projectID, path, support, j.sceneID, j.metadataPath, j.contentPath,
+                                                        j.text, 0, 0, 0.0);
+                o.saved.append(!r.isEmpty() && r.value(QStringLiteral("saved")).toBool());
+            }
+            if (!historyRoot.isEmpty()) {
+                ScriviBridge::captureFlush(historyRoot, QStringLiteral("flush"), QStringLiteral("typing"));
+            }
+            o.result = call(*bridge);
+            o.failed = bridge->lastCallFailed();
+            if (o.failed) {
+                return o;
+            }
+            if (!historyRoot.isEmpty()) {
+                const QJsonObject payload = node(o.result);
+                const RangeDelta d = RangeDelta::fromVariant(o.result.value(QStringLiteral("delta")).toMap());
+                QHash<QString, QString> after;
+                QHash<QString, QString> was;
+                for (const RangeDelta::Scene& s : d.scenes) {
+                    if (!s.hasText) { continue; }
+                    after.insert(s.sceneID, s.text);
+                    if (before.contains(s.sceneID)) { was.insert(s.sceneID, before.value(s.sceneID)); }
+                }
+                for (const QString& id : d.removedSceneIDs) { was.insert(id, before.value(id)); }
+                o.history = ScriviBridge::captureRecordBarrier(
+                    historyRoot, HistoryCapture::barrierParams(payload.value(QStringLiteral("op")).toString(), QString(),
+                                                               after, payload, was));
+            }
+            o.timeline = EditorShell::fetchTimelineData(&*bridge, path);
+            return o;
+        },
+        [this, jobs, caret = std::move(caret), failed, label, clock](const Outcome& o) {
+            DiagnosticLog::note(QStringLiteral("structural \"%1\": worker finished in %2 ms%3")
+                                    .arg(label).arg(clock.elapsed()).arg(o.failed ? QStringLiteral(" (FAILED)") : QString()));
+            for (qsizetype k = 0; k < jobs.size(); ++k) {
+                if (o.saved.value(k)) {
+                    notePersisted(jobs.at(k).sceneID, jobs.at(k).text);   // [I-0104] / [I-0259]: only after it succeeded
+                } else if (sceneDoc_.sceneIndexForScene(jobs.at(k).sceneID) >= 0) {
+                    dirtyScenes_.insert(jobs.at(k).sceneID);   // ⛔ [I-0304]: a failed write stays dirty
+                }
+            }
+            if (o.failed) {
+                unlockAfterWork();
+                QApplication::beep();
+                if (failed) { failed(); }
+                endBackgroundWork();
+                emit structuralEditFinished(false);
+                return;
+            }
+            if (history_ != nullptr && !o.history.isEmpty()) {
+                history_->adopt(o.history);
+            }
+            applyRangeResult(o.result);
+            applyTimelineData(o.timeline);
+            unlockAfterWork();
+            if (const auto [sceneID, byte] = caret(o.result); !sceneID.isEmpty()) {
+                placeCaret(sceneID, byte);
+            }
+            endBackgroundWork();
+            emit structuralEditFinished(true);
+        },
+        [this, label, failed] {
+            DiagnosticLog::note(QStringLiteral("structural \"%1\": TIMED OUT").arg(label));
+            unlockAfterWork();
+            errorLabel_->setText(tr("This change is taking longer than expected — the project may be on a disconnected or "
+                                    "unreachable volume. Reopen it before editing further."));
+            errorLabel_->show();
+            if (failed) { failed(); }
+            endBackgroundWork();
+            emit structuralEditFinished(false);
+        },
+        kProjectOpenTimeoutMs);
+    return true;
+}
+
+void EditorShell::applyRangeResult(const QVariantMap& result)
+{
+    const RangeDelta delta = RangeDelta::fromVariant(result.value(QStringLiteral("delta")).toMap());
+    // The document edits are the core's, not the writer's: `loading_` (held by `lockForWork`) keeps them from being
+    // reported or dirtied.
+    if (sceneDoc_.applyRangeDelta(delta) < 0) {
         return;
     }
-
-    // End-of-scene: splice the new EMPTY scene into the live document + map (guarded so the
-    // programmatic boundary insert doesn't churn dirty flags), refresh the navigator, and
-    // drop the caret into the new body — the original append behaviour.
-    viewport_->removePendingPair();   // SP-175: a structural edit drops the pending pair (Apple: a rebuild does)
-    loading_ = true;
-    const int newIdx = sceneDoc_.insertSceneAfter(
-        idx, newSceneID,
-        result.value(QStringLiteral("chapterID")).toString(),
-        /*title=*/QString(),          // new scenes are untitled until named (EP-023)
-        host.chapterTitle,            // same chapter → same heading label
-        /*slug=*/QString(),
-        newMeta,
-        newContent,
-        host.chapterMetadataPath,     // same chapter → same chapter metadata path
-        /*newChapter=*/false);
-    loading_ = false;
-
-    if (newIdx < 0) {
-        return;
+    for (const QString& id : delta.removedSceneIDs) {
+        dirtyScenes_.remove(id);
+        historyText_.remove(id);
+    }
+    for (const RangeDelta::Scene& s : delta.scenes) {
+        if (s.hasText) {
+            dirtyScenes_.remove(s.sceneID);   // the core wrote it
+            historyText_.insert(s.sceneID, s.text);
+        }
+    }
+    // I-0063: a chapter created or removed shifts the stored "Chapter N" titles after it.
+    if ((!delta.createdChapters.isEmpty() || !delta.removedChapterIDs.isEmpty()) && renumberCreatedChapters()) {
+        applyDerivedLabels();
     }
     rebuildNavigator();
-    moveCaretToSegment(newIdx);
+}
+
+namespace {
+// What the editor needs from the caret to anchor a range call: its scene and its scene-local UTF-8 byte offset.
+struct CaretAt { int index = -1; SceneSegment seg; QString text; qint64 byte = 0; };
+}   // namespace
+
+void EditorShell::onCreateSceneRequested()
+{
+    // ⌃↩: a new scene at the caret. ✅ [SP-191] Q1: a PASTE OF A BREAK (an empty two-entry Range) — one range call off the
+    // GUI thread, undone in one step (Q3: no "Can't undo past…"). ✅ Q7: at a scene's very start the new scene goes BEFORE
+    // it (the scene keeps its text, title and sidecar) and the caret goes into the new scene; elsewhere the scene splits
+    // and the caret starts the new one. Apple: `handleCreateScene`.
+    insertBreak(/*newChapter=*/false, tr("Splitting the scene…"));
+}
+
+void EditorShell::insertBreak(bool newChapter, const QString& label)
+{
+    const int caretPos = viewport_->textCursor().position();
+    const int idx = sceneDoc_.sceneIndexForCaret(caretPos);
+    if (loading_ || idx < 0) {
+        return;
+    }
+    const SceneSegment seg = sceneDoc_.segments().at(idx);
+    const QString text = sceneDoc_.bodyText(idx);
+    const int caretChar = std::clamp(caretPos - seg.bodyStart, 0, int(text.size()));
+    const qint64 caretByte = byteLength(text.left(caretChar));
+    QJsonObject first = rangeEntry(seg);
+    first.insert(QStringLiteral("sceneID"), QString());          // ✅ Q1: an empty ID mints a fresh one
+    QJsonObject opening = first;
+    if (newChapter) {
+        opening.insert(QStringLiteral("chapterID"), QString());  // another chapter: the paste opens one there
+    }
+    const QString rangeJson = rangeJsonOf(QJsonArray{first, opening});
+    const QString root = projectPath_, name = bridge_->displayName(), caretScene = seg.sceneID;
+    runRangeEdit(
+        label,
+        [=](ScriviBridge& bridge) { return bridge.rangePaste(root, rangeJson, caretScene, caretByte, text, name); },
+        [=](const QVariantMap& r) {
+            return QJsonObject{{QStringLiteral("op"), QStringLiteral("rangePaste")},
+                               {QStringLiteral("caretSceneID"), caretScene}, {QStringLiteral("caretByte"), caretByte},
+                               {QStringLiteral("rangeJSON"), rangeJsonOf(r)}};
+        },
+        [caretScene](const QVariantMap& r) -> std::pair<QString, qint64> {
+            // The new scene — after the caret scene, or before it at a scene's start (Q7).
+            for (const QVariant& v : rangeScenes(r)) {
+                const QString id = v.toMap().value(QStringLiteral("sceneID")).toString();
+                if (id != caretScene) { return {id, 0}; }
+            }
+            return {};
+        });
 }
 
 void EditorShell::onCreateChapterRequested()
 {
-    if (sceneDoc_.segments().isEmpty()) {
-        return;
-    }
-
-    // I-0064: Ctrl+Shift+Return SPLITS the current chapter at the caret (macOS parity
-    // with ⌘⇧↩), disk-correct. Caret in scene S of chapter C:
-    //   1. createChapter(afterChapterID = C) → the new chapter K is born IN PLACE right
-    //      after C, with a blank first scene K0. No reorder/rename step (EP-027 P6): K's
-    //      folder gets its final order-key name at creation, so K0's returned paths stay
-    //      valid — this is what fixes the lost-tail bug (a post-create rename used to
-    //      invalidate them).
-    //   2. mid-scene → save head into S, tail into K0.
-    //      end-of-scene → K0 stays blank; the caret lands in it (a genuinely-new chapter).
-    //   3. Every scene that FOLLOWED S within C moves into K, in order (after K0). If S was
-    //      at the end and had followers, the caret follows the first of them.
-
-    // Resolve the caret's scene S and the split offset within its body.
+    // ⌃⇧↩: a new chapter at the caret — the same paste, its second entry in another chapter, so the core creates the
+    // chapter IN PLACE and moves the rest of this chapter into it ([I-0311], [I-0074]). ✅ Q8: at a scene's very start it
+    // is a RELABEL — the scene and the rest of its chapter move into a new chapter; no empty scene, no text moves. At a
+    // chapter's first scene a chapter already starts there: nothing happens. No confirmation (Q9). Apple:
+    // `handleCreateChapter`.
     const int caretPos = viewport_->textCursor().position();
-    int segS = sceneDoc_.sceneIndexForCaret(caretPos);
-    if (segS < 0) {
-        segS = activeSegment_;
-    }
-    if (segS < 0 || segS >= sceneDoc_.segments().size()) {
+    const int idx = sceneDoc_.sceneIndexForCaret(caretPos);
+    if (loading_ || idx < 0) {
         return;
     }
-    const SceneSegment sceneS = sceneDoc_.segments().at(segS);   // copy (list mutates)
-    const QString chapterC = sceneS.chapterID;
-
-    const int bodyEnd = sceneS.bodyStart + sceneS.bodyLength;
-    const int splitOffset = qBound(0, caretPos - sceneS.bodyStart, sceneS.bodyLength);
-    const bool isAtEnd = (caretPos >= bodyEnd);
-    const QString fullBody = sceneDoc_.bodyText(segS);
-    const QString headText = fullBody.left(splitOffset);
-    const QString tailText = fullBody.mid(splitOffset);
-
-    // The scenes that follow S within C, in order (they move into the new chapter).
-    QStringList followers;
-    for (int i = segS + 1; i < sceneDoc_.segments().size(); ++i) {
-        const SceneSegment& s = sceneDoc_.segments().at(i);
-        if (s.chapterID != chapterC) {
-            break;   // left chapter C — the rest belong to later chapters
-        }
-        followers.append(s.sceneID);
-    }
-
-    // No confirmation dialog: Ctrl+Shift+Return IS the approval. Chapter-splitting is a
-    // frequent, flow-critical move during "seat of the pants" drafting, and a modal prompt
-    // on every break breaks that flow. (The split is also non-destructive — it only creates
-    // a chapter and moves scenes; nothing is deleted — so a confirm buys little.)
-
-    // Save the current scene first (mirrors Apple's ⌘⇧↩: save-then-create), so the
-    // head/tail split below writes over persisted state.
-    saveDirtyScenes();
-
-    // 1. Create the new chapter K in place, right after C (born with its final folder
-    //    name — no reorder). K0 is its blank first scene; its returned paths stay valid.
-    const QVariantMap result =
-        bridge_->createChapter(projectPath_, appSupportRoot_, projectID_, chapterC);
-    const QString firstSceneID =
-        result.value(QStringLiteral("firstSceneID")).toString();
-    const QString newChapterID =
-        result.value(QStringLiteral("chapterID")).toString();
-    const QString k0MetadataPath =
-        result.value(QStringLiteral("firstSceneMetadataPath")).toString();
-    const QString k0ContentPath =
-        result.value(QStringLiteral("firstSceneContentPath")).toString();
-    if (firstSceneID.isEmpty() || newChapterID.isEmpty()) {
-        // The chapter wasn't created (the bridge emitted errorOccurred). Surface it rather
-        // than silently doing nothing, and abort before we mutate anything else.
-        QMessageBox::warning(this, tr("Split Failed"),
-            tr("The new chapter could not be created; the manuscript was left unchanged."));
+    const SceneSegment seg = sceneDoc_.segments().at(idx);
+    if (caretPos > seg.bodyStart) {
+        insertBreak(/*newChapter=*/true, tr("Splitting the chapter…"));
         return;
     }
-    // Structural op — undo stops here (§4.5; Apple's kind and note). [I-0287]: AFTER the create, with what a mid-scene
-    // split leaves in each half — the head in S, the tail in K0.
-    recordBarrier(QStringLiteral("chapterSplit"), tr("Can't undo past creating a chapter"),
-                  isAtEnd ? QHash<QString, QString>{}
-                          : QHash<QString, QString>{{sceneS.sceneID, headText}, {firstSceneID, tailText}});
-
-    // The scene that will carry the caret afterward: mid-scene → K0 (holds the tail);
-    // end-of-scene with followers → the first follower; end-of-scene without followers
-    // → K0 (the new empty chapter).
-    QString caretSceneID = firstSceneID;
-
-    // A split step failed → stop and report rather than silently continuing into a
-    // half-applied, corrupt on-disk state (the class of failure behind I-0074).
-    auto failSplit = [&](const QString& step) {
-        qWarning().noquote() << "Chapter split aborted at step:" << step;
-        QMessageBox::warning(this, tr("Split Failed"),
-            tr("The chapter split could not be completed (%1). The manuscript may be in a "
-               "partially-changed state; reopen the project to let it self-repair.").arg(step));
-    };
-
-    // 2. Mid-scene split: head stays in S, tail becomes K's first scene (K0). (End-of-scene
-    //    leaves K0 blank for the caret; no save needed.)
-    if (!isAtEnd) {
-        const SceneSegment& sHead = sceneDoc_.segments().at(segS);
-        const QVariantMap headR =
-            bridge_->saveScene(projectID_, projectPath_, appSupportRoot_,
-                               sceneS.sceneID, sHead.metadataPath, sHead.contentPath,
-                               headText, 0, 0, 0.0);
-        if (headR.isEmpty()) { failSplit(tr("saving the current scene")); return; }
-        notePersisted(sceneS.sceneID, headText);
-        const QVariantMap tailR =
-            bridge_->saveScene(projectID_, projectPath_, appSupportRoot_,
-                               firstSceneID, k0MetadataPath, k0ContentPath,
-                               tailText, 0, 0, 0.0);
-        if (tailR.isEmpty()) { failSplit(tr("writing the new chapter's first scene")); return; }
-        notePersisted(firstSceneID, tailText);
+    if (idx == 0 || sceneDoc_.segments().at(idx - 1).chapterID != seg.chapterID) {
+        return;
     }
-
-    // 3. Followers move into K after K0, in order (runs in every case — mid-scene AND
-    //    end-of-scene). reorderScene resolves chapters/scenes BY ID, so it is immune to any
-    //    folder naming. K0 is NEVER deleted — at end-of-scene with no followers it is the
-    //    blank scene the writer types into.
-    QString afterID = firstSceneID;
-    for (const QString& f : followers) {
-        const QVariantMap rr =
-            bridge_->reorderScene(projectPath_, f, chapterC, newChapterID, afterID);
-        if (rr.isEmpty() || !rr.value(QStringLiteral("reordered")).toBool()) {
-            failSplit(tr("moving a following scene into the new chapter"));
-            // Still reload so the UI reflects whatever DID persist, then bail.
-            const QString t = findChild<QLabel*>(QStringLiteral("editorTitle")) != nullptr
-                ? findChild<QLabel*>(QStringLiteral("editorTitle"))->text() : QString();
-            load(projectPath_, appSupportRoot_, t);
-            return;
-        }
-        afterID = f;
+    QJsonArray run;
+    for (int i = idx; i < sceneDoc_.segments().size() && sceneDoc_.segments().at(i).chapterID == seg.chapterID; ++i) {
+        run.append(rangeEntry(sceneDoc_.segments().at(i)));
     }
-    if (isAtEnd && !followers.isEmpty()) {
-        caretSceneID = followers.first();
-    }
-
-    // 4. Re-read authoritative disk state (the split touched multiple scenes + chapters)
-    //    so sceneDoc_ matches the new manuscript order. A full reload keeps disk as the
-    //    source of truth; the split is a rare, heavy structural op.
-    // ⛔ [I-0300]: steps 5 and 6 ran straight after `load()`, which is ASYNCHRONOUS — on the OLD document. The new chapter's
-    //    scene was not in it, so the caret never moved (and the reload put it back in the old chapter), and the renumber
-    //    read the pre-split order. Both now run when the reload has finished.
-    reloadThen([this, caretSceneID] {
-        // 5. Renumber created ("Chapter N") chapters whose ordinal shifted (I-0063), NOW that
-        //    sceneDoc_ reflects the post-split order. If any sidecar changed, re-derive the
-        //    live labels/headings so the navigator matches disk without another full reload.
-        if (renumberCreatedChapters()) {
-            applyDerivedLabels();
-            rebuildNavigator();
-        }
-        // 6. The caret goes into the new chapter (or the first scene that followed).
-        placeCaret(caretSceneID, 0);
-    });
+    relabel(rangeJsonOf(run), QString(), seg.sceneID, tr("Splitting the chapter…"));
 }
 
 void EditorShell::onMergeSceneRequested()
 {
-    // Resolve the caret's scene. A merge needs a valid host with a predecessor.
+    // ⌃⌫ at a scene's very start: merge it into the scene before (same chapter only). ✅ [SP-191] Q3e: a CUT of the
+    // zero-length range across the break — the texts join DIRECTLY (Q3a: no blank line), the removed scene's sidecar
+    // travels in the Range (Q3b), and Undo puts the break back exactly. Apple: `handleMergeScene`.
     const int caretPos = viewport_->textCursor().position();
-    int segIdx = sceneDoc_.sceneIndexForCaret(caretPos);
-    if (segIdx < 0) {
-        segIdx = activeSegment_;
-    }
-    if (segIdx <= 0 || segIdx >= sceneDoc_.segments().size()) {
-        return;   // unknown, or the very first scene (nothing before it) — no-op
-    }
-
-    const SceneSegment current = sceneDoc_.segments().at(segIdx);        // copy
-    const SceneSegment predecessor = sceneDoc_.segments().at(segIdx - 1);
-
-    // Only fire at the VERY START of the scene's body (macOS parity: ⌘⌫ at position 0).
-    if (caretPos != current.bodyStart) {
+    const int idx = sceneDoc_.sceneIndexForCaret(caretPos);
+    if (loading_ || idx <= 0 || idx >= sceneDoc_.segments().size()) {
         return;
     }
-    // Only a SAME-CHAPTER scene merge here; a chapter's first scene is the chapter-merge
-    // gesture (Ctrl+Shift+Backspace), not this one.
-    if (current.chapterID != predecessor.chapterID) {
-        return;
+    const SceneSegment current = sceneDoc_.segments().at(idx);
+    const SceneSegment previous = sceneDoc_.segments().at(idx - 1);
+    if (caretPos != current.bodyStart || current.chapterID != previous.chapterID) {
+        return;   // only at the very start, and a chapter's first scene is the chapter merge's
     }
-
-    // Flush pending edits first — the endpoint joins the ON-DISK bodies, so both the
-    // current scene and the predecessor must be persisted before the merge.
-    saveDirtyScenes();
-
-    // Atomic same-chapter merge: current joins into predecessor (survivor keeps its
-    // files); current's files are removed. Replaces any saveScene(join)+deleteScene
-    // composition (EP-028 / SP-076).
-    const QVariantMap r = bridge_->mergeScene(projectPath_, current.sceneID);
-    if (r.isEmpty()) {
-        return;   // bridge already surfaced errorOccurred; leave the UI untouched
-    }
-    // Structural op — undo stops here (§4.5; Apple's kind and note). [I-0287]: AFTER the merge, with the survivor's
-    // joined text as the core wrote it — the reload below shows the editor exactly that text.
-    recordBarrier(QStringLiteral("sceneMerge"), tr("Can't undo past a scene merge"),
-                  {{predecessor.sceneID,
-                    bridge_->readSceneTexts(projectPath_, {predecessor.sceneID}).value(predecessor.sceneID)}});
-
-    // The merge rewrote disk (predecessor body grew, current scene's files gone). Disk
-    // is authoritative, so reload the document/map/navigator from it rather than
-    // hand-splicing — a merge is a rare structural op, so the reload cost is fine and it
-    // is provably in sync with disk (mirrors the reorder handlers' reload-on-drift path).
-    // ⛔ [I-0300]: what follows ran straight after `load()`, which is ASYNCHRONOUS — on the document it replaces. It now
-    // runs when the reload has finished.
-    reloadThen([this, predecessor] {
-        // Re-anchor on the survivor (its sceneID persists across the merge) and drop the caret
-        // at the JOIN SEAM — where the absorbed scene's text now begins inside the survivor
-        // (macOS parity: ⌘⌫ lands the caret at predecessor.length). The seam offset is the
-        // predecessor's ORIGINAL body length, captured before the merge (bodyLength), measured
-        // from the survivor's post-reload body start. If either side was empty the blank-line
-        // join is elided, but the seam still sits at the predecessor's original length, so this
-        // holds. Clamp to the survivor's new body just in case.
-        const int survivorSeg = sceneDoc_.sceneIndexForScene(predecessor.sceneID);
-        if (survivorSeg >= 0) {
-            const SceneSegment& survivor = sceneDoc_.segments().at(survivorSeg);
-            const int seam = qBound(survivor.bodyStart,
-                                    survivor.bodyStart + predecessor.bodyLength,
-                                    survivor.bodyStart + survivor.bodyLength);
-            // Place the caret at the seam WITHOUT re-centering the viewport. The merge happens
-            // at the boundary the writer was already looking at, so the seam is already on
-            // screen — do NOT call moveCaretToSegment (it centerCursor()s, which yanks the
-            // scroll and reads as a distracting "jump to the previous scene"). Just set the
-            // caret and let ensureCursorVisible scroll only if it actually fell off-screen.
-            activeSegment_ = survivorSeg;   // register the active scene without a scroll
-            programmaticViewportChange_ = true;
-            QTextCursor cursor(sceneDoc_.document());
-            cursor.setPosition(seam);
-            viewport_->setTextCursor(cursor);
-            viewport_->ensureCursorVisible();
-            programmaticViewportChange_ = false;
-            selectNavigatorScene(predecessor.sceneID);
-        }
-        viewport_->setFocus();
-    });
+    const qint64 prevBytes = byteLength(sceneDoc_.bodyText(idx - 1));
+    const QString rangeJson = rangeJsonOf(QJsonArray{rangeEntry(previous, prevBytes, prevBytes),
+                                                     rangeEntry(current, 0, byteLength(sceneDoc_.bodyText(idx)))});
+    cutRange(rangeJson, tr("Merging the scenes…"));
 }
 
 void EditorShell::onMergeChapterRequested()
 {
-    // Resolve the caret's scene. A chapter merge needs a chapter with a predecessor.
+    // ⌃⇧⌫ at a chapter's first scene: merge the chapter into the one before. ✅ [SP-191] Q3e: a RELABEL of its scenes into
+    // that chapter — on disk their files move; no text changes. Undo re-creates the chapter from its sidecar, which the
+    // result carries (Q3b). Every scene of the chapter joins the earlier one (Q3d). Apple: `handleMergeChapter`.
     const int caretPos = viewport_->textCursor().position();
-    int segIdx = sceneDoc_.sceneIndexForCaret(caretPos);
-    if (segIdx < 0) {
-        segIdx = activeSegment_;
-    }
-    if (segIdx <= 0 || segIdx >= sceneDoc_.segments().size()) {
-        return;   // unknown, or the first scene of the manuscript — no-op
-    }
-
-    const SceneSegment current = sceneDoc_.segments().at(segIdx);        // copy
-    const SceneSegment predecessor = sceneDoc_.segments().at(segIdx - 1);
-
-    // Only fire at the VERY START of the scene's body (macOS parity: ⇧⌘⌫ at position 0).
-    if (caretPos != current.bodyStart) {
+    const int idx = sceneDoc_.sceneIndexForCaret(caretPos);
+    if (loading_ || idx <= 0 || idx >= sceneDoc_.segments().size()) {
         return;
     }
-    // Must be a chapter boundary (the predecessor is in a different chapter)...
-    if (current.chapterID == predecessor.chapterID) {
+    const SceneSegment current = sceneDoc_.segments().at(idx);
+    const QString previous = sceneDoc_.segments().at(idx - 1).chapterID;
+    if (caretPos != current.bodyStart || current.chapterID == previous) {
         return;
     }
-    // ...and the caret must be at the chapter's FIRST scene (segIdx is the first segment
-    // whose chapterID matches — guaranteed here because the predecessor differs, but keep
-    // the explicit check to mirror macOS and guard against map anomalies).
-    if (sceneDoc_.firstSegmentOfChapter(current.chapterID) != segIdx) {
-        return;
+    QJsonArray run;
+    for (int i = idx; i < sceneDoc_.segments().size() && sceneDoc_.segments().at(i).chapterID == current.chapterID; ++i) {
+        run.append(rangeEntry(sceneDoc_.segments().at(i)));
     }
+    relabel(rangeJsonOf(run), previous, current.sceneID, tr("Merging the chapters…"));
+}
 
-    // Flush pending edits before the relocation rewrites the chapter's files.
-    saveDirtyScenes();
-    // Structural op — undo stops here (§4.5; Apple's kind and note). No scene texts: the relocation moves files and
-    // keeps every scene's ID and text ([I-0287] concerns only ops that rewrite text).
-    recordBarrier(QStringLiteral("chapterMerge"), tr("Can't undo past a chapter merge"));
+void EditorShell::cutRange(const QString& rangeJson, const QString& label)
+{
+    const QString root = projectPath_, name = bridge_->displayName();
+    runRangeEdit(
+        label,
+        [=](ScriviBridge& bridge) { return bridge.rangeCut(root, rangeJson, name); },
+        [](const QVariantMap& r) {
+            return QJsonObject{{QStringLiteral("op"), QStringLiteral("rangeCut")},
+                               {QStringLiteral("caretSceneID"), r.value(QStringLiteral("undoCaretSceneID")).toString()},
+                               {QStringLiteral("caretByte"), r.value(QStringLiteral("undoCaretByte")).toLongLong()},
+                               {QStringLiteral("rangeJSON"), rangeJsonOf(r)}};
+        },
+        [](const QVariantMap& r) -> std::pair<QString, qint64> {
+            return {r.value(QStringLiteral("undoCaretSceneID")).toString(), r.value(QStringLiteral("undoCaretByte")).toLongLong()};
+        });
+}
 
-    // Atomic whole-chapter merge: RELOCATE every scene of the current chapter into the
-    // predecessor's folder, then remove the emptied chapter (the I-0083 fix — no scene
-    // loss on reopen). Not composed from deleteChapter.
-    const QVariantMap r = bridge_->mergeChapter(projectPath_, current.chapterID);
-    if (r.isEmpty()) {
-        return;   // bridge already surfaced errorOccurred; leave the UI untouched
-    }
-
-    // The relocation minted new order-key filenames for every moved scene and removed the
-    // old chapter folder — disk is authoritative and every captured path is stale (the
-    // I-0081 class). Reload from disk so the document/map/navigator match exactly.
-    // Re-anchor on the merged chapter's (former) first scene — its sceneID survives the
-    // relocation — now sitting inside the predecessor chapter. ⛔ [I-0300]: once the (asynchronous) reload has finished.
-    reloadThen([this, sceneID = current.sceneID] {
-        const int caretSeg = sceneDoc_.sceneIndexForScene(sceneID);
-        if (caretSeg >= 0) {
-            activeSegment_ = -1;
-            moveCaretToSegment(caretSeg);
-            selectNavigatorScene(sceneID);
-        }
-        viewport_->setFocus();
-    });
+void EditorShell::relabel(const QString& rangeJson, const QString& target, const QString& keepCaretIn, const QString& label)
+{
+    const QString root = projectPath_, name = bridge_->displayName();
+    runRangeEdit(
+        label,
+        [=](ScriviBridge& bridge) { return bridge.rangeRelabel(root, rangeJson, target, name); },
+        [](const QVariantMap& r) {
+            const QVariantList scenes = rangeScenes(r);
+            return QJsonObject{{QStringLiteral("op"), QStringLiteral("rangeRelabel")},
+                               {QStringLiteral("rangeJSON"), rangeJsonOf(r)},
+                               {QStringLiteral("fromChapterID"), r.value(QStringLiteral("fromChapterID")).toString()},
+                               {QStringLiteral("targetChapterID"),
+                                scenes.isEmpty() ? QString() : scenes.first().toMap().value(QStringLiteral("chapterID")).toString()}};
+        },
+        [keepCaretIn](const QVariantMap&) -> std::pair<QString, qint64> { return {keepCaretIn, 0}; });
 }
 
 // --- SP-077 menu-bar triggers (T-0310/T-0311) --------------------------------
@@ -2436,9 +2349,9 @@ void EditorShell::copyIntoBuffer(const QString& bufferID)
         return;
     }
     // Copy is not a text change: no history event (Trade T3), and the system clipboard is untouched.
-    // ✅ EP-026 S4: across scenes the slot holds the fragment too, so its paste rebuilds the scene breaks.
+    // ✅ EP-026 S4: across scenes the slot holds the Range too ([SP-191] Q4a), so its paste rebuilds the scene breaks.
     if (const auto cross = viewport_->crossSceneCopy()) {
-        buffers_->load(cross->fragment.value(QStringLiteral("plainText")).toString(), bufferID, cross->fragment);
+        buffers_->load(cross->source, bufferID, cross->range);
         return;
     }
     const QString source = viewport_->selectionSource();
@@ -2453,8 +2366,8 @@ void EditorShell::cutIntoBuffer(const QString& bufferID)
         return;
     }
     viewport_->setFocus();   // a palette click must not leave the editor unfocused (Apple: `makeFirstResponder`)
-    viewport_->cutSelectionIntoBuffer(bufferID, [this, bufferID](const QString& source, const QJsonObject& fragment) {
-        return buffers_->load(source, bufferID, fragment);
+    viewport_->cutSelectionIntoBuffer(bufferID, [this, bufferID](const QString& source, const QJsonObject& range) {
+        return buffers_->load(source, bufferID, range);
     });
 }
 
@@ -2468,9 +2381,9 @@ void EditorShell::pasteFromBuffer(const QString& bufferID)
         return;   // an empty slot → silent no-op (Apple)
     }
     viewport_->setFocus();
-    // ✅ EP-026 S4: a slot holding scenes — copied here or on the Mac — rebuilds them (Apple: `pasteStructuredFragment`).
-    if (const QJsonObject fragment = buffers_->fragment(bufferID); !fragment.isEmpty()) {
-        pasteFragment(fragment);
+    // ✅ EP-026 S4: a slot holding scenes — copied here or on the Mac — rebuilds them (Apple: `pasteStructuredRange`).
+    if (const QJsonObject range = buffers_->range(bufferID); !range.isEmpty()) {
+        pasteRange(range);
         return;
     }
     viewport_->pasteStored(text);
@@ -2478,23 +2391,14 @@ void EditorShell::pasteFromBuffer(const QString& bufferID)
 
 // ── EP-026 S4 (SP-180 / T-0607): structured paste — Apple's `pasteStructuredFragment` and `applyStructuralInverse` ───
 
-namespace {
-QStringList stringsOf(const QVariant& v) { return v.toStringList(); }
-QJsonArray arrayOf(const QStringList& l) { return QJsonArray::fromStringList(l); }
-QHash<QString, QString> textsOf(const QVariantMap& m)
-{
-    QHash<QString, QString> out;
-    for (auto it = m.cbegin(); it != m.cend(); ++it) {
-        out.insert(it.key(), it.value().toString());
-    }
-    return out;
-}
-}   // namespace
 
-void EditorShell::pasteFragment(const QJsonObject& fragmentIn)
+void EditorShell::pasteRange(const QJsonObject& rangeIn)
 {
-    const Span span("structured paste (main thread)");
-    if (loading_ || projectPath_.isEmpty() || fragmentIn.value(QStringLiteral("pieces")).toArray().isEmpty()) {
+    // ⌃V of a cross-scene copy, and ⌃⇧N of a slot holding one. Apple: `pasteStructuredRange`. ✅ [SP-191]: ONE
+    // `rangePaste` off the GUI thread, the delta applied, no reload; Undo cuts exactly what it inserted. ✅ Q7: at a scene's
+    // very start the pasted scenes go before it and the last part joins its start. The caret lands at the end of the block.
+    const Span span("structured paste");
+    if (loading_ || projectPath_.isEmpty() || rangeIn.value(QStringLiteral("scenes")).toArray().isEmpty()) {
         return;
     }
     viewport_->setFocus();
@@ -2510,117 +2414,188 @@ void EditorShell::pasteFragment(const QJsonObject& fragmentIn)
         QApplication::beep();
         return;
     }
-    const SceneSegment seg = sceneDoc_.segments().at(idx);   // copy: the reload replaces the map
-    const QString before = sceneDoc_.bodyText(idx);
-    const int caretChar = std::clamp(pos - seg.bodyStart, 0, int(before.size()));
-    const qint64 caretByte = before.left(caretChar).toUtf8().size();
-
-    flushHistory();      // the removal and any typing are their own steps, before the paste
-    saveDirtyScenes();   // ✅ [I-0294]: the core pastes into the scene AS SAVED, and the reload replaces every scene
+    const SceneSegment seg = sceneDoc_.segments().at(idx);
+    const QString text = sceneDoc_.bodyText(idx);
+    const int caretChar = std::clamp(pos - seg.bodyStart, 0, int(text.size()));
+    const qint64 caretByte = byteLength(text.left(caretChar));
 
     // ✅ [T-0591]: pasting INSIDE a span — the first piece closes it, the last re-opens it for the text after the split;
     // the pasted text keeps its own formatting ([SP-163]).
-    QJsonObject fragment = fragmentIn;
-    QJsonArray pieces = fragment.value(QStringLiteral("pieces")).toArray();
+    QJsonObject range = rangeIn;
+    QJsonArray entries = range.value(QStringLiteral("scenes")).toArray();
     QStringList texts;
-    for (const QJsonValue& p : std::as_const(pieces)) {
-        texts.append(p.toObject().value(QStringLiteral("text")).toString());
+    for (const QJsonValue& e : std::as_const(entries)) {
+        texts.append(e.toObject().value(QStringLiteral("text")).toString());
     }
     const QStringList balanced =
-        ScriviBridge::markdownBalancePastePieces(texts, ScriviBridge::markdownStyleAtCaret(before, caretChar));
+        ScriviBridge::markdownBalancePastePieces(texts, ScriviBridge::markdownStyleAtCaret(text, caretChar));
     if (balanced != texts) {
-        for (int k = 0; k < pieces.size(); ++k) {
-            QJsonObject piece = pieces.at(k).toObject();
-            piece.insert(QStringLiteral("text"), balanced.at(k));
-            pieces.replace(k, piece);
+        for (int k = 0; k < entries.size(); ++k) {
+            QJsonObject e = entries.at(k).toObject();
+            e.insert(QStringLiteral("text"), balanced.at(k));
+            entries.replace(k, e);
         }
-        fragment.insert(QStringLiteral("pieces"), pieces);
-        fragment.insert(QStringLiteral("plainText"), balanced.join(QStringLiteral("\n\n")));
+        range.insert(QStringLiteral("scenes"), entries);
+        range = ManuscriptEditor::normalizedRange(range);
     }
-    const QString fragmentJson = QString::fromUtf8(QJsonDocument(fragment).toJson(QJsonDocument::Compact));
+    const QString rangeJson = QString::fromUtf8(QJsonDocument(range).toJson(QJsonDocument::Compact));
+    pasteRangeAt(rangeJson, seg.sceneID, caretByte, text, tr("Pasting…"), /*records=*/true, {});
+}
 
-    // ✅ [I-0297]: the core's work OFF the UI thread, with the progress row (on the worker's own bridge, [I-0309]).
-    const QString root = projectPath_, appSupport = appSupportRoot_, project = projectID_, name = bridge_->displayName();
-    const QString targetScene = seg.sceneID;
-    runStructural(
-        tr("Pasting…"),
-        [=](ScriviBridge& bridge) { return bridge.fragmentPaste(root, appSupport, project, fragmentJson, targetScene, caretByte, name); },
-        [this, fragmentJson, caretByte, targetScene, before](const QVariantMap& r) {
-            const QString target = r.value(QStringLiteral("targetSceneID")).toString();
-            const QStringList createdScenes = stringsOf(r.value(QStringLiteral("createdSceneIDs")));
-            const QStringList createdChapters = stringsOf(r.value(QStringLiteral("createdChapterIDs")));
-
-            // ONE reversible structural step (T-0356 / AC6) with Apple's payload, field for field — so the Mac undoes it
-            // too — and ✅ [I-0293] the texts on both sides of it: what the paste left and the target before.
-            // ✅ [I-0297]: the core hands back what it wrote — re-reading it rebuilt the scene index (a walk of every scene).
-            const QJsonObject payload{{QStringLiteral("op"), QStringLiteral("structuredPaste")},
-                                      {QStringLiteral("fragmentJSON"), fragmentJson},
-                                      {QStringLiteral("caretSceneID"), target},
-                                      {QStringLiteral("caretByte"), caretByte},
-                                      {QStringLiteral("createdSceneIDs"), arrayOf(createdScenes)},
-                                      {QStringLiteral("createdChapterIDs"), arrayOf(createdChapters)},
-                                      {QStringLiteral("removedSceneIDs"), QJsonArray()},
-                                      {QStringLiteral("removedChapterIDs"), QJsonArray()}};
-            if (history_ != nullptr) {
-                history_->recordBarrier(QStringLiteral("structuredPaste"), tr("Can't undo past a cross-boundary paste"),
-                                        textsOf(r.value(QStringLiteral("sceneTexts")).toMap()), payload,
-                                        {{targetScene, before}});
-            }
-            reloadThenPlaceCaret(target, caretByte, r.value(QStringLiteral("sceneTexts")).toMap());
+bool EditorShell::pasteRangeAt(const QString& rangeJson, const QString& caretScene, qint64 caretByte, const QString& caretText,
+                               const QString& label, bool records, std::function<void()> failed,
+                               std::function<void(const QVariantMap&)> inserted)
+{
+    const QString root = projectPath_, name = bridge_->displayName();
+    return runRangeEdit(
+        label,
+        [=](ScriviBridge& bridge) { return bridge.rangePaste(root, rangeJson, caretScene, caretByte, caretText, name); },
+        records ? RangeNode([=](const QVariantMap& r) {
+                      return QJsonObject{{QStringLiteral("op"), QStringLiteral("rangePaste")},
+                                         {QStringLiteral("caretSceneID"), caretScene}, {QStringLiteral("caretByte"), caretByte},
+                                         {QStringLiteral("rangeJSON"), rangeJsonOf(r)}};
+                  })
+                : RangeNode(),
+        [inserted](const QVariantMap& r) -> std::pair<QString, qint64> {
+            if (inserted) { inserted(r); }
+            const QVariantList scenes = rangeScenes(r);   // the end of what it put in
+            if (scenes.isEmpty()) { return {}; }
+            const QVariantMap last = scenes.last().toMap();
+            return {last.value(QStringLiteral("sceneID")).toString(),
+                    last.value(QStringLiteral("start")).toLongLong() + last.value(QStringLiteral("length")).toLongLong()};
         },
-        [] {});   // failed: the bridge surfaced it, and nothing changed on disk
+        std::move(failed));
 }
 
 void EditorShell::applyStructuralInverse(const QVariantMap& inverse, bool isUndo)
 {
-    const QString direction = inverse.value(QStringLiteral("direction")).toString();
+    // ✅ [SP-191] Undo and redo of a structural node: the inverse range call, through the same off-thread path as the edit
+    // — the delta applied, nothing re-read. Each node holds the ONE Range both directions use (Apple:
+    // `applyStructuralInverse`, field for field):
+    //   rangePaste    undo = cut what it inserted                          redo = paste that again at its caret
+    //   rangeCut      undo = paste what it removed at the survivor's seam   redo = cut that again
+    //   rangeRelabel  undo = relabel the run back into the chapter it left  redo = into the chapter it went to
+    // ✅ [SP-187] Q2: a node written before SP-191 (`structuredPaste` / `structuredCut`, a scrivi.fragment.v1) is CONVERTED
+    // to a Range and takes the same path. ⚠️ An inverse the core refuses steps the history back, so the pointer never says
+    // the manuscript is somewhere it is not.
     const QVariantMap p = inverse.value(QStringLiteral("payload")).toMap();
     const QString op = p.value(QStringLiteral("op")).toString();
-    const QString fragmentJson = p.value(QStringLiteral("fragmentJSON")).toString();
+    const bool undo = inverse.value(QStringLiteral("direction")).toString() == QStringLiteral("undo");
     const QString caretScene = p.value(QStringLiteral("caretSceneID")).toString();
     const qint64 caretByte = p.value(QStringLiteral("caretByte")).toLongLong();
-    const QString key = QStringLiteral("%1|%2|%3|%4").arg(op, caretScene, QString::number(caretByte), fragmentJson);
-    // Does this direction re-INSERT the fragment (a paste) or REMOVE it (an uncut)?
-    const bool isPaste = (op == QStringLiteral("structuredCut") && direction == QStringLiteral("undo"))
-                         || (op == QStringLiteral("structuredPaste") && direction == QStringLiteral("redo"));
-    const auto failed = [this, isUndo] {
-        historyNotice(this, isUndo ? tr("This cross-scene step could not be undone.")
-                                   : tr("This cross-scene step could not be redone."));
+    const QString label = isUndo ? tr("Undoing…") : tr("Redoing…");
+    const auto stepBack = [this, undo] {
+        if (history_ != nullptr) { undo ? history_->redo() : history_->undo(); }
+        historyNotice(this, undo ? tr("This step could not be undone.") : tr("This step could not be redone."));
     };
-    viewport_->removePendingPair();
-    saveDirtyScenes();   // the inverse reads the scenes AS SAVED
+    const auto textOf = [this](const QString& sceneID) {
+        const int idx = sceneDoc_.sceneIndexForScene(sceneID);
+        return idx < 0 ? QString() : sceneDoc_.bodyText(idx);
+    };
+    const QString root = projectPath_, name = bridge_->displayName();
+    const auto cutInverse = [&](const QString& rangeJson) {
+        if (!runRangeEdit(
+                label, [=](ScriviBridge& bridge) { return bridge.rangeCut(root, rangeJson, name); }, RangeNode(),
+                [](const QVariantMap& r) -> std::pair<QString, qint64> {
+                    return {r.value(QStringLiteral("undoCaretSceneID")).toString(),
+                            r.value(QStringLiteral("undoCaretByte")).toLongLong()};
+                },
+                stepBack)) {
+            stepBack();
+        }
+    };
+    const auto pasteInverse = [&](const QString& rangeJson, std::function<void(const QVariantMap&)> inserted = {}) {
+        if (sceneDoc_.sceneIndexForScene(caretScene) < 0) { stepBack(); return; }
+        if (!pasteRangeAt(rangeJson, caretScene, caretByte, textOf(caretScene), label, /*records=*/false, stepBack,
+                          std::move(inserted))) {
+            stepBack();
+        }
+    };
 
-    const QString root = projectPath_, appSupport = appSupportRoot_, project = projectID_, name = bridge_->displayName();
-    if (isPaste) {
-        runStructural(
-            isUndo ? tr("Undoing…") : tr("Redoing…"),
-            [=](ScriviBridge& bridge) { return bridge.fragmentPaste(root, appSupport, project, fragmentJson, caretScene, caretByte, name); },
-            [this, key, caretByte](const QVariantMap& r) {
-                // What this re-paste created, so the matching uncut removes it.
-                structuralRedoCreated_.insert(key, {stringsOf(r.value(QStringLiteral("createdSceneIDs"))),
-                                                    stringsOf(r.value(QStringLiteral("createdChapterIDs")))});
-                reloadThenPlaceCaret(r.value(QStringLiteral("targetSceneID")).toString(), caretByte,
-                                     r.value(QStringLiteral("sceneTexts")).toMap());
-            },
-            failed);
+    if (op == QStringLiteral("rangePaste") || op == QStringLiteral("rangeCut")) {
+        const QString rangeJson = p.value(QStringLiteral("rangeJSON")).toString();
+        if ((op == QStringLiteral("rangePaste")) == undo) { cutInverse(rangeJson); } else { pasteInverse(rangeJson); }
         return;
     }
-    // Uncut: an undo-paste removes what the paste created (in the payload); a redo-cut what the undo-cut re-pasted.
-    const auto cached = structuralRedoCreated_.take(key);
-    const QStringList scenes = cached.first.isEmpty() && cached.second.isEmpty()
-                                   ? stringsOf(p.value(QStringLiteral("createdSceneIDs"))) : cached.first;
-    const QStringList chapters = cached.first.isEmpty() && cached.second.isEmpty()
-                                     ? stringsOf(p.value(QStringLiteral("createdChapterIDs"))) : cached.second;
-    const QJsonObject created{{QStringLiteral("sceneIDs"), arrayOf(scenes)}, {QStringLiteral("chapterIDs"), arrayOf(chapters)}};
-    const QString createdJson = QString::fromUtf8(QJsonDocument(created).toJson(QJsonDocument::Compact));
-    runStructural(
-        isUndo ? tr("Undoing…") : tr("Redoing…"),
-        [=](ScriviBridge& bridge) { return bridge.fragmentUncutPaste(root, fragmentJson, caretScene, createdJson); },
-        [this, caretByte](const QVariantMap& r) {
-            reloadThenPlaceCaret(r.value(QStringLiteral("survivingSceneID")).toString(), caretByte,
-                                 r.value(QStringLiteral("sceneTexts")).toMap());
-        },
-        failed);
+    if (op == QStringLiteral("rangeRelabel")) {
+        const QString rangeJson = p.value(QStringLiteral("rangeJSON")).toString();
+        const QString target = p.value(undo ? QStringLiteral("fromChapterID") : QStringLiteral("targetChapterID")).toString();
+        const int caretIdx = sceneDoc_.sceneIndexForCaret(viewport_->textCursor().position());
+        const QString keep = caretIdx >= 0 ? sceneDoc_.segments().at(caretIdx).sceneID : QString();
+        if (!runRangeEdit(
+                label, [=](ScriviBridge& bridge) { return bridge.rangeRelabel(root, rangeJson, target, name); }, RangeNode(),
+                [keep](const QVariantMap&) -> std::pair<QString, qint64> { return {keep, 0}; }, stepBack)) {
+            stepBack();
+        }
+        return;
+    }
+    const QJsonObject fragment = QJsonDocument::fromJson(p.value(QStringLiteral("fragmentJSON")).toString().toUtf8()).object();
+    const QJsonArray pieces = fragment.value(QStringLiteral("pieces")).toArray();
+    if (op == QStringLiteral("structuredPaste")) {
+        // What it inserted: the fragment's pieces under the target and the scenes and chapters it created.
+        const QStringList created = p.value(QStringLiteral("createdSceneIDs")).toStringList();
+        const QStringList createdChapters = p.value(QStringLiteral("createdChapterIDs")).toStringList();
+        if (pieces.isEmpty() || pieces.size() != created.size() + 1) { stepBack(); return; }
+        const int caretIdx = sceneDoc_.sceneIndexForScene(caretScene);
+        QString chapter = caretIdx >= 0 ? sceneDoc_.segments().at(caretIdx).chapterID : QString();
+        qsizetype nextChapter = 0;
+        QJsonArray entries;
+        for (qsizetype i = 0; i < pieces.size(); ++i) {
+            const QJsonObject piece = pieces.at(i).toObject();
+            const QString id = i == 0 ? caretScene : created.at(i - 1);
+            if (piece.value(QStringLiteral("opensWith")).toString() == QStringLiteral("chapter")) {
+                chapter = createdChapters.value(nextChapter++);
+            }
+            const QString pieceText = piece.value(QStringLiteral("text")).toString();
+            const qint64 start = i == 0 ? caretByte : 0;
+            const int at = sceneDoc_.sceneIndexForScene(id);
+            entries.append(QJsonObject{{QStringLiteral("sceneID"), id},
+                                       {QStringLiteral("chapterID"), at >= 0 ? sceneDoc_.segments().at(at).chapterID : chapter},
+                                       {QStringLiteral("chapterTitle"), piece.value(QStringLiteral("chapterTitle")).toString()},
+                                       {QStringLiteral("sceneTitle"), piece.value(QStringLiteral("sceneTitle")).toString()},
+                                       {QStringLiteral("start"), start}, {QStringLiteral("length"), byteLength(pieceText)},
+                                       {QStringLiteral("sceneLength"), at >= 0 ? byteLength(textOf(id)) : start + byteLength(pieceText)},
+                                       {QStringLiteral("text"), pieceText}});
+        }
+        if (undo) {
+            cutInverse(rangeJsonOf(entries));
+        } else {
+            const QJsonObject normal = ManuscriptEditor::normalizedRange(
+                QJsonObject{{QStringLiteral("schema"), QStringLiteral("scrivi.range.v1")}, {QStringLiteral("scenes"), entries}});
+            pasteInverse(QString::fromUtf8(QJsonDocument(normal).toJson(QJsonDocument::Compact)));
+        }
+        return;
+    }
+    if (op == QStringLiteral("structuredCut")) {
+        // The collapsing cut (retired by [I-0270]): its undo pastes the fragment back at the survivor; its redo cuts what
+        // that paste inserted, remembered for this window's session.
+        const QString key = QStringLiteral("%1|%2|%3").arg(caretScene, QString::number(caretByte),
+                                                           p.value(QStringLiteral("fragmentJSON")).toString());
+        if (undo) {
+            if (pieces.isEmpty()) { stepBack(); return; }
+            QJsonArray entries;
+            int chapter = 0;
+            for (const QJsonValue& v : pieces) {
+                const QJsonObject piece = v.toObject();
+                if (piece.value(QStringLiteral("opensWith")).toString() == QStringLiteral("chapter")) { ++chapter; }
+                const QString pieceText = piece.value(QStringLiteral("text")).toString();
+                entries.append(QJsonObject{{QStringLiteral("sceneID"), QString()},
+                                           {QStringLiteral("chapterID"), QStringLiteral("~fragment-chapter-%1").arg(chapter)},
+                                           {QStringLiteral("chapterTitle"), piece.value(QStringLiteral("chapterTitle")).toString()},
+                                           {QStringLiteral("sceneTitle"), piece.value(QStringLiteral("sceneTitle")).toString()},
+                                           {QStringLiteral("start"), 0}, {QStringLiteral("length"), byteLength(pieceText)},
+                                           {QStringLiteral("sceneLength"), byteLength(pieceText)},
+                                           {QStringLiteral("text"), pieceText}});
+            }
+            pasteInverse(rangeJsonOf(entries), [this, key](const QVariantMap& r) { oldCutRedo_.insert(key, rangeJsonOf(r)); });
+        } else if (const QString inserted = oldCutRedo_.take(key); !inserted.isEmpty()) {
+            cutInverse(inserted);
+        } else {
+            stepBack();
+        }
+        return;
+    }
+    stepBack();
 }
 
 void EditorShell::beginGroupedEdit()
@@ -2917,98 +2892,6 @@ void EditorShell::saveScenesOffMain(const QList<int>& indices, std::function<voi
         kProjectOpenTimeoutMs);
 }
 
-void EditorShell::runStructural(const QString& label, std::function<QVariantMap(ScriviBridge&)> work,
-                                std::function<void(const QVariantMap&)> then, std::function<void()> failed)
-{
-    loading_ = true;                 // undo, redo and the buffer actions wait; nothing is reported to history meanwhile
-    viewport_->setReadOnly(true);    // the writer's typing would be lost to the reload that follows
-    if (progressBar_ != nullptr) {
-        progressBar_->setRange(0, 0);
-        progressLabel_->setText(label);
-    }
-    if (progressDelay_ != nullptr) { progressDelay_->start(); }
-    beginBackgroundWork();   // [I-0305]: a close waits for the worker's writes
-    DiagnosticLog::note(QStringLiteral("structural \"%1\": worker started").arg(label));
-    QElapsedTimer structuralClock;
-    structuralClock.start();
-    struct Outcome { QVariantMap result; bool failed = false; };
-    const WorkerBridge::Handle bridgeHandle = WorkerBridge::handleFor(bridge_);   // ✅ [I-0309]: never `bridge_` itself
-    const auto release = [this] {
-        hideLoadProgress();
-        loading_ = false;
-        viewport_->setReadOnly(false);
-    };
-    AsyncCall::run<Outcome>(
-        this,
-        // ⚠️ The WORKER: the C ABI only (`AsyncCall`'s rule). `lastCallFailed` is per thread, so it is read here.
-        [work = std::move(work), bridgeHandle]() -> Outcome {
-            WorkerBridge bridge(bridgeHandle);
-            Outcome o;
-            o.result = work(*bridge);
-            o.failed = bridge->lastCallFailed();
-            return o;
-        },
-        [this, release, then = std::move(then), failed, label, structuralClock](const Outcome& o) {
-            DiagnosticLog::note(QStringLiteral("structural \"%1\": worker finished in %2 ms%3")
-                                    .arg(label).arg(structuralClock.elapsed()).arg(o.failed ? QStringLiteral(" (FAILED)") : QString()));
-            hideLoadProgress();
-            if (o.failed) {
-                release();
-                if (failed) { failed(); }
-                endBackgroundWork();
-                return;
-            }
-            then(o.result);   // records history, then a reload — which lifts the guard when it lands
-            endBackgroundWork();   // the writes are done; the reload only reads (a close mid-load is T-0567's)
-        },
-        [this, release, label] {
-            DiagnosticLog::note(QStringLiteral("structural \"%1\": TIMED OUT").arg(label));
-            release();
-            errorLabel_->setText(tr("This change is taking longer than expected — the project may be on a disconnected or "
-                                    "unreachable volume. Reopen it before editing further."));
-            errorLabel_->show();
-            endBackgroundWork();
-        },
-        kProjectOpenTimeoutMs);
-}
-
-void EditorShell::reloadThenPlaceCaret(const QString& sceneID, qint64 byteOffset, const QVariantMap& writtenTexts)
-{
-    reloadThen([this, sceneID, byteOffset] { placeCaret(sceneID, byteOffset); }, writtenTexts);
-}
-
-void EditorShell::reloadThen(std::function<void()> after, const QVariantMap& writtenTexts)
-{
-    viewport_->removePendingPair();
-    reloadTexts_.clear();
-    if (!writtenTexts.isEmpty()) {
-        // ✅ [I-0297]: every scene the step did not write is as the editor holds it — saved, unless still dirty (then the
-        // disk is read, as before).
-        for (int i = 0; i < sceneDoc_.segments().size(); ++i) {
-            const QString& id = sceneDoc_.segments().at(i).sceneID;
-            if (!dirtyScenes_.contains(id)) {
-                reloadTexts_.insert(id, sceneDoc_.bodyText(i));
-            }
-        }
-        for (auto it = writtenTexts.cbegin(); it != writtenTexts.cend(); ++it) {
-            reloadTexts_.insert(it.key(), it.value().toString());
-        }
-    }
-    connect(this, &EditorShell::loadFinished, this, [this, after = std::move(after)](bool ok) {
-        // A structural step's guard ([I-0297], `runStructural`) ends with its reload — landed or not.
-        viewport_->setReadOnly(false);
-        if (!ok) {
-            loading_ = false;
-            return;
-        }
-        if (after) {
-            after();
-        }
-    }, Qt::SingleShotConnection);
-    const auto* title = findChild<QLabel*>(QStringLiteral("editorTitle"));
-    load(projectPath_, appSupportRoot_, title != nullptr ? title->text() : QString());
-}
-
 bool EditorShell::placeCaret(const QString& sceneID, qint64 byteOffset)
 {
     const int idx = sceneDoc_.sceneIndexForScene(sceneID);
@@ -3056,8 +2939,8 @@ void EditorShell::applyHistoryStep(const QVariantMap& step, bool isUndo)
         return;
     }
 
-    // ✅ EP-026 S4: a reversible structural node (a cross-scene paste — or EP-029's old collapsing cut, recorded on the
-    // Mac): its inverse runs on disk, then the manuscript reloads. ⛔ It replaces [SP-178] Q2's step-back-over stopgap.
+    // ✅ A reversible structural node — ✅ [SP-191] every split, merge and cross-scene paste, and the old nodes: its inverse
+    // range call runs off the GUI thread and the delta is applied (no reload).
     const QVariantMap inverse = step.value(QStringLiteral("structuralInverse")).toMap();
     if (!inverse.isEmpty()) {
         applyStructuralInverse(inverse, isUndo);

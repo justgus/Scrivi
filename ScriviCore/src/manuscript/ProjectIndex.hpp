@@ -171,6 +171,8 @@ public:
     //
     // `insertScenesAfter`: the scenes go IMMEDIATELY after `after`, in the order given, with the default story time.
     [[nodiscard]] bool insertScenesAfter(const SceneID& after, std::vector<SceneLocation> scenes);
+    // `insertScenesBefore`: the same, IMMEDIATELY before `before` (a paste at a scene's very start, [SP-191] Q7).
+    [[nodiscard]] bool insertScenesBefore(const SceneID& before, std::vector<SceneLocation> scenes);
     // `removeScenes`: the scenes leave the reading order (a cut).
     [[nodiscard]] bool removeScenes(const std::vector<SceneID>& sceneIDs);
     // `relocateScene`: the same scene at the same reading position, in a new chapter or under new paths (a scene a paste or

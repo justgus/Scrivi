@@ -2606,72 +2606,7 @@ const char* scrivi_rename_chapter(
     return heap(okEnvelope(std::move(doc)));
 }
 
-// ---- Merge (EP-028 SP-074) --------------------------------------------------
-
-const char* scrivi_merge_scene(
-    const char* projectRootPath,
-    const char* sceneID)
-{
-    SCRIVI_PROJECT_WRITE(projectRootPath);
-    // T-0550 (SP-150) — ✅ per-chapter rebuild instead of a whole-index drop.
-    // ⚠️ AC5b's contract is UNCHANGED: dropped on both sides by default, and the
-    // partial rebuild is attempted only after the write SUCCEEDED, with the chapter
-    // ids the core itself reported. See ChapterRebuildGuard.
-    ChapterRebuildGuard scriviIndexGuard{S(projectRootPath)};
-    scrivi::MergeSceneRequest req;
-    req.projectRootPath = S(projectRootPath);
-    req.sceneID         = scrivi::SceneID{S(sceneID)};
-
-    auto r = core().mergeScene(req);
-    if (!r.ok()) return heap(errorEnvelope(r.error()));
-
-    // ✅ Both scenes belonged to the SAME chapter (the result says so), so one
-    // chapter covers the merge.
-    (void)scriviIndexGuard.rebuildAfterWrite({r.value().chapterID});
-
-    const auto& v = r.value();
-    scrivi::util::JsonDoc doc;
-    doc.setString("survivorSceneID",      v.survivorSceneID.value);
-    doc.setString("mergedSceneID",        v.mergedSceneID.value);
-    doc.setString("chapterID",            v.chapterID.value);
-    doc.setString("survivorMetadataPath", v.survivorMetadataPath);
-    doc.setString("survivorContentPath",  v.survivorContentPath);
-    doc.setString("chapterMetadataPath",  v.chapterMetadataPath);
-    doc.setBool("merged",                 v.merged);
-    return heap(okEnvelope(std::move(doc)));
-}
-
-const char* scrivi_merge_chapter(
-    const char* projectRootPath,
-    const char* chapterID)
-{
-    SCRIVI_PROJECT_WRITE(projectRootPath);
-    // T-0550 (SP-150) — ✅ per-chapter rebuild instead of a whole-index drop.
-    // ⚠️ AC5b's contract is UNCHANGED: dropped on both sides by default, and the
-    // partial rebuild is attempted only after the write SUCCEEDED, with the chapter
-    // ids the core itself reported. See ChapterRebuildGuard.
-    ChapterRebuildGuard scriviIndexGuard{S(projectRootPath)};
-    scrivi::MergeChapterRequest req;
-    req.projectRootPath = S(projectRootPath);
-    req.chapterID       = scrivi::ChapterID{S(chapterID)};
-
-    auto r = core().mergeChapter(req);
-    if (!r.ok()) return heap(errorEnvelope(r.error()));
-
-    // ⚠️ Scenes RELOCATED out of the merged chapter into the survivor, so BOTH are
-    // named. ✅ The merged chapter is gone from disk and simply stops being listed.
-    (void)scriviIndexGuard.rebuildAfterWrite(
-        {r.value().survivorChapterID, r.value().mergedChapterID});
-
-    const auto& v = r.value();
-    scrivi::util::JsonDoc doc;
-    doc.setString("survivorChapterID",           v.survivorChapterID.value);
-    doc.setString("mergedChapterID",             v.mergedChapterID.value);
-    doc.setString("survivorChapterMetadataPath", v.survivorChapterMetadataPath);
-    doc.setInt("scenesRelocated",                v.scenesRelocated);
-    doc.setBool("merged",                        v.merged);
-    return heap(okEnvelope(std::move(doc)));
-}
+// ---- Merge — ⛔ RETIRED [SP-191] (Q3e): a cut of the break, and `scrivi_range_relabel` ---------------------------------
 
 // ---- Timeline (EP-016 SP-039) -----------------------------------------------
 
@@ -4719,6 +4654,11 @@ const char* rangeResultEnvelope(const std::string& root, RangeIndexGuard& guard,
     scrivi::util::JsonDoc doc;
     doc.setSubDoc("delta", deltaJson(r.delta));
     doc.setSubDoc("range", r.range.toJson());
+    if (!r.fromChapterID.value.empty()) { doc.setString("fromChapterID", r.fromChapterID.value); }
+    if (!r.undoCaretSceneID.value.empty()) {
+        doc.setString("undoCaretSceneID", r.undoCaretSceneID.value);
+        doc.setInt64("undoCaretByte", static_cast<int64_t>(r.undoCaretByte));
+    }
     return heap(okEnvelope(std::move(doc)));
 }
 
@@ -4811,6 +4751,33 @@ const char* scrivi_range_cut(const char* projectRootPath,
   });
 }
 
+const char* scrivi_range_relabel(const char* projectRootPath,
+                                 const char* rangeJson,
+                                 const char* targetChapterID,
+                                 const char* identityID,
+                                 const char* personaID,
+                                 const char* displayName) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
+    RangeIndexGuard indexGuard{S(projectRootPath)};
+  return guarded([&]() -> const char* {
+    const std::string root = S(projectRootPath);
+    if (root.empty())
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "projectRootPath is required"));
+    auto range = scrivi::manuscript::Range::fromJsonString(S(rangeJson));
+    if (!range.ok()) return heap(errorEnvelope(range.error()));
+    if (!indexGuard.index)
+        return heap(errorEnvelope(scrivi::ErrorCode::ioError, "the manuscript could not be read to find the range"));
+
+    auto services = abiServices();
+    services.sceneLocator = nullptr;
+    scrivi::manuscript::RangeOperations ops{services, root, *indexGuard.index};
+    auto r = ops.relabel(range.value(), scrivi::ChapterID{S(targetChapterID)},
+                         {scrivi::IdentityID{S(identityID)}, scrivi::PersonaID{S(personaID)}, S(displayName)});
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+    return rangeResultEnvelope(root, indexGuard, r.value());
+  });
+}
+
 // --- Copy buffers (EP-019 SP-056, T-0213) --------------------------------
 // Stateless read-modify-write of history/buffers.json — no registry, no
 // open/close pairing (unlike the history engine). Each call builds a BufferStore
@@ -4819,7 +4786,7 @@ const char* scrivi_range_cut(const char* projectRootPath,
 // terminates the process.
 
 const char* scrivi_buffers_load(const char* projectRootPath, const char* bufferID,
-                                const char* textUtf8, const char* fragmentJson) {
+                                const char* textUtf8, const char* rangeJson) {
     SCRIVI_PROJECT_WRITE(projectRootPath);
   return guarded([&]() -> const char* {
     const std::string root = S(projectRootPath);
@@ -4828,8 +4795,13 @@ const char* scrivi_buffers_load(const char* projectRootPath, const char* bufferI
                                   "projectRootPath is required"));
     auto& s = singleton();
     scrivi::history::BufferStore store(historyDirFor(root), &s.fileSystem, &s.clock);
-    // fragmentJson is optional ("" / NULL = plain-text slot, the SP-056 behaviour).
-    auto r = store.load(S(bufferID), S(textUtf8), S(fragmentJson), nowTimestamp());
+    // rangeJson is optional ("" / NULL = plain-text slot, the SP-056 behaviour). ✅ [SP-191] Q4a: when present it must
+    // be a scrivi.range.v1 — a slot never stores the old fragment shape.
+    if (!std::string(S(rangeJson)).empty()) {
+        auto range = scrivi::manuscript::Range::fromJsonString(S(rangeJson));
+        if (!range.ok()) return heap(errorEnvelope(range.error()));
+    }
+    auto r = store.load(S(bufferID), S(textUtf8), S(rangeJson), nowTimestamp());
     if (!r.ok()) return heap(errorEnvelope(r.error()));
     scrivi::util::JsonDoc doc;
     doc.setString("bufferID",  S(bufferID));
@@ -4856,10 +4828,10 @@ const char* scrivi_buffers_get(const char* projectRootPath, const char* bufferID
         doc.setString("text",      slot.text);
         doc.setString("updatedAt", slot.updatedAt);
         doc.setBool("present",     true);
-        // Structured fragment as a nested object when the slot carries one (T-0355 / AC4).
-        if (!slot.fragment.empty()) {
-            auto fragR = scrivi::util::parseJson(slot.fragment);
-            if (fragR.ok()) doc.setSubDoc("fragment", std::move(fragR.value()));
+        // The structured content as a nested scrivi.range.v1 object when the slot carries one.
+        if (!slot.range.empty()) {
+            auto rangeR = scrivi::util::parseJson(slot.range);
+            if (rangeR.ok()) doc.setSubDoc("range", std::move(rangeR.value()));
         }
     } else {
         doc.setString("bufferID",  S(bufferID));
@@ -4889,9 +4861,9 @@ const char* scrivi_buffers_list(const char* projectRootPath) {
         item.setString("bufferID",  slot.bufferID);
         item.setString("text",      slot.text);
         item.setString("updatedAt", slot.updatedAt);
-        if (!slot.fragment.empty()) {
-            auto fragR = scrivi::util::parseJson(slot.fragment);
-            if (fragR.ok()) item.setSubDoc("fragment", std::move(fragR.value()));
+        if (!slot.range.empty()) {
+            auto rangeR = scrivi::util::parseJson(slot.range);
+            if (rangeR.ok()) item.setSubDoc("range", std::move(rangeR.value()));
         }
         doc.appendToArray("buffers", std::move(item));
     }

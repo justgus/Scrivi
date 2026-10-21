@@ -82,36 +82,63 @@ TEST_CASE("C ABI buffers: load replaces an existing slot", "[BuffersCApi]") {
     REQUIRE(got.getString("text") == "second");
 }
 
-TEST_CASE("C ABI buffers: a structured fragment round-trips through a slot (T-0355)",
-          "[BuffersCApi][T-0355]") {
+TEST_CASE("C ABI buffers: a structured Range round-trips through a slot ([SP-191] Q4a)",
+          "[BuffersCApi][sp191]") {
     BuffersRoot root;
-    // A minimal scrivi.fragment.v1 object (shape not validated by the store — it is opaque
-    // structure the editor round-trips to fragmentPaste).
-    const char* frag =
-        R"({"schema":"scrivi.fragment.v1","plainText":"a\n\nb",)"
-        R"("pieces":[{"opensWith":"none","partial":"tail","text":"a"},)"
-        R"({"opensWith":"scene","text":"b"}]})";
+    const char* range =
+        R"({"schema":"scrivi.range.v1","scenes":[)"
+        R"({"sceneID":"s1","chapterID":"c1","chapterTitle":"","sceneTitle":"","start":2,"length":1,"sceneLength":3,"text":"a"},)"
+        R"({"sceneID":"s2","chapterID":"c1","chapterTitle":"","sceneTitle":"","start":0,"length":1,"sceneLength":4,"text":"b"}]})";
 
-    okResult(scrivi_buffers_load(root.c(), "3", "a\n\nb", frag));
+    okResult(scrivi_buffers_load(root.c(), "3", "a\n\nb", range));
 
     auto got = okResult(scrivi_buffers_get(root.c(), "3"));
     REQUIRE(got.getBool("present"));
     REQUIRE(got.getString("text") == "a\n\nb");
-    REQUIRE(got.contains("fragment"));                       // structured slot
-    auto fragDoc = got.getSubDoc("fragment");
-    REQUIRE(fragDoc.getString("schema") == "scrivi.fragment.v1");
-    REQUIRE(fragDoc.arraySize("pieces") == 2);
+    REQUIRE(got.contains("range"));                          // structured slot
+    auto rangeDoc = got.getSubDoc("range");
+    REQUIRE(rangeDoc.getString("schema") == "scrivi.range.v1");
+    REQUIRE(rangeDoc.arraySize("scenes") == 2);
 
-    // list() also carries the fragment.
+    // list() also carries the range.
     auto listed = okResult(scrivi_buffers_list(root.c()));
     REQUIRE(listed.arraySize("buffers") == 1);
-    REQUIRE(listed.arrayItem("buffers", 0).contains("fragment"));
+    REQUIRE(listed.arrayItem("buffers", 0).contains("range"));
 
-    // Re-loading PLAIN text into the same slot clears the fragment (load replaces both).
+    // Re-loading PLAIN text into the same slot clears the range (load replaces both).
     okResult(scrivi_buffers_load(root.c(), "3", "plain", ""));
     auto got2 = okResult(scrivi_buffers_get(root.c(), "3"));
     REQUIRE(got2.getString("text") == "plain");
-    REQUIRE_FALSE(got2.contains("fragment"));                // fragment gone
+    REQUIRE_FALSE(got2.contains("range"));                   // range gone
+}
+
+TEST_CASE("C ABI buffers: an old fragment is refused, and an old-style slot on disk reads as EMPTY ([SP-191] Q4a)",
+          "[BuffersCApi][sp191]") {
+    BuffersRoot root;
+    const char* frag =
+        R"({"schema":"scrivi.fragment.v1","plainText":"a\n\nb",)"
+        R"("pieces":[{"opensWith":"none","partial":"tail","text":"a"},{"opensWith":"scene","text":"b"}]})";
+    REQUIRE_FALSE(envelope(scrivi_buffers_load(root.c(), "3", "a\n\nb", frag)).getBool("ok"));
+    REQUIRE_FALSE(okResult(scrivi_buffers_get(root.c(), "3")).getBool("present"));
+
+    // A buffers file written before SP-191: slot 4 holds a fragment, slot 5 plain text.
+    okResult(scrivi_buffers_load(root.c(), "5", "kept", ""));
+    const std::filesystem::path file = std::filesystem::path(root.path) / "history" / "buffers.json";
+    std::ofstream(file, std::ios::binary)
+        << R"({"schema":"scrivi.buffers.v1","buffers":[)"
+        << R"({"bufferID":"4","text":"a\n\nb","updatedAt":"2026-10-01T00:00:00Z","fragment":)" << frag << "},"
+        << R"({"bufferID":"5","text":"kept","updatedAt":"2026-10-01T00:00:00Z"}]})";
+    REQUIRE_FALSE(okResult(scrivi_buffers_get(root.c(), "4")).getBool("present"));   // pretend it is empty
+    auto listed = okResult(scrivi_buffers_list(root.c()));
+    REQUIRE(listed.getInt("count") == 1);
+    REQUIRE(listed.arrayItem("buffers", 0).getString("bufferID") == "5");
+
+    // The next write drops it from disk.
+    okResult(scrivi_buffers_load(root.c(), "6", "new", ""));
+    std::ifstream in(file, std::ios::binary);
+    const std::string onDisk{std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>()};
+    REQUIRE(onDisk.find("fragment") == std::string::npos);
+    REQUIRE(onDisk.find("\"kept\"") != std::string::npos);
 }
 
 TEST_CASE("C ABI buffers: list returns non-empty slots ascending, with a count",

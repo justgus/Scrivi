@@ -4,12 +4,10 @@
 #
 # Runs the scrivi_linux_scene_merge_smoke harness against a temp $XDG_DATA_HOME + a temp
 # project dir. The harness builds a 5-scene / 2-chapter fixture, then:
-#   • merges a scene into the previous scene of the same chapter via
-#     ScriviBridge::mergeScene and asserts on reopen that the absorbed scene's files are
-#     gone and the survivor holds both bodies joined by a blank line;
-#   • merges a whole chapter into the previous chapter via ScriviBridge::mergeChapter and
-#     asserts on reopen that every scene relocated (nothing lost — the I-0083 fix), the
-#     emptied chapter is removed, and bodies are intact.
+#   • merges a scene into the previous scene of the same chapter — [SP-191]: a range cut of the break — and asserts on
+#     reopen that the absorbed scene's files are gone and the survivor holds both bodies joined directly; then its undo;
+#   • merges a whole chapter into the previous chapter — [SP-191]: a range relabel — and asserts on reopen that every scene
+#     relocated (nothing lost — the I-0083 fix), the emptied chapter is removed, bodies intact; then its undo.
 #
 # Uses the Qt "offscreen" platform (a QApplication is created; no window is shown).
 #

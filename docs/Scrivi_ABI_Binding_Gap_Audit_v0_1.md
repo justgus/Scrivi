@@ -4,6 +4,10 @@
 **Post-sprint result:** ✅ **Linux 34 → 81 of 100.** The only 19 remaining are the `history`/`buffers` set
 deliberately deferred to EP-019 (§6) — **verified: nothing else is missing.**
 
+⚠️ **2026-10-21 ([SP-191], Q3e):** `scrivi_merge_scene` and `scrivi_merge_chapter` are **RETIRED** (a scene merge is now a
+range cut of the break, a chapter merge a range relabel) and `scrivi_range_relabel` is new. ⚠️ This table is the
+**2026-08-24 snapshot** (100 endpoints then); `scrivi.h` declares **135** after SP-191. Re-run the count, do not read it here.
+
 Enumerates **every** endpoint declared in `ScriviCore/include/scrivi/scrivi.h` and states, for each,
 whether the **Linux** (`ScriviBridge`) and **Apple** (`ScriviEngine`) bindings reach it.
 
@@ -95,7 +99,7 @@ endpoints have NO row:** `scrivi_close_project`, `scrivi_get_inspector_layout`, 
 | `scrivi_buffers_load` | Buffers (EP-019) | — | ✅ | ⚠️ **EXCLUDED → EP-019** |
 | `scrivi_create_chapter` | Chapter | ✅ | ✅ | ✅ **Present** |
 | `scrivi_delete_chapter` | Chapter | ✅ | ✅ | ✅ **Present** |
-| `scrivi_merge_chapter` | Chapter | ✅ | ✅ | ✅ **Present** |
+| ~~`scrivi_merge_chapter`~~ | Chapter | — | — | ⛔ **Retired 2026-10-21** ([SP-191]: `scrivi_range_relabel`) |
 | `scrivi_rename_chapter` | Chapter | ✅ | ✅ | ✅ **Present** |
 | `scrivi_reorder_chapter` | Chapter | ✅ | ✅ | ✅ **Present** |
 | `scrivi_add_comment` | Comment | — | ✅ | 🔵 **In scope (SP-121)** |
@@ -147,7 +151,7 @@ endpoints have NO row:** `scrivi_close_project`, `scrivi_get_inspector_layout`, 
 | `scrivi_delete_scene` | Scene | ✅ | ✅ | ✅ **Present** |
 | `scrivi_get_scene_notes` | Scene | — | ✅ | 🔵 **In scope (SP-121)** |
 | `scrivi_get_scene_story_time` | Scene | ✅ | ✅ | ✅ **Present** |
-| `scrivi_merge_scene` | Scene | ✅ | ✅ | ✅ **Present** |
+| ~~`scrivi_merge_scene`~~ | Scene | — | — | ⛔ **Retired 2026-10-21** ([SP-191]: a `scrivi_range_cut` of the break) |
 | `scrivi_open_scene` | Scene | ✅ | ✅ | ✅ **Present** |
 | `scrivi_rename_scene` | Scene | ✅ | ✅ | ✅ **Present** |
 | `scrivi_reorder_scene` | Scene | ✅ | ✅ | ✅ **Present** |

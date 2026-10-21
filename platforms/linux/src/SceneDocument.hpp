@@ -4,6 +4,8 @@
 #include <QString>
 #include <QTextDocument>
 
+#include "RangeDelta.hpp"
+
 #include <optional>
 
 // SceneDocument — assembles every scene body of an open project into ONE
@@ -282,6 +284,17 @@ public:
     // unknown afterChapterID, a non-contiguous chapter (map corruption — refuse), or a
     // no-op that would leave the chapter exactly where it is.
     int moveChapter(const QString& chapterID, const QString& afterChapterID);
+
+    // --- EP-053 S2b ([SP-191]): a range operation's delta, applied ---------
+    //
+    // ✅ Design v0.2 P3: the scene list is the model of record, and a structural edit hands back the CHANGE — so this
+    // applies it instead of the project being re-read. Every scene the delta names is placed right after its
+    // `afterSceneID` with its new chapter, paths, titles and (when written) text; the removed ones leave. Only the RUN
+    // that changed is re-rendered: the document from the end of the body before it to the start of the body after it,
+    // whose leading boundary is re-derived too; then every chapter heading (ordinals shift). Apple's twin:
+    // `ViewportSceneLoader.apply(_:)` + `renderRun`. Runs inside a caller-managed "programmatic" window (no dirty churn).
+    // Returns the run's first index, or -1 when the delta names no scene.
+    int applyRangeDelta(const RangeDelta& delta);
 
     // Refresh the on-disk paths of every segment in `chapterID` after a chapter-folder
     // reslug (SP-073). scrivi_reorder_chapter renames the chapter's folder to its new

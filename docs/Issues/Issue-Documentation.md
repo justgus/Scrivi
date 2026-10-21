@@ -173,6 +173,10 @@ stands as a marker.**
 
 *Last Updated: 2026-10-17 (**I-0311** `[ScriviCore]` filed: a chapter-opening paste scrambles the reading order.)*
 
+*Last Updated: 2026-10-21 (**I-0314**, **I-0311**, **I-0297** → 🟠 Resolved - Not Verified, [SP-191].)*
+
+*Last Updated: 2026-10-21 (**I-0315** `[Linux]` filed → backlog: a scene switch rewrites the previous scene's outline and to-do.)*
+
 *Last Updated: 2026-10-21 (**I-0314** → `Issue-active.md`, assigned to SP-191 (user, Q6).)*
 
 *Last Updated: 2026-10-21 (**I-0314** `[Apple]` filed → backlog: a Mac chapter split writes the scenes out of order on disk.)*

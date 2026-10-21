@@ -486,46 +486,6 @@ QVariantMap ScriviBridge::reorderChapter(const QString& projectRootPath,
     return parseEnvelope(envelope.toQString());
 }
 
-QVariantMap ScriviBridge::mergeScene(const QString& projectRootPath,
-                                     const QString& sceneID)
-{
-    if (!ready_) {
-        // Never reaches parseEnvelope, so the flag is set here too — otherwise
-        // lastCallFailed() would report the PREVIOUS call.
-        tlsLastCallFailed = true;
-        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
-        return {};
-    }
-
-    // Joins this scene into the previous scene of the same chapter (survivor keeps its
-    // files; this scene's files are removed). No author identity — a merge is a
-    // structural op, not an authored edit. The caller guards the no-op cases.
-    const ScriviString envelope(
-        scrivi_merge_scene(projectRootPath.toUtf8().constData(),
-                           sceneID.toUtf8().constData()));
-    return parseEnvelope(envelope.toQString());
-}
-
-QVariantMap ScriviBridge::mergeChapter(const QString& projectRootPath,
-                                       const QString& chapterID)
-{
-    if (!ready_) {
-        // Never reaches parseEnvelope, so the flag is set here too — otherwise
-        // lastCallFailed() would report the PREVIOUS call.
-        tlsLastCallFailed = true;
-        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
-        return {};
-    }
-
-    // Relocates every scene file of this chapter into the predecessor's folder, then
-    // removes the emptied chapter — the atomic I-0083 fix (no scene loss on reopen).
-    // No author identity. The caller guards the no-op cases.
-    const ScriviString envelope(
-        scrivi_merge_chapter(projectRootPath.toUtf8().constData(),
-                             chapterID.toUtf8().constData()));
-    return parseEnvelope(envelope.toQString());
-}
-
 QVariantMap ScriviBridge::renameScene(const QString& projectRootPath,
                                       const QString& metadataPath,
                                       const QString& newTitle)
@@ -1299,6 +1259,23 @@ QVariantMap ScriviBridge::rangeCut(const QString& projectRootPath, const QString
                                                  identityID_.toUtf8().constData(),
                                                  personaID_.toUtf8().constData(),
                                                  displayName.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::rangeRelabel(const QString& projectRootPath, const QString& rangeJson,
+                                       const QString& targetChapterID, const QString& displayName)
+{
+    if (!ready_) {
+        tlsLastCallFailed = true;   // never reaches parseEnvelope; see fragmentPaste
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_range_relabel(projectRootPath.toUtf8().constData(),
+                                                     rangeJson.toUtf8().constData(),
+                                                     targetChapterID.toUtf8().constData(),
+                                                     identityID_.toUtf8().constData(),
+                                                     personaID_.toUtf8().constData(),
+                                                     displayName.toUtf8().constData()));
     return parseEnvelope(envelope.toQString());
 }
 
@@ -2125,11 +2102,11 @@ QVariantMap ScriviBridge::captureBegin(const QString& root, const QString& kind,
 }
 
 QVariantMap ScriviBridge::buffersLoad(const QString& root, const QString& bufferID, const QString& text,
-                                      const QString& fragmentJson)
+                                      const QString& rangeJson)
 {
     return historyEnvelope("scrivi_buffers_load",
                            scrivi_buffers_load(u8(root).constData(), u8(bufferID).constData(), u8(text).constData(),
-                                               u8(fragmentJson).constData()));
+                                               u8(rangeJson).constData()));
 }
 
 QVariantMap ScriviBridge::buffersGet(const QString& root, const QString& bufferID)

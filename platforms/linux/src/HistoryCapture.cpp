@@ -161,6 +161,12 @@ void HistoryCapture::recordBarrier(const QString& kind, const QString& note, con
     if (!open_) {
         return;
     }
+    take(ScriviBridge::captureRecordBarrier(root_, barrierParams(kind, note, sceneTexts, structuralPayload, sceneTextsBefore)));
+}
+
+QString HistoryCapture::barrierParams(const QString& kind, const QString& note, const QHash<QString, QString>& sceneTexts,
+                                      const QJsonObject& structuralPayload, const QHash<QString, QString>& sceneTextsBefore)
+{
     QJsonObject params{{QStringLiteral("barrierKind"), kind}, {QStringLiteral("note"), note}};
     const auto textsOf = [](const QHash<QString, QString>& h) {
         QJsonObject o;
@@ -178,8 +184,7 @@ void HistoryCapture::recordBarrier(const QString& kind, const QString& note, con
             params.insert(QStringLiteral("sceneTextsBefore"), textsOf(sceneTextsBefore));
         }
     }
-    take(ScriviBridge::captureRecordBarrier(
-        root_, QString::fromUtf8(QJsonDocument(params).toJson(QJsonDocument::Compact))));
+    return QString::fromUtf8(QJsonDocument(params).toJson(QJsonDocument::Compact));
 }
 
 QVariantMap HistoryCapture::undo()

@@ -536,15 +536,134 @@ struct SceneSegment: Identifiable {
 
     // ✅ [I-0305] — runs `then` on the main actor once every off-main write has landed (at once when none is running). A
     // close or quit waits on it (user, 2026-10-15: the close "must WAIT until the background process is completed").
+    // ✅ [SP-191]: a structural edit in flight is an off-main write too.
     func whenOffMainWritesLand(_ then: @escaping @MainActor () -> Void) {
+        whenScenesLand { [weak self] in
+            guard let self else { return then() }
+            if self.structuralInFlight { self.structuralWaiters.append(then) } else { then() }
+        }
+    }
+
+    /// The scene saves alone (not a structural edit): what a structural edit itself waits for before its core call.
+    private func whenScenesLand(_ then: @escaping @MainActor () -> Void) {
         if scenesWritingOffMain == 0 { then() } else { offMainWaiters.append(then) }
+    }
+
+    // MARK: — [SP-191] Structural edits: one range call off the main actor, the delta applied
+
+    /// ✅ [SP-191] Q5 (user, 2026-10-21): from the key press until the delta is applied the editor is read-only, and repeated
+    /// gestures, typing and undo are IGNORED, not queued — *"as long as the initial operation response is nearly
+    /// instantaneous"*: the caller's cue lands in the same event-loop turn, before any core call.
+    private(set) var structuralInFlight = false
+    /// Q5: the progress row's text, once a structural edit has run for 400 ms; nil before that and after it lands.
+    private(set) var structuralProgress: String?
+    @ObservationIgnored private var structuralWaiters: [@MainActor () -> Void] = []
+    @ObservationIgnored private var structuralGeneration = 0
+    /// Tests: the main-thread core calls this editor's structural edits made (AC: none of their own).
+    @ObservationIgnored let structuralCalls = StructuralCallSink()
+
+    /// Runs ONE structural edit: every unsaved scene is written first (the core refuses a caret scene that is not what is on
+    /// disk), then `call` runs OFF the main actor, then `landed` runs on it with the outcome. ⛔ Returns false, doing
+    /// nothing, while another structural edit is in flight (Q5: ignored, not queued).
+    @discardableResult
+    func runStructural<T: Sendable>(_ label: String, ref: AuthorshipRef,
+                                    _ call: @escaping @Sendable (ScriviEngine) throws -> T,
+                                    landed: @escaping @MainActor (Result<T, Error>) -> Void) -> Bool {
+        guard !structuralInFlight else { return false }
+        return StructuralCallAccounting.$sink.withValue(structuralCalls) {
+            startStructural(label, ref: ref, call, landed: landed)
+        }
+    }
+
+    private func startStructural<T: Sendable>(_ label: String, ref: AuthorshipRef,
+                                              _ call: @escaping @Sendable (ScriviEngine) throws -> T,
+                                              landed: @escaping @MainActor (Result<T, Error>) -> Void) -> Bool {
+        structuralInFlight = true
+        structuralGeneration += 1
+        let generation = structuralGeneration
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .milliseconds(400))
+            guard let self, self.structuralInFlight, self.structuralGeneration == generation else { return }
+            self.structuralProgress = label
+        }
+        _ = saveScenesOffMain(segments.indices, engine: engine, ref: ref)
+        let engine = engine
+        let group = offMainWrites
+        whenScenesLand {
+            group.enter()   // the quit path waits on this group (`saveAllDirtyBlocking`)
+            // ⚠️ Re-marked: this closure can run later, from a save's landing, outside the caller's task.
+            StructuralCallAccounting.$sink.withValue(self.structuralCalls) { Task { @MainActor [weak self] in
+                let outcome: Result<T, Error> = await Task.detached(priority: .userInitiated) {
+                    defer { group.leave() }
+                    return Result { try call(engine) }
+                }.value
+                guard let self else { return }
+                self.structuralInFlight = false
+                self.structuralProgress = nil
+                landed(outcome)
+                let waiters = self.structuralWaiters
+                self.structuralWaiters = []
+                for w in waiters { w() }
+            } }
+        }
+        return true
+    }
+
+    /// ✅ [SP-191] (design P3): apply a range operation's DELTA to the scene list — the model of record — instead of
+    /// re-opening the project. Every scene it names is placed after its `afterSceneID` with its new chapter, paths and (when
+    /// written) text; the removed ones leave. Returns the run that changed — where it sat before and where it sits now,
+    /// starting at the same index — for `renderRun`; nil when the delta names nothing.
+    @discardableResult
+    func apply(_ delta: RangeDelta) -> (old: Range<Int>, new: Range<Int>)? {
+        let removed = Set(delta.removedSceneIDs)
+        let named = Set(delta.scenes.map(\.sceneID))
+        let oldTouched = segments.indices.filter { removed.contains(segments[$0].sceneID) || named.contains(segments[$0].sceneID) }
+
+        var segs = segments.filter { !removed.contains($0.sceneID) }
+        var all = allScenes.filter { !removed.contains($0.sceneID) }
+        var titles = liveTitles
+        for id in removed { titles.removeValue(forKey: id) }
+        for change in delta.scenes {
+            let text = change.text ?? segs.first(where: { $0.sceneID == change.sceneID })?.text ?? ""
+            let slug = all.first(where: { $0.sceneID == change.sceneID })?.slug ?? ""
+            Self.place(SceneSegment(id: change.sceneID, sceneID: change.sceneID, chapterID: change.chapterID,
+                                    metadataPath: change.metadataPath, contentPath: change.contentPath,
+                                    text: text, isDirty: false),
+                       in: &segs, id: \.sceneID, after: change.afterSceneID)
+            Self.place(SceneInfo(sceneID: change.sceneID, chapterID: change.chapterID, title: change.title,
+                                 chapterTitle: change.chapterTitle, slug: slug, metadataPath: change.metadataPath,
+                                 contentPath: change.contentPath, chapterMetadataPath: change.chapterMetadataPath),
+                       in: &all, id: \.sceneID, after: change.afterSceneID)
+            if let written = change.text {
+                let firstLine = written.components(separatedBy: .newlines)
+                    .first { !$0.trimmingCharacters(in: .whitespaces).isEmpty } ?? ""
+                if firstLine.isEmpty { titles.removeValue(forKey: change.sceneID) } else { titles[change.sceneID] = firstLine }
+            }
+        }
+        let newTouched = segs.indices.filter { named.contains(segs[$0].sceneID) }
+        segments = segs
+        allScenes = all
+        liveTitles = titles
+        currentIndex = min(currentIndex, max(0, segments.count - 1))
+        rebuildSceneStartMap()
+        guard let oldLo = oldTouched.first, let oldHi = oldTouched.last,
+              let newLo = newTouched.first, let newHi = newTouched.last else { return nil }
+        return (oldLo..<oldHi + 1, newLo..<newHi + 1)
+    }
+
+    /// Puts `item` immediately after the element whose ID is `after` ("" = first), removing it from where it was.
+    private static func place<E>(_ item: E, in list: inout [E], id: KeyPath<E, String>, after: String) {
+        list.removeAll { $0[keyPath: id] == item[keyPath: id] }
+        let at = after.isEmpty ? 0 : (list.firstIndex { $0[keyPath: id] == after }.map { $0 + 1 } ?? list.endIndex)
+        list.insert(item, at: at)
     }
 
     // Synchronous counterpart for the quit path (I-0104/I-0108).
     func saveAllDirtyBlocking(engine: ScriviEngine, ref: AuthorshipRef) {
         // ✅ [I-0303]: let an off-main write finish first — its main-actor hop will never run during quit, so its scenes
-        // (still dirty) are written again below, with their newest text.
-        if !inFlight.isEmpty {
+        // (still dirty) are written again below, with their newest text. ✅ [SP-191]: a structural edit's core call too — it
+        // is in the same group, and a quit must not cut it off half-written.
+        if !inFlight.isEmpty || structuralInFlight {
             _ = offMainWrites.wait(timeout: .now() + 30)
             inFlight.removeAll()
             saveAfterFlight.removeAll()

@@ -4,14 +4,13 @@
 // Exercises the two merge deliverables through the bridge (the layer EditorShell's merge
 // slots call), verified by reopen — the same division as scene_reorder_smoke (which tests
 // the bridge, not onSceneDropped, because the live QDropEvent/keyPress path needs a GUI):
-//   Case A — ScriviBridge::mergeScene: a scene merges into the previous scene of the SAME
-//            chapter; the two bodies are joined (blank-line), the merged scene's files are
-//            removed, and the survivor keeps its identity. Reopen: one fewer scene, the
-//            survivor holds both bodies, order otherwise intact.
-//   Case B — ScriviBridge::mergeChapter: a whole chapter merges into the previous chapter;
-//            every scene RELOCATES into the predecessor (nothing lost — the I-0083 fix),
-//            the emptied chapter is removed. Reopen: one fewer chapter, every scene present
-//            and in order, bodies intact.
+// ✅ [SP-191] (Q3e): the merges are RANGE calls now — `scrivi_merge_scene` / `scrivi_merge_chapter` are retired.
+//   Case A — a scene merge = ScriviBridge::rangeCut of the zero-length range across the break: the two bodies join
+//            DIRECTLY (Q3a, no blank line), the merged scene's files are removed, the survivor keeps its identity; and
+//            the cut's own undo (a rangePaste of what it removed) brings the scene back. Reopen: as described.
+//   Case B — a chapter merge = ScriviBridge::rangeRelabel of the chapter's scenes into the previous chapter: every scene
+//            RELOCATES (nothing lost — the I-0083 fix), the emptied chapter is removed, no text changes; the inverse
+//            relabel re-creates the chapter. Reopen: as described.
 //
 //   argv[1] = project dir to create (e.g. <tmp>/scene-merge.scrivi)
 //   $XDG_DATA_HOME drives appSupportRoot; Qt offscreen platform (set by the script).
@@ -19,6 +18,9 @@
 // Exit 0 on success; non-zero with a FAIL line on any mismatch.
 
 #include <QApplication>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QString>
 #include <QStringList>
 #include <QVariantList>
@@ -144,78 +146,90 @@ int main(int argc, char* argv[])
     check(orderedScenes(opened) == (QStringList{s0, s1, s2, s3, s4}),
           "fixture order is s0,s1,s2,s3,s4");
 
+    const auto bodyOf = [&](const QString& id) {
+        return bridge.openScene(projectPath, appSupport, projectID, id).value(QStringLiteral("markdown")).toString();
+    };
+    const auto chapterOf = [&](const QVariantMap& re, const QString& id) {
+        for (const QVariant& v : re.value(QStringLiteral("scenes")).toList()) {
+            if (v.toMap().value(QStringLiteral("sceneID")).toString() == id) {
+                return v.toMap().value(QStringLiteral("chapterID")).toString();
+            }
+        }
+        return QString();
+    };
+    const auto entry = [](const QString& sceneID, const QString& chapterID, qint64 start, qint64 whole) {
+        return QJsonObject{{QStringLiteral("sceneID"), sceneID}, {QStringLiteral("chapterID"), chapterID},
+                           {QStringLiteral("chapterTitle"), QString()}, {QStringLiteral("sceneTitle"), QString()},
+                           {QStringLiteral("start"), start}, {QStringLiteral("length"), 0},
+                           {QStringLiteral("sceneLength"), whole}, {QStringLiteral("text"), QString()}};
+    };
+    const auto rangeJson = [](const QJsonArray& entries) {
+        return QString::fromUtf8(QJsonDocument(QJsonObject{{QStringLiteral("schema"), QStringLiteral("scrivi.range.v1")},
+                                                           {QStringLiteral("scenes"), entries}})
+                                     .toJson(QJsonDocument::Compact));
+    };
+    const auto jsonOf = [](const QVariant& v) {
+        return QString::fromUtf8(QJsonDocument(QJsonObject::fromVariantMap(v.toMap())).toJson(QJsonDocument::Compact));
+    };
+
     // ==========================================================================
-    // Case A — mergeScene: merge s1 into s0 (same chapter, s1 is NOT chapter-first).
-    //          Survivor s0 keeps its files + gains s1's body; s1's files removed.
+    // Case A — a scene merge: s1 into s0 — the zero-length range across their break, cut.
     // ==========================================================================
     {
-        const QVariantMap r = bridge.mergeScene(projectPath, s1);
-        check(!r.isEmpty(), "A: mergeScene returned an ok result");
-        check(r.value(QStringLiteral("merged")).toBool(), "A: result reports merged=true");
-        // Survivor is the predecessor (s0); the merged (absorbed) scene is s1.
-        check(r.value(QStringLiteral("survivorSceneID")).toString() == s0,
-              "A: survivor is s0 (the predecessor)");
-        check(r.value(QStringLiteral("mergedSceneID")).toString() == s1,
-              "A: merged (absorbed) scene is s1");
+        const qint64 s0Bytes = bodyOf(s0).toUtf8().size();
+        const qint64 s1Bytes = bodyOf(s1).toUtf8().size();
+        const QVariantMap r = bridge.rangeCut(projectPath, rangeJson(QJsonArray{entry(s0, ch1, s0Bytes, s0Bytes),
+                                                                              entry(s1, ch1, 0, s1Bytes)}),
+                                              bridge.displayName());
+        check(!r.isEmpty(), "A: the cut of the break returned an ok result");
+        check(r.value(QStringLiteral("undoCaretSceneID")).toString() == s0, "A: the survivor is s0 (its seam is the undo's)");
 
         const QVariantMap re = bridge.openProject(projectPath, appSupport);
-        const QStringList sc = orderedScenes(re);
-        // s1 is gone; order is s0, s2, s3, s4.
-        check(sc == (QStringList{s0, s2, s3, s4}),
-              "A: reopened order is s0,s2,s3,s4 (s1 absorbed)");
-        check(!sc.contains(s1), "A: s1's files removed (not on disk)");
-        // s0 now holds both bodies joined by a blank line.
-        const QString s0Body =
-            bridge.openScene(projectPath, appSupport, projectID, s0)
-                .value(QStringLiteral("markdown")).toString();
-        check(s0Body == QStringLiteral("Body of scene zero.\n\nBody of scene one."),
-              "A: s0 holds both bodies joined by a blank line");
+        check(orderedScenes(re) == (QStringList{s0, s2, s3, s4}), "A: reopened order is s0,s2,s3,s4 (s1 absorbed)");
+        check(bodyOf(s0) == QStringLiteral("Body of scene zero.Body of scene one."),
+              "A: s0 holds both bodies joined DIRECTLY (Q3a)");
+
+        // Its undo: a paste of what it removed, at the survivor's seam — s1 comes back, under its own ID.
+        const QVariantMap u = bridge.rangePaste(projectPath, jsonOf(r.value(QStringLiteral("range"))), s0, s0Bytes,
+                                                bodyOf(s0), bridge.displayName());
+        check(!u.isEmpty(), "A: the undo (a paste of the removed range) returned an ok result");
+        check(orderedScenes(bridge.openProject(projectPath, appSupport)) == (QStringList{s0, s1, s2, s3, s4}),
+              "A: the undo restored s1, in place, under its own ID");
+        check(bodyOf(s0) == QStringLiteral("Body of scene zero.") && bodyOf(s1) == QStringLiteral("Body of scene one."),
+              "A: and both bodies as they were");
+        // Merge again, so case B starts from s0,s2 | s3,s4.
+        check(!bridge.rangeCut(projectPath, rangeJson(QJsonArray{entry(s0, ch1, s0Bytes, s0Bytes),
+                                                                 entry(s1, ch1, 0, s1Bytes)}),
+                               bridge.displayName()).isEmpty(),
+              "A: merged again");
     }
 
     // ==========================================================================
-    // Case B — mergeChapter: merge chapter 2 into chapter 1. Every scene of ch2
-    //          (s3, s4) RELOCATES into ch1 after its last scene; ch2 is removed.
-    //          Nothing lost on reopen (I-0083).
+    // Case B — a chapter merge: chapter 2's scenes (s3, s4) relabelled into chapter 1. Nothing lost (I-0083).
     // ==========================================================================
     {
         const QVariantMap re0 = bridge.openProject(projectPath, appSupport);
         check(orderedChapters(re0).size() == 2, "B: two chapters before the merge");
 
-        const QVariantMap r = bridge.mergeChapter(projectPath, ch2);
-        check(!r.isEmpty(), "B: mergeChapter returned an ok result");
-        check(r.value(QStringLiteral("merged")).toBool(), "B: result reports merged=true");
-        check(r.value(QStringLiteral("survivorChapterID")).toString() == ch1,
-              "B: survivor chapter is ch1 (the predecessor)");
-        check(r.value(QStringLiteral("mergedChapterID")).toString() == ch2,
-              "B: merged (absorbed) chapter is ch2");
-        check(r.value(QStringLiteral("scenesRelocated")).toInt() == 2,
-              "B: two scenes (s3, s4) relocated");
+        const QVariantMap r = bridge.rangeRelabel(projectPath, rangeJson(QJsonArray{entry(s3, ch2, 0, 0), entry(s4, ch2, 0, 0)}),
+                                                  ch1, bridge.displayName());
+        check(!r.isEmpty(), "B: the relabel returned an ok result");
+        check(r.value(QStringLiteral("fromChapterID")).toString() == ch2, "B: it reports the chapter the scenes left");
 
         const QVariantMap re = bridge.openProject(projectPath, appSupport);
-        const QStringList sc = orderedScenes(re);
-        const QStringList ch = orderedChapters(re);
-        // One chapter now; every scene present in order: s0, s2, s3, s4.
-        check(ch.size() == 1 && ch.at(0) == ch1, "B: only chapter 1 remains");
-        check(sc == (QStringList{s0, s2, s3, s4}),
-              "B: every scene survived, in order (I-0083 — nothing lost)");
-        // Relocated scenes now belong to ch1.
-        for (const QVariant& v : re.value(QStringLiteral("scenes")).toList()) {
-            const QVariantMap m = v.toMap();
-            const QString id = m.value(QStringLiteral("sceneID")).toString();
-            if (id == s3 || id == s4) {
-                check(m.value(QStringLiteral("chapterID")).toString() == ch1,
-                      "B: relocated scene now belongs to chapter 1");
-            }
-        }
-        // Bodies intact after the relocation (files renamed, content preserved).
-        check(bridge.openScene(projectPath, appSupport, projectID, s3)
-                      .value(QStringLiteral("markdown")).toString()
-                  == QStringLiteral("Body of scene three."),
-              "B: s3 body intact after relocation");
-        check(bridge.openScene(projectPath, appSupport, projectID, s4)
-                      .value(QStringLiteral("markdown")).toString()
-                  == QStringLiteral("Body of scene four."),
-              "B: s4 body intact after relocation");
+        check(orderedChapters(re).size() == 1 && orderedChapters(re).at(0) == ch1, "B: only chapter 1 remains");
+        check(orderedScenes(re) == (QStringList{s0, s2, s3, s4}), "B: every scene survived, in order (I-0083 — nothing lost)");
+        check(chapterOf(re, s3) == ch1 && chapterOf(re, s4) == ch1, "B: the relocated scenes belong to chapter 1");
+        check(bodyOf(s3) == QStringLiteral("Body of scene three.") && bodyOf(s4) == QStringLiteral("Body of scene four."),
+              "B: bodies intact after the relocation");
+
+        // Its undo: the inverse relabel re-creates chapter 2 (from the sidecar the result carries).
+        const QVariantMap u = bridge.rangeRelabel(projectPath, jsonOf(r.value(QStringLiteral("range"))), ch2,
+                                                  bridge.displayName());
+        check(!u.isEmpty(), "B: the inverse relabel returned an ok result");
+        const QVariantMap back = bridge.openProject(projectPath, appSupport);
+        check(orderedChapters(back) == (QStringList{ch1, ch2}), "B: chapter 2 is back, under its own ID");
+        check(chapterOf(back, s3) == ch2 && chapterOf(back, s4) == ch2, "B: with its scenes");
     }
 
     if (failures == 0) {

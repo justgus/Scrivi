@@ -277,6 +277,19 @@ final class HistoryCapture {
         isApplying = false
     }
 
+    // MARK: — [SP-191] A structural edit records its node OFF the main actor
+
+    /// The project root a structural edit records its history node against, off the main actor (the C side is
+    /// thread-safe); nil while history is not open.
+    var offMainRoot: String? { isOpen ? projectRootPath : nil }
+
+    /// Takes the core's report of a node recorded off the main actor, as `recordBarrier` takes its own.
+    func adopt(_ r: CaptureState) {
+        guard isOpen else { return }
+        take(r)
+        bumpRevision()
+    }
+
     // MARK: — Barriers (T-0206, §4.5)
 
     // Records a structural barrier; the core commits any pending edit first and, with no `sceneID`, attributes it to the
