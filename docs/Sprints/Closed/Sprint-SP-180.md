@@ -8,17 +8,17 @@ created: 2026-10-13
 
 # SP-180 — `[Linux]` [EP-026] **S4**: structured cut / copy / paste across scenes
 
-**Status:** 🟡 **ACTIVE 2026-10-13** (user: *"yes, as step 0 for both platforms."*) — created 2026-10-13 (user: *"start planning EP-026 S4"*). ✅ Q1–Q4 ruled. ✅ AC0–AC8 met 2026-10-13 ([I-0293]–[I-0296] Verified 2026-10-15); ⏳ AC9 rig live pass.
-**Carries:** [T-0607] → [`../Tasks/Task-unverified.md`](../Tasks/Task-unverified.md) (🟠 Implemented - Not Verified) · [I-0293] `[ScriviCore]` · [I-0294] `[Apple]` · [I-0295] `[Apple]` · [I-0296] `[ScriviCore]`.
+**Status:** ✅ **CLOSED 2026-10-21** (user, 2026-10-21: *"close all five sprints and keep I-0308 open."*) · ✅ COMPLETE 2026-10-21 (every AC met; ⏳ close awaits the user) · 🟡 **ACTIVE 2026-10-13** (user: *"yes, as step 0 for both platforms."*) — created 2026-10-13 (user: *"start planning EP-026 S4"*). ✅ Q1–Q4 ruled. ✅ AC0–AC8 met 2026-10-13 ([I-0293]–[I-0296] Verified 2026-10-15); ⏳ AC9 rig live pass.
+**Carries:** [T-0607] → [`../Tasks/Task-unverified.md`](../../Tasks/Task-unverified.md) (🟠 Implemented - Not Verified) · [I-0293] `[ScriviCore]` · [I-0294] `[Apple]` · [I-0295] `[Apple]` · [I-0296] `[ScriviCore]`.
 **Epic:** [EP-026] `[Linux]` Undo/Redo History, Copy Buffers & Structured Cut/Copy/Paste →
-[`../Epics/Epic-active.md`](../Epics/Epic-active.md). EP-026 Q2 (ruled 2026-10-11): EP-029's Linux follow-on is in this Epic.
+[`../Epics/Epic-active.md`](../../Epics/Epic-active.md). EP-026 Q2 (ruled 2026-10-11): EP-029's Linux follow-on is in this Epic.
 **Builds on:**
 - [SP-178] (S2): undo. A structured paste is a reversible structural history node.
 - [SP-179] (S5): the copy buffers. A cross-scene slot holds a fragment.
 - ⚠️ Neither has had its rig live pass. A defect either pass finds in undo or the buffers may touch this Sprint.
 
 **Authority:**
-- [`../Scrivi_Structured_CutCopyPaste_Design_v0_1.md`](../Scrivi_Structured_CutCopyPaste_Design_v0_1.md): §3 (fragment), §4.2 (paste-splice), §5 (history) and T1–T4 (all A).
+- [`../Scrivi_Structured_CutCopyPaste_Design_v0_1.md`](../../Scrivi_Structured_CutCopyPaste_Design_v0_1.md): §3 (fragment), §4.2 (paste-splice), §5 (history) and T1–T4 (all A).
 - [I-0270] ruling (2026-10-02): a cross-scene cut KEEPS the scenes. It replaced the collapsing cut in §4.3/§4.4.
 - [I-0279]: a held fragment expires once anything else is copied.
 - [T-0591]: each piece is balanced.
@@ -143,7 +143,7 @@ created: 2026-10-13
 - [x] AC6 — Buffers: Ctrl+1 / Alt+3 across scenes store the fragment; Ctrl+Shift+N rebuilds it; a slot the Mac wrote rebuilds; [SP-179] Q1's notice gone — §5 (`flat-slot-copy`, `flat-slot-paste` caught)
 - [x] AC7 — A `structuredPaste` and an old collapsing `structuredCut` recorded on the Mac undo and redo on Linux; a Linux node carries Apple's payload, key for key; [SP-178] Q2's stopgap gone — §6, §7
 - [x] AC8 — Smokes through the real key dispatch, 11 of 11 Linux mutations caught; `bridge_parity_smoke` covers the 2 new calls; on 1,186 scenes a paste + reload 436 ms, its undo + reload 393 ms (Docker, Release; §8, opt-in); ctest macOS 721/721, Linux 724/724; 32/32 Linux smokes; interop 288/288; `undo_smoke` and `buffers_smoke` green
-- [ ] AC9 — ✅ **Rig live pass (user)**
+- [x] AC9 — ✅ **Rig live pass (user)** — ✅ 2026-10-21, build 75
 
 ---
 
@@ -370,3 +370,11 @@ User: *"I-0293 through I-0299 passes"* (the Mac steps). Five archived to `Issues
   `[Linux]`: the app crashed while typing in the Find bar.
 - ⚠️ The binary reported build 74: the stamp bump never reached a commit. The rig was on `8ebb438`, the Mac's HEAD, built
   after the pull, so the code under test was current.
+
+### ✅ 2026-10-21 — AC9 passed on the rig; COMPLETE
+
+User, 2026-10-21: *"I performed the live pass listed above on both the Rig and the Mac. all 10 steps passed. I continued with the Scrivi Rig Live Pass laid out in the attachemnt. This is build 75. Step 11: Ctrl-Alt-F showed Find-and-Replace. Step 22: The Bold text is acceptable. No steps failed!"*
+- the combined rig run sheet ("Scrivi Rig Live Pass", 29 steps, 2026-10-16), run on build 75 (`886b497`): steps 9–10 (cross-scene copy and paste over the share; the undo after a reopen), 19–20 ([I-0300]), 25–27 (the Linux side of [I-0293]–[I-0295]).
+- [I-0298] (Linux half) and [I-0300] ✅ Verified → `Issues/Verified/Issue-verified-0291-0300.md`. [T-0607] ✅ Verified and archived.
+- ⚠️ [I-0297] stays Open: step 10 completed, but the reload behind the undo is [SP-191]'s (no reload), per the 2026-10-20 ruling.
+- ✅ Closed 2026-10-21 (user-approved).

@@ -758,21 +758,21 @@ archive files reconstructed after the fact from secondary sources.
 | T-0602 | `[Linux]` EP-048 S3b: the Format commands and balanced edits on Linux, on the core logic | ✅ **SP-175** | **EP-048** | ✅ **Verified 2026-10-10** | [`Task-verified-0602.md`](Verified/Task-verified-0602.md) |
 | T-0603 | `[Linux]` EP-048 S4: Find over the presented text | ✅ **SP-176** | **EP-048** | ✅ **Verified 2026-10-11** | [`Task-verified-0603.md`](Verified/Task-verified-0603.md) |
 | T-0604 | `[Cross]` EP-026 S1: the undo capture rules move into ScriviCore; Apple re-pointed | ✅ **SP-177** | **EP-026** | ✅ **Verified 2026-10-11** | [`Task-verified-0604.md`](Verified/Task-verified-0604.md) |
-| T-0605 | `[Linux]` EP-026 S2: undo/redo on Linux — Ctrl+Z / Ctrl+Shift+Z, persistence, session warning, barriers, grouped edits | 🟡 **SP-178** | **EP-026** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
+| T-0605 | `[Linux]` EP-026 S2: undo/redo on Linux — Ctrl+Z / Ctrl+Shift+Z, persistence, session warning, barriers, grouped edits | ✅ **SP-178** | **EP-026** | ✅ **Verified 2026-10-21** | [`Task-verified-0605.md`](Verified/Task-verified-0605.md) |
 | T-0606 | `[Linux]` EP-026 S5: copy buffers 1–9, View ▸ Show Buffers (Ctrl+Alt+B), the Buffers palette (incl. [I-0289] `[Apple]`) | ✅ **SP-179** | **EP-026** | ✅ **Verified 2026-10-13** | [`Task-verified-0606.md`](Verified/Task-verified-0606.md) |
-| T-0607 | `[Linux]` EP-026 S4: structured cut / copy / paste across scenes (incl. [I-0293]–[I-0296]) | 🟡 **SP-180** | **EP-026** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
-| T-0608 | `[Linux]` EP-048 S4b: Replace and Replace All over the presented text | 🟡 **SP-181** | **EP-048** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
-| T-0609 | `[Linux]` EP-048 S5a: Project Settings dialog, the bundled typefaces, Markup Hints | 🟡 **SP-182** | **EP-048** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
+| T-0607 | `[Linux]` EP-026 S4: structured cut / copy / paste across scenes (incl. [I-0293]–[I-0296]) | ✅ **SP-180** | **EP-026** | ✅ **Verified 2026-10-21** | [`Task-verified-0607.md`](Verified/Task-verified-0607.md) |
+| T-0608 | `[Linux]` EP-048 S4b: Replace and Replace All over the presented text | ✅ **SP-181** | **EP-048** | ✅ **Verified 2026-10-21** | [`Task-verified-0608.md`](Verified/Task-verified-0608.md) |
+| T-0609 | `[Linux]` EP-048 S5a: Project Settings dialog, the bundled typefaces, Markup Hints | ✅ **SP-182** | **EP-048** | ✅ **Verified 2026-10-21** | [`Task-verified-0609.md`](Verified/Task-verified-0609.md) |
 | T-0610 | `[Linux]` EP-048 S5b: line spacing and the first-line indent | 🔵 **SP-183** | **EP-048** | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
 | T-0611 | `[Linux]` EP-048 S5c: Show chapter titles, and the chapter-ending divider | 🔵 **SP-184** | **EP-048** | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
 | T-0612 | `[Linux]` A diagnostic log: timed operations and a main-thread stall watchdog | 🟡 **SP-185** | **EP-026** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
-| T-0613 | `[Linux]` Find bar: search after a 500 ms pause; the searchable text built ahead, never on a keystroke | 🟡 **SP-185** | **EP-026** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
+| T-0613 | `[Linux]` Find bar: search after a 500 ms pause; the searchable text built ahead, never on a keystroke | 🟡 **SP-185** | **EP-026** | ✅ **Verified 2026-10-21** | [`Task-verified-0613.md`](Verified/Task-verified-0613.md) |
 | T-0614 | `[ScriviCore]` EP-053 S1: the Range (`scrivi.range.v1`) and the aggregate range operations | ✅ **SP-186** | **EP-053** | ✅ **Verified 2026-10-20** | [`Task-verified-0614.md`](Verified/Task-verified-0614.md) |
-| T-0615 | `[Cross]` EP-053 S2a: the scene list as the model of record — no visible change | 🟡 **SP-187** | **EP-053** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
+| T-0615 | `[Cross]` EP-053 S2a: the scene list as the model of record — no visible change | ✅ **SP-187** | **EP-053** | ✅ **Verified 2026-10-21** | [`Task-verified-0615.md`](Verified/Task-verified-0615.md) |
 | T-0616 | `[Cross]` EP-053 S3: structural cut, Backspace / Delete over scenes, and their undo | 🔵 **SP-188** | **EP-053** | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
 | T-0617 | `[Cross]` EP-053 S4: the background sync verification | 🔵 **SP-189** | **EP-053** | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
 | T-0618 | `[Cross]` EP-053 S5: Mac and rig live passes over the share, timed | 🔵 **SP-190** | **EP-053** | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
-| T-0619 | `[Cross]` EP-053 S2b: copy, paste and its undo, split and merge — as deltas, off the main thread, no reload | 🔵 **SP-191** | **EP-053** | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
+| T-0619 | `[Cross]` EP-053 S2b: copy, paste and its undo, split and merge — as deltas, off the main thread, no reload | 🟡 **SP-191** | **EP-053** | 🟡 **Active** | [`Task-active.md`](Task-active.md) |
 | T-0592 | `[Apple]` E2-S3: formatting commands + lists + Option-Return | 🟡 **SP-163** | **EP-046** | ✅ **Verified 2026-10-06** | [`Task-verified-0592.md`](Verified/Task-verified-0592.md) |
 | T-0591 | `[Apple]` Balance emphasis across SCENE boundaries (cross-scene cut/copy/paste) | 🟡 **SP-163** | **EP-046** | ✅ **Verified 2026-10-06** | [`Task-verified-0591.md`](Verified/Task-verified-0591.md) |
 | T-0590 | `[Apple]` E2-S2: bold and italic + span reveal + the split rule | ✅ **SP-162** | **EP-046** | ✅ **Verified 2026-10-05** | [`Task-verified-0590.md`](Verified/Task-verified-0590.md) |
@@ -810,6 +810,10 @@ archive files reconstructed after the fact from secondary sources.
 ⚠️ **This index ended at `T-0485 (next available)` until 2026-09-10 — ✅ that was STALE.** ⚠️ **T-0485–T-0498 had all been taken**, and T-0485–T-0490/T-0492–T-0496 are archived as Verified. ⚠️ **Rows for T-0486–T-0497 are NOT reconstructed here** — ✅ **their Sprints' closed records are authoritative** (`feedback_archive_on_close`).
 
 ---
+
+*Last Updated: 2026-10-21 (**T-0619 → 🟡 Active** with SP-191's activation.)*
+
+*Last Updated: 2026-10-21 (**T-0605, T-0607, T-0608, T-0609, T-0613, T-0615 → ✅ Verified** (user, Mac + rig live passes, build 75) and archived.)*
 
 *Last Updated: 2026-10-20 (**T-0615 → active** with SP-187 (EP-053 S2a); **T-0619 filed** with SP-191 (S2b, 🔵 Planning).)*
 

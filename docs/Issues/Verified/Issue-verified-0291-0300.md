@@ -12,6 +12,8 @@ Issues the user has VERIFIED, archived out of `Issue-active.md`.
 | **I-0295** | `[Apple]` ⚠️ **A structured paste landed BEFORE a selection and left the selection in place; a flat paste replaces it.** Proven 2026-10-13 ([SP-180] Q2). ✅ Fixed: the selection is removed first, as its own step. → [details](#i-0295) | **Low** | [SP-180] | ✅ **VERIFIED 2026-10-15** |
 | **I-0296** | `[Apple]` ⛔ **After a structured paste, the next open takes the target scene for an OUTSIDE edit — undo stops there.** The core wrote the scene, so the save path never reported its bytes. Proven 2026-10-13 (interop + Linux smoke). ✅ Fixed in the core: the fragment endpoints report what they write. → [details](#i-0296) | **Medium** | [SP-180] | ✅ **VERIFIED 2026-10-15** |
 | **I-0299** | `[ScriviCore]` ⛔ **A reopen on the Mac took scenes written by Linux over the network share — and two scenes the Mac itself had pasted into and deleted from — for OUTSIDE edits.** Found 2026-10-13 ([SP-180] live pass, step 39). ✅ PROVEN 2026-10-14: a session that ends without closing its history (a force-quit, Xcode's Stop) lost the bytes it recorded. ✅ Fixed: each save's bytes are recorded in the log as they happen. → [details](#i-0299) | **Medium** | [SP-180] | ✅ **VERIFIED 2026-10-15** |
+| **I-0298** | `[Apple]` `[Linux]` ⚠️ **An undo that crosses a structural step (a cross-scene paste) into an earlier session shows no "Undoing changes from a previous session" warning.** Found 2026-10-13 ([SP-180] live pass, step 36). ✅ Fixed on both platforms. → [details](#i-0298) | **Low** | [SP-180] | ✅ **VERIFIED 2026-10-21** |
+| **I-0300** | `[Linux]` ⚠️ **After Ctrl+Shift+Return (new chapter) — and a mid-scene Ctrl+Return — the caret stays where it was instead of moving into the new chapter or scene.** Found on the rig 2026-10-13 ([SP-180] live pass, step 24). ✅ Fixed: the caret is placed when the reload has finished (also after a merge). → [details](#i-0300) | **Low** | [SP-180] | ✅ **VERIFIED 2026-10-21** |
 
 ---
 
@@ -354,3 +356,76 @@ data-loss path:
 *Last Updated: 2026-10-13 (**I-0292** VERIFIED (user).)*
 
 *Last Updated: 2026-10-12 (batch created: **I-0291** VERIFIED (user).)*
+
+---
+
+## I-0298
+
+**Title:** A structural undo into an earlier session skips the "Undoing changes from a previous session" warning
+**Status:** ✅ **VERIFIED 2026-10-21** (user, 2026-10-21: *"all 10 steps passed. I continued with the Scrivi Rig Live Pass … This is build 75 … No steps failed!"*), rig live pass, build 75: step 10 on the rig (Ctrl+Z after a quit and reopen showed "Undoing changes from a previous session"); the Mac half passed 2026-10-15.
+**Platform:** `[Apple]` and `[Linux]` — the same shape on both
+**Component:** Apple `ManuscriptTextView.swift` `apply(step:)`; Linux `EditorShell::applyHistoryStep`
+**Severity:** Low — the undo works; the writer is not told it reached into an earlier session
+**Sprint:** [SP-180]
+**Date Identified:** 2026-10-13 (user, [SP-180] live pass step 36: *"no dialog was shown warning us that we are undoing past
+the session boundary"*)
+
+**Cause (read):** the core reports `crossedSessionBoundary` on a structural step as on any other (`HistoryService.cpp`, the
+structural branch of `undo`). Both platforms return early for `structuralInverse` (Apple `apply(step:)` `:408`; Linux
+`applyHistoryStep`) — BEFORE the code that shows the warning (Apple `:458`; Linux at the end of `applyHistoryStep`).
+
+**Fix direction:** show the warning for a structural step too, on both platforms. A failing test first.
+
+**Resolution (2026-10-13):** both platforms show the warning after a structural step as after any other. Apple:
+`sessionBoundaryReached`, with an `onSessionBoundary` hook replacing the modal in tests. Linux: `warnIfSessionBoundary`.
+
+**Tests:**
+- **Mac** (interop `structuralUndoAcrossSessionsWarns`): paste, reopen in a new session, undo. Red without the fix (0
+  warnings); 290/290 with it.
+  - The first version passed the wrong way: with nothing before the paste, the undo lands on the history's root, which belongs
+    to no session. The test now edits first, as the rig's case had real work underneath.
+- **Linux** (`structured_paste_smoke` §7, the Mac's paste undone on Linux): red without the fix. The new mutation
+  `no-structural-session-warning` is caught.
+  - §7 now keeps one Linux edit before the Mac's paste, for the same reason.
+
+**To verify:** quit and reopen after a cross-scene paste, then Ctrl+Z / ⌘Z. "Undoing changes from a previous session" appears.
+
+---
+
+---
+
+## I-0300
+
+**Title:** After a new chapter (Ctrl+Shift+Return) or a mid-scene split (Ctrl+Return), the caret does not move into what was created
+**Status:** ✅ **VERIFIED 2026-10-21** (user, 2026-10-21: *"all 10 steps passed. I continued with the Scrivi Rig Live Pass … This is build 75 … No steps failed!"*), rig live pass, build 75: steps 19–20 on the rig (the caret moved into the new scene and the new chapter).
+**Platform:** `[Linux]`
+**Component:** `EditorShell::onCreateChapterRequested`, `onCreateSceneRequested` (mid-scene path)
+**Severity:** Low — the writer clicks into the new chapter; nothing is lost
+**Sprint:** [SP-180]
+**Date Identified:** 2026-10-13 (user, [SP-180] live pass step 24: *"When I hit Ctrl-Shift-Return in Step 24, the caret remained in Chapter 1 instead of moving on to Chapter 2."*)
+
+**Cause (read):** both paths call `load(…)`, which reloads ASYNCHRONOUSLY (a worker, [T-0499]), then at once call
+`moveCaretToSegment` / `selectNavigatorScene` — on the document the reload is about to replace. When the reload lands, it
+places the caret from the restored writing surface instead. [SP-180]'s structured paste hit the same trap and waits for
+`loadFinished` (`reloadThenPlaceCaret`).
+
+**Fix direction:** place the caret when the reload has finished, through the same `reloadThenPlaceCaret`, with a smoke check
+that fails first.
+
+**Resolution (2026-10-13):**
+- **`EditorShell::reloadThen(after)`:** runs `after` once the asynchronous reload has landed, and `placeCaret(sceneID, byte)`
+  is shared with the structured paste.
+- **Moved into `after`:**
+  - the new chapter's caret and its I-0063 renumber, which also read the pre-split document;
+  - the mid-scene split's caret;
+  - the scene merge's seam caret;
+  - the chapter merge's caret.
+- **Tests:** `undo_smoke` §5 (the split's caret), §4b (the merge's seam), §7 (a new chapter mid-scene, and at the END of the
+  last scene, the rig's step 24).
+  - The step-24 case is red before the fix (caret at 103, want 150).
+  - The other two pass either way: the reload's restore happens to land there. They are guards, not proofs.
+  - Docker: `undo_smoke`, `structured_paste_smoke`, `scene_merge_smoke`, `scene_create_smoke` and `chapter_reorder_smoke` pass.
+
+**To verify (rig):** at the end of the last scene press Ctrl+Shift+Return. The caret is in the new chapter's blank scene.
+
+---

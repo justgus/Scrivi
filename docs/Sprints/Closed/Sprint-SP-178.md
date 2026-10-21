@@ -9,13 +9,13 @@ created: 2026-10-11
 
 # SP-178 — `[Linux]` [EP-026] **S2**: undo/redo — Ctrl+Z / Ctrl+Shift+Z, persistence, session warning, barriers, grouped edits
 
-**Status:** 🟡 **ACTIVE 2026-10-11** (user: *"activate SP-178"*) — ⚠️ IMPLEMENTED; ✅ [I-0287] found and fixed here (user: *"Fix I-0287 in SP-178."*) — created 2026-10-11 (user: *"We are ready to plan EP-026 S2."*). ✅ Q1–Q4 ruled 2026-10-11.
-**Carries:** [T-0605] → [`../Tasks/Task-active.md`](../Tasks/Task-active.md).
+**Status:** ✅ **CLOSED 2026-10-21** (user, 2026-10-21: *"close all five sprints and keep I-0308 open."*) · ✅ COMPLETE 2026-10-21 (every AC met; ⏳ close awaits the user) · 🟡 **ACTIVE 2026-10-11** (user: *"activate SP-178"*) — ⚠️ IMPLEMENTED; ✅ [I-0287] found and fixed here (user: *"Fix I-0287 in SP-178."*) — created 2026-10-11 (user: *"We are ready to plan EP-026 S2."*). ✅ Q1–Q4 ruled 2026-10-11.
+**Carries:** [T-0605] → [`../Tasks/Task-active.md`](../../Tasks/Task-active.md).
 **Epic:** [EP-026] `[Linux]` Undo/Redo History, Copy Buffers & Structured Cut/Copy/Paste →
-[`../Epics/Epic-active.md`](../Epics/Epic-active.md). ➡️ Unblocks [EP-048] S4b (Replace / Replace All needs grouped undo).
+[`../Epics/Epic-active.md`](../../Epics/Epic-active.md). ➡️ Unblocks [EP-048] S4b (Replace / Replace All needs grouped undo).
 **Builds on:** [SP-177] (S1) — WHEN an undo step ends is ScriviCore's (`scrivi_capture_*`); Linux gets Apple's granularity by
 CALLING it, not by porting it. ✅ EP-026 Q3 (keys) ruled: undo **Ctrl+Z** · redo **Ctrl+Shift+Z** · ⛔ no Ctrl+Y.
-**Authority:** [`../Scrivi_UndoRedo_History_and_Copy_Buffers_Design_v0_1.md`](../Scrivi_UndoRedo_History_and_Copy_Buffers_Design_v0_1.md)
+**Authority:** [`../Scrivi_UndoRedo_History_and_Copy_Buffers_Design_v0_1.md`](../../Scrivi_UndoRedo_History_and_Copy_Buffers_Design_v0_1.md)
 §4.a, §4.a.1, §4.5 (barriers), §4.d, §5 (sessions), §6.b (head-hash validation), §8. EP-019 AC1–AC3, AC7; [I-0270] grouped
 edits; [I-0104]/[I-0259] save-path reporting.
 **Shape:** ✅ Apple's, as it stands after SP-177 (`feedback_linux_adopts_apple_shape`): `HistoryCapture.swift` (316 lines,
@@ -124,9 +124,9 @@ surfaced, not slipped in. ✅ **Two were found and ruled IN: [I-0287] (2026-10-1
 - [x] AC3 — History survives a quit; the first undo into a previous session warns once with its time (EP-019 AC3); a clean reopen raises no external-change barrier — ✅ rig live pass 2026-10-13 (steps 4–12)
 - [x] AC4 — Split, merge and delete of scenes and chapters stop undo with Apple's notice (EP-019 AC7); a structural reload does not start a new session — ✅ rig live pass 2026-10-13 (steps 4–12)
 - [x] AC5 — A cross-scene ⌫ / ⌦ / Ctrl+X is ONE undo step restoring every scene ([I-0270]); a paste is one step — ✅ rig live pass 2026-10-13 (steps 4–12)
-- [ ] AC6 — A history made on the Mac undoes on Linux (same file); a structural node from the Mac is handled per Q2
+- [x] AC6 — A history made on the Mac undoes on Linux (same file); a structural node from the Mac is handled per Q2 — ✅ rig live pass 2026-10-21 (steps 6–8)
 - [x] AC7 — Smokes green through the real key dispatch, mutation-checked; ctest green on macOS and Linux — ✅ (see the 2026-10-11/12 entries; re-run green 2026-10-13: ctest Linux 724/724, 32/32 smokes)
-- [ ] AC8 — ✅ **Rig live pass (user)**
+- [x] AC8 — ✅ **Rig live pass (user)** — ✅ 2026-10-21, build 75
 - [x] AC9 — [I-0287]: after a split or merge, undoing the next edit in an affected scene returns it to its text right AFTER the op (core + Apple + Linux; tested through `scrivi_*` and Linux's real keys) — ✅ rig live pass 2026-10-13 (steps 4–12)
 - [x] AC10 — ✅ **VERIFIED 2026-10-12 (user)** — [I-0288]: after an outside edit, undo in a LATER session returns the scene to the outside text — never a mix with the old text; logs written before the fix open correctly (tested through `scrivi_*`)
 
@@ -268,3 +268,9 @@ notice are gone. ⚠️ This Sprint's live pass (AC6) should expect the replay, 
 
 ✅ User: *"verify I-0287"*, on the 2026-10-13 rig pass (steps 4–12). Archived to
 `../Issues/Verified/Issue-verified-0281-0290.md` in the same step.
+
+### ✅ 2026-10-21 — AC6 and AC8 passed on the rig; COMPLETE
+
+User, 2026-10-21: *"I performed the live pass listed above on both the Rig and the Mac. all 10 steps passed. I continued with the Scrivi Rig Live Pass laid out in the attachemnt. This is build 75. Step 11: Ctrl-Alt-F showed Find-and-Replace. Step 22: The Bold text is acceptable. No steps failed!"*
+- the combined rig run sheet ("Scrivi Rig Live Pass", 29 steps, 2026-10-16), run on build 75 (`886b497`): steps 6–8 (a line typed on the Mac is undone on Linux with the previous-session notice, and redone).
+- [T-0605] ✅ Verified and archived. ✅ Closed 2026-10-21 (user-approved).

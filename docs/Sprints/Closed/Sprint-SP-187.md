@@ -9,13 +9,13 @@ created: 2026-10-20
 
 # SP-187 — `[Apple]` + `[Linux]` [EP-053] **S2a**: the scene list as the model of record — no visible change
 
-**Status:** 🟡 **ACTIVE 2026-10-20** (user: *"complete planning for SP-187 and activate it"*) — created 2026-10-20 in Planning
+**Status:** ✅ **CLOSED 2026-10-21** (user, 2026-10-21: *"close all five sprints and keep I-0308 open."*) · ✅ COMPLETE 2026-10-21 (every AC met; ⏳ close awaits the user) · 🟡 **ACTIVE 2026-10-20** (user: *"complete planning for SP-187 and activate it"*) — created 2026-10-20 in Planning
 (user: *"complete planning for EP-053"*). ✅ Q1–Q4 ruled 2026-10-20, all as recommended.
-**Carries:** [T-0615] → [`../Tasks/Task-active.md`](../Tasks/Task-active.md).
-**Epic:** [EP-053] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md).
+**Carries:** [T-0615] → [`../Tasks/Task-active.md`](../../Tasks/Task-active.md).
+**Epic:** [EP-053] → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md).
 **Builds on:** [SP-186] (S1, ✅ closed): `scrivi_range_read`, `scrivi_range_paste`, `scrivi_range_cut` and the delta they return.
 **Followed by:** [SP-191] (S2b): copy, paste and its undo, split, merge and the chapter operations applied as deltas, no reload.
-**Authority:** [`../Scrivi_Structured_CutCopyPaste_Design_v0_2.md`](../Scrivi_Structured_CutCopyPaste_Design_v0_2.md) — R5,
+**Authority:** [`../Scrivi_Structured_CutCopyPaste_Design_v0_2.md`](../../Scrivi_Structured_CutCopyPaste_Design_v0_2.md) — R5,
 R7, P3, P5, §4.2a.
 **Shape:** ✅ the same on both platforms (R5; `feedback_linux_adopts_apple_shape`).
 **Size:** L. Needs a **Mac live pass** and a **rig live pass**, each confirming nothing visible changed.
@@ -112,7 +112,7 @@ cut ([SP-188]) · moving core calls off the main thread ([SP-191]).
       were EQUIVALENT: `moveScene` / `moveChapter` re-set a copied scene's text, which the copy already carries (they differ
       only while a pending pair exists, and every caller drops it first) — the lines were dead, and are removed. ScriviCore
       is unchanged by this Sprint
-- [ ] AC7 — ✅ **Live passes (user):** Mac and rig — no visible change
+- [x] AC7 — ✅ **Live passes (user):** Mac and rig — no visible change — ✅ 2026-10-21, all 10 steps on both (rig build 75)
 
 ## Progress log
 
@@ -169,3 +169,8 @@ cut ([SP-188]) · moving core calls off the main thread ([SP-191]).
 - Interop 297/297; Linux smokes 38/38 with the text check on; mutations as AC6 records. [T-0615] → 🟠 Implemented - Not
   Verified. What is left is AC7: the Mac and rig live passes, confirming nothing visible changed.
 
+### ✅ 2026-10-21 — AC7 passed on the Mac and the rig; COMPLETE
+
+User, 2026-10-21: *"I performed the live pass listed above on both the Rig and the Mac. all 10 steps passed. I continued with the Scrivi Rig Live Pass laid out in the attachemnt. This is build 75. Step 11: Ctrl-Alt-F showed Find-and-Replace. Step 22: The Bold text is acceptable. No steps failed!"*
+- All 10 steps on both platforms: typing, the three splits, merge, chapter split and merge (the Mac also with chapter titles), the undo notices, quit and reopen.
+- [T-0615] ✅ Verified and archived. ✅ Closed 2026-10-21 (user-approved); next is [SP-191] (S2b).

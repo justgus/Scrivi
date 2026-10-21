@@ -1,13 +1,5 @@
 # Active Sprints
 
-🟡 **[SP-178] ACTIVE 2026-10-11** `[Linux]` [EP-026] **S2** → [`Sprint-SP-178.md`](Sprint-SP-178.md) — undo/redo on Linux: Ctrl+Z / Ctrl+Shift+Z, persistence, session warning, barriers, grouped edits. Task: T-0605.
+🟡 **[SP-191] ACTIVE 2026-10-21** `[Cross]` [EP-053] S2b → [`Sprint-SP-191.md`](Sprint-SP-191.md) — the manuscript as one Range: copy, paste, split, chapter split, merge (a range cut) and chapter merge (a range relabel), each one range call off the main thread, applied as a delta, no reload, undoable in one step with sidecars restored; [I-0314], [I-0311]. Task: T-0619.
 
-🟡 **[SP-180] ACTIVE 2026-10-13** `[Linux]` [EP-026] **S4** → [`Sprint-SP-180.md`](Sprint-SP-180.md) — structured cut / copy / paste across scenes; AC0–AC8 met, ⏳ AC9 rig pass; [I-0293]–[I-0296] fixed in it. Task: T-0607.
-
-🟡 **[SP-181] ACTIVE 2026-10-15** `[Linux]` + `[Apple]` [EP-048] **S4b** → [`Sprint-SP-181.md`](Sprint-SP-181.md) — Replace and Replace All over the presented text; [I-0303] `[Apple]` first; then [I-0304] `[Linux]` and [I-0305] `[Apple]` `[Linux]` (ruled in 2026-10-15). AC7–AC8 implemented; ⏳ AC4 (GNOME) and AC6 rig pass, with I-0304/I-0305 live. Task: T-0608.
-
-🟡 **[SP-182] ACTIVE 2026-10-15** `[Linux]` [EP-048] **S5a** → [`Sprint-SP-182.md`](Sprint-SP-182.md) — Linux's Project Settings dialog, the bundled typefaces and size, Markup Hints (L10's character half). Implemented; ⏳ Q6 (bold on Linux) for ruling, AC5 rig pass. Task: T-0609.
-
-🟡 **[SP-185] ACTIVE 2026-10-17** `[Linux]` [EP-026] → [`Sprint-SP-185.md`](Sprint-SP-185.md) — responsive after load: the rig pass's crash ([I-0308]), freezes ([I-0307], [I-0297]), a crash found reproducing it ([I-0309]), and a diagnostic log. Task: T-0612.
-
-🟡 **[SP-187] ACTIVE 2026-10-20** `[Apple]` + `[Linux]` [EP-053] **S2a** → [`Sprint-SP-187.md`](Sprint-SP-187.md) — the scene list as the model of record on both platforms, no visible change: the range endpoints bound, the delta types, Linux's list holding the text, Apple's partial re-render. Q1–Q4 ruled. AC1–AC6 met; ⏳ AC7 Mac + rig live passes. Task: T-0615 (🟠); [I-0313] found.
+🟡 **[SP-185] ACTIVE 2026-10-17** `[Linux]` [EP-026] → [`Sprint-SP-185.md`](Sprint-SP-185.md) — responsive after load: the rig pass's crash ([I-0308]), freezes ([I-0307], [I-0297]), a crash found reproducing it ([I-0309]), and a diagnostic log. AC3 met on the rig 2026-10-21 ([I-0307] verified, T-0613 verified); ⏳ AC1 ([I-0308], not reproduced: ruling), AC6's remaining steps. Task: T-0612.

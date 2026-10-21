@@ -85,7 +85,7 @@ know exactly how many items need to be changed)."*
   `background_wait_smoke` §5 fails the old code under ASan and passes the fix. ⏳ The rig pass (AC6) closes dumas mid-load.
 - [x] AC2 — [T-0612] the log exists as ruled in Q1, and a deliberate stall shows up in it — ✅ `diagnostic_log_smoke` (CI),
   3 mutations caught (no watchdog · typed text logged · no crash handlers). ⏳ The rig pass (AC6) still reads a real one.
-- [ ] AC3 — [I-0307] measured on the rig; select, copy and paste across scenes do not freeze the window — ✅ measured and
+- [x] AC3 — [I-0307] measured on the rig; select, copy and paste across scenes do not freeze the window — ✅ the rig 2026-10-21 (build 75, run sheet step 9); ✅ measured and
   fixed in Docker (Ctrl+C 2,678 → 3 GUI-thread file calls; the primary selection); ⏳ the rig.
 - [ ] AC4 — [I-0297] a structured paste's undo over the share completes as Q2 rules — ✅ paste 5,642 → 1,890 and undo
   5,688 → 1,933 worker file calls. ➡️ **MOVED to [EP-053] S2** (user, 2026-10-20): the reload's full open (~1,700) is
@@ -180,3 +180,15 @@ know exactly how many items need to be changed)."*
 - AC4: the paste and undo reads are cut here; the remaining reload goes away in [EP-053] S2 rather than getting progress.
 - AC5: Q3 (a real count; the view follows) stands as ruled; its design and build wait for [EP-052]'s write queue.
 - ⚠️ Neither AC closes in this Sprint. What remains here: AC1 ([I-0308]), AC3's rig half, AC6 (rig live pass).
+
+### 🟡 2026-10-21 — The rig pass (build 75): AC3 met; [I-0308] did not recur
+
+User, 2026-10-21: *"I performed the live pass listed above on both the Rig and the Mac. all 10 steps passed. I continued with the Scrivi Rig Live Pass laid out in the attachemnt. This is build 75. Step 11: Ctrl-Alt-F showed Find-and-Replace. Step 22: The Bold text is acceptable. No steps failed!"*
+- the combined rig run sheet ("Scrivi Rig Live Pass", 29 steps, 2026-10-16), run on build 75 (`886b497`). It predates this Sprint, so it covers only part of AC6.
+- AC3 ✅: step 9, a cross-scene copy and paste in dumas over the share, without the freeze. [I-0307] ✅ Verified →
+  `Issues/Verified/Issue-verified-0301-0310.md`.
+- [T-0613] ✅ Verified and archived: step 11 typed a search in dumas with no wait and no crash.
+- AC1: step 11 did not crash, but [I-0308] was never reproduced or fixed, so there is no failing test. ✅ Ruled
+  2026-10-21: **kept Open** (user: likely background read collisions, for an upcoming Epic). AC1 stays unmet.
+- ⏳ Still to run on the rig for AC6: close dumas while it is loading ([I-0309], AC1b), and read a real
+  `~/.local/state/scrivi/scrivi.log` ([T-0612], AC2).

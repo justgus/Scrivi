@@ -9,10 +9,10 @@ created: 2026-10-15
 
 # SP-182 — `[Linux]` [EP-048] **S5a**: Project Settings dialog, the typeface, Markup Hints
 
-**Status:** 🟠 **IMPLEMENTED 2026-10-15** (user: *"implement SP-182"*) — ⏳ **Q6** (bold on Linux) for ruling, AC5 rig pass · 🟡 ACTIVATED 2026-10-15 (user: *"activate SP-182"*) — created 2026-10-15 (user: *"plan EP-048 fully."*). ✅ Q1–Q5 ruled 2026-10-15, all as
+**Status:** ✅ **CLOSED 2026-10-21** (user, 2026-10-21: *"close all five sprints and keep I-0308 open."*) · ✅ COMPLETE 2026-10-21 (every AC met; Q6 ruled; ⏳ close awaits the user) · 🟠 **IMPLEMENTED 2026-10-15** (user: *"implement SP-182"*) — ⏳ **Q6** (bold on Linux) for ruling, AC5 rig pass · 🟡 ACTIVATED 2026-10-15 (user: *"activate SP-182"*) — created 2026-10-15 (user: *"plan EP-048 fully."*). ✅ Q1–Q5 ruled 2026-10-15, all as
 recommended; the S5 split is ruled (Q2).
-**Carries:** [T-0609] → [`../Tasks/Task-unverified.md`](../Tasks/Task-unverified.md).
-**Epic:** [EP-048] `[Linux]` Manuscript Renderer Parity → [`../Epics/Epic-active.md`](../Epics/Epic-active.md). **L10, its
+**Carries:** [T-0609] → [`../Tasks/Task-unverified.md`](../../Tasks/Task-unverified.md).
+**Epic:** [EP-048] `[Linux]` Manuscript Renderer Parity → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md). **L10, its
 character half:** the project typeface and size, and Markup Hints on/off. ✅ [EP-026] Q4 (ruled 2026-10-11): **EP-048 S5
 builds Linux's Project Settings dialog**, and EP-026 S3 later adds its Undo History section.
 **Authority:** [EP-047] P1, P5–P9, P11 and AC4, AC5, AC7 (`../Epics/Closed/Epic-EP-047.md`) · `Resources/Fonts/fonts.json`
@@ -101,7 +101,7 @@ reads and writes the same `project-settings.json`, with Markup Hints on or off.
 | **Q4** | **The Markup Hints shortcut.** | ✅ **Ctrl+Shift+H** (Apple's ⇧⌘H, Ctrl in place of ⌘), measured against GNOME on the rig. Alternative: menu only · ✅ **RULED** (user, 2026-10-15) |
 | **Q5** | **Existing Linux manuscripts change look.** P6 (*"Projects with NO typeface setting — existing ones included — open in the default"*) was ruled for the Mac. | ✅ **Apply it on Linux too**: a project with no setting opens in Literata, 16 pt, as it does on the Mac. The setting travels, so anything else would make one project look different on each machine · ✅ **RULED** (user, 2026-10-15) |
 
-### Q6 — How bold draws on Linux (raised 2026-10-15 by AC0) — ⏳ awaiting ruling
+### Q6 — How bold draws on Linux (raised 2026-10-15 by AC0) — ✅ RULED 2026-10-21: (a), synthesized bold is acceptable (user, rig pass step 22: *"The Bold text is acceptable."*)
 
 **The situation.** Six of the seven faces are VARIABLE fonts. Qt registers each as only Regular and Italic, on 6.4.2 AND
 6.10.2, so a bold run is **synthesized**: Qt thickens the regular strokes. It reads as bold, but it is not the face's own bold,
@@ -141,7 +141,7 @@ section (→ EP-026 S3) · installed (non-bundled) fonts (P5: bundled only) · p
       GNOME's Ctrl+Shift+H, on the rig
 - [x] AC4 — `settings_smoke` in CI, mutation-checked (5 of 6 caught; the 6th showed a guard was unneeded, removed); all Linux
       smokes green 35/35. ScriviCore unchanged, so ctest not re-run
-- [ ] AC5 — ✅ **Rig live pass (user)**, including a typeface crossing between the Mac and Linux in both directions
+- [x] AC5 — ✅ **Rig live pass (user)**, including a typeface crossing between the Mac and Linux in both directions — ✅ 2026-10-21, build 75
 
 ## Progress log
 
@@ -213,3 +213,10 @@ custom rule"* (`Qt6CoreMacros.cmake:602`, from `scrivi_add_bundled_fonts`).
   `boundary-ok:` marker with that reason.
 - ⚠️ My verification ran the build and the smokes but not the workflow's script steps. All four of them (`check-package-boundary`,
   `check-textkit2`, `check-layout-convergence`, `check-engine-stub-parity`) now pass locally.
+
+### ✅ 2026-10-21 — AC5 passed on the rig; Q6 ruled; COMPLETE
+
+User, 2026-10-21: *"I performed the live pass listed above on both the Rig and the Mac. all 10 steps passed. I continued with the Scrivi Rig Live Pass laid out in the attachemnt. This is build 75. Step 11: Ctrl-Alt-F showed Find-and-Replace. Step 22: The Bold text is acceptable. No steps failed!"*
+- the combined rig run sheet ("Scrivi Rig Live Pass", 29 steps, 2026-10-16), run on build 75 (`886b497`): steps 5, 7, 14–15 (Crimson Pro 18 Mac → Linux, Newsreader 20 Linux → Mac), 22 (bold and italic in each face), 23 (Ctrl+Shift+H — GNOME does not take it), 24 (Title and Subtitle).
+- Q6 ruled (a): Qt's synthesized bold stays; (b) is not built.
+- [T-0609] ✅ Verified and archived. ✅ Closed 2026-10-21 (user-approved).

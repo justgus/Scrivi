@@ -3,7 +3,7 @@
 ## EP-053: `[Cross]` **Range-Based Structural Editing** — cut, copy, paste and undo as one Range, one core call, no reload
 
 **Status:** 🟡 **ACTIVE 2026-10-17** — created and started the same day (user: *"draft EP-053, start the first sprint and publish
-the design doc for my perusal"*). S1 = [SP-186], ✅ closed 2026-10-20.
+the design doc for my perusal"*). S1 = [SP-186], ✅ closed 2026-10-20. S2a = [SP-187], ✅ closed 2026-10-21.
 **Design:** [`../Scrivi_Structured_CutCopyPaste_Design_v0_2.md`](../Scrivi_Structured_CutCopyPaste_Design_v0_2.md) — ✅ ruled
 2026-10-17 (R1–R7, Q1–Q5). Supersedes v0.1 (EP-029) where they differ.
 **Codebase:** `[ScriviCore]` first, then `[Apple]` and `[Linux]` together — the same shape and the same threads on both (R5).
@@ -25,8 +25,8 @@ thread, one core call per scene); a cut no longer removed structure, so paste an
 | Sprint | Scope | Status |
 | ------ | ----- | ------ |
 | **[SP-186]** | **S1** — `[ScriviCore]` the Range (`scrivi.range.v1`) and the range operations: read, paste ([I-0311] fixed), structural cut, each returning the delta; the index patched in place; a two-scene paste = 3 reads + 5 writes (re-ruled 2026-10-20) | ✅ **CLOSED 2026-10-20** (user-approved) → [`../Sprints/Closed/Sprint-SP-186.md`](../Sprints/Closed/Sprint-SP-186.md) · [T-0614] verified |
-| **[SP-187]** | **S2a** — `[Apple]` + `[Linux]` the scene list as the model of record (design §4.2a), no visible change: the range endpoints bound on both, the delta types, Linux's list holding the text, Apple's partial re-render; baseline counts | 🟡 **ACTIVE 2026-10-20** → [`../Sprints/Sprint-SP-187.md`](../Sprints/Sprint-SP-187.md) · ✅ Q1–Q4 ruled |
-| **[SP-191]** | **S2b** — `[Apple]` + `[Linux]` copy builds the Range from memory; paste and its undo (a range cut); split, merge, chapter create and merge; the delta applied, no reload, the core call off the main thread on both; old history nodes converted · ➡️ takes [SP-185] AC4 | 🔵 **PLANNING 2026-10-20** → [`../Sprints/Sprint-SP-191.md`](../Sprints/Sprint-SP-191.md) |
+| **[SP-187]** | **S2a** — `[Apple]` + `[Linux]` the scene list as the model of record (design §4.2a), no visible change: the range endpoints bound on both, the delta types, Linux's list holding the text, Apple's partial re-render; baseline counts | ✅ **CLOSED 2026-10-21** (user-approved) → [`../Sprints/Closed/Sprint-SP-187.md`](../Sprints/Closed/Sprint-SP-187.md) · ✅ Q1–Q4 ruled |
+| **[SP-191]** | **S2b** — `[Apple]` + `[Linux]` copy builds the Range from memory; paste and its undo (a range cut); split, chapter split, merge and chapter merge as range calls (undoable, sidecars restored, no barriers); the delta applied, no reload, off the main thread on both; old history nodes converted; [I-0314] · ➡️ takes [SP-185] AC4 | 🟡 **ACTIVE 2026-10-21** → [`../Sprints/Sprint-SP-191.md`](../Sprints/Sprint-SP-191.md) · ✅ all questions ruled 2026-10-21 |
 | **[SP-188]** | **S3** — `[Apple]` + `[Linux]` structural cut; Backspace / Delete over scenes = Cut minus the clipboard (Q4); cut's undo (a range paste); old `structuredCut` nodes still undo | 🔵 **PLANNING 2026-10-20** → [`../Sprints/Sprint-SP-188.md`](../Sprints/Sprint-SP-188.md) · ⏳ Q1–Q2 |
 | **[SP-189]** | **S4** — `[Cross]` the background sync verification (disk wins, silently — Q3) | 🔵 **PLANNING 2026-10-20** → [`../Sprints/Sprint-SP-189.md`](../Sprints/Sprint-SP-189.md) · ⏳ Q1–Q2 |
 | **[SP-190]** | **S5** — Mac and rig live passes over the share, timed by the diagnostic logs | 🔵 **PLANNING 2026-10-20** → [`../Sprints/Sprint-SP-190.md`](../Sprints/Sprint-SP-190.md) · ⏳ Q1 |
@@ -36,8 +36,8 @@ S3; verification moves to S4, history no longer a Sprint of its own) · ✅ spli
 in S2 · ✅ (later the same day) S2 split into S2a [SP-187] and S2b [SP-191]; the list stays an ordered array (Q4) · ✅ new history op names `rangePaste` / `rangeCut` in `scrivi.history.v1`, backward-compatible (old
 `structuredPaste` / `structuredCut` nodes keep undoing).
 
-**Tasks:** ✅ [T-0614] (SP-186 — VERIFIED, archived) · 🟠 [T-0615] (SP-187 — implemented, not verified; ⏳ live passes) · 🔵 [T-0619] (SP-191) · 🔵 [T-0616] (SP-188) · 🔵 [T-0617] (SP-189) · 🔵 [T-0618] (SP-190).
-**Issues:** 🟡 [I-0311] (fixed in the core by [SP-186]; reached by the apps in [SP-191]) · 🔵 [I-0297] (its reload half → S2).
+**Tasks:** ✅ [T-0614] (SP-186 — VERIFIED, archived) · ✅ [T-0615] (SP-187 — VERIFIED 2026-10-21, archived) · 🟡 [T-0619] (SP-191 — active) · 🔵 [T-0616] (SP-188) · 🔵 [T-0617] (SP-189) · 🔵 [T-0618] (SP-190).
+**Issues:** 🟡 [I-0311] (fixed in the core by [SP-186]; reached by the apps in [SP-191]) · 🔵 [I-0297] (its reload half → S2b) · 🔴 [I-0314] (→ [SP-191]).
 
 ---
 
@@ -98,7 +98,7 @@ caret-snap rules. ✅ `NSAccessibilityCustomRotor` (macOS 10.13+) has `NSAccessi
 
 ## EP-048: `[Linux]` ⚠️ **Manuscript Renderer Parity**
 
-**Status:** 🟡 **ACTIVE** since 2026-10-07 — S1, S2 and SP-173 closed; S3a closed (SP-174, 2026-10-10); S3b closed (SP-175, 2026-10-11); S4 (Find) closed (SP-176, 2026-10-11). L1–L7 and L9 met (S3b, 2026-10-10; Linux has no undo yet and no structured cross-scene paste — recorded in SP-175); L8 and L10 open — ✅ L8's Find half met (S4, [SP-176], rig live pass 2026-10-11); its Replace half is S4b ([SP-181], 🟡 Active; implemented, ⏳ rig pass). L10 is S5a–S5c: S5a ([SP-182]) 🟡 Active (implemented, ⏳ rig pass); S5b ([SP-183]) and S5c ([SP-184]) 🔵 Planning. ✅ **EP-048 stays open until EP-026 lands** (user, 2026-10-11).
+**Status:** 🟡 **ACTIVE** since 2026-10-07 — S1, S2 and SP-173 closed; S3a closed (SP-174, 2026-10-10); S3b closed (SP-175, 2026-10-11); S4 (Find) closed (SP-176, 2026-10-11). L1–L7 and L9 met (S3b, 2026-10-10; Linux has no undo yet and no structured cross-scene paste — recorded in SP-175); L8 and L10 open — ✅ L8's Find half met (S4, [SP-176], rig live pass 2026-10-11); its Replace half is S4b ([SP-181], ✅ closed 2026-10-21). L10 is S5a–S5c: S5a ([SP-182]) ✅ closed 2026-10-21; S5b ([SP-183]) and S5c ([SP-184]) 🔵 Planning. ✅ **EP-048 stays open until EP-026 lands** (user, 2026-10-11).
 **Sprints:**
 
 | Sprint | Scope | Status |
@@ -109,12 +109,12 @@ caret-snap rules. ✅ `NSAccessibilityCustomRotor` (macOS 10.13+) has `NSAccessi
 | **[SP-174]** | **S3a** — `[Cross]` the command and balanced-edit logic moves into ScriviCore; Apple re-pointed (no visible change) | ✅ **CLOSED 2026-10-10** (user-approved) → [`../Sprints/Closed/Sprint-SP-174.md`](../Sprints/Closed/Sprint-SP-174.md) · ✅ Q1–Q5 ruled |
 | **[SP-175]** | **S3b** — `[Linux]` the Format commands (L7) and balanced edits + copy (L9 rest) on the core logic; navigator toggle moves off Ctrl+Alt+N; rig live pass | ✅ **CLOSED 2026-10-11** (user-approved) → [`../Sprints/Closed/Sprint-SP-175.md`](../Sprints/Closed/Sprint-SP-175.md) · ✅ [T-0602] verified · ✅ L7, L9 met |
 | **[SP-176]** | **S4** — `[Linux]` **Find** over the presented text: L8's Find half | ✅ **CLOSED 2026-10-11** (user-approved) → [`../Sprints/Closed/Sprint-SP-176.md`](../Sprints/Closed/Sprint-SP-176.md) · ✅ Q1–Q4 ruled; ✅ split ruled 2026-10-11 · ✅ rig live pass passed; [T-0603] verified · ✅ L8 Find half met |
-| **[SP-181]** | **S4b** — `[Linux]` **Replace / Replace All** over the presented text: L8's Replace half — escaped, balanced, Replace All ONE undo step. ✅ Unblocked: Linux undo's grouped edit passed the rig ([SP-178], 2026-10-13) | 🟡 **ACTIVE 2026-10-15** → [`../Sprints/Sprint-SP-181.md`](../Sprints/Sprint-SP-181.md) · ✅ Q1–Q3 ruled 2026-10-15 · ⚠️ `[Apple]` [I-0303] fixed first (Replace All writes off the main thread) · ✅ implemented 2026-10-15; ⏳ rig live pass |
-| **[SP-182]** | **S5a** — `[Linux]` L10's character half: ✅ **builds Linux's Project Settings dialog** (replacing the *"coming soon"* stub; Project + Typography), the bundled typefaces and size, Markup Hints. EP-026 later adds its Undo History section | 🟡 **ACTIVE 2026-10-15** → [`../Sprints/Sprint-SP-182.md`](../Sprints/Sprint-SP-182.md) · ✅ Q1–Q5 ruled 2026-10-15 (incl. the S5 split) |
+| **[SP-181]** | **S4b** — `[Linux]` **Replace / Replace All** over the presented text: L8's Replace half — escaped, balanced, Replace All ONE undo step. ✅ Unblocked: Linux undo's grouped edit passed the rig ([SP-178], 2026-10-13) | ✅ **CLOSED 2026-10-21** (user-approved) → [`../Sprints/Closed/Sprint-SP-181.md`](../Sprints/Closed/Sprint-SP-181.md) · ✅ Q1–Q3 ruled 2026-10-15 · ⚠️ `[Apple]` [I-0303] fixed first (Replace All writes off the main thread) · ✅ rig live pass 2026-10-21 |
+| **[SP-182]** | **S5a** — `[Linux]` L10's character half: ✅ **builds Linux's Project Settings dialog** (replacing the *"coming soon"* stub; Project + Typography), the bundled typefaces and size, Markup Hints. EP-026 later adds its Undo History section | ✅ **CLOSED 2026-10-21** (user-approved) → [`../Sprints/Closed/Sprint-SP-182.md`](../Sprints/Closed/Sprint-SP-182.md) · ✅ Q1–Q5 ruled 2026-10-15 (incl. the S5 split) · ✅ Q6 ruled 2026-10-21 (synthesized bold) · ✅ rig live pass 2026-10-21 |
 | **[SP-183]** | **S5b** — `[Linux]` L10's block half: line spacing 1.45 and the first-line indent (Qt block formats — measured before the mechanism is ruled) | 🔵 **PLANNING 2026-10-15** → [`../Sprints/Sprint-SP-183.md`](../Sprints/Sprint-SP-183.md) · ⏳ Q1–Q2 after its measurement |
 | **[SP-184]** | **S5c** — `[Linux]` the **"Show chapter titles" toggle** ([EP-026] Q4) and the chapter-ending divider ([T-0575]) | 🔵 **PLANNING 2026-10-15** → [`../Sprints/Sprint-SP-184.md`](../Sprints/Sprint-SP-184.md) · ✅ Q1–Q2 ruled 2026-10-15 |
 
-**Tasks:** ✅ [T-0594] (SP-165 — VERIFIED, archived) · ✅ [T-0595] (SP-166 — VERIFIED, archived) · ✅ [T-0601] (SP-174 — VERIFIED, archived) · ✅ [T-0602] (SP-175 — VERIFIED, archived) · ✅ [T-0603] (SP-176 — VERIFIED, archived) · 🟠 [T-0608] (SP-181 — implemented, not verified; ⏳ rig pass) · 🟠 [T-0609] (SP-182 — implemented, not verified; ⏳ rig pass) · 🔵 [T-0610] (SP-183) · 🔵 [T-0611] (SP-184).
+**Tasks:** ✅ [T-0594] (SP-165 — VERIFIED, archived) · ✅ [T-0595] (SP-166 — VERIFIED, archived) · ✅ [T-0601] (SP-174 — VERIFIED, archived) · ✅ [T-0602] (SP-175 — VERIFIED, archived) · ✅ [T-0603] (SP-176 — VERIFIED, archived) · ✅ [T-0608] (SP-181 — VERIFIED 2026-10-21, archived) · ✅ [T-0609] (SP-182 — VERIFIED 2026-10-21, archived) · 🔵 [T-0610] (SP-183) · 🔵 [T-0611] (SP-184).
 **Issues:** ✅ [I-0285] (SP-173 — VERIFIED, archived) · 🟠 [I-0280] (found + fixed in SP-165, Apple and core) · 🔵 [I-0281] `[Apple]` (found by L2 → Issue backlog, ➡️ linked forward to [EP-047]).
 This Epic is the escape layer's DISPLAY half on Linux; the WRITE half was [EP-049] (closed 2026-10-05). The design for both platforms was ruled in [SP-159].
 **Authority:** → [`../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md`](../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md) §9.
@@ -153,7 +153,7 @@ Measured (SP-166): attach + first highlight of 1.8 MB ≈ 185 ms (Docker), a key
 
 ## EP-026: `[Linux]` Undo/Redo History, Copy Buffers & Structured Cut/Copy/Paste
 
-**Status:** 🟡 **ACTIVE 2026-10-11** (user: *"Activate EP-026."*) — S1 closed ([SP-177], 2026-10-11): the capture rules are ScriviCore's; S2 active ([SP-178]); S4 active ([SP-180]); S5 closed ([SP-179], 2026-10-15); [SP-185] active (responsive after load). **RESCOPED 2026-10-11** (user: *"We need to implement undo first on Linux. This is a large activity that
+**Status:** 🟡 **ACTIVE 2026-10-11** (user: *"Activate EP-026."*) — S1 closed ([SP-177], 2026-10-11): the capture rules are ScriviCore's; S2 ([SP-178]) and S4 ([SP-180]) closed 2026-10-21; S5 closed ([SP-179], 2026-10-15); [SP-185] active (responsive after load). **RESCOPED 2026-10-11** (user: *"We need to implement undo first on Linux. This is a large activity that
 is (or should be) planned in a subsequent epic given that Apple has the branching undo history and multiple copy buffers already
 in place."* · *"we need to rescope EP-026 and check other epics to see if the copy buffers were mentioned anywhere else."*).
 ✅ **Q1–Q5 RULED 2026-10-11.** ✅ **[EP-048] stays open until this Epic lands** (user). ⛔ **[EP-048] L8 (Find/Replace, [SP-176]) waits on it** (SP-176 Q3).
@@ -208,13 +208,13 @@ undoes the same on both platforms.
 | Sprint | Scope | Status |
 | ------ | ----- | ------ |
 | **[SP-177]** | **S1** — `[Cross]` the capture rules (`HistoryCapture.swift`) move into ScriviCore; Apple re-pointed, no visible change (Q1) | ✅ **CLOSED 2026-10-11** (user-approved) → [`../Sprints/Closed/Sprint-SP-177.md`](../Sprints/Closed/Sprint-SP-177.md) · ✅ Q1–Q4 ruled · ✅ Mac live pass; [T-0604] verified |
-| **[SP-178]** | **S2** — `[Linux]` undo/redo (Ctrl+Z / Ctrl+Shift+Z), persistence, session warning, barriers, grouped edits — ➡️ unblocks [EP-048] S4b | 🟡 **ACTIVE 2026-10-11** → [`../Sprints/Sprint-SP-178.md`](../Sprints/Sprint-SP-178.md) · ✅ Q1–Q4 ruled |
+| **[SP-178]** | **S2** — `[Linux]` undo/redo (Ctrl+Z / Ctrl+Shift+Z), persistence, session warning, barriers, grouped edits — ➡️ unblocks [EP-048] S4b | ✅ **CLOSED 2026-10-21** (user-approved) → [`../Sprints/Closed/Sprint-SP-178.md`](../Sprints/Closed/Sprint-SP-178.md) · ✅ Q1–Q4 ruled |
 | S3 | `[Linux]` branching: fork popover, History card, stale-branch purge, Undo History settings section — ⚠️ the section goes into the dialog [EP-048] S5a ([SP-182]) builds | not yet created |
-| **[SP-180]** | **S4** — `[Linux]` structured cut/copy/paste across scenes (EP-029 on Linux); replaces [SP-178] Q2's and [SP-179] Q1's stopgaps | 🟡 **ACTIVE 2026-10-13** → [`../Sprints/Sprint-SP-180.md`](../Sprints/Sprint-SP-180.md) · ✅ Q1–Q4 ruled · ✅ AC0–AC8 met; ⏳ AC9 rig live pass |
+| **[SP-180]** | **S4** — `[Linux]` structured cut/copy/paste across scenes (EP-029 on Linux); replaces [SP-178] Q2's and [SP-179] Q1's stopgaps | ✅ **CLOSED 2026-10-21** (user-approved) → [`../Sprints/Closed/Sprint-SP-180.md`](../Sprints/Closed/Sprint-SP-180.md) · ✅ Q1–Q4 ruled · ✅ AC0–AC9 met (rig 2026-10-21) |
 | **[SP-179]** | **S5** — `[Linux]` copy buffers (Ctrl / Ctrl+Shift / Alt + 1–9), View ▸ Show Buffers (Ctrl+Alt+B) and the palette; ⚠️ structured buffers wait for S4 (SP-179 Q1) | ✅ **CLOSED 2026-10-15** (user-approved) → [`../Sprints/Closed/Sprint-SP-179.md`](../Sprints/Closed/Sprint-SP-179.md) · ✅ Q1–Q4 ruled · ✅ rig live pass 2026-10-13; [T-0606] verified · ⚠️ **planned BEFORE S3/S4** on my recommendation (user: *"start planning S5"*) |
 | **[SP-185]** | `[Linux]` responsive after load: the 2026-10-15 rig pass's crash in the find bar ([I-0308]) and freezes ([I-0307], [I-0297]); [I-0309]; a diagnostic log ([T-0612]) | 🟡 **ACTIVE 2026-10-17** → [`../Sprints/Sprint-SP-185.md`](../Sprints/Sprint-SP-185.md) · ✅ Q1–Q3 ruled 2026-10-17 |
 
-**Tasks:** ✅ [T-0604] (SP-177 — VERIFIED, archived) · 🟠 [T-0605] (SP-178 — implemented, not verified; incl. [I-0287]) · 🟠 [T-0607] (SP-180 — implemented, not verified; ⏳ rig pass; incl. [I-0293]–[I-0296]) · ✅ [T-0606] (SP-179 — VERIFIED, archived; incl. `[Apple]` [I-0289] ✅ verified (balanced buffers) and [I-0290] ✅ verified (paste chord ⌃⌘1–9); [I-0291] ✅ verified (palette modifier)). **Issues found in S2 and ruled into [SP-178]:** ✅ [I-0287] (undo after split/merge — VERIFIED 2026-10-15, archived) · ✅ [I-0288] (undo after an outside edit, in a later session — VERIFIED 2026-10-12, archived).
+**Tasks:** ✅ [T-0604] (SP-177 — VERIFIED, archived) · ✅ [T-0605] (SP-178 — VERIFIED 2026-10-21, archived; incl. [I-0287]) · ✅ [T-0607] (SP-180 — VERIFIED 2026-10-21, archived; incl. [I-0293]–[I-0296]) · ✅ [T-0606] (SP-179 — VERIFIED, archived; incl. `[Apple]` [I-0289] ✅ verified (balanced buffers) and [I-0290] ✅ verified (paste chord ⌃⌘1–9); [I-0291] ✅ verified (palette modifier)). **Issues found in S2 and ruled into [SP-178]:** ✅ [I-0287] (undo after split/merge — VERIFIED 2026-10-15, archived) · ✅ [I-0288] (undo after an outside edit, in a later session — VERIFIED 2026-10-12, archived).
 
 **Provisional Sprints (original note):** S1 `[Cross]` capture rules into the core (Q1), Apple re-pointed with no visible change · S2 undo/redo + persistence +
 session warning + barriers + grouped edits · S3 branching: fork popover, History card, stale-branch purge, Undo History

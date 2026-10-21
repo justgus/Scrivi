@@ -110,8 +110,8 @@ never used). **This is not a filing defect** — do not re-open it as one.
 | 27 | I-0261 – I-0270 | [`Issue-verified-0261-0270.md`](Verified/Issue-verified-0261-0270.md) | 9 |
 | 28 | I-0271 – I-0280 | [`Issue-verified-0271-0280.md`](Verified/Issue-verified-0271-0280.md) | 8 |
 | 29 | I-0281 – I-0290 | [`Issue-verified-0281-0290.md`](Verified/Issue-verified-0281-0290.md) | 8 |
-| 30 | I-0291 – I-0300 | [`Issue-verified-0291-0300.md`](Verified/Issue-verified-0291-0300.md) || 7 |
-| 31 | I-0301 – I-0310 | [`Issue-verified-0301-0310.md`](Verified/Issue-verified-0301-0310.md) | 1 |
+| 30 | I-0291 – I-0300 | [`Issue-verified-0291-0300.md`](Verified/Issue-verified-0291-0300.md) | 9 |
+| 31 | I-0301 – I-0310 | [`Issue-verified-0301-0310.md`](Verified/Issue-verified-0301-0310.md) | 5 |
 
 ⚠️ **Rows 15 onward added 2026-09-30 ([SP-148] Audit Check A6)** — the table had stopped at batch 14. ✅ Each count is re-derived from the file (distinct IDs in its table rows ∪ `## I-0` sections), ⛔ never copied.
 
@@ -172,6 +172,12 @@ stands as a marker.**
 *Last Updated: 2026-10-20 (**I-0312** `[ScriviCore]` filed → backlog: `keyBetween` mis-places a key next to an undotted legacy key. **I-0311** fixed in `scrivi_range_paste`; the apps reach it in SP-187.)*
 
 *Last Updated: 2026-10-17 (**I-0311** `[ScriviCore]` filed: a chapter-opening paste scrambles the reading order.)*
+
+*Last Updated: 2026-10-21 (**I-0314** → `Issue-active.md`, assigned to SP-191 (user, Q6).)*
+
+*Last Updated: 2026-10-21 (**I-0314** `[Apple]` filed → backlog: a Mac chapter split writes the scenes out of order on disk.)*
+
+*Last Updated: 2026-10-21 (**I-0298, I-0300, I-0303, I-0304, I-0305, I-0307 VERIFIED** (user, rig live pass build 75) → batch 30 now 9, batch 31 now 5.)*
 
 *Last Updated: 2026-10-17 (**I-0307 → Resolved - Not Verified**; **I-0310** `[Linux]` filed and resolved (teardown crash); I-0297 partly fixed.)*
 

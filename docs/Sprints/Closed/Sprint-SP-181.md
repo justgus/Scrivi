@@ -9,19 +9,19 @@ created: 2026-10-15
 
 # SP-181 — `[Linux]` [EP-048] **S4b**: Replace and Replace All over the presented text
 
-**Status:** 🟠 **IMPLEMENTED 2026-10-15** — ⏳ AC4's GNOME check and AC6, the rig live pass · 🟡 ACTIVATED 2026-10-15 (user: *"activate SP-181 and implement it."*) — created 2026-10-15 (user: *"plan EP-048 fully."*). ✅ Q1–Q3 ruled 2026-10-15 (Q3 against the
+**Status:** ✅ **CLOSED 2026-10-21** (user, 2026-10-21: *"close all five sprints and keep I-0308 open."*) · ✅ COMPLETE 2026-10-21 (every AC met; ⏳ close awaits the user) · 🟠 **IMPLEMENTED 2026-10-15** — ⏳ AC4's GNOME check and AC6, the rig live pass · 🟡 ACTIVATED 2026-10-15 (user: *"activate SP-181 and implement it."*) — created 2026-10-15 (user: *"plan EP-048 fully."*). ✅ Q1–Q3 ruled 2026-10-15 (Q3 against the
 recommendation, and widened: only the scenes with a match are written, on both platforms).
-**Carries:** [T-0608] → [`../Tasks/Task-active.md`](../Tasks/Task-active.md) · [I-0303] `[Apple]`, fixed first (plan
+**Carries:** [T-0608] → [`../Tasks/Task-active.md`](../../Tasks/Task-active.md) · [I-0303] `[Apple]`, fixed first (plan
 step 0), so Linux mirrors the corrected shape ([I-0289]'s pattern).
 · [I-0304] `[Linux]` and [I-0305] `[Apple]` `[Linux]`, filed from the findings and ruled in (2026-10-15).
-**Epic:** [EP-048] `[Linux]` Manuscript Renderer Parity → [`../Epics/Epic-active.md`](../Epics/Epic-active.md). **L8's Replace
+**Epic:** [EP-048] `[Linux]` Manuscript Renderer Parity → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md). **L8's Replace
 half.** Split from [SP-176] (Find) by the user, 2026-10-11, because Replace All needed Linux undo (SP-176 Q3).
 **Builds on:** [SP-178] (EP-026 S2, Linux undo) — its grouped edit (one undo step across scenes) passed the rig on 2026-10-13
 (steps 4–12). ⚠️ SP-178 is not closed: its AC6/AC8 wait for the rig, for [I-0297] and [I-0298]. Neither touches the grouped
 edit path this Sprint uses.
 **Authority:** EP-048 L8 · [SP-164] Q2 (Replace All = ONE undo step, across scenes) · [SP-164] Q3 (a replacement takes the
 style of the match's first character, the type-over rule) · [SP-176] Q2 (Find and Replace… = Ctrl+Alt+F) · design
-[`../Scrivi_Manuscript_Renderer_E2_Design_v0_1.md`](../Scrivi_Manuscript_Renderer_E2_Design_v0_1.md) §7.
+[`../Scrivi_Manuscript_Renderer_E2_Design_v0_1.md`](../../Scrivi_Manuscript_Renderer_E2_Design_v0_1.md) §7.
 **Shape:** ✅ Apple's (`feedback_linux_adopts_apple_shape`): `replaceFound` (`Scrivi/Views/ManuscriptTextView.swift:2887`),
 `applyReplacements` (`:2894`), the coordinator's `replaceAll` (`:2484`).
 **Size:** S–M. ⚠️ Needs a **rig live pass**.
@@ -176,7 +176,7 @@ isn't."* → plan steps 0b and 4.
       behind a dialog with a spinner (*"Please wait — saving updates…"*), then closes as usual — Mac
       `closeWaitsForBackgroundWrites`, Linux `background_wait_smoke` §3–§4 (2 mutations caught on each). ⏳ Live: both
       platforms, in the AC6 pass
-- [ ] AC6 — ✅ **Rig live pass (user)**
+- [x] AC6 — ✅ **Rig live pass (user)** — ✅ 2026-10-21, build 75
 
 ## Progress log
 
@@ -254,7 +254,7 @@ User:
 1. *"I think you believe it should be undo in the background in this one instance on both platforms … Perhaps we should
    consider doing all undos in a background thread (at least the ScriviCore part). Perhaps we can create the beginnings of
    a persistent thread pool (if the OS doesn't already do that) or … a dedicated thread for performing undo/history update
-   operations."* ⏳ Thinking aloud, not yet a ruling. ✅ Design note written 2026-10-15 (user: *"write the design not[e]"*): [`../Scrivi_Background_Writes_Design_v0_1.md`](../Scrivi_Background_Writes_Design_v0_1.md), ✅ Q1–Q5 ruled 2026-10-15 → a new Epic, [EP-052] `[ScriviCore]` Background Writes (Draft). Not this Sprint's work.
+   operations."* ⏳ Thinking aloud, not yet a ruling. ✅ Design note written 2026-10-15 (user: *"write the design not[e]"*): [`../Scrivi_Background_Writes_Design_v0_1.md`](../../Scrivi_Background_Writes_Design_v0_1.md), ✅ Q1–Q5 ruled 2026-10-15 → a new Epic, [EP-052] `[ScriviCore]` Background Writes (Draft). Not this Sprint's work.
 2. *"We'll have to remark it as needing saving when the save fails."* ✅ Linux keeps a scene dirty after a failed save, as
    the Mac does ([I-0259]).
 3. *"In both cases (Apple and Linux), if we attempt to close the application while a background update is in progress the
@@ -302,3 +302,10 @@ the rig.
 ✅ AC4: Ctrl+Alt+F opens the find bar with the Replace row on the rig. ⛔ Typing in the bar then crashed the app → [I-0308]
 `[Linux]` (filed, unassigned). The pass stopped there for the day; AC6 is not yet run.
 
+### ✅ 2026-10-21 — AC6 passed on the rig; COMPLETE
+
+User, 2026-10-21: *"I performed the live pass listed above on both the Rig and the Mac. all 10 steps passed. I continued with the Scrivi Rig Live Pass laid out in the attachemnt. This is build 75. Step 11: Ctrl-Alt-F showed Find-and-Replace. Step 22: The Bold text is acceptable. No steps failed!"*
+- the combined rig run sheet ("Scrivi Rig Live Pass", 29 steps, 2026-10-16), run on build 75 (`886b497`): step 4 (Mac, [I-0303]), 11–13 (Ctrl+Alt+F opens Replace — GNOME does not take it; Replace All then Ctrl+W / File ▸ Quit waits, [I-0305]), 21 (Replace, Replace All, one-step undo and redo), 28–29 ([I-0304]).
+- No crash typing in the find bar this time ([I-0308] stays in [SP-185]).
+- [I-0303], [I-0304], [I-0305] ✅ Verified → `Issues/Verified/Issue-verified-0301-0310.md`. [T-0608] ✅ Verified and archived.
+- ✅ Closed 2026-10-21 (user-approved).

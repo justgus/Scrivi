@@ -445,20 +445,20 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-175** | `[Linux]` **[EP-048] S3b** — the Format commands and balanced edits on Linux, on the core logic | EP-048 | 2026-10-10 | 2026-10-11 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-175.md) |
 | **SP-176** | `[Linux]` **[EP-048] S4** — Find over the presented text (L8 Find half, T-0603) | EP-048 | 2026-10-11 | 2026-10-11 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-176.md) |
 | **SP-177** | `[Cross]` **[EP-026] S1** — the undo capture rules move into ScriviCore; Apple re-pointed (T-0604) | EP-026 | 2026-10-11 | 2026-10-11 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-177.md) |
-| **SP-178** | `[Linux]` **[EP-026] S2** — undo/redo on Linux: Ctrl+Z / Ctrl+Shift+Z, persistence, session warning, barriers, grouped edits (T-0605) | EP-026 | 2026-10-11 | — | 🟡 **ACTIVE** → [`Sprint-SP-178.md`](Sprint-SP-178.md) |
+| **SP-178** | `[Linux]` **[EP-026] S2** — undo/redo on Linux: Ctrl+Z / Ctrl+Shift+Z, persistence, session warning, barriers, grouped edits (T-0605) | EP-026 | 2026-10-11 | 2026-10-21 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-178.md) |
 | **SP-179** | `[Linux]` **[EP-026] S5** — copy buffers 1–9 (Ctrl / Ctrl+Shift / Alt + digit), View ▸ Show Buffers (Ctrl+Alt+B), the Buffers palette (T-0606) | EP-026 | 2026-10-12 | 2026-10-15 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-179.md) |
-| **SP-180** | `[Linux]` **[EP-026] S4** — structured cut / copy / paste across scenes (T-0607) | EP-026 | 2026-10-13 | — | 🟡 **ACTIVE** → [`Sprint-SP-180.md`](Sprint-SP-180.md) |
-| **SP-181** | `[Linux]` **[EP-048] S4b** — Replace and Replace All over the presented text: L8's Replace half (T-0608) | EP-048 | 2026-10-15 | — | 🟡 **ACTIVE** → [`Sprint-SP-181.md`](Sprint-SP-181.md) |
-| **SP-182** | `[Linux]` **[EP-048] S5a** — Project Settings dialog, the typeface, Markup Hints: L10 (T-0609) | EP-048 | 2026-10-15 | — | 🟡 **ACTIVE** → [`Sprint-SP-182.md`](Sprint-SP-182.md) |
+| **SP-180** | `[Linux]` **[EP-026] S4** — structured cut / copy / paste across scenes (T-0607) | EP-026 | 2026-10-13 | 2026-10-21 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-180.md) |
+| **SP-181** | `[Linux]` **[EP-048] S4b** — Replace and Replace All over the presented text: L8's Replace half (T-0608) | EP-048 | 2026-10-15 | 2026-10-21 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-181.md) |
+| **SP-182** | `[Linux]` **[EP-048] S5a** — Project Settings dialog, the typeface, Markup Hints: L10 (T-0609) | EP-048 | 2026-10-15 | 2026-10-21 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-182.md) |
 | **SP-183** | `[Linux]` **[EP-048] S5b** — line spacing and the first-line indent: L10 (T-0610) | EP-048 | — | — | 🔵 **PLANNING** → [`Sprint-SP-183.md`](Sprint-SP-183.md) |
 | **SP-184** | `[Linux]` **[EP-048] S5c** — Show chapter titles, and the divider that closes a chapter (T-0611) | EP-048 | — | — | 🔵 **PLANNING** → [`Sprint-SP-184.md`](Sprint-SP-184.md) |
 | **SP-185** | `[Linux]` **[EP-026]** — responsive after load: [I-0308], [I-0307], [I-0297], [I-0309]; the diagnostic log (T-0612) | EP-026 | 2026-10-17 | — | 🟡 **ACTIVE** → [`Sprint-SP-185.md`](Sprint-SP-185.md) |
 | **SP-186** | `[ScriviCore]` **[EP-053] S1** — the Range and the range operations: read, paste ([I-0311]), structural cut; the delta; 4 reads + 4 writes (T-0614) | EP-053 | 2026-10-17 | 2026-10-20 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-186.md) |
-| **SP-187** | `[Cross]` **[EP-053] S2a** — the scene list as the model of record, no visible change; the range bindings and delta types (T-0615) | EP-053 | 2026-10-20 | — | 🟡 **ACTIVE** → [`Sprint-SP-187.md`](Sprint-SP-187.md) |
+| **SP-187** | `[Cross]` **[EP-053] S2a** — the scene list as the model of record, no visible change; the range bindings and delta types (T-0615) | EP-053 | 2026-10-20 | 2026-10-21 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-187.md) |
 | **SP-188** | `[Cross]` **[EP-053] S3** — structural cut, Backspace / Delete over scenes, and their undo (T-0616) | EP-053 | — | — | 🔵 **PLANNING** → [`Sprint-SP-188.md`](Sprint-SP-188.md) |
 | **SP-189** | `[Cross]` **[EP-053] S4** — the background sync verification: disk wins, silently (T-0617) | EP-053 | — | — | 🔵 **PLANNING** → [`Sprint-SP-189.md`](Sprint-SP-189.md) |
 | **SP-190** | `[Cross]` **[EP-053] S5** — Mac and rig live passes over the share, timed (T-0618) | EP-053 | — | — | 🔵 **PLANNING** → [`Sprint-SP-190.md`](Sprint-SP-190.md) |
-| **SP-191** | `[Cross]` **[EP-053] S2b** — copy, paste and its undo, split and merge: as deltas, off the main thread, no reload (T-0619) | EP-053 | — | — | 🔵 **PLANNING** → [`Sprint-SP-191.md`](Sprint-SP-191.md) |
+| **SP-191** | `[Cross]` **[EP-053] S2b** — copy, paste and its undo, split and merge: as deltas, off the main thread, no reload (T-0619) | EP-053 | 2026-10-21 | — | 🟡 **ACTIVE** → [`Sprint-SP-191.md`](Sprint-SP-191.md) |
 | **SP-160** | `[Linux]` **[EP-049] S1** — Linux writes Apple's manuscript format: escaping, paste/copy, pair deletion, Return/⌫, shared corpus (T-0586); + I-0276 | EP-049 | 2026-10-04 | 2026-10-04 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-160.md) |
 
 ## Statistics
@@ -499,7 +499,11 @@ by status, read the table.**
 
 ---
 
+*Last Updated: 2026-10-21 (**SP-191 → 🟡 ACTIVE** as EP-053 S2b (user: *"activate SP-191"*); T-0619 → active.)*
+
 *Last Updated: 2026-10-20 (**SP-187 → 🟡 ACTIVE** as EP-053 S2a (user: *"complete planning for SP-187 and activate it"*); Q1 split S2 → **SP-191** (S2b) created in 🔵 Planning via `next-id.py`; T-0615 → active, T-0619 filed.)*
+
+*Last Updated: 2026-10-21 (**SP-178, SP-180, SP-181, SP-182, SP-187 CLOSED** (user-approved) → `Closed/`; their Tasks verified and archived.)*
 
 *Last Updated: 2026-10-20 (**SP-186 CLOSED** (user-approved) → `Closed/Sprint-SP-186.md`; T-0614 verified and archived.)*
 

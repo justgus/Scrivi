@@ -82,3 +82,13 @@ no reload. Undo is a range paste; redo is the cut again.
 ### 🔵 2026-10-20 — Sprint CREATED in Planning
 - User: *"complete planning for EP-053."* Issued with [SP-187], [SP-189], [SP-190] via `next-id.py`; [T-0616] filed.
 - Q1–Q2 await rulings.
+
+### 🔵 2026-10-21 — Affected by [SP-191]'s Q3 and Q4
+- [SP-191] Q3 (ruled): split and merge become undoable range operations, with no barriers. Its Q3b (✅ agreed 2026-10-21)
+  puts each whole scene's sidecar (and a removed chapter's metadata) in the Range, built in SP-191's Plan 1. This Sprint's
+  cut undo uses it, so an undone cut restores the tags, story time, band, outline, to-dos and status. ⚠️ A consequence: a
+  cut-then-paste elsewhere keeps the scenes' IDs (`pickSceneID`), so the scenes move WITH their sidecars.
+- [SP-191] Q3e (ruled): the manuscript is one Range, and a cut of any sub-range joins the scenes at its ends, including a
+  zero-length one at a chapter break. This Sprint's cut follows the same rule (design §4.3). Chapter merge is a relabel.
+- [SP-191] Q4/Q4a (ruled): only the clipboard and copy buffers drop old-style objects (they read as empty) and store Ranges.
+  History keeps [SP-187] Q2's conversion, so this Sprint's "old `structuredCut` nodes still undo" (Plan 4, AC5) stands.

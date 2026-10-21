@@ -162,6 +162,10 @@ reachable by the test suite as it stood.**
 
 ---
 
+*Last Updated: 2026-10-21 — **I-0314** moved to `Issue-active.md` (assigned to SP-191).*
+
+*Last Updated: 2026-10-21 — **I-0314** `[Apple]` filed: a Mac chapter split writes the scenes out of order on disk (found planning [SP-191]).*
+
 *Last Updated: 2026-10-20 — **I-0313** `[Apple]` filed: typing into an empty scene before another empty one is credited to the next (found by [SP-187]'s test).*
 
 *Last Updated: 2026-10-20 — **I-0312** `[ScriviCore]` filed: `keyBetween` mis-places a key next to an undotted legacy key (found testing [SP-186]).*

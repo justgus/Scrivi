@@ -133,6 +133,8 @@ ruling **R-23(②)**. **To count Epics by status, read the table.**
 
 *Last Updated: 2026-10-15 (**EP-026**: [SP-179] (S5) CLOSED (user-approved); [I-0287] VERIFIED; the index row's stale *"S1 next"* replaced by a pointer.)*
 
+*Last Updated: 2026-10-21 (**EP-053 S2b = SP-191 → 🟡 ACTIVE**.)*
+
 *Last Updated: 2026-10-20 (**EP-053 S2a = SP-187 → 🟡 ACTIVE**; S2 split, S2b = SP-191 (🔵 Planning).)*
 
 *Last Updated: 2026-10-20 (**EP-053 S1 = SP-186 ✅ closed**; T-0614 verified.)*

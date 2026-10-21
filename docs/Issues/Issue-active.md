@@ -8,23 +8,52 @@ Issues awaiting **user verification**. An Issue leaves this file only when the u
 
 | ID | Title | Severity | Sprint | Status |
 | -- | ----- | -------- | ------ | ------ |
+| **I-0314** | `[Apple]` ⛔ **A chapter split on the Mac puts the scenes out of order ON DISK: the new chapter is appended at the manuscript END, and the scenes after the split stay in the old chapter.** The editor shows the right order until the project is reopened. Linux had the same defect and fixed it in July ([I-0074]: create in place, then move the following scenes). Found 2026-10-21 planning [SP-191] (an interop probe). → [details](#i-0314) | **High** | [SP-191] | 🔴 **Open** |
 | **I-0311** | `[ScriviCore]` ⛔ **A structured paste that opens a CHAPTER in the middle of a chapter scrambles the reading order: the target scene's remaining text lands AFTER the scenes that followed it.** Found 2026-10-17 by reading the core while measuring [I-0297]; ⚠️ the new `[I-0297]` ABI test asserts the wrong order (expectations taken from the code). → [details](#i-0311) | **High** | [SP-191] | 🟡 **Fixed in `scrivi_range_paste`; the apps still call the old paste** |
 | **I-0310** | `[Linux]` ⛔ **Destroying a shown, focused project window crashed: the editor's focus-out read the document its shell had already freed.** Found 2026-10-17 by the [I-0307] measurement harness (a segfault at its exit). ✅ Fixed. → [details](#i-0310) | **High** | [SP-185] | 🟠 **Resolved - Not Verified** |
 | **I-0309** | `[Linux]` ⛔ **Closing a project window while the project is still LOADING frees memory the load's worker is still using** (use-after-free of the shell's `ScriviBridge`). Found 2026-10-17 by AddressSanitizer in Docker, while reproducing [I-0308]. ✅ Fixed: every worker builds its own bridge. → [details](#i-0309) | **High** | [SP-185] | 🟠 **Resolved - Not Verified** |
 | **I-0308** | `[Linux]` ⛔ **The app CRASHED while the writer typed in the Find bar** (dumas-prose-timelines over the share, right after a cross-scene paste, a quit, a reopen and an undo of the paste). Found on the rig 2026-10-15 (live pass, step 11). No crash trace was kept. → [details](#i-0308) | **High** | [SP-185] | 🔵 **Open** |
-| **I-0307** | `[Linux]` ⛔ **Selecting across a scene break, Ctrl+C and Ctrl+V each FREEZE the window for 10–15 s** (dumas-prose-timelines over the share). Found on the rig 2026-10-15 (live pass, step 9). ✅ Measured and fixed in Docker: Ctrl+C's GUI-thread file calls 2,678 → 3; a mouse selection no longer extracts. → [details](#i-0307) | **High** | [SP-185] | 🟠 **Resolved - Not Verified** |
 | **I-0306** | `[Apple]` ⚠️ **File ▸ Close Project (⌘W) skips the "Some changes can't be saved" question** ([T-0570]): it calls `NSWindow.close()`, which never asks `windowShouldClose`. Found 2026-10-15 by reading ([SP-181]). → [details](#i-0306) | **Medium** | ⛔ **Unassigned** | 🔵 **Open** |
-| **I-0305** | `[Apple]` `[Linux]` ⚠️ **Closing a project window, or quitting, while scenes are being written in the background does not wait for the writes.** Found 2026-10-15 by reading ([SP-181]). ✅ Fixed on both platforms: a close or quit waits behind *"Please wait — saving updates…"*. → [details](#i-0305) | **Medium** | [SP-181] | 🟠 **Resolved - Not Verified** |
-| **I-0304** | `[Linux]` ⛔ **A scene whose save FAILS is dropped from the dirty set, so it is never retried and quitting loses its edits.** The Mac keeps it dirty ([I-0259]). Found 2026-10-15 by reading ([SP-181]). ✅ Fixed: a failed write stays dirty. → [details](#i-0304) | **High** | [SP-181] | 🟠 **Resolved - Not Verified** |
-| **I-0303** | `[Apple]` ⚠️ **Replace All writes every changed scene on the MAIN THREAD, one after another — `saveScene` is `async` in name only.** Found 2026-10-15 by reading, planning [SP-181] Q3. Fix before Linux copies the shape (user ruling). | **Medium** | [SP-181] | 🟠 **Resolved - Not Verified** |
-| **I-0300** | `[Linux]` ⚠️ **After Ctrl+Shift+Return (new chapter) — and a mid-scene Ctrl+Return — the caret stays where it was instead of moving into the new chapter or scene.** Found on the rig 2026-10-13 ([SP-180] live pass, step 24). ✅ Fixed: the caret is placed when the reload has finished (also after a merge). → [details](#i-0300) | **Low** | [SP-180] | ✅ **Resolved - Not Verified** |
-| **I-0298** | `[Apple]` `[Linux]` ⚠️ **An undo that crosses a structural step (a cross-scene paste) into an earlier session shows no "Undoing changes from a previous session" warning.** Found 2026-10-13 ([SP-180] live pass, step 36). ✅ Fixed on both platforms. → [details](#i-0298) | **Low** | [SP-180] | ✅ **Resolved - Not Verified** |
 | **I-0297** | `[Linux]` ⛔ **A structured paste, its undo and its redo FREEZE the UI for 90 s – 2 min on a project over the network share** (dumas-prose-timelines, 1,186 scenes). 436 ms in Docker on local disk. Found 2026-10-13 ([SP-180] live pass, steps 36–37). ✅ Fixed: measured, the walks cut, and the work moved off the UI thread (7,683 UI-thread file calls → 16). → [details](#i-0297) | **High** | [SP-185] | 🔵 **Open** — reopened 2026-10-15: the remaining 40 s is no longer accepted (user) |
 | **I-0242** | `[Linux]` ⛔ **THE WRITER'S CARD STACK IS IGNORED — Linux ENUMERATES KINDS instead of honouring the chosen stack, and DROPS any card that is empty.** ⚠️ **FOUND BY THE USER on the real rig, 2026-09-21**, during [SP-142]'s live pass on `the-stairs-of-tintagael` — ⛔ **not by any test.** ✅ **USER RULING (2026-09-21), and it is the whole specification:** ⚠️ ***"The writer chooses which Card elements to display and in what order they appear. Therefore, if the writer chooses to display an empty card in the stack, then it should be displayed with an appropriate 'No Objects to Display' message. Apple already does this. Linux must as well."*** ⚠️ **REPORTED AS 'Factions is missing'; ⛔ THAT IS THE SYMPTOM, NOT THE DEFECT.** ✅ **Linux CAN render factions** — it derives kinds from `ObjectKindScope`/`kAllStorableKinds` and hardcodes nothing (the standing rule WAS followed). ⛔ **THE DEFECT IS THAT IT NEVER ASKS WHAT THE WRITER CHOSE.** ✅ **`SceneInspector.cpp:551` lists the CORE's kinds and `:577` skips any with no entries in this scene** (*"a kind with nothing in this scene is simply not a row"*) — ⚠️ **so the stack is DERIVED FROM DATA, while Apple's is DECLARED BY THE WRITER.** ⚠️ **APPLE IS THE REFERENCE AND IT IS EXPLICIT:** `ObjectCard.swift:450` renders *"No <kind> in this scene yet."* with the comment ⚠️ ***"§2: empty is a normal state, not an error."*** ⛔ **THE ROOT CAUSE IS A DANGLING READ.** ✅ **`inspector-layout.json` HOLDS the answer — `defaultStacks` and per-scene `scenes` — and [T-0537] just proved Linux ROUND-TRIPS both LOSSLESSLY.** ⚠️ **But `InspectorLayoutStore` exposes ONLY `selectedTab`: ⛔ ZERO reads of `defaultStacks` or `scenes` anywhere in `platforms/linux/`.** ✅ **So Linux has been faithfully PRESERVING a document it does not consult** — ⚠️ **`project_capability_without_surface` in its exact form: a dangling read with no reader.** ⚠️ **CONSEQUENCE BEYOND THE MISSING CARD: ORDER IS ALSO WRONG.** ⛔ **Linux emits kinds in the CORE's order; the writer's chosen order is in `defaultStacks` and is ignored** — ✅ **the user's ruling names order explicitly.** ⚠️ **AND IT BLOCKS THE STACK PICKER ([EP-036] AC4b): a '+' menu that adds a card to a stack nothing reads would change nothing on screen.** ⛔ **That picker had NO Task number; ⚠️ an earlier draft of this row cited `T-0543`, which is now [SP-134]'s — ✅ corrected 2026-09-22.** | **Medium** | ⛔ **UNASSIGNED** — ⚠️ **candidate for [EP-036]; ✅ it is the PREREQUISITE for T-0543, so they should sequence together** | 🔵 **Open** |
 | **I-0223** | `[ScriviCore]` ⚠️ **A WORLD CAN BIND TO A DIFFERENT *VERSION* OF ITSELF, SILENTLY — the core detects world IDENTITY but has no notion of world STATE.** ⛔ **REWRITTEN 2026-09-25 BY USER RULING. ⚠️ THE ORIGINAL RECORD WAS SUBSTANTIALLY WRONG AND ITS TEXT IS SUPERSEDED — see 'WHAT THE ORIGINAL CLAIMED' below, kept because the error is instructive.** ---- ✅ **THE USER'S FRAMING, WHICH IS THE SPECIFICATION:** ⚠️ ***"The World's filename and internal ID must match the Project's expectation or else the World Load will be rejected. That will account for every world except a copy of the world or an earlier version of the world. A copy of the world is assumed to be identical... If the mounted file is a mis-matched version (older or newer) of the previous linked world, then an honest reconciliation should take place."*** ---- ✅ **THE IDENTITY CHECK IS REAL, AND IT RUNS ON EVERY CANDIDATE INCLUDING THE RELATIVE ONE.** ✅ **`WorldStore.cpp:428-436`:** ⚠️ ***"IDENTITY CHECK. A package whose worldID differs is NOT this world — resolution stops rather than silently substituting a same-named package. A world's name is a label; its worldID is its identity."*** — ✅ **a mismatch returns `WorldStatus::missing`, NOT a bind.** ✅ **`relinkWorld` enforces the same at `:492-498` with a `worldIDMismatch` detail.** ---- ⚠️ **SO THE SPACE PARTITIONS THREE WAYS, AND ONLY THE THIRD IS A DEFECT:** ✅ **(1) A DIFFERENT WORLD → REJECTED on `worldID`. ⛔ Not a defect; already correct.** ✅ **(2) A COPY of the world → identical `worldID`, identical content, binds and resolves every object reference. ⛔ NOT A DEFECT — a copy is assumed identical and linking to it is FINE (user ruling).** ⛔ **(3) A MIS-MATCHED VERSION of the SAME world (older or newer) → `worldID` MATCHES, so it BINDS SILENTLY, and the core CANNOT NOTICE it is not the version the project last saw. ⚠️ THAT IS THIS ISSUE, ENTIRELY.** ---- ⚠️ **WHY THE CORE IS STRUCTURALLY BLIND TO (3): `worldID` IS IDENTITY, NOT STATE.** ✅ **It answers *"is this the same world?"* and CANNOT answer *"is this the same version of it?"* — ⚠️ **two different questions, and only the first has a mechanism.** ---- ✅ **THE MATERIAL GAP, CONFIRMED IN THE SCHEMAS 2026-09-25:** ⚠️ **`world.json` ALREADY CARRIES `modifiedAt` AND `formatVersion`** (`WorldJson.cpp:25-26`, `WorldRecord` in `worlds/WorldTypes.hpp`) — ⛔ **BUT `WorldBindingRecord` RECORDS NEITHER.** ✅ **It stores only `worldID`, `displayName`, `epochOffsetMs`, `reference` and `cachedIndex`** (`WorldJson.cpp:82-98`). ⚠️ **So the binding has NO RECORD OF WHICH VERSION IT BOUND, and divergence is undetectable by construction — ⛔ not merely unchecked.** ---- ✅ **WHAT THE WORK IS (two capabilities, and the second NEEDS the first):** ✅ **(a) CHANGE-CONTROL DETECTION IN THE WORLD ITSELF** — ⚠️ **something that distinguishes VERSIONS of one `worldID`: a monotonic revision counter or a content hash, written into `world.json` AND recorded in the binding at bind time.** ⛔ **Without this the core cannot detect the case at all, no matter what resolution does.** ⚠️ **`modifiedAt` ALONE IS NOT SUFFICIENT EVIDENCE — a timestamp can go backwards, be preserved by a copy, or be rewritten by sync; ✅ whether it is a usable input is part of the work, not an assumption.** ✅ **(b) HONEST RECONCILIATION** — ⚠️ **when the bound revision and the found revision differ, REPORT IT and say WHICH DIRECTION (older / newer / divergent); ⛔ do not silently pick.** ✅ **This is exactly the two standing rules this code already follows: *"core reports, app decides"* ([SP-141] ruling) and §6a.0's *absence is never deletion*.** ---- ⚠️ **SCOPE WARNING: (a) IS A SCHEMA CHANGE to `world.json` and to the binding, so it needs a MIGRATION story for worlds predating the field** — ✅ **and `WorldRecord::kSupportedFormatVersion` (currently `1`) is the existing mechanism for exactly that.** ⚠️ **THAT is what makes this larger than a resolution patch and why it wants real design, not an incidental fix.** ---- ⚠️ **THE UNMOUNTED-DEVICE VARIANT FOLDS INTO (3), IT IS NOT SEPARATE:** ⛔ **the hazard is NOT resolving to a wrong world (identity blocks that) — ✅ it is resolving to a STALE COPY of the RIGHT world on some other reachable volume while the current one is unmounted.** ⚠️ **Identity passes; nothing flags the divergence.** ---- ⛔ **WHAT THE ORIGINAL RECORD CLAIMED, AND WHY IT WAS WRONG** (⚠️ **kept deliberately**): ⚠️ **it claimed a cross-volume relative path could make the core *"bind the WRONG WORLD and report success"*, severity framed as the [I-0181] class (a wrong answer asserted confidently).** ⛔ **THAT CANNOT HAPPEN — the identity check at `:428` rejects it.** ⚠️ **THE METHOD FAILURE: the 2026-09-22 re-confirmation (*"CONFIRMED STILL LIVE"*) read the CANDIDATE ORDERING at `WorldStore.cpp:305-315` and STOPPED THERE — ✅ it never read the 120 lines further down where the check lives.** ⚠️ **A partial code read produced a confident wrong severity that this record then carried for three days.** ✅ **THE RELATIVE-FIRST ORDERING IS CORRECT AND STAYS** (⚠️ *it is what protects a project and its worlds moved TOGETHER*). ---- ⛔ **THE ORIGINAL ACs ARE VOID:** ⚠️ **old AC2 (*"verify the resolved package IS the bound world"*) IS ALREADY IMPLEMENTED at `:428`; ⚠️ old AC1 (*"skip a meaningless relative candidate"*) addresses a hazard the identity check already closes.** ✅ **[EP-044] MUST BE RE-SPECIFIED around (a) and (b) above.** ---- ⚠️ **SEVERITY RE-REASONED, NOT INHERITED: *"silently binds a STALE VERSION, which is RECONCILABLE"* is a lesser and different thing than *"silently binds the WRONG WORLD"*.** ✅ **It is also arguably NO LONGER the [I-0181] family at all** (⚠️ *that family is about asserting a wrong answer from absent evidence; this is about having no evidence to assert from*). | **Low** — ⚠️ **DROPPED FROM MEDIUM 2026-09-25 (user ruling), re-reasoned NOT inherited:** ⛔ **the Medium came from the FALSE wrong-world claim;** ✅ **"silently binds a STALE VERSION, which is RECONCILABLE" is lesser and different.** ⚠️ **No data is lost and no wrong world is bound — ✅ the writer sees a world that is genuinely theirs, at a state they did not choose.** | ✅ **[EP-044]** `[ScriviCore]` **World Resolution** — ⚠️ **assigned 2026-09-22; ⛔ its ACs MUST BE REWRITTEN (the originals are void, above).** ✅ **REWRITTEN 2026-09-25 in [`../Epics/Epic-EP-044.md`](../Epics/Epic-EP-044.md): AC1 = a world package can be distinguished from another VERSION of itself (schema + binding records the bound version); AC2 = a version mismatch is RECONCILED HONESTLY with its DIRECTION, and a COPY is NOT a mismatch; AC2b = migration for worlds predating the field.** ⛔ **The void originals are kept at the foot of that Epic's AC section** | 🔵 **Open** — ⚠️ **REWRITTEN 2026-09-25 (user ruling); ⛔ NOT SCHEDULED** |
 |  **I-0244** | `[Linux]` ⚠️ **THE LINUX APP HAS NONE OF [EP-040]'s EDITOR SHELL, AND NOTHING TRACKS THE GAP.** ⚠️ **RAISED 2026-09-22 from the user's own observation during [SP-135]'s live pass:** ⚠️ ***"I did not toggle the panels on Linux or any of the more recent UI changes because many of them have not been made on Linux yet."*** ✅ **MEASURED THE SAME DAY, not asserted:** ⛔ **Linux has ZERO `QToolBar`/`addToolBar` in `platforms/linux/src/`** · ⛔ **ZERO navigator-visibility state** · ⚠️ **Apple now has a `.toolbar` with 3 `ControlGroup`s and SIX `safeAreaBar`s.** ⚠️ **THIS IS NOT A DEFECT IN EITHER PLATFORM.** ✅ **[EP-040] is scoped `[Apple]` DELIBERATELY** — ⛔ **but four Sprints of shell work ([SP-134] toolbar · [SP-135] bars · [SP-136] inspector column · [SP-137] detail sheet) have no Linux counterpart, and NO Epic, Sprint or Issue records that.** ⚠️ **`feedback_linux_adopts_apple_shape` is the standing rule: *Apple is the reference for architecture; a shape change on Apple must be made the same way on Linux in the SAME work.*** ⛔ **That has not happened, and the divergence is now FOUR SPRINTS DEEP AND GROWING.** ✅ **WHAT THE APPLE WORK ALREADY PROVED, and Linux will re-earn without it:** ⚠️ **[I-0203]'s root cause was that bars were STACK SIBLINGS** — ✅ **Linux's `EditorShell` uses the same layout idiom** — ⚠️ **and the Navigator was unrecoverable because NOTHING OWNED ITS VISIBILITY STATE.** ⛔ **Linux's pane visibility is SESSION-SCOPED ONLY (SP-078/T-0320), which is the same class of gap.** ⚠️ **IT IS NOT [EP-043]'s EITHER:** ✅ **that Epic is the SESSION (multi-window, restore, geometry)** — ⛔ **this is the SHELL (toolbar, bars, panes).** ✅ **They are adjacent and both wait on the same `EditorShell` rework, which is an argument for SEQUENCING them together, not for merging them.** ⚠️ **NOT URGENT AND NOT A REGRESSION** — ✅ **Linux works as it did** — ⛔ **but an untracked divergence is how a port silently falls behind, which is exactly what the Porting Outline exists to prevent.** ---- ⚠️ **A PERFORMANCE EXPECTATION IS INHERITED FROM [I-0213]** (⚠️ *`[Apple]` chapter create froze the app ~2.7 s on a 1,174-scene manuscript; now `~305–400 ms` of work*) **AND IS RECORDED HERE SO LINUX DOES NOT RE-DISCOVER IT AS A DEFECT.** ✅ **[I-0213] was VERIFIED on Apple 2026-09-24 with `createChapter WORK=396.7 ms` on 1,179 scenes, ⚠️ measured DELIBERATELY from a USB mount as a WORST-CASE FLOOR.** ⚠️ **The user named what follows:** *"On Linux it will be even worse because it has to also come through this computer's operating system."* ✅ **SO A LINUX FIGURE WORSE THAN `396.7 ms` ON THE SAME FIXTURE IS ANTICIPATED — ⛔ NOT a regression against [I-0213], and NOT a new Issue on its own.** ⛔ **NOTHING HAS BEEN MEASURED ON LINUX YET; ✅ this is an EXPECTATION TO TEST AGAINST, not a claim about the rig.** ⚠️ **When the Linux editor shell is built, the structural ops MUST be timed with the SAME `[SCRIVI-STRUCT]`-style instrumentation** — ✅ **[I-0213] proved the cost was UNATTRIBUTABLE until each op reported its own number, and that three code-read diagnoses were wrong before it did.** | **Low** | ⛔ **UNASSIGNED — awaiting its OWN Epic.** ✅ **SCOPE RULED 2026-09-26 ([EP-043] [R-Q5], user-approved): it becomes its OWN `[Linux]` Epic, SEQUENCED AFTER [EP-043]** — ⛔ **NOT ACs inside it.** ⚠️ **THIS ROW PREVIOUSLY SAID *"sequenced WITH or after"*; ✅ it is AFTER, and [EP-043]'s record now says the same** — ⛔ **the two records disagreed and no longer do.** ✅ **WHY NOT FOLDED IN: this Issue is FOUR Apple Sprints deep ([SP-134]–[SP-137]), and folding it into a SESSION Epic would repeat the [EP-035] AC1 collapse [I-0178] cites.** ✅ **THE COLLISION IS ALREADY HANDLED: [SP-145] carries a NAMED CARVE-OUT** — ⚠️ **its extraction takes `inspectorVisible_` + `timelineVisible_` onto the session object** (⛔ **per-project state, not per-widget**), ✅ **so this Epic will NOT have to re-open `EditorShell` for pane state.** ⚠️ **Of this Issue's THREE measured gaps, ONLY pane-visibility overlapped, and that is the carve-out** | 🔵 **Open**  |
 | **I-0192** | `[ScriviCore]` ⚠️ **A world on a PHYSICALLY REMOVED volume resolved `available`, and a full object read SUCCEEDED through it, until a scene change forced a re-resolve.** ⚠️ **Found by the USER on the REAL RIG during T-0477's S3 physical yank, 2026-09-07.** ⚠️ **RE-SCOPED 2026-09-07 from `[Linux]` to `[ScriviCore]` after reading the code — ⚠️ MY ORIGINAL DIAGNOSIS WAS WRONG.** ⚠️ **I filed this as an app-layer 'cached status with no invalidation' and as a placeholder dialog reusing a name it already held. ✅ **The code says otherwise, and the truth is WORSE:** `EditorShell::onOpenObjectRequested` (`EditorShell.cpp:~1790`) calls `bridge_->openObject(...)`, checks `lastCallFailed()`, and ⚠️ **parses the displayed name out of the `objectJson` THAT CALL RETURNED** — its own comment reads *"the object is genuinely read here."* ⚠️ **There is no app-side status cache to go stale.** ✅ **The read is guarded end-to-end**: `ObjectStore::open` → `findByID` → `kindDirFor` (`ObjectStore.cpp:~250`), which calls `WorldStore::resolve()` and ⚠️ **refuses unless status is `available`.** ✅ **And `resolve` caches NO verdict** — it sets `available` only after actually reading and parsing `world.json` from the candidate path (`WorldStore.cpp:337-342`). ⚠️ **SO THE DEFECT IS NOT STALENESS ANYWHERE — the filesystem itself answered successfully for a volume that was physically gone**, and every layer above correctly trusted a correct answer. ⚠️ **The likely mechanism is the PAGE CACHE / unreaped dentries**, which ✅ **the 2b container pass ALREADY measured in a stronger form**: a held FD survived `umount -l` + `losetup -D` entirely, reading and writing fine while the PATH broke instantly. ⚠️ **THIS IS I-0181's SIBLING, NOT ITS OPPOSITE**: I-0181 is `resolve` inferring absence it cannot prove; ⚠️ **I-0192 is `resolve` inferring PRESENCE it cannot prove** — ✅ **and `read succeeded` is no more proof of a mounted volume than `directory exists` is proof of a deleted one.** ⚠️ **T-0498's `st_dev` primitive is plausibly the SAME fix for both** — ⚠️ **but that must be MEASURED, not assumed.** ⚠️ **PARTIALLY MEASURED 2026-09-07 (over SSH, drive already out): the STEADY STATE is CORRECT** — `scrivi_get_world_status` returns ✅ **`unavailable`** (not `missing`), with `packagePath` empty and `lastKnownPackagePath` preserved, ⚠️ **stable across repeated calls**, and ✅ **`binding.json` stores no status key at all** — ⚠️ **so there is no persisted verdict to go stale.** ⚠️ **Therefore I-0192 is a TRANSIENT WINDOW, not a stuck verdict** — ⚠️ **severity lowered accordingly.** ⚠️ **The decay-vs-persist question across the yank itself is STILL OPEN and needs the sampled run.** | **Low** | ✅ **[EP-044]** `[ScriviCore]` **World Resolution** — ⚠️ **assigned 2026-09-22 by user ruling.** ✅ **AC3.** ⛔ **Its former candidate home, T-0498, is CLOSED and VERIFIED** — ⚠️ **so this had no owner at all; ✅ [EP-044] carries T-0498's unfinished work by design** | 🔵 **Open** |
 
+
+## I-0314
+
+**Title:** A chapter split on the Mac writes the scenes out of order on disk
+**Status:** 🔴 Open (assigned 2026-10-21)
+**Platform:** `[Apple]`
+**Component:** `ManuscriptTextView.handleCreateChapter` (`ManuscriptTextView.swift:1412`): `engine.createChapter` is called
+without `afterChapterID`, so the wrapper's default `""` applies (`ScriviEngine.swift:759`: *"Empty → append at the manuscript
+end (the prior macOS behavior, preserved by the default)"*). `loader.splitChapter` (`:1484`) then moves the following scenes
+into the new chapter IN MEMORY ONLY.
+**Severity:** High. Nothing is lost, but after a reopen the writer's text is out of order: the tail of the split scene
+moves to the end of the book, and the scenes that followed it stay in the old chapter.
+**Sprint:** [SP-191] ([EP-053] S2b — chapter split through `scrivi_range_paste`; ruled Q6, 2026-10-21)
+**Date Identified:** 2026-10-21 (an interop probe while planning [SP-191]; the probe was removed after it ran)
+
+**Measured (interop harness, one chapter: "Alpha one. Alpha two." · "Beta."):** the caret after "Alpha one. ", then
+`handleCreateChapter()`:
+- the list in memory: `Alpha one. ` · [new chapter] `Alpha two.` · `Beta.`;
+- the disk, through `openProject`: `Alpha one. ` · `Beta.` · [new chapter] `Alpha two.`.
+With chapters after the split, the new chapter should also land after the LAST of them, per `scrivi_create_chapter`'s
+documentation. ⚠️ Read, not measured.
+
+**Why the tests missed it:** `RunRenderTests.chapterOperations` checks the render against the list, never the list against
+the disk. SP-187's live pass (AC7) split a chapter and then merged it straight back (steps 6–7), which restores the same
+order, so the reopen at step 10 could not show it.
+
+**Linux:** not affected. [I-0074] (verified 2026-07-18) made Linux create the chapter in place (`afterChapterID = C`) and
+move each following scene (`EditorShell.cpp:2098`, `:2159`).
+
+**Fix direction:** decided with [SP-191]. That Sprint's plan already moves chapter split to one core call that returns the
+delta; a split through `scrivi_range_paste` puts the new chapter in place and moves the following scenes (the [I-0311]
+promotion). A test checks the list against the disk after every structural operation.
+
+---
 
 ## I-0311
 
@@ -148,56 +177,11 @@ SP-182's presenter changes (chapter-title lines). ⏳ Not yet proven either way.
   selection, the network share's timing, the real dumas-prose-timelines (with timelines).
 - Found on the way: [I-0309] and [I-0310], both crashes, both fixed. The diagnostic log ([T-0612]) now records a crash's
   backtrace on the rig.
-
----
-
-## I-0307
-
-**Title:** Cross-scene select, copy and paste each freeze the window 10–15 s
-**Status:** 🟠 **Resolved - Not Verified** (2026-10-17)
-**Platform:** `[Linux]`
-**Severity:** High. The user, 2026-10-15: *"Cut Copy and Paste must be as fast as possible at all times. I'll accept long
-load times, but once loaded the app must do everything instantly."*
-**Sprint:** [SP-185]
-**Date Identified:** 2026-10-15, user, rig live pass step 9 (dumas-prose-timelines, 1,186 scenes, over the share)
-
-**What happened (user):** *"UI froze after select across scene. Again after copy and again after paste. about 10-15 seconds.
-each time."*
-- ⚠️ **The SELECTION froze too.** Selecting does no write and no core call by design; something runs per selection change.
-  [I-0297] measured and moved the paste's worker off the GUI thread, so this is a different cost, or one it did not reach.
-- Not yet measured. The first step is to attribute each freeze (select, Ctrl+C, Ctrl+V) on the rig, as [I-0297] did, before
-  any fix. The user, 2026-10-17: *"This is surprising. We may need to create a log file so that we can record what the app is
-  doing. A simple code inspection may not be adequate."* → [T-0612].
-
-**Measured (2026-10-17, Docker, `strace -f`, a real `EditorShell` on 1,186 generated scenes; each phase bracketed by marker
-probes, calls split by thread):**
-
-| Phase | GUI-thread file calls |
-| - | - |
-| The cross-scene selection | 10 |
-| Ctrl+C | **2,678** (2,492 scene sidecars, 122 directory listings) |
-| The click into scene 5 | 10 |
-
-- **Copy:** Linux's structured copy asks ScriviCore for the fragment (`scrivi_fragment_extract`) on the GUI thread, and the
-  extractor RESOLVED the whole manuscript (every scene sidecar read and parsed, the [I-0196] class) to find two scenes.
-- **Select:** Qt fills the X11 / Wayland PRIMARY selection on every mouse selection by calling the same
-  `createMimeDataFromSelection` Ctrl+C uses: the selection ran the same extract. ⚠️ Inferred, not observed: the offscreen
-  platform Docker runs has no primary selection. It also replaced the held fragment and token, so a mouse selection after a
-  Ctrl+C turned the next Ctrl+V flat.
-- **Paste:** 21 GUI-thread calls; its cost is the worker's, which is [I-0297]'s.
-
-**Resolution:**
-- **ScriviCore:** `scrivi_fragment_extract` takes the reading order from the project index
-  (`FragmentExtractor::extract(root, spans, ordered)`); with no index it resolves as before. Ctrl+C: **2,678 → 3** GUI-thread
-  file calls (measured again).
-- **Linux:** the structured fragment is built ONLY for the clipboard (`ManuscriptEditor::copyToClipboard`: Ctrl+C, Edit ▸
-  Copy, cut); the primary selection gets the flat text and leaves the held copy alone.
-- **Tests:** `FragmentExtractTests` `[I-0307]` (no sidecar read given the order); `structured_paste_smoke` §1 (the primary
-  selection carries no fragment token, and Ctrl+V after it is still structured); 1 mutation caught (the primary selection
-  doing the structured copy). ctest Linux 730/730, macOS 726/726; smokes 36/36; interop 292/292.
-
-**To verify (rig, over the share):** in dumas, drag a selection from scene 1 into scene 2, then Ctrl+C, then click and Ctrl+V.
-No freeze on the selection or the copy. The diagnostic log ([T-0612]) times each.
+- **2026-10-21 — did not recur; kept Open (user).** The rig pass on build 75 ran the same steps 9–11 without a crash. The
+  user: *"keep I-0308 open. It is quite likely that the Find bar crash is related to background read collisions and will
+  be taken care of in an upcoming Epic."* ⏳ No work now: the user opened a discussion of background task queuing and
+  priorities (repeated gestures while an operation is pending; a Ctrl+Z queued behind the operation it undoes) and said
+  *"let's not 'do' anything yet."*
 
 ---
 
@@ -225,235 +209,6 @@ not receive are lost: the case [T-0570] exists to warn about. The red button and
 
 **Fix direction:** route `close()` through the same check as `windowShouldClose` (or `performClose`), and prove it with a
 test that fails first. ⚠️ Check what else calls `close()` before changing it.
-
----
-
-## I-0305
-
-**Title:** Closing a window or quitting does not wait for background writes
-**Status:** 🟠 **Resolved - Not Verified** (2026-10-15)
-**Platform:** `[Apple]` `[Linux]`
-**Component:** Apple: `ProjectWindowController.windowShouldClose`, `AppDelegate.applicationShouldTerminate`,
-`ViewportSceneLoader.saveAllDirtyBlocking`. Linux: `ScriviWindow::closeEvent`, `AppEnvironment::quitApplication`,
-`EditorShell::saveScenesOffMain` / `replaceAll` / `runStructural`.
-**Severity:** Medium. A write cut off by the close can leave a scene's new text unwritten, or written without history being
-told its bytes ([I-0104]).
-**Sprint:** [SP-181]
-**Date Identified:** 2026-10-15, by reading, after [SP-181]'s background saves ([I-0303])
-
-**The rule (user, 2026-10-15):** *"In both cases (Apple and Linux), if we attempt to close the application while a
-background update is in progress the close must WAIT until the background process is completed. I recommend showing a
-dialog with a spinner that says something like "Please Wait until all save operations are complete." or "Please Wait,
-saving updates"."*
-
-**Description (read):**
-- **Apple, window close:** `windowShouldClose` checks only for unsavable scenes; the window then closes and `session.close()`
-  releases history while an off-main write may still be in flight. Its landing then finds no history to tell.
-- **Apple, quit:** `saveAllDirtyBlocking` waits up to 30 s for the in-flight writes, on the main thread, with nothing on
-  screen.
-- **Linux:** `closeEvent` flushes the dirty scenes and releases the project. Scenes being written by `saveScenesOffMain` are
-  no longer in the dirty set, so the close does not wait for them, and the landing never runs (the window is gone). The same
-  holds for a structural step's worker (`runStructural`, [I-0297]) and Replace All's compute.
-
-**Expected:** a close or quit while background work runs waits until it finishes, behind a dialog with a spinner (*"Please
-wait — saving updates…"*), then closes as usual. Nothing is cut off.
-
-**Fix direction:** one "background work done" signal per project (Apple: the loader's off-main writes; Linux: the shell's
-off-main saves, Replace All and structural workers). Window close and quit wait on it behind the dialog.
-
-**Resolution (2026-10-15):**
-- **Apple:** `ViewportSceneLoader.whenOffMainWritesLand` (`Scrivi/Views/ViewportSceneLoader.swift:539`) runs its waiters in
-  the step where the last off-main write lands. `SavingUpdatesWait.waitFor` (`Scrivi/App/ProjectWindowManager.swift:62`)
-  shows the spinner (a SwiftUI `ProgressView` with *"Please wait — saving updates…"*), as a sheet over the window or, for
-  Quit, a panel of its own, and goes on once every busy project has landed.
-  - Window close (`windowShouldClose`, `:259`) and File ▸ Close Project (`close()`, `:241`) wait on it, then close again.
-  - Quit: `applicationShouldTerminate` (`Scrivi/App/ScriviApp.swift:132`) answers `.terminateLater` and replies once the
-    writes land, then asks the [T-0570] question as before. The quit path's 30 s wait in `saveAllDirtyBlocking` stays as a
-    backstop.
-- **Linux:** `EditorShell` counts its background work (`beginBackgroundWork` / `endBackgroundWork`, `EditorShell.cpp:2598`):
-  the off-main saves, Replace All (compute and save), and a structural step's worker (`runStructural`, [I-0297]).
-  `whenBackgroundWorkDone` (`:2609`) runs once none is left.
-  - `ScriviWindow::waitForBackgroundWork` (`ScriviWindow.cpp:720`) shows `showSavingUpdates` (`:739`, a `QProgressDialog`
-    with no Cancel) and closes again when the work is done. `closeEvent` (`:668`) and Close Project (`showLanding`,
-    `:610`) use it.
-  - Quit (`AppEnvironment::finishQuit`, `AppEnvironment.cpp:244`) waits for every busy window behind ONE dialog before
-    closing any, then flushes and closes as before.
-  - ⚠️ A Linux worker that never reports back still gives up after 10 minutes (the existing `AsyncCall` backstop, with its
-    "taking longer than expected" message), and the close then goes ahead. The Mac waits without a limit.
-- **Tests:**
-  - Apple: `closeWaitsForBackgroundWrites` (interop; 2 mutations caught: the waiters never run, never waiting).
-  - Linux: a new `background_wait_smoke` §3–§4 (CI; 2 mutations caught: `closeEvent` not waiting, Quit not waiting).
-  - Interop 293/293; Linux smokes 34/34.
-
-**To verify:**
-- **Mac:** in a large project, Replace All a common word and at once press ⌘W (then, separately, ⌘Q). The sheet (or panel)
-  *"Please wait — saving updates…"* shows until the writes finish, then the window closes (the app quits). Reopen: every
-  replacement is there.
-- **Linux (rig):** the same with Ctrl+W, the window's X, and File ▸ Quit, on the network-share project.
-
-**Mac live check (2026-10-15, user):**
-- First run: the sheet was too small for its text. ✅ Fixed: the label now sits above the spinner, and the sheet sizes to
-  fit it.
-- Re-check: ✅ *"the sheet looks right now."* ⏳ Linux, on the rig.
-
----
-
-## I-0304
-
-**Title:** A failed Linux save drops the scene from the dirty set
-**Status:** 🟠 **Resolved - Not Verified** (2026-10-15)
-**Platform:** `[Linux]`
-**Component:** `EditorShell::saveScene`, `EditorShell::flushActiveScene`'s save, `EditorShell::saveScenesOffMain`
-**Severity:** High. The edit stays on screen but is never written: nothing retries it, and closing or quitting does not
-write it either, so it is lost. The Mac's equivalent was [I-0259] (High).
-**Sprint:** [SP-181]
-**Date Identified:** 2026-10-15, by reading, during [SP-181]
-
-**The rule (user, 2026-10-15):** *"We'll have to remark it as needing saving when the save fails."*
-
-**Description (read):**
-- `saveScene` (`platforms/linux/src/EditorShell.cpp:1595`) removes the scene from `dirtyScenes_` *"whatever the outcome"*:
-  *"re-queuing it would just fail again every debounce. (A retry policy is out of scope here.)"*
-- The teardown save of the caret scene does the same.
-- `saveScenesOffMain` (SP-181) re-dirties a scene only when its text changed meanwhile, not when its write failed.
-
-**Expected:** as on the Mac ([I-0259]): a failed write leaves the scene dirty and is not told to history; the next save
-retries it.
-
-**Resolution (2026-10-15):**
-- `saveScene` (`platforms/linux/src/EditorShell.cpp:1597`) and the teardown save of the caret scene remove a scene from
-  `dirtyScenes_` only after a write that succeeded.
-- `saveScenesOffMain` (`:2729`) puts a scene whose write failed back in the dirty set, and on its 10-minute timeout puts back
-  all of them (nothing reported back, so nothing is known to be written).
-- Retries come on the existing cadence: the debounce after an edit, a scene change, a close. Nothing retries on a timer
-  alone, so a dead volume does not cause a loop of errors.
-- **Test:** a new `background_wait_smoke` §1–§2 (CI): a read-only scene folder fails the save, and once it is writable again
-  the next save writes the text. 2 mutations caught (the ordinary save dropping it, the off-main save dropping it).
-
-**To verify (rig):** with the project on the share, disconnect the share (or make a chapter folder read-only), type into a
-scene, and move to another scene; the error shows. Reconnect, type one more character anywhere, and wait two seconds: the
-first scene's text is on disk.
-
----
-
-## I-0303
-
-**Title:** Replace All writes every changed scene on the main thread
-**Status:** 🟠 **Resolved - Not Verified** (2026-10-15) — ruled into [SP-181], to be fixed before its Linux work (user, 2026-10-15: *"yes. apply the rule to
-both platforms. File it in [Apple] and put it in SP-181 before linux."*)
-**Platform:** `[Apple]`
-**Component:** `ManuscriptTextView.Coordinator.replaceAll`; `ViewportSceneLoader.saveScene` / `saveSceneBlocking`
-**Severity:** Medium. Nothing is lost, but the window stops responding while a large Replace All writes, and longer on slow
-storage (a network share, a USB drive).
-**Sprint:** [SP-181]
-**Date Identified:** 2026-10-15, by reading, while planning [SP-181] Q3
-
-**The rule (user, 2026-10-15, SP-181 Q3):** *"Replace All must not run on the gui thread. always use the worker (it will be
-needed). Also we need to not automatically rewrite every frigging scene if it isn't necessary."* Then: *"apply the rule to
-both platforms."*
-
-**Description (read, not yet measured):**
-- `replaceAll` (`Scrivi/Views/ManuscriptTextView.swift:2484`) applies the replacements, records ONE grouped history step,
-  then starts one save per touched scene: `Task { @MainActor in await loader.saveScene(...) }` (`:2517–2518`).
-- `saveScene` is declared `async` but only calls `saveSceneBlocking` (`ViewportSceneLoader.swift:372–374`), whose engine
-  calls are synchronous C ABI calls. Each Task runs on the main actor. So every write happens on the main thread, one after
-  another: on dumas, about 1,171 of them for a word that occurs in every scene.
-- ✅ By reading, only scenes holding a match are written (`touched`, `:2487`; `saveSceneBlocking` also returns early for a
-  clean scene, `:381`). ⏳ Proven by [SP-181] plan step 0's test, not assumed.
-
-**Expected:**
-- A Replace All never does its file writes on the main thread. AppKit requires the text storage edit itself to stay on the
-  main thread; what moves off it is everything that does not touch the view, above all the scene writes.
-- While it runs the writer sees progress, and the manuscript cannot be edited until it lands.
-- Exactly the scenes that hold a match are written, and nothing else.
-
-**Fix direction:**
-- Find how the Mac already shows a long operation and blocks editing before writing a new one.
-- Write the touched scenes off the main actor. ⚠️ Keep [I-0259]'s rule: a failed write leaves its scene dirty.
-- Prove it with an interop test that fails first: no scene write on the main thread during a Replace All, and only the
-  matched scenes written.
-
-**Resolution (2026-10-15):**
-- `ViewportSceneLoader.saveScenesOffMain`: the matched dirty scenes' texts are taken on the main actor and written in a
-  detached task. When they land, each is marked clean (or saved again if it changed meanwhile) and its bytes are told to
-  history. A failed write stays dirty ([I-0259]).
-- A main-actor save of a scene still being written waits until that write lands, so an older write never lands over a
-  newer one. Quitting waits for the writes (up to 30 s), then writes the still-dirty scenes itself.
-- `replaceAll` locks the manuscript and turns Undo / Redo off until the writes land; the editor shows *"Saving N
-  scenes…"* as an overlay.
-- **Test:** `replaceAllWritesOffTheMainThread` (interop), red first; two mutations caught. Interop 292/292.
-
-**To verify (Mac):** in a project with many scenes, Replace All a word that occurs in only two of them. *"Saving 2
-scenes…"* shows briefly, the text cannot be typed into until it goes, and only those two scene files change on disk.
-
----
-
-## I-0300
-
-**Title:** After a new chapter (Ctrl+Shift+Return) or a mid-scene split (Ctrl+Return), the caret does not move into what was created
-**Status:** ✅ **Resolved - Not Verified** (2026-10-13) — ruled into [SP-180] (user, 2026-10-13: *"do the new Issue now as well"*)
-**Platform:** `[Linux]`
-**Component:** `EditorShell::onCreateChapterRequested`, `onCreateSceneRequested` (mid-scene path)
-**Severity:** Low — the writer clicks into the new chapter; nothing is lost
-**Sprint:** [SP-180]
-**Date Identified:** 2026-10-13 (user, [SP-180] live pass step 24: *"When I hit Ctrl-Shift-Return in Step 24, the caret remained in Chapter 1 instead of moving on to Chapter 2."*)
-
-**Cause (read):** both paths call `load(…)`, which reloads ASYNCHRONOUSLY (a worker, [T-0499]), then at once call
-`moveCaretToSegment` / `selectNavigatorScene` — on the document the reload is about to replace. When the reload lands, it
-places the caret from the restored writing surface instead. [SP-180]'s structured paste hit the same trap and waits for
-`loadFinished` (`reloadThenPlaceCaret`).
-
-**Fix direction:** place the caret when the reload has finished, through the same `reloadThenPlaceCaret`, with a smoke check
-that fails first.
-
-**Resolution (2026-10-13):**
-- **`EditorShell::reloadThen(after)`:** runs `after` once the asynchronous reload has landed, and `placeCaret(sceneID, byte)`
-  is shared with the structured paste.
-- **Moved into `after`:**
-  - the new chapter's caret and its I-0063 renumber, which also read the pre-split document;
-  - the mid-scene split's caret;
-  - the scene merge's seam caret;
-  - the chapter merge's caret.
-- **Tests:** `undo_smoke` §5 (the split's caret), §4b (the merge's seam), §7 (a new chapter mid-scene, and at the END of the
-  last scene, the rig's step 24).
-  - The step-24 case is red before the fix (caret at 103, want 150).
-  - The other two pass either way: the reload's restore happens to land there. They are guards, not proofs.
-  - Docker: `undo_smoke`, `structured_paste_smoke`, `scene_merge_smoke`, `scene_create_smoke` and `chapter_reorder_smoke` pass.
-
-**To verify (rig):** at the end of the last scene press Ctrl+Shift+Return. The caret is in the new chapter's blank scene.
-
----
-
-## I-0298
-
-**Title:** A structural undo into an earlier session skips the "Undoing changes from a previous session" warning
-**Status:** ✅ **Resolved - Not Verified** (2026-10-13) — ruled into [SP-180] (user, 2026-10-13). ✅ **Mac half passed 2026-10-15** (user: *"I-0293 through I-0299 passes"*); ⏳ the Linux half (Ctrl+Z) on the rig, then Verified.
-**Platform:** `[Apple]` and `[Linux]` — the same shape on both
-**Component:** Apple `ManuscriptTextView.swift` `apply(step:)`; Linux `EditorShell::applyHistoryStep`
-**Severity:** Low — the undo works; the writer is not told it reached into an earlier session
-**Sprint:** [SP-180]
-**Date Identified:** 2026-10-13 (user, [SP-180] live pass step 36: *"no dialog was shown warning us that we are undoing past
-the session boundary"*)
-
-**Cause (read):** the core reports `crossedSessionBoundary` on a structural step as on any other (`HistoryService.cpp`, the
-structural branch of `undo`). Both platforms return early for `structuralInverse` (Apple `apply(step:)` `:408`; Linux
-`applyHistoryStep`) — BEFORE the code that shows the warning (Apple `:458`; Linux at the end of `applyHistoryStep`).
-
-**Fix direction:** show the warning for a structural step too, on both platforms. A failing test first.
-
-**Resolution (2026-10-13):** both platforms show the warning after a structural step as after any other. Apple:
-`sessionBoundaryReached`, with an `onSessionBoundary` hook replacing the modal in tests. Linux: `warnIfSessionBoundary`.
-
-**Tests:**
-- **Mac** (interop `structuralUndoAcrossSessionsWarns`): paste, reopen in a new session, undo. Red without the fix (0
-  warnings); 290/290 with it.
-  - The first version passed the wrong way: with nothing before the paste, the undo lands on the history's root, which belongs
-    to no session. The test now edits first, as the rig's case had real work underneath.
-- **Linux** (`structured_paste_smoke` §7, the Mac's paste undone on Linux): red without the fix. The new mutation
-  `no-structural-session-warning` is caught.
-  - §7 now keeps one Linux edit before the Mac's paste, for the same reason.
-
-**To verify:** quit and reopen after a cross-scene paste, then Ctrl+Z / ⌘Z. "Undoing changes from a previous session" appears.
 
 ---
 
@@ -549,6 +304,10 @@ behind the progress row; the paste completes.
     without re-opening; 1 mutation caught (the paste not naming the target's chapter).
 
 ---
+
+*Last Updated: 2026-10-21 — **I-0314** `[Apple]` assigned to SP-191 (user, Q6) and moved here from the backlog.*
+
+*Last Updated: 2026-10-21 (**I-0298, I-0300, I-0303, I-0304, I-0305, I-0307 VERIFIED** (user, rig live pass build 75 + Mac) → `Verified/`.)*
 
 *Last Updated: 2026-10-17 — **I-0311** `[ScriviCore]` filed: a chapter-opening paste scrambles the reading order.*
 
