@@ -1,21 +1,23 @@
 ---
 sprint: SP-191
 epic: EP-053
-status: Active
+status: Closed
+closed: 2026-10-22
+activated: 2026-10-21
 platform: Cross
 created: 2026-10-20
 ---
 
 # SP-191 — `[Apple]` + `[Linux]` [EP-053] **S2b**: copy, paste and its undo, split and merge — as deltas, off the main thread, no reload
 
-**Status:** 🟡 **ACTIVE 2026-10-21** (user: *"activate SP-191"*) — ✅ AC1–AC10 met 2026-10-21; ⏳ AC11 live passes (user) — ✅ all questions ruled 2026-10-21 (Q1–Q6, Q3a–Q3e, Q4a) · created 2026-10-20 by [SP-187]'s Q1 ruling (user: split S2). ✅ Its questions were ruled in
+**Status:** ✅ **CLOSED 2026-10-22** (user, 2026-10-22: *"Yes, mark them verified and close SP-191"*) · ✅ AC1–AC18 met (AC11 rig re-pass 2026-10-22, user) · 🟡 **ACTIVE 2026-10-21** (user: *"activate SP-191"*) — ✅ all questions ruled 2026-10-21 (Q1–Q6, Q3a–Q3e, Q4a) · created 2026-10-20 by [SP-187]'s Q1 ruling (user: split S2). ✅ Its questions were ruled in
 [SP-187] (Q2: old history nodes convert; Q3: `ViewportSceneLoader` applies the delta).
-**Carries:** [I-0314] (Q6) · [T-0619] → [`../Tasks/Task-backlog.md`](../Tasks/Task-backlog.md) · [SP-185] AC4 (user, 2026-10-20: *"AC4 goes
+**Carries:** [I-0314] (Q6) · [T-0619] → [`../../Tasks/Verified/Task-verified-0619.md`](../../Tasks/Verified/Task-verified-0619.md) (✅ verified 2026-10-22) · [SP-185] AC4 (user, 2026-10-20: *"AC4 goes
 to EP-053 S2"*) · [I-0297]'s reload half · [I-0311] (the apps reach `scrivi_range_paste`).
-**Epic:** [EP-053] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md).
+**Epic:** [EP-053] → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md).
 **Builds on:** [SP-186] (S1, the endpoints) · [SP-187] (S2a: the list as the model of record, the bindings, the delta types,
 the partial re-render, the baseline counts).
-**Authority:** [`../Scrivi_Structured_CutCopyPaste_Design_v0_3.md`](../Scrivi_Structured_CutCopyPaste_Design_v0_3.md) (v0.3, 2026-10-21, supersedes v0.2) — R1,
+**Authority:** [`../Scrivi_Structured_CutCopyPaste_Design_v0_3.md`](../../Scrivi_Structured_CutCopyPaste_Design_v0_3.md) (v0.3, 2026-10-21, supersedes v0.2) — R1,
 R3, R5, R7, P3, P5, §4.2b, §4.4, §4.5, Q5.
 **Size:** XL (core changes in Plan 1–2, then both apps).
 
@@ -254,15 +256,16 @@ it")**
 - [x] AC7 — Q5 on both: the cue comes in the key press's own event-loop turn; repeats, typing and undo are ignored while the
       operation is in flight; a progress row appears after 400 ms.
 - [x] AC8 — [SP-185] AC4: a structured paste's undo over the share makes no project re-open. The three reload paths are gone.
-      ✅ by test (no load, no re-open, both); ⏳ over the share: AC11.
+      ✅ by test (no load, no re-open, both); ✅ over the share: AC11 (build 79, 2026-10-22).
 - [x] AC9 — Tests on both: list = disk after every operation, undo and redo; the sidecar round trip; zero re-opens; zero
       main-thread core calls. All mutation-checked, with ctest (Mac and Linux), interop and the Linux smokes green.
       ✅ — Mac: 0 own main-thread calls (1 caret bookkeeping); Linux: 0 own (the rest are [I-0315]). ctest 748 Mac / 752 Linux, interop 301, smokes 38; mutations core 13, Mac 10, Linux 11, all caught.
 - [x] AC10 — The design doc is at v0.3 with these rulings.
-- [ ] AC11 — ✅ **Live passes (user):** Mac and rig, over the share, each operation timed.
+- [x] AC11 — ✅ **Live passes (user):** Mac and rig, over the share, each operation timed.
       ✅ 2026-10-21: all 12 actions pass on both; the details are AC12–AC15. ✅ Mac re-pass (heading cases, Q10 numbering,
       regression): all steps pass (user). ✅ Rig re-pass (build 77): A, B and C pass (user); one rendering finding, fixed
-      (below). ✅ The rig re-check of that fix passes (user).
+      (below). ✅ The rig re-check of that fix passes (user). ✅ 2026-10-22 rig re-pass (build 79, dumas over the
+      share): all items pass, all times acceptable (user).
 - [x] AC12 — Q10: a created chapter is stored untitled; a stored `Chapter 7` reads as untitled, `Chapter of Secrets` is
       kept (core tests, mutation-checked); no app rewrites chapter titles after a structural edit.
 - [x] AC13 — The heading anchor: at a scene that starts with `## `, split, chapter split and paste keep the heading with
@@ -585,3 +588,39 @@ it")**
 - **[I-0316]** `[ScriviCore]` filed to the backlog: with the world missing, every open looks for it once per relationship
   endpoint (270 `world.json` reads + 540 probes on dumas).
 - ⏳ AC11's rig re-pass (build 79 or later) now also times these over the real share.
+
+### ✅ 2026-10-22 — Rig re-pass (build 79): all items pass; AC11 met
+- User: *"all items pass. … All operation times encountered are acceptable."* Steps A–F: chapter splits near the start,
+  the end and the middle of a 24-scene chapter, a chapter merge, a scene split, each undone and redone; then a quit and
+  reopen.
+- ✅ **From the rig's log** (`scrivi.log.1`, build 79, `dumas-prose-timelines` over `/mnt/scrivi-net`): every structural
+  undo and redo ran its own node; no "previous session" notice, no refused step, the session ended cleanly.
+- **Range call times, build 77 → 79** (the worker adds ≤ 75 ms for the history node; the GUI-thread apply is 53–370 ms):
+
+  | Operation | Build 77 | Build 79 | Docker share, expected |
+  |---|---|---|---|
+  | chapter split near an end / its undo, redo | — | 520–550 / 426–471 ms | 443–527 / 355–391 ms |
+  | chapter split in the middle / its undo, redo | 2,430 / 2.2–2.4 s | 1,061 / 1,008–1,166 ms | 957 / 988 ms |
+  | chapter merge / its undo, redo | 3,268 / 2.2–2.4 s | 2,109 / 1,574–1,664 ms | 2,412 / 1,612 ms |
+  | scene split / its undo | 384 ms (small project) | 355 / 275 ms | 304 / 238 ms |
+
+- ⚠️ Seen, not in this sprint's scope: the reopen after the quit took 14,058 ms against 5,823 ms for the first open in the
+  same session (both 1,180 scenes, over the share).
+
+### ✅ 2026-10-22 — CLOSED (user)
+- User: *"Yes, mark them verified and close SP-191."*
+- ✅ **Verified and archived:** [T-0619] → `Tasks/Verified/Task-verified-0619.md`; [I-0311] and [I-0314] →
+  `Issues/Verified/Issue-verified-0311-0320.md`; [I-0297] → `Issues/Verified/Issue-verified-0291-0300.md`. [SP-185] AC4
+  (carried here) is met.
+- ✅ [I-0315] `[Linux]`: verified after the close (user, 2026-10-22: *"I-0315 is verified"*) → `Issues/Verified/Issue-verified-0311-0320.md`.
+
+## Retrospective
+- **Went well:** every structural edit on both platforms is one range call off the main thread, applied as a delta, undone in
+  one step. The rig's chapter split went 2.4 s → 0.5–1.1 s and the merge 3.3 s → 2.1 s. The Docker SMB share (5 ms netem)
+  predicted the rig's times within ~0.3 s, so share timing no longer needs the rig.
+- **Went badly:** my Linux mutation loop edited the working tree and a mutation shipped in build 78 (no history nodes), which
+  replayed older undo nodes against the dumas fixture. A test of mine (the [I-0315] guard) counted its own calls and made
+  every later Linux mutation look "caught". I proposed a merge optimisation that was already in the code.
+- **Adjust:** mutation loops run only in a copy of the repo (memory updated); a guard reads its count before any check that
+  makes calls; read the code before proposing an optimisation of it. Measure the share's cost per call before attributing a
+  time to it.

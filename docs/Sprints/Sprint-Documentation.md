@@ -458,7 +458,7 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-188** | `[Cross]` **[EP-053] S3** — structural cut, Backspace / Delete over scenes, and their undo (T-0616) | EP-053 | — | — | 🔵 **PLANNING** → [`Sprint-SP-188.md`](Sprint-SP-188.md) |
 | **SP-189** | `[Cross]` **[EP-053] S4** — the background sync verification: disk wins, silently (T-0617) | EP-053 | — | — | 🔵 **PLANNING** → [`Sprint-SP-189.md`](Sprint-SP-189.md) |
 | **SP-190** | `[Cross]` **[EP-053] S5** — Mac and rig live passes over the share, timed (T-0618) | EP-053 | — | — | 🔵 **PLANNING** → [`Sprint-SP-190.md`](Sprint-SP-190.md) |
-| **SP-191** | `[Cross]` **[EP-053] S2b** — copy, paste and its undo, split and merge: as deltas, off the main thread, no reload (T-0619) | EP-053 | 2026-10-21 | — | 🟡 **ACTIVE** → [`Sprint-SP-191.md`](Sprint-SP-191.md) |
+| **SP-191** | `[Cross]` **[EP-053] S2b** — copy, paste and its undo, split and merge: as deltas, off the main thread, no reload (T-0619) | EP-053 | 2026-10-21 | 2026-10-22 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-191.md) |
 | **SP-160** | `[Linux]` **[EP-049] S1** — Linux writes Apple's manuscript format: escaping, paste/copy, pair deletion, Return/⌫, shared corpus (T-0586); + I-0276 | EP-049 | 2026-10-04 | 2026-10-04 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-160.md) |
 
 ## Statistics
@@ -498,6 +498,8 @@ by status, read the table.**
 > on neither time. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-10-22 (**SP-191 → ✅ CLOSED** (user: *"Yes, mark them verified and close SP-191"*); T-0619, I-0297, I-0311, I-0314 verified and archived; I-0315 verified after the close.)*
 
 *Last Updated: 2026-10-21 (**SP-191 → 🟡 ACTIVE** as EP-053 S2b (user: *"activate SP-191"*); T-0619 → active.)*
 

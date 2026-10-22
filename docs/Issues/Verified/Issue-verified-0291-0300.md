@@ -11,6 +11,7 @@ Issues the user has VERIFIED, archived out of `Issue-active.md`.
 | **I-0294** | `[Apple]` ⚠️ **A structured (cross-scene) ⌘V builds on the target scene AS SAVED: typing not yet autosaved is dropped by the reload.** Found 2026-10-13 by [I-0293]'s interop test. ✅ Fixed: every scene with unsaved typing is saved before the paste. → [details](#i-0294) | **Medium** | [SP-180] | ✅ **VERIFIED 2026-10-15** |
 | **I-0295** | `[Apple]` ⚠️ **A structured paste landed BEFORE a selection and left the selection in place; a flat paste replaces it.** Proven 2026-10-13 ([SP-180] Q2). ✅ Fixed: the selection is removed first, as its own step. → [details](#i-0295) | **Low** | [SP-180] | ✅ **VERIFIED 2026-10-15** |
 | **I-0296** | `[Apple]` ⛔ **After a structured paste, the next open takes the target scene for an OUTSIDE edit — undo stops there.** The core wrote the scene, so the save path never reported its bytes. Proven 2026-10-13 (interop + Linux smoke). ✅ Fixed in the core: the fragment endpoints report what they write. → [details](#i-0296) | **Medium** | [SP-180] | ✅ **VERIFIED 2026-10-15** |
+| **I-0297** | `[Linux]` ⛔ **A structured paste, its undo and its redo FREEZE the UI for 90 s – 2 min on a project over the network share** (dumas-prose-timelines, 1,186 scenes). 436 ms in Docker on local disk. Found 2026-10-13 ([SP-180] live pass, steps 36–37). ✅ Fixed: measured, the walks cut, and the work moved off the UI thread (7,683 UI-thread file calls → 16). → [details](#i-0297) | **High** | [SP-185] · [SP-191] | ✅ **VERIFIED 2026-10-22** (user, 2026-10-22: *"Yes, mark them verified and close SP-191"* — after the rig re-pass on build 79: *"all items pass"*; the Mac pass 2026-10-21) |
 | **I-0299** | `[ScriviCore]` ⛔ **A reopen on the Mac took scenes written by Linux over the network share — and two scenes the Mac itself had pasted into and deleted from — for OUTSIDE edits.** Found 2026-10-13 ([SP-180] live pass, step 39). ✅ PROVEN 2026-10-14: a session that ends without closing its history (a force-quit, Xcode's Stop) lost the bytes it recorded. ✅ Fixed: each save's bytes are recorded in the log as they happen. → [details](#i-0299) | **Medium** | [SP-180] | ✅ **VERIFIED 2026-10-15** |
 | **I-0298** | `[Apple]` `[Linux]` ⚠️ **An undo that crosses a structural step (a cross-scene paste) into an earlier session shows no "Undoing changes from a previous session" warning.** Found 2026-10-13 ([SP-180] live pass, step 36). ✅ Fixed on both platforms. → [details](#i-0298) | **Low** | [SP-180] | ✅ **VERIFIED 2026-10-21** |
 | **I-0300** | `[Linux]` ⚠️ **After Ctrl+Shift+Return (new chapter) — and a mid-scene Ctrl+Return — the caret stays where it was instead of moving into the new chapter or scene.** Found on the rig 2026-10-13 ([SP-180] live pass, step 24). ✅ Fixed: the caret is placed when the reload has finished (also after a merge). → [details](#i-0300) | **Low** | [SP-180] | ✅ **VERIFIED 2026-10-21** |
@@ -249,6 +250,106 @@ with no *"This scene was changed outside Scrivi"* notice.
 
 ---
 
+## I-0297
+
+**Title:** A structured paste, its undo and its redo freeze the UI for 90 s – 2 min on a project over the network share
+**Status:** ✅ **VERIFIED 2026-10-22** (user, 2026-10-22: *"Yes, mark them verified and close SP-191"* — after the rig re-pass on build 79: *"all items pass"*; the Mac pass 2026-10-21). Was 🟠 Resolved - Not Verified (2026-10-21, [SP-191]).
+**Platform:** `[Linux]` (the Mac runs the same ScriviCore calls on its main thread, but on local disk)
+**Component:** `EditorShell::pasteFragment`, `applyStructuralInverse`; ScriviCore `scrivi_fragment_*` and `noteScenesWritten`
+**Severity:** High — the app looks hung; on the writer's real setup structured paste is unusable
+**Sprint:** [SP-185] (was [SP-180])
+**Date Identified:** 2026-10-13 (user, [SP-180] live pass: step 36's undo froze *"something like 90 seconds"*; step 37's
+paste *"froze for 2 minutes"*, its undo *"1:30 ? maybe?"*)
+
+**Measured:** in Docker on local disk, on 1,186 scenes, a paste + reload is 436 ms and an undo + reload 393 ms
+(`structured_paste_smoke` §8). The rig opens the same project from the share in ~4–5 s (off the UI thread, with progress). The
+history log shows each operation completing; the freeze came before the reload's progress bar.
+
+**Likely cause (read, NOT measured):** these run on the UI thread, and over the share every call that has to FIND scenes
+walks the manuscript's folders (the cost [I-0196] / [I-0285] measured):
+- `scrivi_fragment_*` drop the project index on both sides (`ProjectIndexInvalidation`) and resolve through the walking
+  locator;
+- [I-0296]'s `noteScenesWritten` looks each written scene up with `ManuscriptOrderResolver::findScene`, a walk per scene;
+- `readSceneTexts` afterwards rebuilds the index that was just dropped.
+
+**Fix direction:** first COUNT the filesystem calls one structured paste makes (`CountingFileSystem`, as [I-0207] did) and time
+each phase on the rig. Then cut the walks, and move the structural work off the UI thread with the progress bar, as opening
+already does. ⚠️ The count guard must fail before the fix.
+
+**Measured (2026-10-13, `strace` in Docker, 1,186 scenes, `structured_paste_smoke` §8 with markers).** `CountingFileSystem`
+cannot reach the C ABI's own file system, so this measured the real Linux app.
+
+| | UI thread before | UI thread after | Other threads after |
+| - | - | - | - |
+| Structured paste | 7,683 calls (6,642 scene sidecars) | **16** | 7,697 |
+| Structural undo | 4,966 (4,244 sidecars) | **16** | 8,767 |
+
+Before the fix, the paste's UI-thread walks were:
+- the core's index rebuild (its deliberate drop on entry, EP-039 AC5b), about 2,372 sidecar reads;
+- [I-0296]'s `noteScenesWritten` finding each written scene (922 + 922);
+- Linux re-reading the written texts, which rebuilt the index the paste had just dropped (2,374).
+
+About 4,200 of those sidecar reads came from SP-180's own code.
+
+**Resolution:**
+- **ScriviCore:** `FragmentPaster` returns what it wrote (`writtenTexts`, `survivingText`).
+  - `scrivi_fragment_paste` and `scrivi_fragment_uncut_paste` record those bytes without looking anything up, and return them
+    as `sceneTexts` (additive).
+  - The collapsing cut keeps its lookup; neither platform calls it.
+  - ⛔ The index drop on entry is unchanged: it is load-bearing (EP-039 AC5b).
+- **Linux and Apple:** use the returned `sceneTexts` instead of reading the scenes back.
+- **Linux:** `EditorShell::runStructural` runs the ScriviCore call on a worker (`AsyncCall`, the open's budget) with the
+  progress row ("Pasting…", "Undoing…", "Redoing…"). The editor is read-only and `loading_` is set until the reload lands,
+  so undo, redo and the buffer actions wait.
+- **Tests:** `CaptureCApiTests` `[I-0296]` checks the returned `sceneTexts` against the files. ctest macOS 721/721 and
+  Linux 724/724; 32/32 Linux smokes; interop 290/290. The strace counts above are the measurement; ⚠️ there is no CI count
+  guard, because the C ABI's file system cannot be swapped in a test.
+
+**To verify (rig, over the share):** a cross-scene paste and its undo in dumas-prose-timelines. The editor stays responsive
+behind the progress row; the paste completes.
+
+**Rig re-run (2026-10-13 evening, build 74):** the undo of the Mac's paste completes in about 40 s, down from about 90 s.
+- The window kept redrawing, and the progress row showed and moved.
+- At about 20 s the window "flashed": the reload rebuilding the manuscript.
+- ✅ **Ruled 2026-10-14** (user): *"We can accept it for now, but I reserve the right to revisit it in the future if
+  necessary."*
+- ⛔ **REVISITED 2026-10-15** (user, live pass step 10): *"I never approved a 40 seconds wait for anything. Ever. 40 seconds
+  is a horrible amount of time to wait for cut copy or paste! … Cut Copy and Paste must be as fast as possible at all times.
+  I'll accept long load times, but once loaded the app must do everything instantly."* The 40 s is no longer accepted: this
+  Issue stays open until a structured paste's undo is fast over the share.
+- The remaining cost is ScriviCore's deliberate index rebuild on a structural write (EP-039 AC5b), plus a full reload of the
+  manuscript. Both apply to splits and merges as well.
+- 2026-10-17: moved into [SP-185] (user: *"Yes lets do them all in a new sprint."*). The user's standard, walked back from
+  "instant": *"we must meet the writer's expectations"*; a large operation may take time if the app shows it working.
+
+- **2026-10-17 — Q2 ruled (user): cut the reads, then progress.** Measured as [I-0307] was (`strace`, Docker, 1,186 scenes):
+
+  | Worker-thread file calls | Before | After |
+  | - | - | - |
+  | Structured paste + reload | 5,642 | **1,890** |
+  | Its undo + reload | 5,688 | **1,933** |
+
+  - The paste's own work resolved the whole manuscript to find ONE scene (2,641 sidecar reads): `FragmentPaster` now takes a
+    scene lookup, answered from the project index the write took (`ChapterRebuildGuard::taken`), from disk when it has no
+    answer → 174.
+  - The paste and its undo DROPPED the whole index (their results named no chapters — the core's own comment called widening
+    them "the honest fix"): both now report `affectedChapterIDs`, and only those chapters are rebuilt.
+  - Linux's reload re-read every scene's text (1,186): it now reads only what the step wrote (`reloadThen(…, sceneTexts)`).
+  - ⏳ **Left: the reload's full `scrivi_open_project`, ~1,700 calls** (its parallel sidecar prefetch, 1,148, plus the
+    folder listings). An open rebuilds from disk by design ("index what is there NOW"). Cutting it needs the reload to get
+    the scene list from the index instead of re-opening — a new C ABI read, for ruling.
+  - Tests: `CaptureCApiTests` `[I-0297]` checks the index after a chapter paste, a scene-and-chapter paste and both undos,
+    without re-opening; 1 mutation caught (the paste not naming the target's chapter).
+
+
+**The reload half — resolved by [SP-191] (2026-10-21).** The 40 s that remained was the reload: after the ScriviCore call
+the manuscript was re-read and rebuilt ("At about 20 s the window flashed"). ✅ Now a paste, its undo and its redo are each
+ONE range call on a worker, and the editor applies the returned delta to only the scenes it touched (`runRangeEdit`,
+`SceneDocument::applyRangeDelta`) — the project is never re-read. Measured (`structural_baseline_smoke`): 0 project loads and
+0 document builds per operation (was 1 and 1); a 5-scene paste lands in ~12 ms in Docker. ⏳ The rig times it over the share.
+
+---
+
 ## I-0299
 
 **Title:** The Mac's reopen takes scenes written by Linux on the share, and scenes the Mac pasted into, for outside edits
@@ -350,6 +451,8 @@ data-loss path:
 - ctest macOS 723/723, Linux 726/726; 32/32 Linux smokes; interop 290/290.
 
 ---
+
+*Last Updated: 2026-10-22 — **I-0297** archived (user-verified, [SP-191]'s close).*
 
 *Last Updated: 2026-10-15 (**I-0293, I-0294, I-0295, I-0296, I-0299** VERIFIED (user, Mac).)*
 

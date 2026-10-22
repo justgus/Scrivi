@@ -88,9 +88,9 @@ know exactly how many items need to be changed)."*
   3 mutations caught (no watchdog · typed text logged · no crash handlers). ⏳ The rig pass (AC6) still reads a real one.
 - [x] AC3 — [I-0307] measured on the rig; select, copy and paste across scenes do not freeze the window — ✅ the rig 2026-10-21 (build 75, run sheet step 9); ✅ measured and
   fixed in Docker (Ctrl+C 2,678 → 3 GUI-thread file calls; the primary selection); ⏳ the rig.
-- [ ] AC4 — [I-0297] a structured paste's undo over the share completes as Q2 rules — ✅ paste 5,642 → 1,890 and undo
+- [x] AC4 — [I-0297] a structured paste's undo over the share completes as Q2 rules — ✅ paste 5,642 → 1,890 and undo
   5,688 → 1,933 worker file calls. ➡️ **MOVED to [EP-053] S2** (user, 2026-10-20): the reload's full open (~1,700) is
-  removed there (no reload), not given progress here.
+  removed there (no reload), not given progress here. ✅ Met by [SP-191] (closed 2026-10-22); [I-0297] verified (user).
 - [ ] AC5 — Q3 ruled, and built as ruled. ✅ Q3 ruled 2026-10-17. ➡️ **The build WAITS FOR [EP-052]** (user, 2026-10-20):
   showing replacements land changes Replace All's locked-editor shape, which EP-052's queue replaces.
 - [x] AC5b — [T-0613] typing in the find bar never waits: the search runs after a 500 ms pause, over text built ahead —

@@ -10,25 +10,6 @@ in the backlog carrying a 🟠 status.
 
 ---
 
-## 🟠 T-0619 — `[Cross]` EP-053 S2b: copy, paste and its undo, split and merge — as deltas, off the main thread, no reload
-
-**Epic:** [EP-053] (S2b) · **Status:** 🟠 **Implemented - Not Verified** (2026-10-21) — ⏳ Mac and rig live passes ([SP-191] AC11) · **Sprint:** [SP-191] (🟡 Active) →
-[`../Sprints/Sprint-SP-191.md`](../Sprints/Sprint-SP-191.md) · **Date Requested:** 2026-10-20 (from [SP-187]'s Q1 ruling: split S2)
-
-**What:** on the Mac and on Linux, copy builds the Range from the in-memory list; paste, paste's undo (a range cut) and redo,
-split, chapter split, merge and chapter merge each make one range call (`rangePaste` / `rangeCut`) off the main thread, and
-the editor applies the returned delta with no reload. Each undoes in one step, with no barriers; the Range carries scene and
-chapter sidecars so an undo restores them; a scene merge is a range cut of the break and a chapter merge is
-a range relabel (`scrivi_range_relabel`, which moves the scene files), and `scrivi_merge_scene` / `scrivi_merge_chapter` retire. The clipboard and copy buffers store Ranges (an old fragment reads as empty). Old
-`structuredPaste` / `structuredCut` history nodes convert to the same path. Absorbs [SP-185] AC4.
-
-**Done (2026-10-21):** ScriviCore (sidecars in the Range, `scrivi_range_relabel`, the scene-start rule, buffers hold
-Ranges; the merge endpoints retired); the Mac (`runStructuralEdit`, `ViewportSceneLoader.apply`) and Linux (`runRangeEdit`,
-`SceneDocument::applyRangeDelta`) — every structural edit one range call off the main thread, applied as a delta, undone in
-one step, nothing reloaded. ctest 748 (Mac) / Linux, interop 301, Linux smokes; mutations core 13, Mac 10, Linux 11, all caught.
-
----
-
 ## 🟠 T-0612 — `[Linux]` A diagnostic log: what the app was doing, and when the window stopped answering
 
 **Epic:** [EP-026] · **Status:** 🟠 **Implemented - Not Verified** (2026-10-17) — ⏳ rig live pass (SP-185 AC6) · **Sprint:** [SP-185] (🟡 Active) →
@@ -44,6 +25,8 @@ crash report with a backtrace, timed spans across the editor, find bar and worke
 new `diagnostic_log_smoke` (CI); 3 mutations caught.
 
 ---
+
+*Last Updated: 2026-10-22 (**T-0619 → ✅ Verified** (user) and archived → `Verified/Task-verified-0619.md`, with [SP-191]'s close.)*
 
 *Last Updated: 2026-10-21 (**T-0619 → 🟠 Implemented - Not Verified** ([SP-191]); ⏳ Mac and rig live passes.)*
 
