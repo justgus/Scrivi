@@ -103,6 +103,8 @@ public:
     // EP-053 S2a (SP-187): how many times this shell has loaded a project (a structural reload is one) — the baseline S2b
     // removes. `sceneDocument().builds()` counts the full document renders.
     int loadCount() const { return loads_; }
+    // ✅ [SP-191] (tests): scenes with unsaved edits — after a structural edit, none (the core wrote every one it touched).
+    int dirtySceneCount() const { return int(dirtyScenes_.size()); }
     const SceneDocument& sceneDocument() const { return sceneDoc_; }
     // SP-173 / I-0285 (AC4): how many timeline READS ran on the UI thread (`reloadTimeline`). A load reads it in the worker,
     // so a load alone leaves this at 0 unless the project changed under it.

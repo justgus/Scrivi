@@ -215,6 +215,9 @@ struct Rig {
         }
         QTest::qWait(200);
         const qint64 made = ScriviBridge::guiThreadCallCount() - calls;   // before the checks below make their own
+        if (structural) {
+            check(shell->dirtySceneCount() == 0, QStringLiteral("%1: no scene left dirty (the core wrote them)").arg(what));
+        }
         std::printf("[EP-053 baseline] %s: guiThreadCoreCalls=%lld projectLoads=%d documentBuilds=%d\n", what,
                     qlonglong(made), shell->loadCount() - loads,
                     shell->sceneDocument().builds() - builds);

@@ -252,7 +252,7 @@ chapter split, merge and chapter merge.
 - [ ] AC11 — ✅ **Live passes (user):** Mac and rig, over the share, each operation timed.
       ✅ 2026-10-21: all 12 actions pass on both; the details are AC12–AC15. ✅ Mac re-pass (heading cases, Q10 numbering,
       regression): all steps pass (user). ✅ Rig re-pass (build 77): A, B and C pass (user); one rendering finding, fixed
-      (below). ⏳ The rig re-check of that fix.
+      (below). ✅ The rig re-check of that fix passes (user).
 - [x] AC12 — Q10: a created chapter is stored untitled; a stored `Chapter 7` reads as untitled, `Chapter of Secrets` is
       kept (core tests, mutation-checked); no app rewrites chapter titles after a structural edit.
 - [x] AC13 — The heading anchor: at a scene that starts with `## `, split, chapter split and paste keep the heading with
@@ -481,4 +481,27 @@ chapter split, merge and chapter merge.
 - ⚠️ **Still unexplained:** *"apply history step took 1882 ms"* / *"2355 ms"* on undo — NOT a structural step (no worker line
   beside it), so a text undo on the GUI thread. ⏳ Not investigated in this pass.
 - ⚠️ The phase separator logged as `Â·` (a Latin-1 decode of the UTF-8 phase names); fixed (`QString::fromUtf8`).
+- ✅ **Rig re-check (user): *"the fixes pass on the rig."*** ⚠️ The user also saw *"something screwy, but I can't quite
+  describe it"* — not yet named.
+
+### ⛔ 2026-10-21 — "Something screwy" on the rig = MY MUTATION SHIPPED in build 78; ⏳ rebuild and re-pass
+- ⛔ **Cause (mine):** the Linux mutation loop was editing `platforms/linux/src/` IN PLACE when the user committed for the
+  rig; commit `3569d4e` (build 78) carries the "no history node" mutation (`EditorShell::runRangeEdit`:
+  `const QString historyRoot;`). Every structural edit in build 78 recorded NO history node.
+- **What the user saw follows from it** (rig log + `rig-pass.scrivi/history`): an undo after a split or merge skipped past
+  it and replayed an OLDER node's inverse (seq 209: back to a node from the 01:15 session); the "Undoing changes from a
+  previous session" dialog appeared (the *"apply history step took 2931 ms"* — a modal notice's time, not work — which
+  also explains the earlier unexplained 1882 / 2355 / 3524 ms lines); and one older inverse was refused (FAILED, stepped
+  back). ⚠️ The same happened in the dumas session: three structural undos and a redo replayed OLDER nodes against
+  `dumas-prose-timelines` — the fixture's manuscript may differ from before the pass.
+- ✅ **Checked:** the working tree has the correct line (it differs from `3569d4e` only there); no other mutation is in
+  `c0919e9`, `f58a1fc`, `3569d4e` or the tree (every Linux and Apple mutation anchor checked; the core tree matches HEAD
+  and passes ctest).
+- ✅ **Prevention:** the Linux mutation script now runs in an rsync'd COPY with its own build dir; memory updated.
+- ✅ **The Linux mutation re-run (guard fixed):** 15 of 17 caught. ⚠️ Two SURVIVE and are EQUIVALENT: "repeat not refused"
+  (`runRangeEdit`'s `loading_` guard — every caller, and `undo()` / `redo()`, check `loading_` first) and "written scene
+  left dirty" (`runRangeEdit` already moves every dirty scene into its save jobs, and `loading_` keeps the core's document
+  edits from dirtying any) — confirmed with a new direct check (`EditorShell::dirtySceneCount()`, asserted 0 after every
+  measured structural edit), which the mutation does not trip. Smokes 38/38.
+- ⏳ **Next:** the user commits the tree; the rig pulls and builds (build 79); the rig re-pass.
 

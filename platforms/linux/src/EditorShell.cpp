@@ -1910,7 +1910,7 @@ bool EditorShell::runRangeEdit(const QString& label, RangeCall call, RangeNode n
         }
     }
     saveTimer_->stop();
-    const QString historyRoot;
+    const QString historyRoot = node && history_ != nullptr && history_->isOpen() ? history_->projectRootPath() : QString();
     lockForWork(label);      // ✅ Q5: the cue — read-only at once, in the key press's own turn; the progress row after 400 ms
     beginBackgroundWork();   // [I-0305]: a close waits for it
     DiagnosticLog::note(QStringLiteral("structural \"%1\": worker started").arg(label));
