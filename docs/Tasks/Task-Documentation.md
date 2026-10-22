@@ -765,8 +765,8 @@ archive files reconstructed after the fact from secondary sources.
 | T-0609 | `[Linux]` EP-048 S5a: Project Settings dialog, the bundled typefaces, Markup Hints | ✅ **SP-182** | **EP-048** | ✅ **Verified 2026-10-21** | [`Task-verified-0609.md`](Verified/Task-verified-0609.md) |
 | T-0610 | `[Linux]` EP-048 S5b: line spacing and the first-line indent | 🔵 **SP-183** | **EP-048** | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
 | T-0611 | `[Linux]` EP-048 S5c: Show chapter titles, and the chapter-ending divider | 🔵 **SP-184** | **EP-048** | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
-| T-0612 | `[Linux]` A diagnostic log: timed operations and a main-thread stall watchdog | 🟡 **SP-185** | **EP-026** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
-| T-0613 | `[Linux]` Find bar: search after a 500 ms pause; the searchable text built ahead, never on a keystroke | 🟡 **SP-185** | **EP-026** | ✅ **Verified 2026-10-21** | [`Task-verified-0613.md`](Verified/Task-verified-0613.md) |
+| T-0612 | `[Linux]` A diagnostic log: timed operations and a main-thread stall watchdog | ✅ **SP-185** | **EP-026** | ✅ **Verified 2026-10-22** | [`Task-verified-0612.md`](Verified/Task-verified-0612.md) |
+| T-0613 | `[Linux]` Find bar: search after a 500 ms pause; the searchable text built ahead, never on a keystroke | ✅ **SP-185** | **EP-026** | ✅ **Verified 2026-10-21** | [`Task-verified-0613.md`](Verified/Task-verified-0613.md) |
 | T-0614 | `[ScriviCore]` EP-053 S1: the Range (`scrivi.range.v1`) and the aggregate range operations | ✅ **SP-186** | **EP-053** | ✅ **Verified 2026-10-20** | [`Task-verified-0614.md`](Verified/Task-verified-0614.md) |
 | T-0615 | `[Cross]` EP-053 S2a: the scene list as the model of record — no visible change | ✅ **SP-187** | **EP-053** | ✅ **Verified 2026-10-21** | [`Task-verified-0615.md`](Verified/Task-verified-0615.md) |
 | T-0616 | `[Cross]` EP-053 S3: structural cut, Backspace / Delete over scenes, and their undo | 🔵 **SP-188** | **EP-053** | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
@@ -810,6 +810,8 @@ archive files reconstructed after the fact from secondary sources.
 ⚠️ **This index ended at `T-0485 (next available)` until 2026-09-10 — ✅ that was STALE.** ⚠️ **T-0485–T-0498 had all been taken**, and T-0485–T-0490/T-0492–T-0496 are archived as Verified. ⚠️ **Rows for T-0486–T-0497 are NOT reconstructed here** — ✅ **their Sprints' closed records are authoritative** (`feedback_archive_on_close`).
 
 ---
+
+*Last Updated: 2026-10-22 (**T-0612 → ✅ Verified** (user) and archived, with [SP-185]'s close.)*
 
 *Last Updated: 2026-10-22 (**T-0619 → ✅ Verified** (user) and archived, with [SP-191]'s close.)*
 

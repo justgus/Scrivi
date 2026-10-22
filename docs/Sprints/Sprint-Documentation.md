@@ -452,7 +452,7 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-182** | `[Linux]` **[EP-048] S5a** — Project Settings dialog, the typeface, Markup Hints: L10 (T-0609) | EP-048 | 2026-10-15 | 2026-10-21 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-182.md) |
 | **SP-183** | `[Linux]` **[EP-048] S5b** — line spacing and the first-line indent: L10 (T-0610) | EP-048 | — | — | 🔵 **PLANNING** → [`Sprint-SP-183.md`](Sprint-SP-183.md) |
 | **SP-184** | `[Linux]` **[EP-048] S5c** — Show chapter titles, and the divider that closes a chapter (T-0611) | EP-048 | — | — | 🔵 **PLANNING** → [`Sprint-SP-184.md`](Sprint-SP-184.md) |
-| **SP-185** | `[Linux]` **[EP-026]** — responsive after load: [I-0308], [I-0307], [I-0297], [I-0309]; the diagnostic log (T-0612) | EP-026 | 2026-10-17 | — | 🟡 **ACTIVE** → [`Sprint-SP-185.md`](Sprint-SP-185.md) |
+| **SP-185** | `[Linux]` **[EP-026]** — responsive after load: [I-0308], [I-0307], [I-0297], [I-0309]; the diagnostic log (T-0612) | EP-026 | 2026-10-17 | 2026-10-22 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-185.md) |
 | **SP-186** | `[ScriviCore]` **[EP-053] S1** — the Range and the range operations: read, paste ([I-0311]), structural cut; the delta; 4 reads + 4 writes (T-0614) | EP-053 | 2026-10-17 | 2026-10-20 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-186.md) |
 | **SP-187** | `[Cross]` **[EP-053] S2a** — the scene list as the model of record, no visible change; the range bindings and delta types (T-0615) | EP-053 | 2026-10-20 | 2026-10-21 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-187.md) |
 | **SP-188** | `[Cross]` **[EP-053] S3** — structural cut, Backspace / Delete over scenes, and their undo (T-0616) | EP-053 | — | — | 🔵 **PLANNING** → [`Sprint-SP-188.md`](Sprint-SP-188.md) |
@@ -498,6 +498,8 @@ by status, read the table.**
 > on neither time. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-10-22 (**SP-185 → ✅ CLOSED** (user: *"SP-185 can be closed (authorized)."*); I-0309, I-0310, T-0612 verified and archived; AC5 → EP-052.)*
 
 *Last Updated: 2026-10-22 (**SP-191 → ✅ CLOSED** (user: *"Yes, mark them verified and close SP-191"*); T-0619, I-0297, I-0311, I-0314 verified and archived; I-0315 verified after the close.)*
 

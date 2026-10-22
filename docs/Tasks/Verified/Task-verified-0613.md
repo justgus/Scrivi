@@ -9,7 +9,7 @@
 ## T-0613 — `[Linux]` The find bar never freezes while the writer types: search after a pause, the searchable text built ahead
 
 **Epic:** [EP-026] · **Status:** ✅ **Verified 2026-10-21** (user, 2026-10-21: *"I performed the live pass … on both the Rig and the Mac. all 10 steps passed. I continued with the Scrivi Rig Live Pass … This is build 75 … No steps failed!"*) · **Sprint:** [SP-185] →
-[`../Sprints/Sprint-SP-185.md`](../../Sprints/Sprint-SP-185.md) · **Date Requested:** 2026-10-17 (user: *"I would prefer it if it
+[`../../Sprints/Closed/Sprint-SP-185.md`](../../Sprints/Closed/Sprint-SP-185.md) · **Date Requested:** 2026-10-17 (user: *"I would prefer it if it
 worked like search on the mac. That is, you begin typing, it allows you to type a word or a phrase, and when you stop typing
 (say 500 ms), then it does all the initialization it needs to complete the search."*)
 

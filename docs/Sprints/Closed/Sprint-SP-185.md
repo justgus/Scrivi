@@ -1,19 +1,21 @@
 ---
 sprint: SP-185
 epic: EP-026
-status: Active
+status: Closed
+closed: 2026-10-22
+activated: 2026-10-17
 platform: Linux
 created: 2026-10-17
 ---
 
 # SP-185 — `[Linux]` [EP-026] Responsive after load: the rig pass's freezes and its crash
 
-**Status:** 🟡 **ACTIVE** — created and activated 2026-10-17 (user: *"Yes lets do them all in a new sprint."*).
+**Status:** ✅ **CLOSED 2026-10-22** (user: *"SP-185 can be closed (authorized)."*) · AC5 → [EP-052] (user) · 🟡 **ACTIVE** — created and activated 2026-10-17 (user: *"Yes lets do them all in a new sprint."*).
 **Carries:** [I-0307] (select, copy and paste each freeze 10–15 s), [I-0297] (a structured
 paste's undo takes 40 s over the share), [I-0309] (closing a window mid-load frees memory its worker uses; found by plan step 0), [I-0310] (a shown window torn down crashed)
-→ [`../Issues/Issue-active.md`](../Issues/Issue-active.md) · [T-0612] (a diagnostic
-log) · [T-0613] (the find bar never freezes while the writer types) → [`../Tasks/Task-active.md`](../Tasks/Task-active.md).
-**Epic:** [EP-026] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md). Two of the three are its structured cut, copy and
+→ [`../../Issues/Verified/`](../../Issues/Verified/) (all verified) · [T-0612] (a diagnostic
+log) · [T-0613] (the find bar never freezes while the writer types) → [`../../Tasks/Verified/`](../../Tasks/Verified/) (both verified).
+**Epic:** [EP-026] → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md). Two of the three are its structured cut, copy and
 paste. [I-0308] (the find-bar crash) was carried until 2026-10-22; it is in the backlog, not reproducible (user).
 **Size:** M–L. ⚠️ Every acceptance needs the **rig**: each finding showed only on the writer's 1,186-scene project over the
 network share. The rig is away until 2026-10-18 evening; Docker work runs meanwhile.
@@ -91,11 +93,12 @@ know exactly how many items need to be changed)."*
 - [x] AC4 — [I-0297] a structured paste's undo over the share completes as Q2 rules — ✅ paste 5,642 → 1,890 and undo
   5,688 → 1,933 worker file calls. ➡️ **MOVED to [EP-053] S2** (user, 2026-10-20): the reload's full open (~1,700) is
   removed there (no reload), not given progress here. ✅ Met by [SP-191] (closed 2026-10-22); [I-0297] verified (user).
-- [ ] AC5 — Q3 ruled, and built as ruled. ✅ Q3 ruled 2026-10-17. ➡️ **The build WAITS FOR [EP-052]** (user, 2026-10-20):
+- ~~AC5 — Q3 ruled, and built as ruled.~~ ➡️ **MOVED to [EP-052]** (user, 2026-10-22: *"Move AC5 to EP-052"*) as its AC7. ✅ Q3 ruled 2026-10-17. ➡️ **The build WAITS FOR [EP-052]** (user, 2026-10-20):
   showing replacements land changes Replace All's locked-editor shape, which EP-052's queue replaces.
 - [x] AC5b — [T-0613] typing in the find bar never waits: the search runs after a 500 ms pause, over text built ahead —
   ✅ `find_smoke` (CI), 3 mutations caught. ⏳ The rig pass (AC6) types a search in dumas.
-- [ ] AC6 — ✅ **Rig live pass (user)**
+- [x] AC6 — ✅ **Rig live pass (user)** — ✅ 2026-10-22, build 79: a window closed mid-load and a quit mid-load, both clean
+  ([I-0309]); the real `scrivi.log` read ([T-0612]).
 
 ## Progress log
 
@@ -198,3 +201,22 @@ User, 2026-10-21: *"I performed the live pass listed above on both the Rig and t
 - User: *"Remove I-0308 from SP-185 and put it in the backlog as 'not-reproducable'."*
 - AC1 is removed with it. What remains here: AC6's rig steps (close dumas mid-load for [I-0309]; read a real log for
   [T-0612]).
+
+### ✅ 2026-10-22 — The last rig steps pass; CLOSED (user)
+- User: *"Move AC5 to EP-052; T-0612 and I-0310 are verified. the step in item 1 passed. SP-185 can be closed (authorized)."*
+- ✅ **AC6 / [I-0309] on the rig (build 79, dumas over the share):** a window closed while the progress row showed, then a quit
+  while it showed. The log has `load:` with no `load: finished`, then `session ended (exit code 0)`, for both sessions.
+- ✅ **[T-0612]:** the real log, read over SSH the same day: the build line, timed load spans, each structural worker's
+  phases, the watchdog's stall lines naming what was running, and a clean end to each session.
+- ✅ **Verified and archived:** [I-0309], [I-0310] → `Issues/Verified/Issue-verified-0301-0310.md`; [T-0612] →
+  `Tasks/Verified/Task-verified-0612.md`. Already verified: [I-0307], [T-0613] (2026-10-21), [I-0297] (with [SP-191]).
+- ➡️ **AC5** (Replace All's visible progress, Q3) → [EP-052] AC7. [I-0308] left 2026-10-22 (backlog, not reproducible).
+
+## Retrospective
+- **Went well:** counting file calls per phase first (`strace`, Docker) put the freezes where they were: Ctrl+C 2,678 → 3
+  GUI-thread calls, the paste and its undo ~5,600 → ~1,900, then nothing reloaded at all once [EP-053] S2b landed. The
+  ASan replay found a real use-after-free ([I-0309]) while chasing a different crash, and the diagnostic log made the build 78
+  fault and today's interrupted loads readable after the fact.
+- **Went badly:** [I-0308] was never reproduced, so its AC could not be met and was removed; AC4 and AC5 each had to move
+  to another Epic because their real fix lay in another design (no reload; the write queue).
+- **Adjust:** when an AC's fix belongs to another Epic's design, move it at ruling time rather than carrying it open.

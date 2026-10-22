@@ -10,6 +10,8 @@ Issues the user has VERIFIED, archived out of `Issue-active.md`.
 | **I-0304** | `[Linux]` ⛔ **A scene whose save FAILS is dropped from the dirty set, so it is never retried and quitting loses its edits.** The Mac keeps it dirty ([I-0259]). Found 2026-10-15 by reading ([SP-181]). ✅ Fixed: a failed write stays dirty. → [details](#i-0304) | **High** | [SP-181] | ✅ **VERIFIED 2026-10-21** |
 | **I-0305** | `[Apple]` `[Linux]` ⚠️ **Closing a project window, or quitting, while scenes are being written in the background does not wait for the writes.** Found 2026-10-15 by reading ([SP-181]). ✅ Fixed on both platforms: a close or quit waits behind *"Please wait — saving updates…"*. → [details](#i-0305) | **Medium** | [SP-181] | ✅ **VERIFIED 2026-10-21** |
 | **I-0307** | `[Linux]` ⛔ **Selecting across a scene break, Ctrl+C and Ctrl+V each FREEZE the window for 10–15 s** (dumas-prose-timelines over the share). Found on the rig 2026-10-15 (live pass, step 9). ✅ Measured and fixed in Docker: Ctrl+C's GUI-thread file calls 2,678 → 3; a mouse selection no longer extracts. → [details](#i-0307) | **High** | [SP-185] | ✅ **VERIFIED 2026-10-21** |
+| **I-0309** | `[Linux]` ⛔ **Closing a project window while the project is still LOADING frees memory the load's worker is still using** (use-after-free of the shell's `ScriviBridge`). Found 2026-10-17 by AddressSanitizer in Docker, while reproducing [I-0308]. ✅ Fixed: every worker builds its own bridge. → [details](#i-0309) | **High** | [SP-185] | ✅ **VERIFIED 2026-10-22** (user, 2026-10-22: *"the step in item 1 passed"* — on the rig, build 79, dumas over the share: a window closed and a quit, each mid-load; both sessions logged `session ended (exit code 0)`) |
+| **I-0310** | `[Linux]` ⛔ **Destroying a shown, focused project window crashed: the editor's focus-out read the document its shell had already freed.** Found 2026-10-17 by the [I-0307] measurement harness (a segfault at its exit). ✅ Fixed. → [details](#i-0310) | **High** | [SP-185] | ✅ **VERIFIED 2026-10-22** (user, 2026-10-22: *"T-0612 and I-0310 are verified"* — on `background_wait_smoke` §6, mutation-checked) |
 
 ---
 
@@ -269,3 +271,77 @@ probes, calls split by thread):**
 No freeze on the selection or the copy. The diagnostic log ([T-0612]) times each.
 
 ---
+
+## I-0309
+
+**Title:** Closing a window during a load frees the bridge its load worker is still using
+**Status:** ✅ **VERIFIED 2026-10-22** (user, 2026-10-22: *"the step in item 1 passed"* — on the rig, build 79, dumas over the share: a window closed and a quit, each mid-load; both sessions logged `session ended (exit code 0)`). Was 🟠 Resolved - Not Verified (2026-10-17, [SP-185]).
+**Platform:** `[Linux]`
+**Severity:** High. A crash, not a wrong result. Over the share a large project takes seconds to load, so closing or quitting
+during it is ordinary.
+**Sprint:** [SP-185] (found by its plan step 0, 2026-10-17; added here rather than to the backlog because it is a crash of the
+same kind the Sprint is chasing)
+**Date Identified:** 2026-10-17, AddressSanitizer, Docker (Qt 6.4.2, arm64), on a copy of dumas-prose (1,153 scenes)
+
+**What ASan reported:** `heap-use-after-free` in `ScriviBridge::getProjectSettings` (`ScriviBridge.cpp:785`), called from the
+load worker (`EditorShell.cpp:527`), on memory freed by `EditorShell::~EditorShell()` (the bridge is created at
+`EditorShell.cpp:99`, owned by the shell).
+- The trigger in the probe: its own wait gave up while the load was still running under ASan, and it destroyed the shell.
+- The same happens in the app: a project window is `WA_DeleteOnClose` (`AppEnvironment.cpp:115`), and
+  `ScriviWindow::closeEvent` (`ScriviWindow.cpp:681`) waits for background WRITES ([I-0305]) but not for a load. The worker
+  captures `bridge_` as a raw pointer (`EditorShell.cpp:474`) and keeps calling it.
+- It also follows the open's last-resort timeout (`kProjectOpenTimeoutMs`, 600 s): the worker is left running by design.
+- ⚠️ Not proven on the rig. It is not, by itself, [I-0308]: that crash came long after the load.
+
+**Fix direction (as planned):** the worker must not borrow anything the window owns. Either the shell outlives its load
+(close waits, as [I-0305] does for writes), or the worker holds a bridge it owns. Other workers capture the same raw pointer
+(`EditorShell.cpp:2496`, `:2547`, `:2809`, `:2874`); [I-0305]'s wait covers those, and each needs checking.
+
+**Resolution (2026-10-17, user: *"fix I-0309 while the probe runs"*):**
+- A bridge carries only who is calling (`ScriviBridge::Identity`); its failure flag was already per thread (SP-173 D5).
+- `WorkerBridge` (`ScriviBridge.hpp`): the GUI thread builds a `Handle` (a copy of the identity, plus a `ScriviBridgeRelay`
+  the worker co-owns, deleted with `deleteLater`). The worker builds its OWN bridge from it, on its own thread. Errors reach
+  the window's bridge's `errorOccurred` listeners through the relay, queued, as before. A load's progress crosses the same
+  relay to `EditorShell::loadProgress`, so the worker no longer touches the shell either (`emit self->loadProgress` was the
+  second use-after-free in waiting).
+- All six workers moved:
+  - the load (`EditorShell::load`);
+  - the off-main save (`saveScenesOffMain`);
+  - the structural steps: `runStructural`'s `work` is now handed the worker's bridge, so paste, undo and redo no longer
+    capture `bridge_`;
+  - the Scene Inspector's reload (`SceneInspector.cpp:382`) and the Worlds dialog's (`WorldsDialog.cpp:193`): the same raw
+    capture, found by the sweep.
+- **Test:** `background_wait_smoke` §5 (in CI) destroys six windows at different moments of their loads, then waits for every
+  worker.
+  - ✅ **Under AddressSanitizer, the OLD code fails it** with this Issue's `heap-use-after-free` at
+    `ScriviBridge.cpp:785`, and the fixed code passes it clean.
+  - ⚠️ In a plain build the use-after-free rarely crashes, so CI shows only that the workers finish.
+- Debug build in Docker (Qt 6.4.2): smokes 36/36, ScriviCore ctest 728/728, the four CI script checks pass.
+
+**To verify (rig):** open dumas over the share and close its window (or quit) while the progress row is still showing. Scrivi
+closes or quits normally.
+
+
+---
+
+## I-0310
+
+**Title:** Destroying a shown, focused project window crashes in the editor's focus-out
+**Status:** ✅ **VERIFIED 2026-10-22** (user, 2026-10-22: *"T-0612 and I-0310 are verified"* — on `background_wait_smoke` §6, mutation-checked). Was 🟠 Resolved - Not Verified (2026-10-17, [SP-185]).
+**Platform:** `[Linux]`
+**Severity:** High — a crash. Found tearing down a shown shell in a test harness; in the app a window is normally hidden
+before it is deleted (`WA_DeleteOnClose`), so this is latent there, not observed.
+**Sprint:** [SP-185] (found by its [I-0307] measurement; a crash of the kind the Sprint is chasing)
+**Date Identified:** 2026-10-17 (the harness segfaulted at exit; gdb)
+
+**Cause (gdb backtrace):** `EditorShell::~EditorShell` → `QWidget::~QWidget` → `QWindow::close` → hide → the focus leaves the
+editor → `QPlainTextEdit::focusOutEvent` → a cast on the editor's document. The shell OWNS that document (`sceneDoc_`), and
+its members are destroyed BEFORE `QWidget`'s destructor runs, so the editor read freed memory.
+
+**Resolution:** `~EditorShell` hides the shell first (`EditorShell.cpp`), while everything still exists. ✅
+`background_wait_smoke` §6 tears down a shown, focused shell; removing the `hide()` makes it crash (mutation caught).
+
+
+---
+
+*Last Updated: 2026-10-22 — **I-0309** and **I-0310** archived (user-verified, [SP-185]'s close).*

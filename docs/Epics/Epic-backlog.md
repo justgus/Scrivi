@@ -54,10 +54,10 @@ over a newer one, which have already drifted once ([I-0304] against [I-0259]).
   dirty; close and quit wait ([I-0305]'s dialog). W6's platform-side ordering code is removed.
 - [ ] **AC5 — `[Linux]` Adoption:** the same, in the same Sprint as AC4.
 - [ ] **AC6 — Rig:** undoing a Replace All on dumas over the share does not freeze the window, and typing never waits on a save.
-
-**Waiting on it:** [SP-185] AC5 (user, 2026-10-20): Replace All's visible progress (SP-185 Q3: a real count, the view
-follows), to be designed against the queue.
-**Rough span:** 2 Sprints: S1 ScriviCore (AC1–AC3), S2 Apple + Linux (AC4–AC6). Sequenced after [SP-181] closes.
+- [ ] **AC7 — `[Linux]` Replace All shows its progress** (moved from [SP-185] AC5, user 2026-10-22: *"Move AC5 to EP-052"*):
+  [SP-185] Q3 as ruled 2026-10-17 — a real count (*"Replacing 312 of 2,048"*), and the view follows a few times a second,
+  showing replacements land. To be designed against the queue (it changes Replace All's locked-editor shape).
+**Rough span:** 2 Sprints: S1 ScriviCore (AC1–AC3), S2 Apple + Linux (AC4–AC7). Sequenced after [SP-181] closes.
 **Out of scope:** world writes (concurrency design D6), two processes on one project, the speed of the structural
 operations themselves.
 
@@ -840,6 +840,8 @@ project; sharing/binding across projects; repair for a world whose package moved
 
 ---
 
+
+*Last Updated: 2026-10-22 (**EP-052** gains AC7, Replace All's visible progress, moved from [SP-185] AC5 (user).)*
 
 *Last Updated: 2026-10-11 (**EP-026 `[Linux]` rescoped, ruled and ACTIVATED** (user) → moved to `Epic-active.md`.)*
 
