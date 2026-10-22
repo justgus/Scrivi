@@ -251,14 +251,17 @@ chapter split, merge and chapter merge.
 - [x] AC10 — The design doc is at v0.3 with these rulings.
 - [ ] AC11 — ✅ **Live passes (user):** Mac and rig, over the share, each operation timed.
       ✅ 2026-10-21: all 12 actions pass on both; the details are AC12–AC15. ✅ Mac re-pass (heading cases, Q10 numbering,
-      regression): all steps pass (user). ⏳ The rig re-pass.
+      regression): all steps pass (user). ✅ Rig re-pass (build 77): A, B and C pass (user); one rendering finding, fixed
+      (below). ⏳ The rig re-check of that fix.
 - [x] AC12 — Q10: a created chapter is stored untitled; a stored `Chapter 7` reads as untitled, `Chapter of Secrets` is
       kept (core tests, mutation-checked); no app rewrites chapter titles after a structural edit.
 - [x] AC13 — The heading anchor: at a scene that starts with `## `, split, chapter split and paste keep the heading with
       its scene, and each undoes exactly (Mac interop `structuralEditsAtAHeading`, Linux `structural_baseline_smoke`;
       mutation-checked on Linux).
 - [x] AC14 — [I-0315]: a split's GUI-thread core calls on Linux 6 → 2, guarded; mutation-checked.
-- [x] AC15 — The Linux worker reads only the story times and logs each phase. ⏳ The rig's timings: AC11.
+- [x] AC15 — The Linux worker reads only the story times and logs each phase. ✅ The rig's timings (build 77) below.
+- [x] AC16 — Linux draws every heading and scene line right after each structural edit, undo and redo (the rig finding):
+      `structural_baseline_smoke` checks the presenter's laid-out formats after every one; mutation-checked.
 
 ## Progress log
 
@@ -453,3 +456,29 @@ chapter split, merge and chapter merge.
   Linux mutations 15/15 caught (4 new: the heading step-back, the heading line break, each I-0315 compare).
 - ✅ **Mac re-pass (user): *"All Mac steps pass"*** — the heading cases (split, chapter split, paste, each undone), Q10's
   derived numbering (split, merge, undo/redo, an older project) and the regression steps. ⏳ The rig re-pass.
+
+### 🟡 2026-10-21 — Rig re-pass (build 77): A, B, C pass; one rendering finding, fixed; ⏳ its rig re-check
+- User: *"A: Steps 1-3 pass. B: 4 and 5 pass. … C: All test pass."* ⛔ **Finding:** after a chapter is inserted before
+  another, the renumbered heading ("Chapter 3") is drawn as body text; after Ctrl+Z it is a heading again but so is the line
+  below it. The files on disk are right; a reload draws everything right.
+- ✅ **Cause:** the presenter draws each changed line INSIDE the document edit's `insertText` — the run's splice and each
+  heading `reflowBoundaryAt` renumbers — before the scene offsets after it shift, so it judged heading vs. scene text against
+  stale positions. ⚠️ It was not only headings: the test found a SCENE line drawn as a heading after Q7's split-and-undo.
+  The removed I-0063 path had hidden it (its rename re-drew the stored-title heading afterwards).
+- ✅ **Fix:** `EditorShell::rehighlightAfterEdit(lo, hi)` — once the delta has landed, the run again (leading boundary
+  through the follower's) and every chapter boundary after it; also after a chapter delete or move. `ManuscriptPresenter::
+  rehighlightRange` made public for it.
+- ✅ **Test:** `Rig::headingsDrawnRight` reads the formats the presenter actually laid out — every chapter heading bold, no
+  scene line bold — after every measured edit, every round trip's edit / undo / redo, the heading cases, and a new case
+  (a chapter inserted before chapter 2, then undone twice). Red without the fix.
+- ⛔ **My own test defect, fixed:** the [I-0315] guard read the GUI-thread count AFTER `listMatchesDisk`, which makes its own
+  calls, so it always failed — and every Linux mutation run after it was added "caught" through it. The count is now taken
+  before the checks; ⏳ the whole Linux mutation set is being re-run.
+- ✅ **Rig timings (build 77, `scrivi.log`):** no ~12 s stall and no 45 s Inspector stall. Workers, local share project:
+  split 445 ms (range call 384), merge 360 ms (333); dumas over the share: chapter split 2,474 ms (range call 2,430),
+  chapter merge 3,308 ms (3,268), undos of those 2.2–2.4 s; the GUI-thread apply 29–324 ms. Saves, flush, history node and
+  story times are each ≤ 61 ms — ⚠️ the time is the core's range call itself.
+- ⚠️ **Still unexplained:** *"apply history step took 1882 ms"* / *"2355 ms"* on undo — NOT a structural step (no worker line
+  beside it), so a text undo on the GUI thread. ⏳ Not investigated in this pass.
+- ⚠️ The phase separator logged as `Â·` (a Latin-1 decode of the UTF-8 phase names); fixed (`QString::fromUtf8`).
+

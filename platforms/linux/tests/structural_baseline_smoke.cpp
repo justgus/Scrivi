@@ -21,6 +21,8 @@
 #include <QEventLoop>
 #include <QMessageBox>
 #include <QTest>
+#include <QTextBlock>
+#include <QTextLayout>
 #include <QTextCursor>
 #include <QTextDocument>
 #include <QTimer>
@@ -177,6 +179,26 @@ struct Rig {
         QTest::sendKeyEvent(QTest::Press, editor, k, text, Qt::ControlModifier | extra);
         QTest::sendKeyEvent(QTest::Release, editor, k, text, Qt::ControlModifier | extra);
     }
+    // ✅ [SP-191] rig pass: every chapter heading is DRAWN as one (bold), and no scene line is — judged from what the
+    // presenter actually laid out, not from the text. A Markdown heading inside a scene (`## …`) is bold by design.
+    void headingsDrawnRight(const QString& what)
+    {
+        int headings = 0;
+        for (QTextBlock b = editor->document()->begin(); b.isValid(); b = b.next()) {
+            const QString text = b.text();
+            if (text.trimmed().isEmpty() || text.startsWith(QLatin1Char('#'))) { continue; }
+            bool bold = false;
+            for (const QTextLayout::FormatRange& f : b.layout()->formats()) {
+                if (f.start == 0 && f.length >= text.size() && f.format.fontWeight() == QFont::Bold) { bold = true; }
+            }
+            const bool heading = shell->sceneDocument().sceneIndexForEditablePosition(b.position()) < 0;
+            headings += heading ? 1 : 0;
+            check(bold == heading, QStringLiteral("%1: \"%2\" is drawn as %3").arg(what, text,
+                                                                                     bold ? QStringLiteral("a heading")
+                                                                                          : QStringLiteral("body text")));
+        }
+        check(headings == chapterCount(), QStringLiteral("%1: one heading per chapter").arg(what));
+    }
     // Runs `act`, lets any background work and reload land, then prints the baseline. Returns the GUI-thread core calls.
     qint64 measured(const char* what, const std::function<void()>& act, bool structural = true)
     {
@@ -192,15 +214,17 @@ struct Rig {
             if (!editor->isReadOnly()) { break; }
         }
         QTest::qWait(200);
+        const qint64 made = ScriviBridge::guiThreadCallCount() - calls;   // before the checks below make their own
         std::printf("[EP-053 baseline] %s: guiThreadCoreCalls=%lld projectLoads=%d documentBuilds=%d\n", what,
-                    qlonglong(ScriviBridge::guiThreadCallCount() - calls), shell->loadCount() - loads,
+                    qlonglong(made), shell->loadCount() - loads,
                     shell->sceneDocument().builds() - builds);
         check(shell->sceneDocument().textMatchesDocument(), QStringLiteral("%1: every scene's text is its body").arg(what));
         // ✅ [SP-191]: nothing re-reads the project, and nothing rebuilds the document.
         check(shell->loadCount() == loads, QStringLiteral("%1: no project load").arg(what));
         check(shell->sceneDocument().builds() == builds, QStringLiteral("%1: no document build").arg(what));
         listMatchesDisk(QString::fromUtf8(what));
-        return ScriviBridge::guiThreadCallCount() - calls;
+        headingsDrawnRight(QString::fromUtf8(what));
+        return made;
     }
 };
 
@@ -285,12 +309,15 @@ int main(int argc, char* argv[])
         const QStringList after = r.state();
         check(after != before, QStringLiteral("%1 changed the manuscript").arg(what));
         r.listMatchesDisk(what);
+        r.headingsDrawnRight(what);
         check(r.landing([&] { r.control(Qt::Key_Z); }), QStringLiteral("%1: its undo landed").arg(what));
         check(r.state() == before, QStringLiteral("%1: undone in ONE step").arg(what));
         r.listMatchesDisk(what + QStringLiteral(", undone"));
+        r.headingsDrawnRight(what + QStringLiteral(", undone"));
         check(r.landing([&] { r.control(Qt::Key_Z, Qt::ShiftModifier); }), QStringLiteral("%1: its redo landed").arg(what));
         check(r.state() == after, QStringLiteral("%1: redone exactly").arg(what));
         r.listMatchesDisk(what + QStringLiteral(", redone"));
+        r.headingsDrawnRight(what + QStringLiteral(", redone"));
         check(r.landing([&] { r.control(Qt::Key_Z); }), QStringLiteral("%1: undone again").arg(what));
     };
     const QStringList start = r.state();
@@ -386,6 +413,20 @@ int main(int argc, char* argv[])
         check(r.landing([&] { r.control(Qt::Key_Z); }), QStringLiteral("(undone)"));
         check(r.state() == before, QStringLiteral("heading: each undone exactly"));
         r.listMatchesDisk(QStringLiteral("after the heading cases"));
+        r.headingsDrawnRight(QStringLiteral("after the heading cases"));
+    }
+    // ── [SP-191] rig pass: a chapter inserted BEFORE another renumbers it — and it must still be drawn as a heading ─────
+    {
+        check(r.landing([&] { r.caretAt(QStringLiteral("Gamma ")); r.shell->splitChapter(); }), QStringLiteral("(chapter 2)"));
+        r.headingsDrawnRight(QStringLiteral("two chapters"));
+        check(r.landing([&] { r.caretAt(QStringLiteral("Beta ")); r.shell->splitChapter(); }),
+              QStringLiteral("a chapter inserted before chapter 2"));
+        check(r.editor->document()->toPlainText().contains(QStringLiteral("Chapter 3")), QStringLiteral("(renumbered to 3)"));
+        r.headingsDrawnRight(QStringLiteral("after the insert"));
+        check(r.landing([&] { r.control(Qt::Key_Z); }), QStringLiteral("(undone)"));
+        r.headingsDrawnRight(QStringLiteral("after its undo"));
+        check(r.landing([&] { r.control(Qt::Key_Z); }), QStringLiteral("(undone)"));
+        r.headingsDrawnRight(QStringLiteral("one chapter again"));
     }
 
     r.shell->flushHistory();

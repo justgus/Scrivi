@@ -1132,6 +1132,7 @@ void EditorShell::deleteChapterByID(const QString& chapterID)
 
     // Fallback active scene: the segment that now occupies the deleted chapter's first
     // slot (the following chapter's first scene), clamped into range.
+    rehighlightAfterEdit(0, -1);
     afterStructuralRemoval(activeSceneID, firstMemberIdx);
 }
 
@@ -1284,6 +1285,7 @@ void EditorShell::onChapterDropped(const QString& draggedChapterID,
         return;
     }
 
+    rehighlightAfterEdit(0, -1);
     rebuildNavigator();
 
     // Anchor the caret on the moved chapter's first scene — the container the writer
@@ -1908,7 +1910,7 @@ bool EditorShell::runRangeEdit(const QString& label, RangeCall call, RangeNode n
         }
     }
     saveTimer_->stop();
-    const QString historyRoot = node && history_ != nullptr && history_->isOpen() ? history_->projectRootPath() : QString();
+    const QString historyRoot;
     lockForWork(label);      // ✅ Q5: the cue — read-only at once, in the key press's own turn; the progress row after 400 ms
     beginBackgroundWork();   // [I-0305]: a close waits for it
     DiagnosticLog::note(QStringLiteral("structural \"%1\": worker started").arg(label));
@@ -1931,7 +1933,7 @@ bool EditorShell::runRangeEdit(const QString& label, RangeCall call, RangeNode n
             QElapsedTimer phase;
             phase.start();
             const auto lap = [&](const char* name) {
-                o.phases += QStringLiteral(" %1 %2 ms").arg(QLatin1String(name)).arg(phase.restart());
+                o.phases += QStringLiteral(" %1 %2 ms").arg(QString::fromUtf8(name)).arg(phase.restart());
             };
             for (const Job& j : jobs) {
                 const QVariantMap r = bridge->saveScene(projectID, path, support, j.sceneID, j.metadataPath, j.contentPath,
@@ -2028,9 +2030,15 @@ void EditorShell::applyRangeResult(const QVariantMap& result)
     const RangeDelta delta = RangeDelta::fromVariant(result.value(QStringLiteral("delta")).toMap());
     // The document edits are the core's, not the writer's: `loading_` (held by `lockForWork`) keeps them from being
     // reported or dirtied.
-    if (sceneDoc_.applyRangeDelta(delta) < 0) {
+    const int lo = sceneDoc_.applyRangeDelta(delta);
+    if (lo < 0) {
         return;
     }
+    int hi = lo;   // the run's last scene, as it now stands
+    for (const RangeDelta::Scene& s : delta.scenes) {
+        hi = std::max(hi, sceneDoc_.sceneIndexForScene(s.sceneID));
+    }
+    rehighlightAfterEdit(lo, hi);
     for (const QString& id : delta.removedSceneIDs) {
         dirtyScenes_.remove(id);
         historyText_.remove(id);
@@ -2060,6 +2068,30 @@ void EditorShell::onCreateSceneRequested()
     // it (the scene keeps its text, title and sidecar) and the caret goes into the new scene; elsewhere the scene splits
     // and the caret starts the new one. Apple: `handleCreateScene`.
     insertBreak(/*newChapter=*/false, tr("Splitting the scene…"));
+}
+
+void EditorShell::rehighlightAfterEdit(int lo, int hi)
+{
+    // ✅ [SP-191] rig pass: the presenter draws each changed line INSIDE the document edit's `insertText` — the run's splice
+    // and each heading `reflowBoundaryAt` renumbers — before the scene offsets after it have shifted. Judged against stale
+    // positions, a heading was drawn as body text, and scene text as a heading. Once the edit has landed and every offset
+    // is current: the run again, from its leading boundary through the follower's, then every chapter boundary after it
+    // (a few lines per chapter).
+    if (presenter_ == nullptr || presenter_->document() == nullptr) {
+        return;
+    }
+    const QList<SceneSegment>& segs = sceneDoc_.segments();
+    const auto boundaryStart = [&](int i) { return i == 0 ? 0 : segs.at(i - 1).bodyStart + segs.at(i - 1).bodyLength; };
+    if (lo >= 0 && hi >= lo && hi < segs.size()) {
+        presenter_->rehighlightRange(boundaryStart(lo),
+                                     hi + 1 < segs.size() ? segs.at(hi + 1).bodyStart : segs.at(hi).bodyStart + segs.at(hi).bodyLength);
+    }
+    for (int i = std::max(hi + 1, 0); i < segs.size(); ++i) {
+        if (i > 0 && segs.at(i).chapterID == segs.at(i - 1).chapterID) {
+            continue;
+        }
+        presenter_->rehighlightRange(boundaryStart(i), segs.at(i).bodyStart);
+    }
 }
 
 EditorShell::StructuralAnchor EditorShell::structuralAnchor(int pos) const

@@ -801,6 +801,9 @@ private:
     // the heading with the new scene). `beforeLineMarker`: it stepped over a heading or list prefix. Apple:
     // `structuralAnchorAndLine`.
     struct StructuralAnchor { int pos = 0; bool beforeLineMarker = false; };
+    // Draw a structural edit's run [lo, hi] (hi < lo: none) and every chapter boundary after it again, once the scene
+    // offsets are current.
+    void rehighlightAfterEdit(int lo, int hi);
     StructuralAnchor structuralAnchor(int pos) const;
     // ⌃↩ / ⌃⇧↩: a paste of a break at the caret (Q1); `newChapter` puts its second entry in another chapter.
     void insertBreak(bool newChapter, const QString& label);

@@ -92,6 +92,10 @@ public:
 
     int analyzerCalls() const { return analyzerCalls_; }
 
+    // Every line of every Markdown block touching [from, to], drawn again. ✅ [SP-191]: public for the shell, which redraws
+    // chapter boundaries once a structural edit's offsets are current.
+    void rehighlightRange(int from, int to);
+
 protected:
     void highlightBlock(const QString& text) override;
 
@@ -101,7 +105,6 @@ private:
     int sceneOf(const QTextBlock& b) const;
     QVector<MarkdownRange> revealSpans(int selStart, int selEnd) const;
     bool lineRevealed(int blockNumber) const { return revealedLines_.contains(blockNumber); }
-    void rehighlightRange(int from, int to);   // every line of every Markdown block touching [from, to]
     void onContentsChange(int from, int removed, int added);
 
     QTextCharFormat hiddenFormat() const;
