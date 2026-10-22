@@ -200,10 +200,9 @@ int main(int argc, char* argv[])
         const QString chMetaPath = doc.segments().at(first).chapterMetadataPath;
         check(!chMetaPath.isEmpty(), "B: chapter carries its metadata path");
         const int s0StartBefore = doc.bodyStartForScene(s0);
-        // The heading currently shown for chapter 1 (its title, or "Chapter" if empty).
-        const QString oldHeading = doc.segments().at(first).chapterTitle.isEmpty()
-                                       ? QStringLiteral("Chapter")
-                                       : doc.segments().at(first).chapterTitle;
+        // The heading currently shown for chapter 1 (its title, or the derived "Chapter 1" — [SP-191] Q10: a new
+        // project's first chapter is stored untitled).
+        const QString oldHeading = doc.chapterHeadingText(first);
 
         const QVariantMap r =
             bridge.renameChapter(projectPath, chMetaPath, QStringLiteral("Beginnings"));
@@ -256,11 +255,8 @@ int main(int argc, char* argv[])
         checkMapWellFormed(doc, "C/post");
     }
 
-    // NOTE: renumber-on-delete (a stored "Chapter N" chapter renumbering when an earlier
-    // chapter is deleted) is NOT covered here — ScriviCore stamps "Chapter N" as a stored
-    // title at creation and does not renumber on delete, so it needs its own mechanism.
-    // Tracked as a follow-up Issue (I-0063). The derived-ordinal path above (empty title
-    // → "Chapter N" from order) is what SP-066 delivers.
+    // ✅ [SP-191] Q10: every chapter number is the derived path above — the core never stores "Chapter N", and reads a
+    // stored one as untitled — so a delete or insert renumbers every untitled chapter with nothing to rewrite.
 
     if (failures == 0) {
         std::fprintf(stderr, "OK: rename-scene + rename-chapter persisted; live label + "

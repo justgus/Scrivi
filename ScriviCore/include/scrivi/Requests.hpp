@@ -24,7 +24,7 @@ struct CreateProjectRequest {
     Slug         slug;
     AuthorshipRef author;
 
-    std::string initialChapterTitle = "Chapter 1";
+    std::string initialChapterTitle;   // [SP-191] Q10: "" = untitled ("Chapter 1" is derived, never stored)
     std::string initialChapterSlug  = "chapter-001";
     std::string initialSceneTitle   = "Opening Scene";
     std::string initialSceneSlug    = "001-opening-scene";

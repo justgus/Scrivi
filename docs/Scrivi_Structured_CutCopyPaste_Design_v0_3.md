@@ -75,6 +75,17 @@ froze 10–15 s), [I-0311] (a chapter-opening paste scrambles the reading order)
 - **The clipboard and the copy buffers hold Ranges, as history does** (Q4a). An old-style object found there (a
   `scrivi.fragment.v1`) is treated as EMPTY and silently dropped — no compatibility layer for them (Scrivi is unreleased).
   ⚠️ History is NOT affected: an old `structuredPaste` / `structuredCut` node converts to a Range and undoes ([SP-187] Q2).
+- **Chapter numbers are DERIVED, never stored** (Q10, user, after the live passes): an untitled chapter stores no title, and
+  every app shows "Chapter N" from its position, so a chapter created or removed renumbers every untitled chapter with nothing
+  to rewrite. The core never writes "Chapter N"; a stored title that is exactly `Chapter <number>` (stamped before this
+  ruling) reads as untitled. ⛔ Linux's rename of every later chapter after a structural edit (I-0063) and the Mac's
+  in-memory renumbering are gone — over the share Linux's took ~12 s per chapter split.
+- **A caret that rests after a hidden line-start marker anchors BEFORE it** (live pass): a heading's `## ` (and a list marker,
+  an opening `**`) is a caret stop whose home is after it, so a caret at a heading scene's start sits 3 bytes in. Every
+  structural edit steps back over such stops first (Apple `structuralAnchorAndLine`, Linux `EditorShell::structuralAnchor`),
+  so a split there takes the heading with its scene and a chapter split there is Q8's relabel. A multi-entry paste anchored
+  before a heading's or list item's marker ends its last part with a line break, so the heading stays a heading; the break
+  is part of what the paste inserts, and its undo removes it.
 - **While a structural edit is in flight** (Q5): an immediate cue in the key press's own event-loop turn, then read-only;
   repeats, typing and undo are ignored, not queued; the progress row after 400 ms — *"as long as the initial operation response
   is nearly instantaneous"*.

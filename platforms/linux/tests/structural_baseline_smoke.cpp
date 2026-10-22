@@ -177,8 +177,8 @@ struct Rig {
         QTest::sendKeyEvent(QTest::Press, editor, k, text, Qt::ControlModifier | extra);
         QTest::sendKeyEvent(QTest::Release, editor, k, text, Qt::ControlModifier | extra);
     }
-    // Runs `act`, lets any background work and reload land, then prints the baseline.
-    void measured(const char* what, const std::function<void()>& act, bool structural = true)
+    // Runs `act`, lets any background work and reload land, then prints the baseline. Returns the GUI-thread core calls.
+    qint64 measured(const char* what, const std::function<void()>& act, bool structural = true)
     {
         const qint64 calls = ScriviBridge::guiThreadCallCount();
         const int loads = shell->loadCount();
@@ -200,6 +200,7 @@ struct Rig {
         check(shell->loadCount() == loads, QStringLiteral("%1: no project load").arg(what));
         check(shell->sceneDocument().builds() == builds, QStringLiteral("%1: no document build").arg(what));
         listMatchesDisk(QString::fromUtf8(what));
+        return ScriviBridge::guiThreadCallCount() - calls;
     }
 };
 
@@ -222,7 +223,7 @@ int main(int argc, char* argv[])
         std::printf("FAIL: no project\n");
         return 1;
     }
-    // One chapter: "Alpha one. Alpha two." · "Beta body." · "Gamma body."
+    // One chapter: "Alpha one. Alpha two." · "Beta body." · "Gamma body." · "## Delta\nDelta body."
     const QVariantMap first = r.bridge.openProject(r.projectDir, r.appSupport).value(QStringLiteral("scenes")).toList().at(0).toMap();
     auto save = [&](const QVariantMap& s, const QString& text) {
         r.bridge.saveScene(r.projectID, r.projectDir, r.appSupport, s.value(QStringLiteral("sceneID")).toString(),
@@ -231,7 +232,7 @@ int main(int argc, char* argv[])
     };
     save(first, QStringLiteral("Alpha one. Alpha two."));
     QVariantMap prev = first;
-    for (const QString& body : {QStringLiteral("Beta body."), QStringLiteral("Gamma body.")}) {
+    for (const QString& body : {QStringLiteral("Beta body."), QStringLiteral("Gamma body."), QStringLiteral("## Delta\nDelta body.")}) {
         const QVariantMap made = r.bridge.createScene(r.projectDir, r.appSupport, r.projectID,
                                                       first.value(QStringLiteral("chapterID")).toString(),
                                                       prev.value(QStringLiteral("sceneID")).toString());
@@ -244,12 +245,16 @@ int main(int argc, char* argv[])
     }
     armConfirmer(r.shell.get());
 
-    r.measured("split scene", [&] { r.caretAt(QStringLiteral("Alpha one. ")); r.shell->splitScene(); });
+    // ✅ [I-0315]: the caret moving into the new scene writes NOTHING for the scene it left (the notes were not changed) —
+    // what is left is the new scene's notes read and one more. Before, the Inspector rewrote the outline and the to-do too.
+    check(r.measured("split scene", [&] { r.caretAt(QStringLiteral("Alpha one. ")); r.shell->splitScene(); }) <= 2,
+          QStringLiteral("split scene: at most 2 GUI-thread core calls ([I-0315]: no notes written on the scene switch)"));
     check(r.texts() == QStringList({QStringLiteral("Alpha one. "), QStringLiteral("Alpha two."), QStringLiteral("Beta body."),
-                                    QStringLiteral("Gamma body.")}), QStringLiteral("split: the scenes on disk"));
+                                    QStringLiteral("Gamma body."), QStringLiteral("## Delta\nDelta body.")}),
+          QStringLiteral("split: the scenes on disk"));
 
     r.measured("merge scene", [&] { r.caretAt(QStringLiteral("Alpha two."), true); r.shell->mergeScene(); });
-    check(r.texts().size() == 3, QStringLiteral("merge: three scenes on disk"));
+    check(r.texts().size() == 4, QStringLiteral("merge: four scenes on disk"));
 
     r.measured("split chapter", [&] { r.caretAt(QStringLiteral("Beta "), false); r.shell->splitChapter(); });
     check(r.chapterCount() == 2, QStringLiteral("split chapter: two chapters on disk"));
@@ -273,7 +278,7 @@ int main(int argc, char* argv[])
     check(r.texts() == beforePaste, QStringLiteral("undo of the paste: the manuscript as it was before the paste"));
 
     // ── [SP-191] Q3: each structural edit undoes and redoes in ONE step — the list the disk after each ─────────────────
-    // (Starts from: chapter 1 [Alpha one. Alpha two. · Beta · Gamma body.] — whatever the above left — one chapter.)
+    // (Starts from: chapter 1 [Alpha one. Alpha two. · Beta · Gamma body. · ## Delta] — whatever the above left — one chapter.)
     const auto roundTrip = [&](const QString& what, const std::function<void()>& op) {
         const QStringList before = r.state();
         check(r.landing(op), QStringLiteral("%1 landed").arg(what));
@@ -335,6 +340,52 @@ int main(int argc, char* argv[])
               QStringLiteral("Q5: ONE new scene — the repeat and the undo were ignored"));
         check(r.landing([&] { r.control(Qt::Key_Z); }), QStringLiteral("(undone)"));
         r.listMatchesDisk(QStringLiteral("after Q5"));
+    }
+
+    // ── [SP-191] live pass: a scene that STARTS WITH A HEADING. The caret rests after the hidden `## `, so the edit anchors
+    //    before it: the heading goes with its scene, and a paste's last part keeps its own line ───────────────────────────
+    {
+        const QStringList before = r.state();
+        const int delta = int(r.shell->sceneDocument().segments().size()) - 1;
+        const QString deltaID = r.shell->sceneDocument().segments().at(delta).sceneID;
+        const QString deltaText = QStringLiteral("## Delta\nDelta body.");
+        const auto caretAfterPrefix = [&] {
+            QTextCursor c = r.editor->textCursor();
+            c.setPosition(r.shell->sceneDocument().segments().at(r.shell->sceneDocument().sceneIndexForScene(deltaID)).bodyStart + 3);
+            r.editor->setTextCursor(c);
+            QApplication::processEvents();
+        };
+        check(r.landing([&] { caretAfterPrefix(); r.shell->splitScene(); }), QStringLiteral("heading: the split landed"));
+        {
+            const QList<SceneSegment>& segs = r.shell->sceneDocument().segments();
+            check(segs.size() == before.size() + 1 && segs.at(delta).text.isEmpty() && segs.at(delta + 1).sceneID == deltaID &&
+                      segs.at(delta + 1).text == deltaText,
+                  QStringLiteral("heading: ⌃↩ puts a new scene BEFORE it — the `## ` stays with its heading"));
+        }
+        check(r.landing([&] { r.control(Qt::Key_Z); }), QStringLiteral("(undone)"));
+        check(r.landing([&] { caretAfterPrefix(); r.shell->splitChapter(); }), QStringLiteral("heading: the chapter split landed"));
+        {
+            const QList<SceneSegment>& segs = r.shell->sceneDocument().segments();
+            check(r.chapterCount() == 2 && segs.at(delta).sceneID == deltaID && segs.at(delta).text == deltaText &&
+                      segs.at(delta - 1).text == QStringLiteral("Gamma body."),
+                  QStringLiteral("heading: ⌃⇧↩ moves the whole scene, `## ` included, into the new chapter"));
+        }
+        check(r.landing([&] { r.control(Qt::Key_Z); }), QStringLiteral("(undone)"));
+        r.select(QStringLiteral("Alpha two."), QStringLiteral("Beta"));
+        r.control(Qt::Key_C);
+        QApplication::processEvents();
+        check(r.landing([&] { caretAfterPrefix(); r.control(Qt::Key_V); }), QStringLiteral("heading: the paste landed"));
+        {
+            const QList<SceneSegment>& segs = r.shell->sceneDocument().segments();
+            const int at = r.shell->sceneDocument().sceneIndexForScene(deltaID);
+            check(at == delta + 1 && segs.at(delta).text == QStringLiteral("Alpha two.") &&
+                      segs.at(at).text == QStringLiteral("Beta\n") + deltaText,
+                  QStringLiteral("heading: the pasted part keeps its own line — the heading stays a heading (got \"%1\")")
+                      .arg(at >= 0 ? segs.at(at).text : QString()));
+        }
+        check(r.landing([&] { r.control(Qt::Key_Z); }), QStringLiteral("(undone)"));
+        check(r.state() == before, QStringLiteral("heading: each undone exactly"));
+        r.listMatchesDisk(QStringLiteral("after the heading cases"));
     }
 
     r.shell->flushHistory();

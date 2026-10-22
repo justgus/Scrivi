@@ -1343,12 +1343,9 @@ struct ManuscriptTextView: NSViewRepresentable {
             }
             if let history = landing.history { parent.session.historyCapture?.adopt(history) }
             let delta = landing.result.delta
-            if let run = loader.apply(delta) {
-                if !delta.createdChapters.isEmpty || !delta.removedChapterIDs.isEmpty {
-                    loader.renumberChapterTitlesFrom(segmentIndex: run.new.lowerBound)
-                }
-                renderRun(tv, old: run.old, new: run.new)
-            }
+            // ✅ [SP-191] Q10: no renumbering — an untitled chapter's "Chapter N" is derived from its position wherever it
+            // shows (headings, navigator, timeline), so a chapter inserted or removed renumbers the rest by itself.
+            if let run = loader.apply(delta) { renderRun(tv, old: run.old, new: run.new) }
             ensureBoundaries(tv)
             if let target = caret(landing.result),
                let i = loader.segments.firstIndex(where: { $0.sceneID == target.sceneID }),
@@ -1371,14 +1368,34 @@ struct ManuscriptTextView: NSViewRepresentable {
         }
 
         /// The caret's scene, its index, and the caret's scene-local UTF-8 byte offset — where a range call is anchored.
+        /// ✅ [SP-191] (live pass, user: *"the preceding ## is left behind in the previous chapter"*): the anchor is BEFORE
+        /// any hidden markers the caret rests after — a heading's `## `, a list marker, an opening `**` (their caret home is
+        /// after them) — so a split, a chapter split, a merge or a paste at the visible start of a line takes the line whole.
         private func caretInScene() -> (segIdx: Int, seg: SceneSegment, byte: Int)? {
             guard let tv = textView else { return nil }
             ensureBoundaries(tv)
-            let loc = tv.selectedRange().location
+            let loc = structuralAnchor(tv.selectedRange().location)
             guard let i = segmentIndex(for: loc), parent.loader.segments.indices.contains(i),
                   sceneBoundaries.indices.contains(i) else { return nil }
             let seg = parent.loader.segments[i]
             return (i, seg, byteOffset(charOffset: loc - sceneBoundaries[i].location, in: seg.text))
+        }
+
+        /// Steps back from `loc` over every hidden marker run that ends exactly there and whose caret home is after it.
+        func structuralAnchor(_ loc: Int) -> Int { structuralAnchorAndLine(loc).loc }
+
+        /// The same, and whether it stepped back over a LINE-START marker (a heading's `## `, a list marker) — a paste
+        /// anchored there must not join its last part onto that line, or the heading or item stops being one.
+        func structuralAnchorAndLine(_ loc: Int) -> (loc: Int, beforeLineMarker: Bool) {
+            guard let storage = textView?.textStorage else { return (loc, false) }
+            let stops = presenter.stopTest(in: storage)
+            var at = loc
+            var lineMarker = false
+            while at > 0, let stop = stops(at - 1), stop.homeAfter, NSMaxRange(stop.range) == at, stop.range.location < at {
+                if stop.kind == .prefix || stop.kind == .listPrefix { lineMarker = true }
+                at = stop.range.location
+            }
+            return (at, lineMarker)
         }
 
         /// A Range entry naming a scene's place without its text — a break's sides, a relabel's run.
@@ -2427,9 +2444,17 @@ struct ManuscriptTextView: NSViewRepresentable {
                 tv.insertText("", replacementRange: sel)
             }
             guard let at = caretInScene() else { return false }
+            var range = range
+            // ✅ [SP-191] live pass: anchored before a heading's (or list item's) marker, the last part keeps its own line —
+            // joined onto `## Heading` it would turn the heading into body text. The line break is part of what the paste
+            // inserts, so its undo takes it back too.
+            if structuralAnchorAndLine(tv.selectedRange().location).beforeLineMarker, range.scenes.count > 1,
+               let last = range.scenes.last, !last.text.isEmpty, !last.text.hasSuffix("\n") {
+                range.scenes[range.scenes.count - 1].text += "\n"
+                range = range.normalized()
+            }
             // ✅ [T-0591]: pasting INSIDE a bold span — the first piece closes it, the last re-opens it for the text after the
             // split. ✅ [SP-163] live pass (user): the pasted text KEEPS ITS OWN formatting (only what was bold is).
-            var range = range
             if let storage = tv.textStorage {
                 let style = presenter.styleAtCaret(in: storage, tv.selectedRange().location)
                 let texts = ManuscriptPresenter.balancePastePieces(range.scenes.map(\.text), caretStyle: style)

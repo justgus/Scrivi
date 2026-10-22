@@ -379,17 +379,15 @@ Result<RangeOperationResult> RangeOperations::paste(const Range& range, const Sc
     bool         runIsNew        = false;
     std::string  prevSceneKey    = leading.empty() ? std::string() : sceneKeyOf(leading.back().metadataPath);
     std::string  sceneCeiling    = trailing.empty() ? std::string() : sceneKeyOf(trailing.front().metadataPath);
-    std::size_t  chapterNumber   = caretChapterPos + 1;   // 1-based position of the running chapter
 
     // Entry `i` opens a chapter: it is created right after the running one.
     auto openChapter = [&](std::size_t i) -> Result<void> {
         const RangeEntry& e = *entries[i];
         auto key = freeChapterKey(fs, root_, runChapterKey, nextChapterKey);
         if (!key.ok()) { return Result<void>::failure(key.error()); }
-        ++chapterNumber;
         NewChapter ch;
         ch.chapterID    = pickChapterID(e.chapterID);
-        ch.title        = e.chapterTitle.empty() ? "Chapter " + std::to_string(chapterNumber) : e.chapterTitle;
+        ch.title        = e.chapterTitle;   // [SP-191] Q10: "" = untitled ("Chapter N" is derived, never stored)
         // ✅ Q3b: the chapter keeps its own ID only when it was removed — then its own sidecar comes back with it.
         if (ch.chapterID.value == e.chapterID.value && !e.chapterMeta.empty()) {
             auto meta = schemas::parseChapterMeta(e.chapterMeta);
@@ -890,7 +888,7 @@ Result<RangeOperationResult> RangeOperations::relabel(const Range& range, const 
             if (!parsed.ok()) { return R::failure(parsed.error()); }
             meta = std::move(parsed.value());
         } else {
-            meta.title                = first.chapterTitle.empty() ? "Chapter " + std::to_string(pos + 2) : first.chapterTitle;
+            meta.title                = first.chapterTitle;   // [SP-191] Q10: "" = untitled
             meta.displayLabel         = meta.title;
             meta.status               = "draft";
             meta.createdAt            = now;

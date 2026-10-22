@@ -447,7 +447,12 @@ private:
         QVariantMap imported;                     // the importedTimelines part, as listImportedTimelines returns it
     };
     static TimelineData fetchTimelineData(ScriviBridge* bridge, const QString& projectRootPath);
+    // `{storyTimes:[…]}` (either endpoint's shape) → sceneID → explicit story time.
+    static QHash<QString, TimelineData::StoryTime> storyTimesOf(const QVariantMap& part);
     void applyTimelineData(const TimelineData& data);
+    // ✅ [SP-191]: what the panel was last built from — a structural edit re-reads only the story times and rebuilds from
+    // this with them replaced (the events, structure and imported rows do not change with the manuscript).
+    TimelineData timelineData_;
 
     struct LoadPayload {
         bool                       ok = false;
@@ -558,17 +563,6 @@ private:
     void renameChapterByID(const QString& chapterID);
     // Editor focus back to the writing surface after a modal rename dialog closes.
     void refocusEditor();
-
-    // --- EP-023 I-0063 renumber created chapters (T-0262) -----------------
-    // After any chapter structural change (delete / insert / split / reorder), walk the
-    // chapters in manuscript order and, for each whose STORED title matches the auto
-    // pattern `^Chapter \d+$`, renameChapter it (via the bridge, on its chapterMetadataPath)
-    // to its correct 1-based ordinal — so a created chapter's stored "Chapter N" tracks
-    // its position. Custom titles (anything not matching the pattern) are left alone;
-    // untitled chapters already renumber for free via chapterHeadingText. Runs under the
-    // loading_ guard. Returns true if any chapter was renamed (the caller should
-    // re-derive labels + rebuild the navigator afterward).
-    bool renumberCreatedChapters();
     // Re-fetch the backend-derived scene + chapter titles from scrivi_open_project and
     // apply them to the SceneDocument (scene labels via setSceneTitle; each chapter's
     // title via setChapterTitle, which also rewrites the live heading in place). Used
@@ -802,6 +796,12 @@ private:
     // The delta of a range call's result → the scene list and the document (`SceneDocument::applyRangeDelta`); the
     // written scenes clean, history's view of their text, the navigator.
     void applyRangeResult(const QVariantMap& result);
+    // Where a structural edit anchors for a caret at `pos`: stepped back over every hidden marker run that ends exactly there
+    // and whose caret home is after it — so a caret resting after a heading's `## ` anchors BEFORE it (a split there takes
+    // the heading with the new scene). `beforeLineMarker`: it stepped over a heading or list prefix. Apple:
+    // `structuralAnchorAndLine`.
+    struct StructuralAnchor { int pos = 0; bool beforeLineMarker = false; };
+    StructuralAnchor structuralAnchor(int pos) const;
     // ⌃↩ / ⌃⇧↩: a paste of a break at the caret (Q1); `newChapter` puts its second entry in another chapter.
     void insertBreak(bool newChapter, const QString& label);
     // A merge: a cut of `rangeJson` (the zero-length range across a break), recorded as a `rangeCut` node.

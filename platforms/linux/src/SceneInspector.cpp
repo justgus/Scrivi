@@ -339,6 +339,13 @@ void SceneInspector::setScene(const QString& sceneID)
     loadSceneNotes();
 }
 
+void SceneInspector::forgetScene(const QString& sceneID)
+{
+    if (!sceneID.isEmpty() && sceneID == sceneID_) {
+        sceneID_.clear();
+    }
+}
+
 // I-0193 (SP-124): the three core reads below, GATHERED ON A WORKER THREAD.
 //
 // ⚠️ ALL THREE can touch a world's volume, so all three must move -- not just the
@@ -821,6 +828,8 @@ void SceneInspector::loadSceneNotes()
         if (tagsEdit_)     { tagsEdit_->clear(); }
         if (outlineEdit_)  { outlineEdit_->clear(); }
         if (todoEdit_)     { todoEdit_->clear(); }
+        loadedOutline_.clear();
+        loadedTodo_.clear();
         for (QLabel* l : {propTitle_, propWords_, propChars_, propCreated_, propModified_}) {
             if (l) { l->clear(); }
         }
@@ -866,6 +875,7 @@ void SceneInspector::loadSceneNotes()
 
     if (outlineEdit_) {
         outlineEdit_->setPlainText(notes.value(QStringLiteral("outline")).toString());
+        loadedOutline_ = outlineEdit_->toPlainText();
     }
 
     if (todoEdit_) {
@@ -878,6 +888,7 @@ void SceneInspector::loadSceneNotes()
                           : text);
         }
         todoEdit_->setPlainText(lines.join(QStringLiteral("\n")));
+        loadedTodo_ = todoEdit_->toPlainText();
     }
     if (writingStatus_) { writingStatus_->clear(); }
 
@@ -945,7 +956,14 @@ void SceneInspector::onOutlineEdited()
     if (loadingNotes_ || bridge_ == nullptr || sceneID_.isEmpty() || outlineEdit_ == nullptr) {
         return;
     }
-    bridge_->setSceneOutline(projectRootPath_, sceneID_, outlineEdit_->toPlainText());
+    const QString text = outlineEdit_->toPlainText();
+    if (text == loadedOutline_) {
+        return;   // ✅ [I-0315]: unchanged — nothing to write
+    }
+    bridge_->setSceneOutline(projectRootPath_, sceneID_, text);
+    if (!bridge_->lastCallFailed()) {
+        loadedOutline_ = text;
+    }
 }
 
 void SceneInspector::onTodoEdited()
@@ -956,8 +974,12 @@ void SceneInspector::onTodoEdited()
     // One item per line; a leading "[x] " (or "[X] ") marks it done. ⚠️ A blank
     // line is DROPPED rather than stored as an empty todo — otherwise every
     // stray Return would accumulate an invisible item.
+    const QString text = todoEdit_->toPlainText();
+    if (text == loadedTodo_) {
+        return;   // ✅ [I-0315]: unchanged — nothing to write
+    }
     QJsonArray arr;
-    const QStringList lines = todoEdit_->toPlainText().split(QLatin1Char('\n'));
+    const QStringList lines = text.split(QLatin1Char('\n'));
     for (const QString& raw : lines) {
         QString line = raw.trimmed();
         if (line.isEmpty()) { continue; }
@@ -974,6 +996,9 @@ void SceneInspector::onTodoEdited()
     }
     bridge_->setSceneTodo(projectRootPath_, sceneID_,
                           QString::fromUtf8(QJsonDocument(arr).toJson(QJsonDocument::Compact)));
+    if (!bridge_->lastCallFailed()) {
+        loadedTodo_ = text;
+    }
 }
 
 void SceneInspector::onItemActivated(QTreeWidgetItem* item, int column)

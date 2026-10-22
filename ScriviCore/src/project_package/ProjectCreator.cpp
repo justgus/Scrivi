@@ -155,7 +155,7 @@ Result<CreateProjectResult> ProjectCreator::create(const CreateProjectRequest& r
     ch.chapterID               = chapterID;
     ch.title                   = request.initialChapterTitle;
     ch.slug                    = chapterSlug;
-    ch.displayLabel            = "Chapter 1";
+    ch.displayLabel            = "";   // [SP-191] Q10: derived, never stored
     ch.status                  = "draft";
     ch.createdAt               = now;
     ch.createdByIdentityID     = request.author.identityID.value;

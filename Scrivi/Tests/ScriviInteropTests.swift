@@ -7289,6 +7289,41 @@ struct UndoAfterStructuralOpTests {
         try h.listMatchesDisk("the split at a scene's start")
     }
 
+    /// ✅ [SP-191] live pass (user, 2026-10-21): at the visible start of a HEADING the caret sits after the hidden `## `, and
+    /// ⇧⌘-Return left the `##` behind; a paste there became the heading. The anchor is now the line's real start.
+    @Test("at a heading scene's visible start, split, chapter split, merge and paste take the heading whole")
+    func structuralEditsAtAHeading() async throws {
+        let h = try await harness(["Alpha.", "## Heading\nBeta.", "Gamma."])
+        let heading = h.loader.segments[1].sceneID
+        func atHeading() { h.caret(scene: 1, at: 3) }               // right after the hidden "## "
+        atHeading(); h.c.handleCreateChapter()                      // Q8: a relabel — nothing left behind
+        try await h.landed()
+        #expect(h.loader.segments.map(\.text) == ["Alpha.", "## Heading\nBeta.", "Gamma."])
+        #expect(h.loader.segments[1].chapterID != h.loader.segments[0].chapterID, "the heading's scene starts the chapter")
+        try h.listMatchesDisk("chapter split at a heading")
+        h.c.performUndo(); try await h.landed()
+
+        atHeading(); h.c.handleCreateScene()                        // Q7: the new scene before it
+        try await h.waitForSceneCount(4)
+        #expect(h.loader.segments.map(\.text) == ["Alpha.", "", "## Heading\nBeta.", "Gamma."])
+        #expect(h.loader.segments[2].sceneID == heading)
+        h.c.performUndo(); try await h.waitForSceneCount(3)
+
+        atHeading(); h.c.handleMergeScene()                         // the merge fires at the visible start too
+        try await h.waitForSceneCount(2)
+        #expect(h.loader.segments[0].text == "Alpha.## Heading\nBeta.")
+        h.c.performUndo(); try await h.waitForSceneCount(3)
+
+        atHeading()
+        #expect(h.c.pasteStructuredRange(UndoAfterStructuralOpTests.Harness.range(["one", "two"])))
+        try await h.landed()
+        #expect(h.loader.segments.map(\.text) == ["Alpha.", "one", "two\n## Heading\nBeta.", "Gamma."],
+                "pasted before the heading; the last part keeps its own line, so the heading stays a heading")
+        try h.listMatchesDisk("paste at a heading")
+        h.c.performUndo(); try await h.waitForSceneCount(3)
+        #expect(h.loader.segments.map(\.text) == ["Alpha.", "## Heading\nBeta.", "Gamma."], "and its undo is exact")
+    }
+
     @Test("⌘-Return mid-scene: the scene splits and the caret starts the new scene")
     func splitMidSceneCaret() async throws {
         let h = try await harness(["Alpha one. Alpha two."])

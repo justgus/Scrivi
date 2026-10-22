@@ -11,8 +11,8 @@
 //   3. I-0064 split orchestration (bridge-level replay of EditorShell's steps, on the
 //      EP-027 create-in-place model post-I-0074): create_chapter(K, afterChapterID=C) →
 //      reorder_scene(followers → K) → save head/tail, for BOTH the end-of-scene and
-//      mid-scene cases; then I-0063 renumber (rename created "Chapter N" chapters to their
-//      new ordinal). (No create-then-reorderChapter: that reslugged K's folder mid-split
+//      mid-scene cases; the created chapter is untitled ([SP-191] Q10: "Chapter N" is
+//      derived, never stored). (No create-then-reorderChapter: that reslugged K's folder mid-split
 //      and stranded the captured scene paths — the I-0074 defect class.)
 //
 //   argv[1] = project dir to create (e.g. <tmp>/scene-reorder.scrivi)
@@ -21,7 +21,6 @@
 // Exit 0 on success; non-zero with a FAIL line on any mismatch.
 
 #include <QApplication>
-#include <QRegularExpression>
 #include <QString>
 #include <QStringList>
 #include <QVariantList>
@@ -340,50 +339,11 @@ int main(int argc, char* argv[])
             }
         }
 
-        // --- I-0063 renumber: any created ("Chapter N") chapter whose ordinal shifted
-        //     is renamed to its new position. K sits at ordinal 2; ch2 is now ordinal 3.
-        //     Walk chapters, rename auto-pattern titles to their ordinal, reopen, assert.
-        static const QRegularExpression autoPattern(QStringLiteral("^Chapter \\d+$"));
-        const QVariantList scenes2 = re.value(QStringLiteral("scenes")).toList();
-        int ordinal = 0;
-        QString lastCh;
-        for (const QVariant& v : scenes2) {
+        // ✅ [SP-191] Q10: "Chapter N" is derived from position, never stored — the created chapter K is untitled.
+        for (const QVariant& v : re.value(QStringLiteral("scenes")).toList()) {
             const QVariantMap m = v.toMap();
-            const QString chID = m.value(QStringLiteral("chapterID")).toString();
-            if (chID == lastCh) {
-                continue;
-            }
-            lastCh = chID;
-            ++ordinal;
-            const QString stored = m.value(QStringLiteral("chapterTitle")).toString();
-            const QString metaPath =
-                m.value(QStringLiteral("chapterMetadataPath")).toString();
-            if (autoPattern.match(stored).hasMatch()
-                && stored != QStringLiteral("Chapter %1").arg(ordinal)
-                && !metaPath.isEmpty()) {
-                bridge.renameChapter(projectPath, metaPath,
-                                     QStringLiteral("Chapter %1").arg(ordinal));
-            }
-        }
-        const QVariantMap re2 = bridge.openProject(projectPath, appSupport);
-        // Every chapter's stored title (if auto-pattern) equals its ordinal.
-        int ord2 = 0;
-        QString last2;
-        for (const QVariant& v : re2.value(QStringLiteral("scenes")).toList()) {
-            const QVariantMap m = v.toMap();
-            const QString chID = m.value(QStringLiteral("chapterID")).toString();
-            if (chID == last2) {
-                continue;
-            }
-            last2 = chID;
-            ++ord2;
-            const QString stored = m.value(QStringLiteral("chapterTitle")).toString();
-            if (autoPattern.match(stored).hasMatch()) {
-                char msg[96];
-                std::snprintf(msg, sizeof(msg),
-                              "D/I-0063: chapter %d stored title is 'Chapter %d'",
-                              ord2, ord2);
-                check(stored == QStringLiteral("Chapter %1").arg(ord2), msg);
+            if (m.value(QStringLiteral("chapterID")).toString() == kCh) {
+                check(m.value(QStringLiteral("chapterTitle")).toString().isEmpty(), "D/Q10: the created chapter is untitled");
             }
         }
     }

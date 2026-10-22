@@ -2,6 +2,8 @@
 #include "SchemaUtils.hpp"
 #include "util/PathUtils.hpp"
 
+#include <regex>
+
 namespace scrivi::schemas {
 
 std::string serializeChapterMeta(const ChapterMetaData& d) {
@@ -45,6 +47,12 @@ Result<ChapterMetaData> parseChapterMeta(std::string_view json) {
     data.title            = doc.getString("title");
     data.slug             = doc.getString("slug");
     data.displayLabel     = doc.getString("displayLabel");
+    // ✅ [SP-191] Q10 (user, 2026-10-21): "Chapter N" is DERIVED from position, never stored. A title that is exactly
+    // "Chapter <number>" was stamped by the core before that ruling (Scrivi is unreleased), so it reads as untitled — and
+    // the next write of this sidecar drops it.
+    static const std::regex kAutoTitle{R"(^Chapter [0-9]+$)"};
+    if (std::regex_match(data.title, kAutoTitle)) { data.title.clear(); }
+    if (std::regex_match(data.displayLabel, kAutoTitle)) { data.displayLabel.clear(); }
     data.status           = doc.getString("status");
     data.createdAt        = doc.getString("createdAt");
 

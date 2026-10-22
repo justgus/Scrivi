@@ -127,6 +127,10 @@ public:
     // current sceneID is a no-op, so scroll traffic does not re-hit the backend.
     void setScene(const QString& sceneID);
 
+    // ✅ [I-0315]: the scene the panel shows was REMOVED (a merge, an undo of a paste) — drop it WITHOUT flushing, so no
+    // note is written to a scene that is gone. The next setScene() loads its successor.
+    void forgetScene(const QString& sceneID);
+
     // Re-read the current scene's objects from disk. For callers that changed the
     // graph or the object set behind the panel's back.
     void reload();
@@ -274,6 +278,10 @@ private:
     // widgets from disk does not immediately look like a writer edit and
     // schedule a save.
     bool loadingNotes_ = false;
+    // ✅ [I-0315]: the outline and to-do as last loaded or written — a commit writes only when the field differs, so a
+    // scene switch writes nothing for notes nobody changed.
+    QString loadedOutline_;
+    QString loadedTodo_;
 
     ScriviBridge* bridge_ = nullptr;
     QString projectRootPath_;

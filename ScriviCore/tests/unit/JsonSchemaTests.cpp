@@ -176,6 +176,23 @@ TEST_CASE("ChapterMetaJson reads a legacy scene ref (metadataPath) as filename-o
     REQUIRE(result.value().scenes[0].metadataFilename == "003-scene.meta.json");
 }
 
+TEST_CASE("[SP-191] Q10: a stored \"Chapter <number>\" title reads as untitled; any other title is kept",
+          "[schemas][SP-191][Q10]") {
+    auto meta = [](const std::string& title) {
+        return R"({"schema":"scrivi.chapter.v1","chapterID":"ch-1","title":")" + title + R"(","displayLabel":")" + title +
+               R"(","status":"draft","scenes":[]})";
+    };
+    auto stamped = parseChapterMeta(meta("Chapter 7"));
+    REQUIRE(stamped.ok());
+    CHECK(stamped.value().title.empty());
+    CHECK(stamped.value().displayLabel.empty());
+    for (const std::string kept : {"Chapter of Secrets", "Chapter 7: The Door", "chapter 7", "The Chapter 7"}) {
+        auto custom = parseChapterMeta(meta(kept));
+        REQUIRE(custom.ok());
+        CHECK(custom.value().title == kept);
+    }
+}
+
 TEST_CASE("ChapterMetaJson rejects missing required field", "[schemas]") {
     auto result = parseChapterMeta(R"({"schema":"scrivi.chapter.v1","chapterID":"x"})");
     REQUIRE_FALSE(result.ok());

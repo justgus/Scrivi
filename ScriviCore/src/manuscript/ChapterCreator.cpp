@@ -127,16 +127,13 @@ Result<CreateChapterResult> ChapterCreator::create(const CreateChapterRequest& r
         schemas::serializeSceneMeta(sceneMeta));
     if (!writeSceneMetaR.ok()) { return Result<CreateChapterResult>::failure(writeSceneMetaR.error()); }
 
-    // 7. Write chapter.meta.json. The display ordinal is the new chapter's POSITION
-    //    (it appends last → existing count + 1), derived from order — not from a folder
-    //    number. (The durable "Chapter N" numbering is order-derived in the display layer;
-    //    this stored title is a starting label, kept here to preserve current behavior.)
-    const std::size_t newChapterOrdinal = existing.size() + 1;
+    // 7. Write chapter.meta.json. ✅ [SP-191] Q10 (user, 2026-10-21): an untitled chapter stores NO title — "Chapter N" is
+    //    derived from its position by every platform, so inserting or removing a chapter renumbers the rest for free.
     schemas::ChapterMetaData ch;
     ch.chapterID              = newChapterID;
-    ch.title                  = "Chapter " + std::to_string(newChapterOrdinal);
+    ch.title                  = "";
     ch.slug                   = chapterSlug;
-    ch.displayLabel           = "Chapter " + std::to_string(newChapterOrdinal);
+    ch.displayLabel           = "";
     ch.status                 = "draft";
     ch.createdAt              = now;
     ch.createdByIdentityID    = request.author.identityID.value;

@@ -1297,13 +1297,17 @@ Result<ExtractSearchableTextResult> ScriviCore::extractSearchableText(
     auto scenesR = resolver.resolve(request.projectRootPath);
     if (scenesR.ok()) {
         manuscript::SceneReader reader{services_};
+        std::string lastChapter;
+        std::size_t chapterOrdinal = 0;
         for (const auto& s : scenesR.value()) {
+            if (s.chapterID.value != lastChapter) { lastChapter = s.chapterID.value; ++chapterOrdinal; }
             SearchableItem item;
             item.uniqueIdentifier = "scene:" + s.sceneID.value;
             item.kind             = "scene";
             item.title            = s.title;
             item.displayName      = s.title;
-            item.containerTitle   = s.chapterTitle;
+            // ✅ [SP-191] Q10: an untitled chapter is "Chapter N" by its position — derived, never stored.
+            item.containerTitle   = s.chapterTitle.empty() ? "Chapter " + std::to_string(chapterOrdinal) : s.chapterTitle;
 
             auto mdR = reader.readContent(request.projectRootPath, s.contentPath);
             if (mdR.ok()) {

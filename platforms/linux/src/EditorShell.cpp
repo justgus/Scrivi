@@ -1130,16 +1130,6 @@ void EditorShell::deleteChapterByID(const QString& chapterID)
     sceneDoc_.removeChapter(chapterID);
     loading_ = false;
 
-    // I-0063 (T-0262): chapters created via scrivi_create_chapter carry a STORED
-    // "Chapter N" title, so deleting an earlier chapter leaves later created chapters
-    // with a stale ordinal. Rewrite each auto-pattern chapter's sidecar to its new
-    // position, then re-derive the live labels/headings so the navigator + document
-    // match disk. Untitled chapters already renumbered via chapterHeadingText on the
-    // rebuild below; custom titles are untouched.
-    if (renumberCreatedChapters()) {
-        applyDerivedLabels();
-    }
-
     // Fallback active scene: the segment that now occupies the deleted chapter's first
     // slot (the following chapter's first scene), clamped into range.
     afterStructuralRemoval(activeSceneID, firstMemberIdx);
@@ -1294,15 +1284,6 @@ void EditorShell::onChapterDropped(const QString& draggedChapterID,
         return;
     }
 
-    // I-0063: chapters created via scrivi_create_chapter carry a STORED "Chapter N"
-    // title, so moving a chapter shuffles later created chapters' ordinals. Rewrite
-    // the stale sidecars, then re-derive the live labels so navigator + document
-    // match disk. (Untitled chapters already renumbered via reflowAllChapterHeadings
-    // inside moveChapter; custom titles untouched.)
-    if (renumberCreatedChapters()) {
-        applyDerivedLabels();
-    }
-
     rebuildNavigator();
 
     // Anchor the caret on the moved chapter's first scene — the container the writer
@@ -1362,51 +1343,6 @@ void EditorShell::applyDerivedLabels()
     }
 
     loading_ = wasLoading;
-}
-
-bool EditorShell::renumberCreatedChapters()
-{
-    // I-0063 (Option A): created chapters carry a STORED "Chapter N" title (ScriviCore
-    // stamps it at creation), so they don't renumber from order like untitled chapters
-    // do. After a structural change, walk chapters in manuscript order and rewrite any
-    // whose stored title is exactly the auto pattern to its new ordinal. A deliberately
-    // user-typed title (which won't match the anchored pattern) is left untouched.
-    //
-    // The pattern is anchored (^Chapter \d+$) so a prose-y "Chapter of Secrets" is never
-    // renumbered — only the literal auto-generated "Chapter <n>".
-    static const QRegularExpression autoPattern(
-        QStringLiteral("^Chapter \\d+$"));
-
-    bool renamedAny = false;
-    int ordinal = 0;
-    QString lastChapterID;
-    for (int i = 0; i < sceneDoc_.segments().size(); ++i) {
-        const SceneSegment& seg = sceneDoc_.segments().at(i);
-        if (seg.chapterID == lastChapterID) {
-            continue;   // already handled this chapter (first segment did it)
-        }
-        lastChapterID = seg.chapterID;
-        ++ordinal;
-
-        const QString stored = seg.chapterTitle;   // the sidecar title from open_project
-        if (!autoPattern.match(stored).hasMatch()) {
-            continue;   // untitled (empty) or custom — no renumber
-        }
-        const QString desired = QStringLiteral("Chapter %1").arg(ordinal);
-        if (stored == desired) {
-            continue;   // already correct
-        }
-        if (seg.chapterMetadataPath.isEmpty()) {
-            continue;   // can't target the sidecar — skip rather than guess
-        }
-
-        const QVariantMap r =
-            bridge_->renameChapter(projectPath_, seg.chapterMetadataPath, desired);
-        if (!r.isEmpty()) {
-            renamedAny = true;
-        }
-    }
-    return renamedAny;
 }
 
 void EditorShell::renameSceneByID(const QString& sceneID)
@@ -1978,7 +1914,11 @@ bool EditorShell::runRangeEdit(const QString& label, RangeCall call, RangeNode n
     DiagnosticLog::note(QStringLiteral("structural \"%1\": worker started").arg(label));
     QElapsedTimer clock;
     clock.start();
-    struct Outcome { QVariantMap result; bool failed = false; QVector<bool> saved; QVariantMap history; TimelineData timeline; };
+    struct Outcome {
+        QVariantMap result; bool failed = false; QVector<bool> saved; QVariantMap history;
+        bool storyTimesRead = false; QHash<QString, TimelineData::StoryTime> storyTimes;
+        QString phases;   // each phase's time, for the log
+    };
     const WorkerBridge::Handle bridgeHandle = WorkerBridge::handleFor(bridge_);   // ✅ [I-0309]: never `bridge_` itself
     const QString projectID = projectID_, path = projectPath_, support = appSupportRoot_;
     AsyncCall::run<Outcome>(
@@ -1988,16 +1928,24 @@ bool EditorShell::runRangeEdit(const QString& label, RangeCall call, RangeNode n
         [jobs, before, historyRoot, call = std::move(call), node = std::move(node), bridgeHandle, projectID, path, support]() {
             WorkerBridge bridge(bridgeHandle);
             Outcome o;
+            QElapsedTimer phase;
+            phase.start();
+            const auto lap = [&](const char* name) {
+                o.phases += QStringLiteral(" %1 %2 ms").arg(QLatin1String(name)).arg(phase.restart());
+            };
             for (const Job& j : jobs) {
                 const QVariantMap r = bridge->saveScene(projectID, path, support, j.sceneID, j.metadataPath, j.contentPath,
                                                         j.text, 0, 0, 0.0);
                 o.saved.append(!r.isEmpty() && r.value(QStringLiteral("saved")).toBool());
             }
+            lap("saves");
             if (!historyRoot.isEmpty()) {
                 ScriviBridge::captureFlush(historyRoot, QStringLiteral("flush"), QStringLiteral("typing"));
             }
+            lap("· flush");
             o.result = call(*bridge);
             o.failed = bridge->lastCallFailed();
+            lap("· range call");
             if (o.failed) {
                 return o;
             }
@@ -2016,12 +1964,17 @@ bool EditorShell::runRangeEdit(const QString& label, RangeCall call, RangeNode n
                     historyRoot, HistoryCapture::barrierParams(payload.value(QStringLiteral("op")).toString(), QString(),
                                                                after, payload, was));
             }
-            o.timeline = EditorShell::fetchTimelineData(&*bridge, path);
+            lap("· history node");
+            // ✅ [SP-191] live pass: the story times only — the rest of the timeline does not change with the manuscript.
+            o.storyTimes = EditorShell::storyTimesOf(bridge->listStoryTimes(path));
+            o.storyTimesRead = !bridge->lastCallFailed();
+            lap("· story times");
             return o;
         },
         [this, jobs, caret = std::move(caret), failed, label, clock](const Outcome& o) {
-            DiagnosticLog::note(QStringLiteral("structural \"%1\": worker finished in %2 ms%3")
-                                    .arg(label).arg(clock.elapsed()).arg(o.failed ? QStringLiteral(" (FAILED)") : QString()));
+            DiagnosticLog::note(QStringLiteral("structural \"%1\": worker finished in %2 ms%3 —%4")
+                                    .arg(label).arg(clock.elapsed()).arg(o.failed ? QStringLiteral(" (FAILED)") : QString(),
+                                                                         o.phases));
             for (qsizetype k = 0; k < jobs.size(); ++k) {
                 if (o.saved.value(k)) {
                     notePersisted(jobs.at(k).sceneID, jobs.at(k).text);   // [I-0104] / [I-0259]: only after it succeeded
@@ -2037,15 +1990,22 @@ bool EditorShell::runRangeEdit(const QString& label, RangeCall call, RangeNode n
                 emit structuralEditFinished(false);
                 return;
             }
+            QElapsedTimer applying;
+            applying.start();
             if (history_ != nullptr && !o.history.isEmpty()) {
                 history_->adopt(o.history);
             }
             applyRangeResult(o.result);
-            applyTimelineData(o.timeline);
+            if (o.storyTimesRead && timelineData_.fetched) {
+                TimelineData data = timelineData_;
+                data.storyTimes = o.storyTimes;
+                applyTimelineData(data);
+            }
             unlockAfterWork();
             if (const auto [sceneID, byte] = caret(o.result); !sceneID.isEmpty()) {
                 placeCaret(sceneID, byte);
             }
+            DiagnosticLog::note(QStringLiteral("structural \"%1\": applied in %2 ms").arg(label).arg(applying.elapsed()));
             endBackgroundWork();
             emit structuralEditFinished(true);
         },
@@ -2074,6 +2034,9 @@ void EditorShell::applyRangeResult(const QVariantMap& result)
     for (const QString& id : delta.removedSceneIDs) {
         dirtyScenes_.remove(id);
         historyText_.remove(id);
+        if (inspector_ != nullptr) {
+            inspector_->forgetScene(id);   // ✅ [I-0315]: never write notes to a scene that is gone
+        }
     }
     for (const RangeDelta::Scene& s : delta.scenes) {
         if (s.hasText) {
@@ -2081,10 +2044,7 @@ void EditorShell::applyRangeResult(const QVariantMap& result)
             historyText_.insert(s.sceneID, s.text);
         }
     }
-    // I-0063: a chapter created or removed shifts the stored "Chapter N" titles after it.
-    if ((!delta.createdChapters.isEmpty() || !delta.removedChapterIDs.isEmpty()) && renumberCreatedChapters()) {
-        applyDerivedLabels();
-    }
+    // ✅ [SP-191] Q10: "Chapter N" is derived from position, never stored — the delta's reflow renumbered the headings.
     rebuildNavigator();
 }
 
@@ -2102,9 +2062,28 @@ void EditorShell::onCreateSceneRequested()
     insertBreak(/*newChapter=*/false, tr("Splitting the scene…"));
 }
 
+EditorShell::StructuralAnchor EditorShell::structuralAnchor(int pos) const
+{
+    StructuralAnchor at{pos, false};
+    if (presenter_ == nullptr) {
+        return at;
+    }
+    while (at.pos > 0) {
+        const auto stop = presenter_->stopAt(at.pos - 1);
+        if (!stop || !stop->homeAfter() || stop->end != at.pos || stop->start >= at.pos) {
+            break;
+        }
+        if (stop->kind == ManuscriptPresenter::StopKind::Prefix || stop->kind == ManuscriptPresenter::StopKind::ListPrefix) {
+            at.beforeLineMarker = true;
+        }
+        at.pos = stop->start;
+    }
+    return at;
+}
+
 void EditorShell::insertBreak(bool newChapter, const QString& label)
 {
-    const int caretPos = viewport_->textCursor().position();
+    const int caretPos = structuralAnchor(viewport_->textCursor().position()).pos;
     const int idx = sceneDoc_.sceneIndexForCaret(caretPos);
     if (loading_ || idx < 0) {
         return;
@@ -2146,7 +2125,7 @@ void EditorShell::onCreateChapterRequested()
     // is a RELABEL — the scene and the rest of its chapter move into a new chapter; no empty scene, no text moves. At a
     // chapter's first scene a chapter already starts there: nothing happens. No confirmation (Q9). Apple:
     // `handleCreateChapter`.
-    const int caretPos = viewport_->textCursor().position();
+    const int caretPos = structuralAnchor(viewport_->textCursor().position()).pos;   // before a heading's `## `
     const int idx = sceneDoc_.sceneIndexForCaret(caretPos);
     if (loading_ || idx < 0) {
         return;
@@ -2171,7 +2150,7 @@ void EditorShell::onMergeSceneRequested()
     // ⌃⌫ at a scene's very start: merge it into the scene before (same chapter only). ✅ [SP-191] Q3e: a CUT of the
     // zero-length range across the break — the texts join DIRECTLY (Q3a: no blank line), the removed scene's sidecar
     // travels in the Range (Q3b), and Undo puts the break back exactly. Apple: `handleMergeScene`.
-    const int caretPos = viewport_->textCursor().position();
+    const int caretPos = structuralAnchor(viewport_->textCursor().position()).pos;   // before a heading's `## `
     const int idx = sceneDoc_.sceneIndexForCaret(caretPos);
     if (loading_ || idx <= 0 || idx >= sceneDoc_.segments().size()) {
         return;
@@ -2192,7 +2171,7 @@ void EditorShell::onMergeChapterRequested()
     // ⌃⇧⌫ at a chapter's first scene: merge the chapter into the one before. ✅ [SP-191] Q3e: a RELABEL of its scenes into
     // that chapter — on disk their files move; no text changes. Undo re-creates the chapter from its sidecar, which the
     // result carries (Q3b). Every scene of the chapter joins the earlier one (Q3d). Apple: `handleMergeChapter`.
-    const int caretPos = viewport_->textCursor().position();
+    const int caretPos = structuralAnchor(viewport_->textCursor().position()).pos;   // before a heading's `## `
     const int idx = sceneDoc_.sceneIndexForCaret(caretPos);
     if (loading_ || idx <= 0 || idx >= sceneDoc_.segments().size()) {
         return;
@@ -2408,7 +2387,8 @@ void EditorShell::pasteRange(const QJsonObject& rangeIn)
         QApplication::beep();   // the caret is in a heading or separator (Apple flashes and does not paste)
         return;
     }
-    const int pos = viewport_->textCursor().position();
+    const StructuralAnchor anchor = structuralAnchor(viewport_->textCursor().position());
+    const int pos = anchor.pos;
     const int idx = sceneDoc_.sceneIndexForEditablePosition(pos);
     if (idx < 0) {
         QApplication::beep();
@@ -2423,6 +2403,20 @@ void EditorShell::pasteRange(const QJsonObject& rangeIn)
     // the pasted text keeps its own formatting ([SP-163]).
     QJsonObject range = rangeIn;
     QJsonArray entries = range.value(QStringLiteral("scenes")).toArray();
+    // ✅ [SP-191] live pass: anchored before a heading's (or list item's) marker, the last part keeps its own line — joined
+    // onto `## Heading` it would turn the heading into body text. The line break is part of what the paste inserts, so its
+    // undo takes it back too. Apple: `pasteStructuredRange`.
+    if (anchor.beforeLineMarker && entries.size() > 1) {
+        QJsonObject last = entries.last().toObject();
+        const QString lastText = last.value(QStringLiteral("text")).toString();
+        if (!lastText.isEmpty() && !lastText.endsWith(QLatin1Char('\n'))) {
+            last.insert(QStringLiteral("text"), lastText + QLatin1Char('\n'));
+            entries.replace(entries.size() - 1, last);
+            range.insert(QStringLiteral("scenes"), entries);
+            range = ManuscriptEditor::normalizedRange(range);
+            entries = range.value(QStringLiteral("scenes")).toArray();
+        }
+    }
     QStringList texts;
     for (const QJsonValue& e : std::as_const(entries)) {
         texts.append(e.toObject().value(QStringLiteral("text")).toString());
@@ -3168,14 +3162,7 @@ EditorShell::TimelineData EditorShell::fetchTimelineData(ScriviBridge* bridge, c
     d.fetched  = true;
     d.revision = bridge->lastRevision();
     d.epochLabel = all.value(QStringLiteral("timeline")).toMap().value(QStringLiteral("epochLabel")).toString();
-    for (const QVariant& v : all.value(QStringLiteral("storyTimes")).toMap().value(QStringLiteral("storyTimes")).toList()) {
-        const QVariantMap st = v.toMap();
-        TimelineData::StoryTime t;
-        t.gapMs      = st.value(QStringLiteral("gapMs")).toLongLong();
-        t.durationMs = st.value(QStringLiteral("durationMs")).toLongLong();
-        t.bandID     = st.value(QStringLiteral("bandID")).toString();
-        d.storyTimes.insert(st.value(QStringLiteral("sceneID")).toString(), t);
-    }
+    d.storyTimes = storyTimesOf(all.value(QStringLiteral("storyTimes")).toMap());
     d.eventsJSON = all.value(QStringLiteral("historicalEvents")).toMap().value(QStringLiteral("eventsJSON")).toString();
     const QVariantMap ss = all.value(QStringLiteral("storyStructure")).toMap();
     d.hasStructure   = ss.value(QStringLiteral("hasStructure")).toBool();
@@ -3185,6 +3172,20 @@ EditorShell::TimelineData EditorShell::fetchTimelineData(ScriviBridge* bridge, c
     return d;
 }
 
+QHash<QString, EditorShell::TimelineData::StoryTime> EditorShell::storyTimesOf(const QVariantMap& part)
+{
+    QHash<QString, TimelineData::StoryTime> out;
+    for (const QVariant& v : part.value(QStringLiteral("storyTimes")).toList()) {
+        const QVariantMap st = v.toMap();
+        TimelineData::StoryTime t;
+        t.gapMs      = st.value(QStringLiteral("gapMs")).toLongLong();
+        t.durationMs = st.value(QStringLiteral("durationMs")).toLongLong();
+        t.bandID     = st.value(QStringLiteral("bandID")).toString();
+        out.insert(st.value(QStringLiteral("sceneID")).toString(), t);
+    }
+    return out;
+}
+
 // ⚠️ UI THREAD ONLY. Builds the panel from data already read — no core call.
 void EditorShell::applyTimelineData(const TimelineData& data)
 {
@@ -3192,6 +3193,7 @@ void EditorShell::applyTimelineData(const TimelineData& data)
         return;
     }
     ++timelineBuilds_;
+    timelineData_ = data;
 
     // Epoch label from the timeline meta (falls back to "Story Open" inside the panel).
     const QString epochLabel = data.epochLabel;

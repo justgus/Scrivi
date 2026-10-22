@@ -372,6 +372,7 @@ private struct ImportedTimelinesPayload: Decodable {
         // ⚠️ Empty is normal, not failure — see `explicitStoryTimes`.
         let explicitByScene = Self.explicitStoryTimes(result?.parts.storyTimes)
 
+        let chapterLabels = Self.chapterLabels(scenes)
         var raw: [SceneDot] = scenes.enumerated().map { idx, info in
             let st = explicitByScene[info.sceneID]
             let dur = st?.durationMs ?? defaultSceneDurationMs
@@ -379,7 +380,7 @@ private struct ImportedTimelinesPayload: Decodable {
                 id: info.sceneID,
                 sceneID: info.sceneID,
                 title: info.title.isEmpty ? "Scene \(idx + 1)" : info.title,
-                chapterTitle: info.chapterTitle,
+                chapterTitle: chapterLabels[info.chapterID] ?? info.chapterTitle,
                 offsetMs: 0,
                 offsetSource: st?.offsetSource ?? "default",
                 gapMs: st?.gapMs ?? 0,
@@ -421,6 +422,7 @@ private struct ImportedTimelinesPayload: Decodable {
         bandByScene.reserveCapacity(dots.count)
         for d in dots where !d.bandID.isEmpty { bandByScene[d.sceneID] = d.bandID }
 
+        let chapterLabels = Self.chapterLabels(scenes)
         var raw: [SceneDot] = scenes.enumerated().map { idx, info in
             let st = explicitByScene[info.sceneID]
             let existingBandID = bandByScene[info.sceneID] ?? ""
@@ -429,7 +431,7 @@ private struct ImportedTimelinesPayload: Decodable {
                 id: info.sceneID,
                 sceneID: info.sceneID,
                 title: info.title.isEmpty ? "Scene \(idx + 1)" : info.title,
-                chapterTitle: info.chapterTitle,
+                chapterTitle: chapterLabels[info.chapterID] ?? info.chapterTitle,
                 offsetMs: 0,
                 offsetSource: st?.offsetSource ?? "default",
                 gapMs: st?.gapMs ?? 0,
@@ -440,6 +442,19 @@ private struct ImportedTimelinesPayload: Decodable {
         }
         recomputeAllOffsets(in: &raw)
         dots = raw
+    }
+
+    /// ✅ [SP-191] Q10: each chapter's label — its title, or "Chapter N" by its position when it has none (derived, never
+    /// stored; the navigator and the manuscript's headings derive it the same way).
+    static func chapterLabels(_ scenes: [SceneInfo]) -> [String: String] {
+        var labels: [String: String] = [:]
+        var ordinal = 0
+        for info in scenes where labels[info.chapterID] == nil {
+            ordinal += 1
+            let t = info.chapterTitle.trimmingCharacters(in: .whitespaces)
+            labels[info.chapterID] = t.isEmpty ? "Chapter \(ordinal)" : info.chapterTitle
+        }
+        return labels
     }
 
     /// EP-039 AC4 — one bulk crossing, keyed by sceneID for O(1) lookup.

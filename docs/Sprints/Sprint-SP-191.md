@@ -201,6 +201,20 @@ chapter split, merge and chapter merge.
     All of it is mutation-checked, with ctest on the Mac and Linux, interop tests, and the Linux smokes.
 14. **Live passes (user):** Mac and rig, over the share, each operation timed by the diagnostic logs.
 
+**Live-pass follow-ups (ruled 2026-10-21, after the user's live passes)**
+
+15. **Q10 — chapter numbers derived, never stored, on both.** The core writes untitled chapters (`ChapterCreator`,
+    `ProjectCreator`, `RangeOperations` openChapter and relabel); `parseChapterMeta` reads a stored `Chapter <number>` as
+    untitled; `extractSearchableText` derives the container title. Linux's `renumberCreatedChapters` (the ~12 s stall) and
+    the Mac's `renumberChapterTitlesFrom` are removed; both apps' headings, navigator and timeline dots derive the number.
+16. **The heading anchor, on both.** Every structural edit steps back over hidden line-start and opener stops first (Apple
+    `structuralAnchorAndLine`, Linux `EditorShell::structuralAnchor`); a multi-entry paste anchored before a heading's or
+    list item's marker ends its last part with a line break (⚠️ a judgment call: vetoable).
+17. **[I-0315] on Linux** (the Mac already had this shape): the Inspector writes the outline and to-do only when changed,
+    and never to a removed scene.
+18. **The Linux worker reads only the story times** (`scrivi_list_story_times`, as the Mac does) and logs each phase's time,
+    plus the GUI-thread apply.
+
 ⛔ **NOT in this Sprint:**
 - structural cut and Backspace / Delete over scenes ([SP-188], which inherits items 1, 2 and 9);
 - the background sync verification ([SP-189]);
@@ -236,6 +250,15 @@ chapter split, merge and chapter merge.
       ✅ — Mac: 0 own main-thread calls (1 caret bookkeeping); Linux: 0 own (the rest are [I-0315]). ctest 748 Mac / 752 Linux, interop 301, smokes 38; mutations core 13, Mac 10, Linux 11, all caught.
 - [x] AC10 — The design doc is at v0.3 with these rulings.
 - [ ] AC11 — ✅ **Live passes (user):** Mac and rig, over the share, each operation timed.
+      ✅ 2026-10-21: all 12 actions pass on both; the details are AC12–AC15. ✅ Mac re-pass (heading cases, Q10 numbering,
+      regression): all steps pass (user). ⏳ The rig re-pass.
+- [x] AC12 — Q10: a created chapter is stored untitled; a stored `Chapter 7` reads as untitled, `Chapter of Secrets` is
+      kept (core tests, mutation-checked); no app rewrites chapter titles after a structural edit.
+- [x] AC13 — The heading anchor: at a scene that starts with `## `, split, chapter split and paste keep the heading with
+      its scene, and each undoes exactly (Mac interop `structuralEditsAtAHeading`, Linux `structural_baseline_smoke`;
+      mutation-checked on Linux).
+- [x] AC14 — [I-0315]: a split's GUI-thread core calls on Linux 6 → 2, guarded; mutation-checked.
+- [x] AC15 — The Linux worker reads only the story times and logs each phase. ⏳ The rig's timings: AC11.
 
 ## Progress log
 
@@ -399,3 +422,34 @@ chapter split, merge and chapter merge.
   Linux smokes **38/38** (`SCRIVI_VERIFY_SCENE_TEXT=1`); stub parity and the ABI project guards clean.
 - ⏳ **AC11 — the live passes (user):** steps in the chat reply.
 
+### 🟡 2026-10-21 — Live passes: all 12 actions PASS on the Mac and the rig; details to fix; Q10 + two scope rulings
+- User: *"The actual actions for all 12 steps above on both the Mac and the Rig pass."* The details reported:
+  - **Mac 6, 7, 9 (and the rig):** at a scene's start that is a HEADING (`## …`), ⇧⌘-Return leaves the `##` behind in the
+    previous chapter, and a paste there turns the pasted text into the heading and the heading into body text. ✅ Cause: the
+    heading's hidden `## ` is a caret stop whose home is AFTER it, so the anchor lands 3 bytes into the scene — not at its
+    start (offset 0 would have taken the Q7 / Q8 paths). The same holds for an opening `**` and a list marker.
+  - **Rig 2, 5–8:** undo, every merge, split chapter, merge chapter and the structured paste take too long. ✅ The rig's log
+    (build 76): the workers take 0.4–2.3 s; after an undo of a split the Inspector's "set scene" took **45,309 ms** (its
+    writes to the scene the undo had just removed — [I-0315]); after every chapter split and cross-chapter paste the window
+    stalled **~12.3 s** in unmarked code (Linux's I-0063 rename of every later "Chapter N" title, on the GUI thread, over
+    the share).
+- ✅ **Q10 (user): chapter numbers are DERIVED, never stored, on both platforms.** An untitled chapter stores no title; both
+  apps show "Chapter N" from its position; the core stops writing "Chapter N"; Linux's disk renumbering and the Mac's
+  in-memory renumbering go; a stored title that is exactly "Chapter <number>" is treated as untitled (pre-release).
+- ✅ **[I-0315] into SP-191** (user): the Inspector writes only what changed, never to a scene that is gone; the Mac checked.
+- ✅ **The Linux worker reads only the story times after a structural edit** (as the Mac does), and logs each phase's time.
+
+### 🟡 2026-10-21 — The live-pass follow-ups done (Plan 15–18); every suite green; ⏳ AC11's re-pass (user)
+- ✅ **Q10:** the core stores no "Chapter N"; a stamped one reads as untitled. Linux's disk renumbering and the Mac's
+  in-memory renumbering removed; dead Mac loader functions (the old split / merge / insert paths) removed with it.
+  `scene_rename_smoke` and `scene_reorder_smoke` expectations updated (they assumed a stored or a bare "Chapter" title).
+- ✅ **Heading anchor** on both (Plan 16). ⚠️ The line break a paste adds before a heading is my call — vetoable.
+- ✅ **[I-0315]** fixed on Linux; the Mac's Inspector already wrote only what changed.
+- ✅ **Linux worker:** saves · flush · range call · history node · story times, each timed in the log line
+  `structural "…": worker finished in N ms — saves … ms · flush … ms · …`, then `structural "…": applied in N ms`.
+- ⚠️ Not explained yet: the rig's *"apply history step took 3524 ms"* on an earlier undo. The new log lines will show
+  whether it recurs.
+- ✅ **Results:** Mac ctest 750/750, interop 302/302; Linux ctest 754/754, smokes 38/38; core Q10 mutation caught;
+  Linux mutations 15/15 caught (4 new: the heading step-back, the heading line break, each I-0315 compare).
+- ✅ **Mac re-pass (user): *"All Mac steps pass"*** — the heading cases (split, chapter split, paste, each undone), Q10's
+  derived numbering (split, merge, undo/redo, an older project) and the regression steps. ⏳ The rig re-pass.

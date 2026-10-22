@@ -2003,6 +2003,17 @@ QVariantMap ScriviBridge::loadTimeline(const QString& projectRootPath)
     return parseEnvelope(envelope.toQString());
 }
 
+QVariantMap ScriviBridge::listStoryTimes(const QString& projectRootPath)
+{
+    if (!ready_) {
+        tlsLastCallFailed = true;
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_list_story_times(projectRootPath.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
 // SP-173 (D4) — the project's current revision, touching no file; -1 on failure. Asked on the main thread just before a
 // background result is applied.
 qint64 ScriviBridge::projectRevision(const QString& projectRootPath)

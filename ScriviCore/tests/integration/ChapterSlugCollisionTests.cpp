@@ -17,6 +17,7 @@
 #include "manuscript/ChapterIndex.hpp"
 #include "platform/LocalFileSystem.hpp"
 #include "schemas/ManuscriptMetaJson.hpp"
+#include "util/Json.hpp"
 #include "util/PathUtils.hpp"
 
 #include <chrono>
@@ -127,6 +128,53 @@ TEST_CASE("ChapterCreator uses collision-free order-key slugs after a delete (I-
     // reopened order being strictly increasing.
     for (std::size_t i = 1; i < chapters.size(); ++i) {
         REQUIRE(chapters[i - 1].orderKey < chapters[i].orderKey);
+    }
+}
+
+TEST_CASE("[SP-191] Q10: a created chapter is stored UNTITLED — its number is derived, never written",
+          "[Chapter][SP-191][Q10]") {
+    TempDir projectDir, appSupportDir;
+    scrivi::platform::LocalFileSystem        lfs;
+    scrivi::mocks::DeterministicUUIDProvider uuids;
+    scrivi::mocks::FixedClock                clock{"2026-10-21T00:00:00Z"};
+    scrivi::mocks::MockSecureStore           store;
+    scrivi::mocks::MockGitProvider           git;
+
+    scrivi::CoreServices services;
+    services.fileSystem   = &lfs;
+    services.uuidProvider = &uuids;
+    services.clock        = &clock;
+    services.secureStore  = &store;
+    services.gitProvider  = &git;
+    scrivi::ScriviCore core(services);
+
+    scrivi::CreateProjectRequest preq;
+    preq.projectRootPath = projectDir.str();
+    preq.appSupportRoot  = appSupportDir.str();
+    preq.title = "Novel"; preq.slug = "novel"; preq.author = author();
+    auto created = core.createProject(preq);
+    REQUIRE(created.ok());
+
+    scrivi::CreateChapterRequest r;
+    r.projectRootPath = projectDir.str();
+    r.appSupportRoot  = appSupportDir.str();
+    r.projectID       = created.value().project.projectID;
+    r.author          = author();
+    auto ch = core.createChapter(r);
+    REQUIRE(ch.ok());
+
+    // The raw sidecars on disk — not through parseChapterMeta, which would hide a stored "Chapter N".
+    auto listR = scrivi::manuscript::listChaptersByOrder(lfs, projectDir.str());
+    REQUIRE(listR.ok());
+    REQUIRE(listR.value().size() == 2);
+    for (const auto& e : listR.value()) {
+        const auto sidecar = projectDir.path / "manuscript" / e.slug / "chapter.meta.json";
+        auto text = lfs.readTextFile(scrivi::AbsolutePath{sidecar.string()});
+        REQUIRE(text.ok());
+        auto doc = scrivi::util::parseJson(text.value());
+        REQUIRE(doc.ok());
+        CHECK(doc.value().getString("title") == "");
+        CHECK(doc.value().getString("displayLabel") == "");
     }
 }
 
