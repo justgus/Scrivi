@@ -42,7 +42,7 @@ struct Root {
     Root() {
         static std::atomic<int> counter{0};
         path = (std::filesystem::temp_directory_path() /
-                ("scrivi-capture-capi-" + std::to_string(counter.fetch_add(1)) + "-" +
+                ("scrivi-capture-capi-" + std::to_string(::getpid()) + "-" + std::to_string(counter.fetch_add(1)) + "-" +
                  std::to_string(reinterpret_cast<std::uintptr_t>(this)) + ".scrivi"))
                    .string();
         std::error_code ec;

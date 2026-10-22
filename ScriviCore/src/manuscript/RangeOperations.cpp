@@ -9,8 +9,11 @@
 #include "util/PathUtils.hpp"
 
 #include <algorithm>
+#include <atomic>
+#include <exception>
 #include <filesystem>
 #include <optional>
+#include <thread>
 #include <unordered_set>
 
 namespace scrivi::manuscript {
@@ -19,6 +22,42 @@ namespace {
 
 Error invalid(std::string message) { return Error{.code = ErrorCode::invalidArgument, .message = std::move(message)}; }
 Error internal(std::string message) { return Error{.code = ErrorCode::internalError, .message = std::move(message)}; }
+
+// ✅ [SP-191] (user, 2026-10-22): an operation's independent file calls are made CONCURRENTLY. Over a network share each
+// call costs a round trip, and a chapter's scenes moved one after another, so a chapter split or merge took calls ×
+// latency (2.4–3.3 s on the rig). A batch holds calls that touch DIFFERENT files and need nothing else in it; the batches
+// still run in the operation's order (new files first, a chapter emptied last), so a failure part-way leaves the same
+// kinds of state as before. ⛔ After the first failure no further call in the batch starts. ⚠️ The FileSystem must be safe
+// to call from several threads (the ABI's LocalFileSystem is: `scrivi_read_scene_texts` reads with 8 at once).
+constexpr std::size_t kConcurrentCalls = 8;
+
+using FileJob = std::function<Result<void>()>;
+
+Result<void> runConcurrently(const std::vector<FileJob>& jobs) {
+    std::vector<std::optional<Error>> failed(jobs.size());
+    std::atomic<std::size_t> next{0};
+    std::atomic<bool> stop{false};
+    auto work = [&]() {
+        for (std::size_t i = next++; i < jobs.size() && !stop; i = next++) {
+            try {
+                if (auto r = jobs[i](); !r.ok()) { failed[i] = r.error(); stop = true; }
+            } catch (const std::exception& e) {   // a jthread must not let one escape
+                failed[i] = internal(e.what());
+                stop = true;
+            }
+        }
+    };
+    {
+        std::vector<std::jthread> pool;
+        const std::size_t n = std::min(kConcurrentCalls, jobs.size());
+        for (std::size_t t = 1; t < n; ++t) { pool.emplace_back(work); }
+        work();   // this thread works too
+    }             // jthreads join here
+    for (const auto& f : failed) {
+        if (f) { return Result<void>::failure(*f); }
+    }
+    return Result<void>::success();
+}
 
 std::string fileNameOf(const std::string& rel) {
     const auto slash = rel.find_last_of('/');
@@ -198,23 +237,27 @@ SceneLocation movedInto(const SceneLocation& a, const ChapterID& chapterID, cons
     return m;
 }
 
-// Moves one scene's two files. ⛔ The text is never rewritten. A scene whose names change gets its sidecar rewritten (slug,
-// contentPath): one read, one write.
-Result<void> moveSceneFiles(FileSystem& fs, const AbsolutePath& root, const SceneLocation& from, const SceneLocation& to) {
-    auto mc = fs.renamePath(util::join(root, from.contentPath), util::join(root, to.contentPath));
-    if (!mc.ok()) { return mc; }
-    if (fileNameOf(from.metadataPath) == fileNameOf(to.metadataPath)) {
-        return fs.renamePath(util::join(root, from.metadataPath), util::join(root, to.metadataPath));
-    }
-    auto metaR = fs.readTextFile(util::join(root, from.metadataPath));
-    if (!metaR.ok()) { return Result<void>::failure(metaR.error()); }
-    auto meta = schemas::parseSceneMeta(metaR.value());
-    if (!meta.ok()) { return Result<void>::failure(meta.error()); }
-    meta.value().slug        = to.slug;
-    meta.value().contentPath = fileNameOf(to.contentPath);
-    auto mw = fs.atomicWriteTextFile(util::join(root, to.metadataPath), schemas::serializeSceneMeta(meta.value()));
-    if (!mw.ok()) { return mw; }
-    return fs.removeFile(util::join(root, from.metadataPath));
+// Moves one scene's two files, as two jobs (they touch different files). ⛔ The text is never rewritten. A scene whose names
+// change gets its sidecar rewritten (slug, contentPath): one read, one write.
+void addMoveJobs(std::vector<FileJob>& jobs, FileSystem& fs, const AbsolutePath& root, const SceneLocation& from,
+                 const SceneLocation& to) {
+    jobs.push_back([&fs, &root, &from, &to] {
+        return fs.renamePath(util::join(root, from.contentPath), util::join(root, to.contentPath));
+    });
+    jobs.push_back([&fs, &root, &from, &to]() -> Result<void> {
+        if (fileNameOf(from.metadataPath) == fileNameOf(to.metadataPath)) {
+            return fs.renamePath(util::join(root, from.metadataPath), util::join(root, to.metadataPath));
+        }
+        auto metaR = fs.readTextFile(util::join(root, from.metadataPath));
+        if (!metaR.ok()) { return Result<void>::failure(metaR.error()); }
+        auto meta = schemas::parseSceneMeta(metaR.value());
+        if (!meta.ok()) { return Result<void>::failure(meta.error()); }
+        meta.value().slug        = to.slug;
+        meta.value().contentPath = fileNameOf(to.contentPath);
+        auto mw = fs.atomicWriteTextFile(util::join(root, to.metadataPath), schemas::serializeSceneMeta(meta.value()));
+        if (!mw.ok()) { return mw; }
+        return fs.removeFile(util::join(root, from.metadataPath));
+    });
 }
 
 // A chapter's folder and everything in it, after its sidecar (as `ChapterDeleter` does): a folder left without its sidecar
@@ -225,6 +268,45 @@ Result<void> removeChapterFolder(FileSystem& fs, const AbsolutePath& root, const
     std::error_code ec;
     std::filesystem::remove_all(std::filesystem::path(util::join(root, dirOf(chapterMetaRel))), ec);
     return Result<void>::success();
+}
+
+// `n` ascending keys strictly between `lo` and `hi` ("" = open), by halving, so they stay short. Fewer than `n` when the
+// bounds leave no room.
+std::vector<std::string> keysBetween(const std::string& lo, const std::string& hi, std::size_t n) {
+    if (n == 0) { return {}; }
+    const std::string mid = util::keyBetween(lo, hi);
+    if (mid.empty()) { return {}; }
+    std::vector<std::string> out = keysBetween(lo, mid, (n - 1) / 2);
+    out.push_back(mid);
+    for (auto& k : keysBetween(mid, hi, n - 1 - (n - 1) / 2)) { out.push_back(std::move(k)); }
+    return out;
+}
+
+Result<schemas::ChapterMetaData> readChapterMeta(FileSystem& fs, const AbsolutePath& root, const RelativePath& metaRel) {
+    auto textR = fs.readTextFile(util::join(root, metaRel));
+    if (!textR.ok()) { return Result<schemas::ChapterMetaData>::failure(textR.error()); }
+    return schemas::parseChapterMeta(textR.value());
+}
+
+// A chapter's sidecar written into `dir` (replacing whatever sidecar is there), listing `sceneFiles`.
+Result<void> writeChapterMetaInto(FileSystem& fs, const AbsolutePath& root, const std::string& dir,
+                                  schemas::ChapterMetaData meta, const std::vector<std::string>& sceneFiles) {
+    meta.slug = fileNameOf(dir);
+    meta.scenes.clear();
+    for (const auto& name : sceneFiles) { meta.scenes.push_back({.metadataFilename = name}); }
+    return fs.atomicWriteTextFile(util::join(root, dir + "/chapter.meta.json"), schemas::serializeChapterMeta(meta));
+}
+
+// The run, where its files already lie, in another chapter.
+std::vector<SceneLocation> relabelledInPlace(const std::vector<SceneLocation>& run, const ChapterID& chapterID,
+                                             const std::string& chapterTitle, const RelativePath& chapterMetaRel) {
+    std::vector<SceneLocation> out = run;
+    for (auto& s : out) {
+        s.chapterID           = chapterID;
+        s.chapterTitle        = chapterTitle;
+        s.chapterMetadataPath = chapterMetaRel;
+    }
+    return out;
 }
 
 }   // namespace
@@ -332,6 +414,29 @@ Result<RangeOperationResult> RangeOperations::paste(const Range& range, const Sc
     // (their keys already sort after the scenes before them), so the scenes created in that chapter take keys BELOW the first.
     const bool movesAfter = lastOpening != 0 && !trailing.empty();
     const std::string movedFloor = movesAfter ? sceneKeyOf(trailing.front().metadataPath) : std::string();
+    // ✅ [SP-191] (user, 2026-10-22): MOVE THE SMALLER SIDE (as `relabel` does). When the paste opens ONE chapter, at its
+    // first new scene (a chapter split's shape: nothing new lands in the caret chapter), and the caret chapter's scenes up
+    // to the caret are fewer than those after it, THEY move — into a new folder before the caret chapter's, with its
+    // sidecar — and the new chapter takes the caret chapter's folder, where the scenes after the caret already are. Same
+    // chapters, IDs and order; fewer renames, which do not overlap over a share.
+    std::size_t openings = 0;
+    for (std::size_t i = 1; i < n; ++i) {
+        if (entries[i]->chapterID.value != entries[i - 1]->chapterID.value) { ++openings; }
+    }
+    const bool leadingMoves = movesAfter && openings == 1 && lastOpening == 1 && !prepends &&
+                              leading.size() < trailing.size();
+    std::string leadingDir;   // where the caret chapter goes when its leading scenes move
+    std::optional<schemas::ChapterMetaData> caretChapterMeta;
+    if (leadingMoves) {
+        const std::string prevKey = caretChapterPos > 0 ? chapterKeyOf(chapters[caretChapterPos - 1].metadataPath)
+                                                        : std::string();
+        auto key = freeChapterKey(fs, root_, prevKey, chapterKeyOf(caret->chapterMetadataPath));
+        if (!key.ok()) { return R::failure(key.error()); }
+        leadingDir = "manuscript/chapter-" + key.value();
+        auto meta = readChapterMeta(fs, root_, caret->chapterMetadataPath);   // read before any write: it follows its scenes
+        if (!meta.ok()) { return R::failure(meta.error()); }
+        caretChapterMeta = std::move(meta.value());
+    }
 
     // ✅ Identity (user, 2026-10-20): the Range's own ID when the manuscript does not have it (a cut), else a fresh one.
     std::unordered_set<std::string> usedScenes, usedChapters;
@@ -383,7 +488,9 @@ Result<RangeOperationResult> RangeOperations::paste(const Range& range, const Sc
     // Entry `i` opens a chapter: it is created right after the running one.
     auto openChapter = [&](std::size_t i) -> Result<void> {
         const RangeEntry& e = *entries[i];
-        auto key = freeChapterKey(fs, root_, runChapterKey, nextChapterKey);
+        // When the leading scenes move, the new chapter takes the caret chapter's folder (its key is the caret chapter's).
+        auto key = leadingMoves ? Result<std::string>::success(chapterKeyOf(caret->chapterMetadataPath))
+                                : freeChapterKey(fs, root_, runChapterKey, nextChapterKey);
         if (!key.ok()) { return Result<void>::failure(key.error()); }
         NewChapter ch;
         ch.chapterID    = pickChapterID(e.chapterID);
@@ -395,7 +502,7 @@ Result<RangeOperationResult> RangeOperations::paste(const Range& range, const Sc
             ch.title    = meta.value().title;
             ch.restored = std::move(meta.value());
         }
-        ch.dir          = "manuscript/chapter-" + key.value();
+        ch.dir          = leadingMoves ? dirOf(caret->chapterMetadataPath) : "manuscript/chapter-" + key.value();
         ch.metadataPath = ch.dir + "/chapter.meta.json";
         runChapter      = ch.chapterID;
         runChapterTitle = ch.title;
@@ -471,86 +578,134 @@ Result<RangeOperationResult> RangeOperations::paste(const Range& range, const Sc
         NewChapter& last = newChapters.back();
         for (const auto& a : trailing) {
             last.sceneFiles.push_back(fileNameOf(a.metadataPath));
-            moved.push_back(movedInto(a, last.chapterID, last.title, last.metadataPath, ""));
+            moved.push_back(movedInto(a, last.chapterID, last.title, last.metadataPath, ""));   // in place when `leadingMoves`
         }
     }
-    const SceneLocation caretNow = prepends && movesAfter ? moved.front() : *caret;
+    std::vector<SceneLocation> leadingNow;   // `leadingMoves`: the caret chapter's scenes in their new folder
+    if (leadingMoves) {
+        for (const auto& a : leading) {
+            leadingNow.push_back(movedInto(a, caret->chapterID, caret->chapterTitle, leadingDir + "/chapter.meta.json", ""));
+        }
+    }
+    const SceneLocation caretNow = leadingMoves ? leadingNow.back() : prepends && movesAfter ? moved.front() : *caret;
 
     // ── The writes: new files first, so a failure part-way never leaves the caret scene describing what is not there ──
+    // Batch 1: each new chapter's folder, then its sidecar.
+    std::vector<FileJob> jobs;
     for (const auto& ch : newChapters) {
-        auto dir = fs.createDirectories(util::join(root_, ch.dir));
-        if (!dir.ok()) { return R::failure(dir.error()); }
-        schemas::ChapterMetaData meta;
-        if (ch.restored) {
-            meta = *ch.restored;
-        } else {
-            meta.chapterID            = ch.chapterID;
-            meta.title                = ch.title;
-            meta.displayLabel         = ch.title;
-            meta.status               = "draft";
-            meta.createdAt            = now;
-            meta.createdByIdentityID  = author.identityID.value;
-            meta.createdByPersonaID   = author.personaID.value;
-            meta.createdByDisplayName = author.displayName;
-        }
-        meta.slug = fileNameOf(ch.dir);
-        meta.scenes.clear();
-        for (const auto& name : ch.sceneFiles) { meta.scenes.push_back({.metadataFilename = name}); }
-        auto w = fs.atomicWriteTextFile(util::join(root_, ch.metadataPath), schemas::serializeChapterMeta(meta));
-        if (!w.ok()) { return R::failure(w.error()); }
+        if (leadingMoves) { break; }   // its folder is the caret chapter's: its sidecar is written last (batch 3)
+        jobs.push_back([&]() -> Result<void> {
+            auto dir = fs.createDirectories(util::join(root_, ch.dir));
+            if (!dir.ok()) { return dir; }
+            schemas::ChapterMetaData meta;
+            if (ch.restored) {
+                meta = *ch.restored;
+            } else {
+                meta.chapterID            = ch.chapterID;
+                meta.title                = ch.title;
+                meta.displayLabel         = ch.title;
+                meta.status               = "draft";
+                meta.createdAt            = now;
+                meta.createdByIdentityID  = author.identityID.value;
+                meta.createdByPersonaID   = author.personaID.value;
+                meta.createdByDisplayName = author.displayName;
+            }
+            meta.slug = fileNameOf(ch.dir);
+            meta.scenes.clear();
+            for (const auto& name : ch.sceneFiles) { meta.scenes.push_back({.metadataFilename = name}); }
+            return fs.atomicWriteTextFile(util::join(root_, ch.metadataPath), schemas::serializeChapterMeta(meta));
+        });
+    }
+    if (leadingMoves) {   // the caret chapter's new folder and its sidecar, which follows its scenes
+        jobs.clear();
+        jobs.push_back([&]() -> Result<void> {
+            auto dir = fs.createDirectories(util::join(root_, leadingDir));
+            if (!dir.ok()) { return dir; }
+            return writeChapterMetaInto(fs, root_, leadingDir, *caretChapterMeta, metaFilenamesOf(leadingNow));
+        });
+    }
+    if (auto b = runConcurrently(jobs); !b.ok()) { return R::failure(b.error()); }
+    // Batch 2: the new scenes' files, and the moves. ⚠️ When the leading scenes move, they leave FIRST: a new scene's file
+    // name in that folder may be one of theirs (keys are only unique within a chapter).
+    jobs.clear();
+    if (leadingMoves) {
+        for (std::size_t k = 0; k < leading.size(); ++k) { addMoveJobs(jobs, fs, root_, leading[k], leadingNow[k]); }
+        if (auto b = runConcurrently(jobs); !b.ok()) { return R::failure(b.error()); }
+        jobs.clear();
     }
     for (const auto& s : created) {
-        auto md = fs.atomicWriteTextFile(util::join(root_, s.location.contentPath), s.text);
-        if (!md.ok()) { return R::failure(md.error()); }
-        schemas::SceneMetaData meta;
-        if (s.restored) {
-            // Where it lives now, and what its text now counts; everything else exactly as it was.
-            meta             = *s.restored;
-            meta.slug        = s.location.slug;
-            meta.contentPath = fileNameOf(s.location.contentPath);
-            const auto stats = util::countText(s.text);
-            meta.wordCount      = stats.wordCount;
-            meta.characterCount = stats.characterCount;
-        } else {
-            meta = newSceneMeta(s.location.sceneID, s.location.title, s.location.slug,
-                                fileNameOf(s.location.contentPath), s.text, author, now);
-        }
-        auto mw = fs.atomicWriteTextFile(util::join(root_, s.location.metadataPath), schemas::serializeSceneMeta(meta));
-        if (!mw.ok()) { return R::failure(mw.error()); }
+        jobs.push_back([&] { return fs.atomicWriteTextFile(util::join(root_, s.location.contentPath), s.text); });
+        jobs.push_back([&] {
+            schemas::SceneMetaData meta;
+            if (s.restored) {
+                // Where it lives now, and what its text now counts; everything else exactly as it was.
+                meta             = *s.restored;
+                meta.slug        = s.location.slug;
+                meta.contentPath = fileNameOf(s.location.contentPath);
+                const auto stats = util::countText(s.text);
+                meta.wordCount      = stats.wordCount;
+                meta.characterCount = stats.characterCount;
+            } else {
+                meta = newSceneMeta(s.location.sceneID, s.location.title, s.location.slug,
+                                    fileNameOf(s.location.contentPath), s.text, author, now);
+            }
+            return fs.atomicWriteTextFile(util::join(root_, s.location.metadataPath), schemas::serializeSceneMeta(meta));
+        });
     }
-    for (std::size_t k = 0; k < moved.size(); ++k) {
-        auto mv = moveSceneFiles(fs, root_, trailing[k], moved[k]);
-        if (!mv.ok()) { return R::failure(mv.error()); }
+    if (!leadingMoves) {
+        for (std::size_t k = 0; k < moved.size(); ++k) { addMoveJobs(jobs, fs, root_, trailing[k], moved[k]); }
     }
-    {
-        auto md = fs.atomicWriteTextFile(util::join(root_, caretNow.contentPath), caretText);
-        if (!md.ok()) { return R::failure(md.error()); }
-        auto side = restampSceneSidecar(fs, root_, caretNow.metadataPath, caretText, author, now);   // READ 2
-        if (!side.ok()) { return R::failure(side.error()); }
-    }
-    // The caret chapter's own list, when its scenes changed.
+    if (auto b = runConcurrently(jobs); !b.ok()) { return R::failure(b.error()); }
+    // Batch 3: the caret scene, the caret chapter's list (when its scenes changed) and the manuscript's chapter list.
+    jobs.clear();
+    jobs.push_back([&] { return fs.atomicWriteTextFile(util::join(root_, caretNow.contentPath), caretText); });
+    jobs.push_back([&] { return restampSceneSidecar(fs, root_, caretNow.metadataPath, caretText, author, now); });   // READ 2
     const bool createdInCaretChapter = !created.empty() && created.front().location.chapterID.value == caret->chapterID.value;
-    if (createdInCaretChapter || movesAfter) {
-        std::vector<std::string> names = metaFilenamesOf(leading);
+    std::vector<std::string> caretChapterNames;
+    if (leadingMoves) {
+        // The new chapter's sidecar replaces the caret chapter's in its folder (that one was written above, in its new one).
+        jobs.push_back([&] {
+            const NewChapter& ch = newChapters.front();
+            schemas::ChapterMetaData meta;
+            if (ch.restored) {
+                meta = *ch.restored;
+            } else {
+                meta.chapterID            = ch.chapterID;
+                meta.title                = ch.title;
+                meta.displayLabel         = ch.title;
+                meta.status               = "draft";
+                meta.createdAt            = now;
+                meta.createdByIdentityID  = author.identityID.value;
+                meta.createdByPersonaID   = author.personaID.value;
+                meta.createdByDisplayName = author.displayName;
+            }
+            return writeChapterMetaInto(fs, root_, ch.dir, meta, ch.sceneFiles);
+        });
+    } else if (createdInCaretChapter || movesAfter) {
+        caretChapterNames = metaFilenamesOf(leading);
         for (const auto& s : created) {
-            if (s.location.chapterID.value == caret->chapterID.value) { names.push_back(fileNameOf(s.location.metadataPath)); }
+            if (s.location.chapterID.value == caret->chapterID.value) {
+                caretChapterNames.push_back(fileNameOf(s.location.metadataPath));
+            }
         }
         if (!movesAfter) {
-            for (const auto& name : metaFilenamesOf(trailing)) { names.push_back(name); }
+            for (const auto& name : metaFilenamesOf(trailing)) { caretChapterNames.push_back(name); }
         }
-        auto cw = writeChapterScenes(fs, root_, caret->chapterMetadataPath, names);   // READ 3
-        if (!cw.ok()) { return R::failure(cw.error()); }
+        jobs.push_back([&] { return writeChapterScenes(fs, root_, caret->chapterMetadataPath, caretChapterNames); });   // READ 3
     }
     if (!newChapters.empty()) {
-        auto mw = editManuscriptChapters(fs, root_, [&](std::vector<schemas::ChapterRef>& refs) {
-            auto at = std::find_if(refs.begin(), refs.end(),
-                [&](const schemas::ChapterRef& r) { return r.chapterID.value == caret->chapterID.value; });
-            std::vector<schemas::ChapterRef> add;
-            for (const auto& ch : newChapters) { add.push_back({.chapterID = ch.chapterID, .path = ch.metadataPath}); }
-            refs.insert(at == refs.end() ? refs.end() : std::next(at), add.begin(), add.end());
+        jobs.push_back([&] {
+            return editManuscriptChapters(fs, root_, [&](std::vector<schemas::ChapterRef>& refs) {
+                auto at = std::find_if(refs.begin(), refs.end(),
+                    [&](const schemas::ChapterRef& r) { return r.chapterID.value == caret->chapterID.value; });
+                if (leadingMoves && at != refs.end()) { at->path = leadingDir + "/chapter.meta.json"; }
+                std::vector<schemas::ChapterRef> add;
+                for (const auto& ch : newChapters) { add.push_back({.chapterID = ch.chapterID, .path = ch.metadataPath}); }
+                refs.insert(at == refs.end() ? refs.end() : std::next(at), add.begin(), add.end());
+            });
         });
-        if (!mw.ok()) { return R::failure(mw.error()); }
     }
+    if (auto b = runConcurrently(jobs); !b.ok()) { return R::failure(b.error()); }
 
     // ── The result ──
     RangeOperationResult out;
@@ -568,9 +723,17 @@ Result<RangeOperationResult> RangeOperations::paste(const Range& range, const Sc
         if (s.restored) { out.indexCurrent = out.indexCurrent && index_.patchStoryTime(s.location.sceneID, s.restored->storyTime); }
     }
     for (const auto& m : moved) { out.indexCurrent = out.indexCurrent && index_.relocateScene(m); }
+    for (const auto& m : leadingNow) { out.indexCurrent = out.indexCurrent && index_.relocateScene(m); }
 
     // The delta, in reading order.
     SceneID previous = beforeCaret;
+    if (leadingMoves) {   // the caret chapter's scenes before the caret moved too
+        previous = scenesBefore(leading.front().ordinal);
+        for (std::size_t k = 0; k + 1 < leadingNow.size(); ++k) {
+            out.delta.scenes.push_back({RangeSceneChange::Kind::Moved, leadingNow[k], previous, {}});
+            previous = leadingNow[k].sceneID;
+        }
+    }
     if (!prepends) {
         out.delta.scenes.push_back({RangeSceneChange::Kind::Rewritten, caretNow, previous, caretText});
         previous = caret->sceneID;
@@ -710,9 +873,41 @@ Result<RangeOperationResult> RangeOperations::cut(const Range& range, const Auth
     } else if (start->ordinal > 0 && order[start->ordinal - 1].chapterID.value == startLoc.chapterID.value) {
         anchorKey = sceneKeyOf(order[start->ordinal - 1].metadataPath);
     }
+    // ✅ [SP-191] (user, 2026-10-22): MOVE THE SMALLER SIDE (as `relabel` does). When the cut empties ONE chapter and the
+    // start chapter keeps fewer scenes than the end chapter hands over, the start chapter's scenes move instead — into the
+    // end chapter's folder, below the scenes already there, with the start chapter's sidecar — and the emptied folder is
+    // the start chapter's. Same chapters, IDs and order; fewer renames, which do not overlap over a share.
+    std::vector<SceneLocation> staying;   // the start chapter's scenes the cut keeps
+    {
+        std::unordered_set<std::string> cutIDs;
+        for (const auto& id : removed) { cutIDs.insert(id.value); }
+        for (const auto& s : scenesOfChapter(index_, startLoc.chapterID)) {
+            if (cutIDs.count(s.sceneID.value) == 0) { staying.push_back(s); }
+        }
+    }
+    const bool stayingMoves = !endSurvives && removedChapters.size() == 1 && !leaving.empty() &&
+                              staying.size() < leaving.size();
+    const RelativePath keptChapterMeta = stayingMoves ? endLoc.chapterMetadataPath : startLoc.chapterMetadataPath;
+    std::vector<SceneLocation> stayingNow;   // `stayingMoves`: the start chapter's scenes in the end chapter's folder
+    std::optional<schemas::ChapterMetaData> startChapterMeta;
+    if (stayingMoves) {
+        const std::string hi = sceneKeyOf(leaving.front().metadataPath);
+        std::vector<std::string> keys;   // empty = they keep their names (they sort below the scenes already there)
+        if (sceneKeyOf(staying.back().metadataPath) >= hi) {
+            keys = keysBetween("", hi, staying.size());
+            if (keys.size() != staying.size()) { return R::failure(internal("could not compute scene order keys")); }
+        }
+        for (std::size_t i = 0; i < staying.size(); ++i) {
+            stayingNow.push_back(movedInto(staying[i], startLoc.chapterID, startLoc.chapterTitle, keptChapterMeta,
+                                           keys.empty() ? "" : keys[i]));
+        }
+        auto meta = readChapterMeta(fs, root_, startLoc.chapterMetadataPath);   // read before any write: it follows them
+        if (!meta.ok()) { return R::failure(meta.error()); }
+        startChapterMeta = std::move(meta.value());
+    }
     // ✅ Their file names already sort after the anchor's (the usual case: their keys are larger) ⇒ a plain move. Otherwise
-    // each takes a new key after the last, and its sidecar is rewritten.
-    const bool keepNames = leaving.empty() || sceneKeyOf(leaving.front().metadataPath) > anchorKey;
+    // each takes a new key after the last, and its sidecar is rewritten. When the staying scenes move, these stay put.
+    const bool keepNames = stayingMoves || leaving.empty() || sceneKeyOf(leaving.front().metadataPath) > anchorKey;
     std::vector<SceneLocation> moved;   // ⚠️ when the end scene survives across chapters, `moved[0]` is that scene
     std::string prevKey = anchorKey;
     for (const auto& a : leaving) {
@@ -722,81 +917,118 @@ Result<RangeOperationResult> RangeOperations::cut(const Range& range, const Auth
             if (key.empty()) { return R::failure(internal("could not compute a scene order key")); }
             prevKey = key;
         }
-        moved.push_back(movedInto(a, startLoc.chapterID, startLoc.chapterTitle, startLoc.chapterMetadataPath, key));
+        moved.push_back(movedInto(a, startLoc.chapterID, startLoc.chapterTitle, keptChapterMeta, key));
     }
-    const SceneLocation survivor = !endSurvives ? startLoc : !moved.empty() ? moved.front() : endLoc;
+    const SceneLocation survivor = stayingMoves ? stayingNow.back()
+                                 : !endSurvives ? startLoc : !moved.empty() ? moved.front() : endLoc;
 
     // ✅ [SP-191] Q3b: what an undo needs to bring back what this cut removes — each removed scene's sidecar, and on the
     // entry that opens a removed chapter, that chapter's sidecar. Read before any write, like every other check.
     Range removedRange = range;
+    std::vector<FileJob> jobs;
     {
         auto it = removedRange.entries().begin();
         for (std::size_t i = 0; i < n; ++i, ++it) {
             const SceneLocation& loc = order[start->ordinal + i];
+            RangeEntry& e = *it;
             if (i >= removedFrom && i < removedTo) {
-                auto side = fs.readTextFile(util::join(root_, loc.metadataPath));
-                if (!side.ok()) { return R::failure(side.error()); }
-                it->sceneMeta = side.value();
+                jobs.push_back([&]() -> Result<void> {
+                    auto side = fs.readTextFile(util::join(root_, loc.metadataPath));
+                    if (!side.ok()) { return Result<void>::failure(side.error()); }
+                    e.sceneMeta = side.value();
+                    return Result<void>::success();
+                });
             }
             if (i > 0 && loc.chapterID.value != order[start->ordinal + i - 1].chapterID.value) {
-                auto chapter = fs.readTextFile(util::join(root_, loc.chapterMetadataPath));
-                if (!chapter.ok()) { return R::failure(chapter.error()); }
-                it->chapterMeta = chapter.value();
+                jobs.push_back([&]() -> Result<void> {
+                    auto chapter = fs.readTextFile(util::join(root_, loc.chapterMetadataPath));
+                    if (!chapter.ok()) { return Result<void>::failure(chapter.error()); }
+                    e.chapterMeta = chapter.value();
+                    return Result<void>::success();
+                });
             }
         }
     }
+    if (auto b = runConcurrently(jobs); !b.ok()) { return R::failure(b.error()); }
 
     // ── The writes ──
-    // The cut scenes go FIRST: one in the start chapter can hold the very file name a promoted scene keeps (keys are only
-    // unique within a chapter). ⛔ No relationship prune (user, 2026-10-20): the cut's undo, or a paste, brings the IDs back.
+    // Batch 1: the cut scenes go FIRST: one in the start chapter can hold the very file name a promoted scene keeps (keys are
+    // only unique within a chapter). ⛔ No relationship prune (user, 2026-10-20): the cut's undo, or a paste, brings the IDs
+    // back.
+    jobs.clear();
     for (std::size_t i = removedFrom; i < removedTo; ++i) {
         const SceneLocation& loc = order[start->ordinal + i];
-        auto rm = fs.removeFile(util::join(root_, loc.metadataPath));
-        if (!rm.ok()) { return R::failure(rm.error()); }
-        auto rc = fs.removeFile(util::join(root_, loc.contentPath));
-        if (!rc.ok()) { return R::failure(rc.error()); }
+        jobs.push_back([&] { return fs.removeFile(util::join(root_, loc.metadataPath)); });
+        jobs.push_back([&] { return fs.removeFile(util::join(root_, loc.contentPath)); });
     }
-    for (std::size_t k = 0; k < moved.size(); ++k) {
-        auto mv = moveSceneFiles(fs, root_, leaving[k], moved[k]);
-        if (!mv.ok()) { return R::failure(mv.error()); }
+    if (auto b = runConcurrently(jobs); !b.ok()) { return R::failure(b.error()); }
+    // Batch 2: the moves.
+    jobs.clear();
+    if (stayingMoves) {
+        for (std::size_t k = 0; k < staying.size(); ++k) { addMoveJobs(jobs, fs, root_, staying[k], stayingNow[k]); }
+    } else {
+        for (std::size_t k = 0; k < moved.size(); ++k) { addMoveJobs(jobs, fs, root_, leaving[k], moved[k]); }
     }
-    {
-        auto md = fs.atomicWriteTextFile(util::join(root_, survivor.contentPath), survivorText);
-        if (!md.ok()) { return R::failure(md.error()); }
-        auto side = restampSceneSidecar(fs, root_, survivor.metadataPath, survivorText, author, now);   // READ 3
-        if (!side.ok()) { return R::failure(side.error()); }
+    if (auto b = runConcurrently(jobs); !b.ok()) { return R::failure(b.error()); }
+    // Batch 3: the survivor, the emptied chapters (now that their scenes have left), and the two lists.
+    jobs.clear();
+    jobs.push_back([&] { return fs.atomicWriteTextFile(util::join(root_, survivor.contentPath), survivorText); });
+    jobs.push_back([&] { return restampSceneSidecar(fs, root_, survivor.metadataPath, survivorText, author, now); });   // READ 3
+    if (stayingMoves) {   // the start chapter's folder is the emptied one; its sidecar now heads the end chapter's folder
+        jobs.push_back([&] { return removeChapterFolder(fs, root_, startLoc.chapterMetadataPath); });
+    } else {
+        for (const auto& ch : removedChapters) {
+            jobs.push_back([&] { return removeChapterFolder(fs, root_, ch.metadataPath); });
+        }
     }
-    for (const auto& ch : removedChapters) {
-        auto rm = removeChapterFolder(fs, root_, ch.metadataPath);
-        if (!rm.ok()) { return R::failure(rm.error()); }
-    }
-    if (n > 1) {
+    std::vector<std::string> startChapterNames;
+    if (stayingMoves) {
+        startChapterNames = metaFilenamesOf(stayingNow);
+        for (const auto& name : metaFilenamesOf(leaving)) { startChapterNames.push_back(name); }
+        jobs.push_back([&] {
+            return writeChapterMetaInto(fs, root_, dirOf(keptChapterMeta), *startChapterMeta, startChapterNames);
+        });
+    } else if (n > 1) {
         std::unordered_set<std::string> gone;
         for (const auto& id : removed) { gone.insert(id.value); }
-        std::vector<std::string> names;
         for (const auto& s : scenesOfChapter(index_, startLoc.chapterID)) {
-            if (gone.count(s.sceneID.value) == 0) { names.push_back(fileNameOf(s.metadataPath)); }
+            if (gone.count(s.sceneID.value) == 0) { startChapterNames.push_back(fileNameOf(s.metadataPath)); }
         }
-        for (const auto& m : moved) { names.push_back(fileNameOf(m.metadataPath)); }
-        auto cw = writeChapterScenes(fs, root_, startLoc.chapterMetadataPath, names);   // READ 4
-        if (!cw.ok()) { return R::failure(cw.error()); }
+        for (const auto& m : moved) { startChapterNames.push_back(fileNameOf(m.metadataPath)); }
+        jobs.push_back([&] { return writeChapterScenes(fs, root_, startLoc.chapterMetadataPath, startChapterNames); });   // READ 4
     }
+    std::unordered_set<std::string> goneChapters;
+    for (const auto& ch : removedChapters) { goneChapters.insert(ch.chapterID.value); }
     if (!removedChapters.empty()) {
-        std::unordered_set<std::string> gone;
-        for (const auto& ch : removedChapters) { gone.insert(ch.chapterID.value); }
-        auto mw = editManuscriptChapters(fs, root_, [&](std::vector<schemas::ChapterRef>& refs) {
-            std::erase_if(refs, [&](const schemas::ChapterRef& r) { return gone.count(r.chapterID.value) > 0; });
+        jobs.push_back([&] {
+            return editManuscriptChapters(fs, root_, [&](std::vector<schemas::ChapterRef>& refs) {
+                std::erase_if(refs, [&](const schemas::ChapterRef& r) { return goneChapters.count(r.chapterID.value) > 0; });
+                if (stayingMoves) {
+                    for (auto& r : refs) {
+                        if (r.chapterID.value == startLoc.chapterID.value) { r.path = keptChapterMeta; }
+                    }
+                }
+            });
         });
-        if (!mw.ok()) { return R::failure(mw.error()); }
     }
+    if (auto b = runConcurrently(jobs); !b.ok()) { return R::failure(b.error()); }
 
     // ── The result ──
     RangeOperationResult out;
     const SceneID beforeStart = scenesBefore(startLoc.ordinal);
     out.indexCurrent = index_.removeScenes(removed);
     for (const auto& m : moved) { out.indexCurrent = out.indexCurrent && index_.relocateScene(m); }
+    for (const auto& m : stayingNow) { out.indexCurrent = out.indexCurrent && index_.relocateScene(m); }
 
-    out.delta.scenes.push_back({RangeSceneChange::Kind::Rewritten, survivor, beforeStart, survivorText});
+    SceneID before = beforeStart;
+    if (stayingMoves) {   // the start chapter's scenes before the survivor moved too
+        before = scenesBefore(staying.front().ordinal);
+        for (std::size_t k = 0; k + 1 < stayingNow.size(); ++k) {
+            out.delta.scenes.push_back({RangeSceneChange::Kind::Moved, stayingNow[k], before, {}});
+            before = stayingNow[k].sceneID;
+        }
+    }
+    out.delta.scenes.push_back({RangeSceneChange::Kind::Rewritten, survivor, before, survivorText});
     SceneID previous = survivor.sceneID;
     for (const auto& m : moved) {
         if (m.sceneID.value == survivor.sceneID.value) { continue; }   // reported above, with its text
@@ -870,22 +1102,13 @@ Result<RangeOperationResult> RangeOperations::relabel(const Range& range, const 
     auto& fs = *services_.fileSystem;
     const std::string now = services_.clock->nowUTC();
 
-    // ── The destination, and where each scene lands in it ──
-    ChapterInfo dest;
-    std::vector<SceneLocation> destScenes;   // what the destination already holds
-    std::optional<schemas::ChapterMetaData> newChapter;
-    std::string newChapterDir;
-    std::vector<SceneLocation> moved;
-    if (intoNew) {
-        const std::string nextKey = pos + 1 < chapters.size() ? chapterKeyOf(chapters[pos + 1].metadataPath) : std::string();
-        auto key = freeChapterKey(fs, root_, chapterKeyOf(sourceIt->metadataPath), nextKey);
-        if (!key.ok()) { return R::failure(key.error()); }
-        newChapterDir = "manuscript/chapter-" + key.value();
+    // The sidecar of the chapter the run goes into when that is a new one: the chapter an undo re-creates, else a fresh one.
+    auto newChapterMeta = [&]() -> Result<schemas::ChapterMetaData> {
         schemas::ChapterMetaData meta;
         const RangeEntry& first = *entries.front();
         if (!first.chapterMeta.empty()) {   // ✅ Q3b: an undo brings the chapter back as it was
             auto parsed = schemas::parseChapterMeta(first.chapterMeta);
-            if (!parsed.ok()) { return R::failure(parsed.error()); }
+            if (!parsed.ok()) { return parsed; }
             meta = std::move(parsed.value());
         } else {
             meta.title                = first.chapterTitle;   // [SP-191] Q10: "" = untitled
@@ -898,6 +1121,157 @@ Result<RangeOperationResult> RangeOperations::relabel(const Range& range, const 
         }
         meta.chapterID = target.value.empty() || target.value.starts_with("~") ? services_.uuidProvider->newChapterID()
                                                                                : target;
+        return Result<schemas::ChapterMetaData>::success(std::move(meta));
+    };
+
+    // ✅ [SP-191] (user, 2026-10-22): MOVE THE SMALLER SIDE. A relabel moves a run of whole scenes into the chapter next to
+    // theirs; when the scenes on the OTHER side of the new boundary are fewer, those move instead — into the other folder,
+    // with their chapter's sidecar — and the run stays where it lies, relabelled. The chapters, their IDs, their sidecars
+    // and the reading order come out the same; only which folder holds which chapter differs. Over a network share every
+    // move is a rename and renames do not overlap there (measured, Docker SMB share), so this is what halves the cost.
+    //   • a chapter merge (the run is all of its chapter, into the one before): the earlier chapter's scenes, if fewer,
+    //     move into the run's folder, below the run; that chapter's sidecar replaces the run's. The emptied folder is the
+    //     earlier one.
+    //   • a run into a new chapter after its own (a chapter split at a scene's start; a merge's undo): the scenes left
+    //     behind, if fewer, move into a new folder BEFORE the source's, with the source's sidecar; the new chapter's sidecar
+    //     takes the source's folder.
+    std::vector<SceneLocation> rest;   // the source's scenes the run leaves behind
+    for (const auto& s : sourceScenes) {
+        if (std::none_of(run.begin(), run.end(), [&](const SceneLocation& r) { return r.sceneID.value == s.sceneID.value; })) {
+            rest.push_back(s);
+        }
+    }
+    const std::vector<SceneLocation> earlier = intoPrevious ? scenesOfChapter(index_, chapters[pos - 1].chapterID)
+                                                            : std::vector<SceneLocation>{};
+    const bool foldEarlier = intoPrevious && emptiesSource && earlier.size() < run.size();
+    const bool splitOffRest = intoNew && !emptiesSource && rest.size() < run.size();
+    if (foldEarlier || splitOffRest) {
+        const RelativePath sourceMetaRel = sourceIt->metadataPath;
+        const std::string  sourceDir     = dirOf(sourceMetaRel);
+        const ChapterInfo  kept          = foldEarlier ? chapters[pos - 1] : *sourceIt;   // the chapter whose scenes move
+        const std::vector<SceneLocation>& movers = foldEarlier ? earlier : rest;
+
+        // Read before any write: the moving chapter's sidecar (it follows its scenes), and the source's when the merge
+        // removes it (Q3b: its undo re-creates it).
+        auto keptMeta = readChapterMeta(fs, root_, kept.metadataPath);
+        if (!keptMeta.ok()) { return R::failure(keptMeta.error()); }
+        std::string sourceMeta;
+        if (foldEarlier) {
+            auto chapter = fs.readTextFile(util::join(root_, sourceMetaRel));
+            if (!chapter.ok()) { return R::failure(chapter.error()); }
+            sourceMeta = chapter.value();
+        }
+
+        std::string toDir;                              // where the movers go
+        std::optional<schemas::ChapterMetaData> runMeta;   // the new chapter's sidecar, around the run (split)
+        ChapterID   runChapter;
+        std::string runChapterTitle;
+        std::vector<std::string> keys;                  // the movers' new keys; empty = they keep their names
+        if (foldEarlier) {
+            toDir           = sourceDir;
+            runChapter      = kept.chapterID;
+            runChapterTitle = kept.title;
+            const std::string hi = sceneKeyOf(run.front().metadataPath);
+            if (sceneKeyOf(movers.back().metadataPath) >= hi) {   // the usual case: every chapter's keys start alike
+                keys = keysBetween("", hi, movers.size());
+                if (keys.size() != movers.size()) { return R::failure(internal("could not compute scene order keys")); }
+            }
+        } else {
+            const std::string prevKey = pos > 0 ? chapterKeyOf(chapters[pos - 1].metadataPath) : std::string();
+            auto key = freeChapterKey(fs, root_, prevKey, chapterKeyOf(sourceMetaRel));
+            if (!key.ok()) { return R::failure(key.error()); }
+            toDir = "manuscript/chapter-" + key.value();
+            auto metaR = newChapterMeta();
+            if (!metaR.ok()) { return R::failure(metaR.error()); }
+            runMeta         = std::move(metaR.value());
+            runChapter      = runMeta->chapterID;
+            runChapterTitle = runMeta->title;
+        }
+        const RelativePath keptMetaRel = toDir + "/chapter.meta.json";
+        std::vector<SceneLocation> movedTo;
+        for (std::size_t i = 0; i < movers.size(); ++i) {
+            movedTo.push_back(movedInto(movers[i], kept.chapterID, kept.title, keptMetaRel, keys.empty() ? "" : keys[i]));
+        }
+        const std::vector<SceneLocation> runNow = relabelledInPlace(run, runChapter, runChapterTitle, sourceMetaRel);
+
+        // ── The writes: a new folder first, then the moves, then the sidecars, and an emptied folder LAST ([I-0083]) ──
+        if (splitOffRest) {
+            auto dir = fs.createDirectories(util::join(root_, toDir));
+            if (!dir.ok()) { return R::failure(dir.error()); }
+        }
+        std::vector<FileJob> jobs;
+        for (std::size_t i = 0; i < movers.size(); ++i) { addMoveJobs(jobs, fs, root_, movers[i], movedTo[i]); }
+        if (auto b = runConcurrently(jobs); !b.ok()) { return R::failure(b.error()); }
+        jobs.clear();
+        std::vector<std::string> keptNames = metaFilenamesOf(movedTo);
+        if (foldEarlier) {
+            for (const auto& name : metaFilenamesOf(run)) { keptNames.push_back(name); }
+            jobs.push_back([&] { return removeChapterFolder(fs, root_, kept.metadataPath); });
+        } else {
+            jobs.push_back([&] { return writeChapterMetaInto(fs, root_, sourceDir, *runMeta, metaFilenamesOf(run)); });
+        }
+        jobs.push_back([&] { return writeChapterMetaInto(fs, root_, toDir, keptMeta.value(), keptNames); });
+        jobs.push_back([&] {
+            return editManuscriptChapters(fs, root_, [&](std::vector<schemas::ChapterRef>& refs) {
+                for (auto& r : refs) {
+                    if (r.chapterID.value == kept.chapterID.value) { r.path = keptMetaRel; }
+                }
+                if (foldEarlier) {
+                    std::erase_if(refs, [&](const schemas::ChapterRef& r) { return r.chapterID.value == source.value; });
+                } else {
+                    auto at = std::find_if(refs.begin(), refs.end(),
+                        [&](const schemas::ChapterRef& r) { return r.chapterID.value == source.value; });
+                    refs.insert(at == refs.end() ? refs.end() : std::next(at),
+                                schemas::ChapterRef{.chapterID = runChapter, .path = sourceMetaRel});
+                }
+            });
+        });
+        if (auto b = runConcurrently(jobs); !b.ok()) { return R::failure(b.error()); }
+
+        // ── The result ── (the reading order is unchanged: the movers come first in it, then the run)
+        RangeOperationResult out;
+        out.indexCurrent = true;
+        for (const auto& m : movedTo) { out.indexCurrent = out.indexCurrent && index_.relocateScene(m); }
+        for (const auto& m : runNow) { out.indexCurrent = out.indexCurrent && index_.relocateScene(m); }
+        SceneID previous = scenesBefore(movers.front().ordinal);
+        for (const auto* list : std::initializer_list<const std::vector<SceneLocation>*>{&movedTo, &runNow}) {
+            for (const auto& m : *list) {
+                out.delta.scenes.push_back({RangeSceneChange::Kind::Moved, m, previous, {}});
+                previous = m.sceneID;
+            }
+        }
+        if (foldEarlier) {
+            out.delta.removedChapterIDs.push_back(source);
+        } else {
+            out.delta.createdChapters.push_back({runChapter, runChapterTitle, sourceMetaRel, source});
+        }
+        for (std::size_t k = 0; k < runNow.size(); ++k) {   // the run as it is now, as below
+            RangeEntry e;
+            e.sceneID      = runNow[k].sceneID;
+            e.chapterID    = runChapter;
+            e.chapterTitle = sourceIt->title;
+            e.sceneTitle   = runNow[k].title;
+            if (k == 0) { e.chapterMeta = sourceMeta; }
+            out.range.append(std::move(e));
+        }
+        out.fromChapterID = source;
+        return R::success(std::move(out));
+    }
+
+    // ── The destination, and where each scene lands in it ──
+    ChapterInfo dest;
+    std::vector<SceneLocation> destScenes;   // what the destination already holds
+    std::optional<schemas::ChapterMetaData> newChapter;
+    std::string newChapterDir;
+    std::vector<SceneLocation> moved;
+    if (intoNew) {
+        const std::string nextKey = pos + 1 < chapters.size() ? chapterKeyOf(chapters[pos + 1].metadataPath) : std::string();
+        auto key = freeChapterKey(fs, root_, chapterKeyOf(sourceIt->metadataPath), nextKey);
+        if (!key.ok()) { return R::failure(key.error()); }
+        newChapterDir = "manuscript/chapter-" + key.value();
+        auto metaR = newChapterMeta();
+        if (!metaR.ok()) { return R::failure(metaR.error()); }
+        schemas::ChapterMetaData meta = std::move(metaR.value());
         meta.slug = fileNameOf(newChapterDir);
         dest = {meta.chapterID, meta.title, newChapterDir + "/chapter.meta.json"};
         newChapter = std::move(meta);
@@ -933,6 +1307,7 @@ Result<RangeOperationResult> RangeOperations::relabel(const Range& range, const 
     }
 
     // ── The writes: the destination first, then the moves, and the emptied chapter LAST ([I-0083]) ──
+    // Batch 1: a new destination's folder and sidecar.
     if (newChapter) {
         auto dir = fs.createDirectories(util::join(root_, newChapterDir));
         if (!dir.ok()) { return R::failure(dir.error()); }
@@ -941,46 +1316,42 @@ Result<RangeOperationResult> RangeOperations::relabel(const Range& range, const 
         auto w = fs.atomicWriteTextFile(util::join(root_, dest.metadataPath), schemas::serializeChapterMeta(*newChapter));
         if (!w.ok()) { return R::failure(w.error()); }
     }
-    for (std::size_t k = 0; k < run.size(); ++k) {
-        auto mv = moveSceneFiles(fs, root_, run[k], moved[k]);
-        if (!mv.ok()) { return R::failure(mv.error()); }
-    }
+    // Batch 2: the moves.
+    std::vector<FileJob> jobs;
+    for (std::size_t k = 0; k < run.size(); ++k) { addMoveJobs(jobs, fs, root_, run[k], moved[k]); }
+    if (auto b = runConcurrently(jobs); !b.ok()) { return R::failure(b.error()); }
+    // Batch 3: the destination's list, the source (its list, or the emptied chapter removed) and the manuscript's list.
+    jobs.clear();
+    std::vector<std::string> destNames;
     if (!newChapter) {
-        std::vector<std::string> names = intoPrevious ? metaFilenamesOf(destScenes) : std::vector<std::string>{};
-        for (const auto& m : moved) { names.push_back(fileNameOf(m.metadataPath)); }
+        destNames = intoPrevious ? metaFilenamesOf(destScenes) : std::vector<std::string>{};
+        for (const auto& m : moved) { destNames.push_back(fileNameOf(m.metadataPath)); }
         if (intoNext) {
-            for (const auto& name : metaFilenamesOf(destScenes)) { names.push_back(name); }
+            for (const auto& name : metaFilenamesOf(destScenes)) { destNames.push_back(name); }
         }
-        auto cw = writeChapterScenes(fs, root_, dest.metadataPath, names);
-        if (!cw.ok()) { return R::failure(cw.error()); }
+        jobs.push_back([&] { return writeChapterScenes(fs, root_, dest.metadataPath, destNames); });
     }
     if (emptiesSource) {
-        auto rm = removeChapterFolder(fs, root_, sourceIt->metadataPath);
-        if (!rm.ok()) { return R::failure(rm.error()); }
+        jobs.push_back([&] { return removeChapterFolder(fs, root_, sourceIt->metadataPath); });
     } else {
-        std::vector<SceneLocation> rest;
-        for (const auto& s : sourceScenes) {
-            if (std::none_of(run.begin(), run.end(), [&](const SceneLocation& r) { return r.sceneID.value == s.sceneID.value; })) {
-                rest.push_back(s);
-            }
-        }
-        auto cw = writeChapterScenes(fs, root_, sourceIt->metadataPath, metaFilenamesOf(rest));
-        if (!cw.ok()) { return R::failure(cw.error()); }
+        jobs.push_back([&] { return writeChapterScenes(fs, root_, sourceIt->metadataPath, metaFilenamesOf(rest)); });
     }
     if (newChapter || emptiesSource) {
-        auto mw = editManuscriptChapters(fs, root_, [&](std::vector<schemas::ChapterRef>& refs) {
-            if (newChapter) {
-                auto at = std::find_if(refs.begin(), refs.end(),
-                    [&](const schemas::ChapterRef& r) { return r.chapterID.value == source.value; });
-                refs.insert(at == refs.end() ? refs.end() : std::next(at),
-                            schemas::ChapterRef{.chapterID = dest.chapterID, .path = dest.metadataPath});
-            }
-            if (emptiesSource) {
-                std::erase_if(refs, [&](const schemas::ChapterRef& r) { return r.chapterID.value == source.value; });
-            }
+        jobs.push_back([&] {
+            return editManuscriptChapters(fs, root_, [&](std::vector<schemas::ChapterRef>& refs) {
+                if (newChapter) {
+                    auto at = std::find_if(refs.begin(), refs.end(),
+                        [&](const schemas::ChapterRef& r) { return r.chapterID.value == source.value; });
+                    refs.insert(at == refs.end() ? refs.end() : std::next(at),
+                                schemas::ChapterRef{.chapterID = dest.chapterID, .path = dest.metadataPath});
+                }
+                if (emptiesSource) {
+                    std::erase_if(refs, [&](const schemas::ChapterRef& r) { return r.chapterID.value == source.value; });
+                }
+            });
         });
-        if (!mw.ok()) { return R::failure(mw.error()); }
     }
+    if (auto b = runConcurrently(jobs); !b.ok()) { return R::failure(b.error()); }
 
     // ── The result ── (the reading order is unchanged: only chapters and paths move)
     RangeOperationResult out;

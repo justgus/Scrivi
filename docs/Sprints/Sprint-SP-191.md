@@ -209,11 +209,21 @@ chapter split, merge and chapter merge.
     the Mac's `renumberChapterTitlesFrom` are removed; both apps' headings, navigator and timeline dots derive the number.
 16. **The heading anchor, on both.** Every structural edit steps back over hidden line-start and opener stops first (Apple
     `structuralAnchorAndLine`, Linux `EditorShell::structuralAnchor`); a multi-entry paste anchored before a heading's or
-    list item's marker ends its last part with a line break (⚠️ a judgment call: vetoable).
+    list item's marker ends its last part with a line break (✅ approved by the user 2026-10-22).
 17. **[I-0315] on Linux** (the Mac already had this shape): the Inspector writes the outline and to-do only when changed,
     and never to a removed scene.
 18. **The Linux worker reads only the story times** (`scrivi_list_story_times`, as the Mac does) and logs each phase's time,
     plus the GUI-thread apply.
+
+**The range call's cost over the share (user, 2026-10-22: "Do option 1, and option 2 and build the Docker share to measure
+it")**
+
+19. **Concurrent file calls** (`RangeOperations.cpp`, `runConcurrently`): each operation's independent calls run 8 at a time,
+    in batches that keep its order. ⚠️ Measured gain about 1.5×: the Linux CIFS client serialises renames and creates.
+20. **Move the smaller side**: a chapter split (paste), its undo (cut), a chapter merge (relabel) and a run into a new
+    chapter (relabel) move the fewer scenes; that chapter's sidecar follows them. The delta names every scene whose files or
+    chapter folder changed.
+21. **A Docker SMB share with added latency** to measure without the rig (`scrivi-smb` image; 5 ms one way ≈ the rig).
 
 ⛔ **NOT in this Sprint:**
 - structural cut and Backspace / Delete over scenes ([SP-188], which inherits items 1, 2 and 9);
@@ -262,6 +272,12 @@ chapter split, merge and chapter merge.
 - [x] AC15 — The Linux worker reads only the story times and logs each phase. ✅ The rig's timings (build 77) below.
 - [x] AC16 — Linux draws every heading and scene line right after each structural edit, undo and redo (the rig finding):
       `structural_baseline_smoke` checks the presenter's laid-out formats after every one; mutation-checked.
+
+- [x] AC17 — A chapter split, its undo, a chapter merge and a run into a new chapter rename at most 2 × the smaller side's
+      scenes (budget tests); order, text, chapter IDs and sidecars come out as before, the delta names every relocated
+      scene, the patched index answers as a fresh one, the scan is clean (C ABI tests); a failed call in a batch fails the
+      operation. Mutation-checked.
+- [x] AC18 — Measured over a Docker SMB share at the rig's latency, before and after (the table in the log).
 
 ## Progress log
 
@@ -505,3 +521,67 @@ chapter split, merge and chapter merge.
   measured structural edit), which the mutation does not trip. Smokes 38/38.
 - ⏳ **Next:** the user commits the tree; the rig pulls and builds (build 79); the rig re-pass.
 
+### 🟡 2026-10-22 — Build 78 cleaned up; the paste line break approved; the range call's cost under investigation
+- The fix is in `6afe047`. The user restored the `dumas-prose-timelines` fixture after build 78's bad undos.
+- ✅ The line break a paste adds before a heading or list marker: approved (user: *"Paste heading newline is approved."*).
+- The rig is unavailable, so AC11's build 79 re-pass waits for it. A Mac pass over a share needs a real network share: the
+  shares used so far are on the Mac's own disks (user).
+- ⏳ Started: why a chapter split or merge takes 2.4–3.3 s in the core range call on dumas over the share (and undo
+  2.2–2.4 s). Counting the core's file calls per operation first, before any change.
+- ✅ **Measured (2026-10-22), through the C ABI on a copy of dumas-prose-timelines** (1,180 scenes; a 24-scene chapter, split
+  in its middle scene; every filesystem call counted; a scratch build, nothing in the tree):
+
+  | Operation | Reads | Writes | Renames | Removes | Other | Total | Local | Rig (build 77) |
+  |---|---|---|---|---|---|---|---|---|
+  | scene split | 3 | 5 | 0 | 0 | 1 | 9 | 2 ms | 384 ms (small project) |
+  | its undo | 5 | 3 | 0 | 2 | 0 | 10 | 1 ms | — |
+  | chapter split | 4 | 7 | 22 | 0 | 2 | 35 | 4 ms | 2,430 ms |
+  | its undo | 7 | 4 | 22 | 3 | 0 | 36 | 3 ms | 2.2–2.4 s |
+  | chapter merge (24 scenes) | 27 | 26 | 24 | 25 | 0 | 102 | 9 ms | 3,268 ms |
+  | its undo | 2 | 3 | 48 | 0 | 2 | 55 | 5 ms | 2.2–2.4 s |
+
+  - No index rebuild, no listing and no manuscript walk in any of them: each touches only its own chapter's files. A save
+    before the operation does not drop the index.
+  - Chapter split ≈ 2 × (the scenes after the split) + 13 calls. Chapter merge ≈ 4 × (the merged chapter's scenes) + 6.
+    The merge rewrites every sidecar because scene keys collide between chapters. Its undo only renames.
+  - So the rig's time is the number of calls × the share's cost per call: about 30–70 ms a call over the share, against
+    under 0.1 ms locally. ⚠️ The table compares local counts with the rig's times. The cost per call over the share has
+    not been measured.
+  - ⏳ For ruling: fewer calls, calls made concurrently, or accept (the GUI does not freeze; progress shows after 400 ms).
+
+### 🟡 2026-10-22 — The range call over the share: concurrent calls + the smaller side (Plan 19–21); [I-0316] filed
+- User: *"Do option 1, and option 2 and build the Docker share to measure it and file the world.json issue."*
+- ✅ **The share without the rig:** a Docker SMB3 share with `netem` delay, mounted over CIFS in a Linux container; a probe
+  calls the real `scrivi_*` range endpoints on a copy of dumas-prose-timelines (a scratch build, nothing in the tree).
+  5 ms one way reproduces the rig: scene split 382 ms (rig 384), chapter merge 3.7 s (rig 3.3 s).
+- ⚠️ **Measured: renames and creates do not overlap over CIFS.** 24 renames take 547 ms one at a time and 340 ms all at
+  once; 24 reads 353 ms → 4 ms. So concurrent calls (Plan 19) give about 1.5×, and fewer renames (Plan 20) give the rest.
+- ⛔ **My earlier proposal was partly wrong:** I offered "a merge could skip the sidecar rewrites where keys don't collide",
+  but `relabel` and `cut` already did that. The merge's rewrites happen BECAUSE keys collide (every chapter's start alike).
+  Option 2 is therefore the smaller side only; a merge of two equal chapters still moves one of them whole.
+- ✅ **Before → after, 5 ms share, dumas (24-scene chapters):**
+
+  | Operation | HEAD | Now |
+  |---|---|---|
+  | scene split / its undo | 360 / 300 ms | 304 / 238 ms |
+  | chapter split in scene 3 of 24 / its undo | 2,139 / 2,119 ms | 527 / 391 ms |
+  | chapter split in scene 13 of 24 / its undo | 1,410 / 1,354 ms | 957 / 988 ms |
+  | chapter split in scene 22 of 24 / its undo | 674 / 614 ms | 443 / 355 ms |
+  | chapter merge (24 into 24) / its undo | 3,787 / 2,099 ms | 2,412 / 1,612 ms |
+
+- ✅ **Tests:** budget tests count the renames (≤ 2 × the smaller side, for a split and its undo, a relabel into a new
+  chapter and the merge back); a failed call in a batch fails the operation; slow renames prove the moving scenes leave
+  before a new scene takes one of their file names. C ABI tests force each smaller-side case: order, text, chapter IDs and
+  sidecars as before, the delta names every scene whose files or chapter folder changed, the patched index answers as a
+  fresh one, every chapter folder is whole (sidecar, `slug` = folder name, no chapter ID twice), the scan is clean; undo and
+  redo exact.
+- ✅ **Mutations (in a copy of the repo): 17 of 18 caught.** The survivor is equivalent: one call at a time instead of 8
+  changes only the time (the share measures it). The first run left four gaps, which the tests above now close: an emptied
+  folder left behind, a stale chapter `slug`, the cut's re-keying, and the batch order on a file-name collision.
+- ✅ **A flaky test fixed, not mine but red in one full run:** `ObjectCApiTests`' "a source round-trips…" failed once under
+  `ctest -j6`. ctest runs each case in its own process, and 11 fixtures named their temp project from a per-process counter
+  and a stack address, so two cases could share one folder. Each now adds the process ID, as `MergeSceneTests` already did.
+- ✅ ctest 759 Mac / 763 Linux, interop 302, Linux smokes 38.
+- **[I-0316]** `[ScriviCore]` filed to the backlog: with the world missing, every open looks for it once per relationship
+  endpoint (270 `world.json` reads + 540 probes on dumas).
+- ⏳ AC11's rig re-pass (build 79 or later) now also times these over the real share.

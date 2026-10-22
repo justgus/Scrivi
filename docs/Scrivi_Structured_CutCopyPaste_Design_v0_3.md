@@ -86,6 +86,15 @@ froze 10–15 s), [I-0311] (a chapter-opening paste scrambles the reading order)
   so a split there takes the heading with its scene and a chapter split there is Q8's relabel. A multi-entry paste anchored
   before a heading's or list item's marker ends its last part with a line break, so the heading stays a heading; the break
   is part of what the paste inserts, and its undo removes it.
+- **A structural edit moves the SMALLER side, and makes its independent file calls concurrently** (user, 2026-10-22, after
+  timing the core over a share). A chapter is a folder, so a chapter split, a chapter merge and their undos move scene
+  files; over a network share each move is a rename and renames there do NOT overlap (measured on a Docker SMB share: 24
+  renames 547 ms one at a time, 340 ms all at once; 24 reads 353 ms → 4 ms). So the scenes on the side of the new boundary
+  with FEWER scenes move, and their chapter's sidecar follows them into the other folder; the chapters, their IDs, their
+  sidecars and the reading order come out the same, and only which folder holds which chapter differs. Every scene whose
+  files OR chapter folder changed is in the delta (both apps keep each scene's chapter-sidecar path). Calls in one batch
+  touch different files; the batches keep the operation's order (new files first, an emptied folder last). A chapter merge
+  of two equal chapters still moves one whole chapter, with its scenes re-keyed (every chapter's keys start alike).
 - **While a structural edit is in flight** (Q5): an immediate cue in the key press's own event-loop turn, then read-only;
   repeats, typing and undo are ignored, not queued; the progress row after 400 ms — *"as long as the initial operation response
   is nearly instantaneous"*.

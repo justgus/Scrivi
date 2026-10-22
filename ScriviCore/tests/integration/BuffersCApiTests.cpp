@@ -8,6 +8,7 @@
 #include <filesystem>
 #include <fstream>
 #include <string>
+#include <unistd.h>   // getpid: ctest runs each test case in its own process
 
 // Round-trips the scrivi_buffers_* C ABI through its JSON envelopes (EP-019,
 // SP-056, T-0213). Buffers persist to <root>/history/buffers.json — a stateless
@@ -43,7 +44,7 @@ struct BuffersRoot {
     BuffersRoot() {
         static std::atomic<int> counter{0};
         path = (std::filesystem::temp_directory_path() /
-                ("scrivi-buffers-capi-" + std::to_string(counter.fetch_add(1)) + "-" +
+                ("scrivi-buffers-capi-" + std::to_string(::getpid()) + "-" + std::to_string(counter.fetch_add(1)) + "-" +
                  std::to_string(reinterpret_cast<std::uintptr_t>(this)) + ".scrivi"))
                    .string();
     }

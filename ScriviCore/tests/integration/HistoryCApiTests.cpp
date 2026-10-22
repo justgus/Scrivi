@@ -8,6 +8,7 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <unistd.h>   // getpid: ctest runs each test case in its own process
 
 // Round-trips the scrivi_history_* C ABI through its JSON envelopes (T-0202).
 // The history now persists to <root>/history/ (SP-054), so each test uses a
@@ -95,7 +96,7 @@ struct HistoryRoot {
     HistoryRoot() {
         static std::atomic<int> counter{0};
         path = (std::filesystem::temp_directory_path() /
-                ("scrivi-history-capi-" + std::to_string(counter.fetch_add(1)) + "-" +
+                ("scrivi-history-capi-" + std::to_string(::getpid()) + "-" + std::to_string(counter.fetch_add(1)) + "-" +
                  std::to_string(reinterpret_cast<std::uintptr_t>(this)) + ".scrivi"))
                    .string();
     }

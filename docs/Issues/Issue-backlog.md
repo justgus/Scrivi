@@ -4,6 +4,8 @@ Issues listed here are open and documented but not currently assigned to a Sprin
 
 | ID | Title | Severity | Sprint |
 | -- | ----- | -------- | ------ |
+| **I-0316** | `[ScriviCore]` ⚠️ **When a project's linked world cannot be found, every project open tries to find it once PER RELATIONSHIP ENDPOINT: 270 reads of `world.json` and 540 folder probes on dumas-prose-timelines (135 relationships), each one failing.** The binding read is cached per sweep ([I-0207], [I-0231]); the world lookup is not. Found 2026-10-22 measuring [SP-191]. → [details](#i-0316) | Medium | Not Assigned |
+| **I-0308** | `[Linux]` ⛔ **The app CRASHED while the writer typed in the Find bar** (dumas-prose-timelines over the share, after a cross-scene paste, a quit, a reopen and an undo of the paste). Found on the rig 2026-10-15. ⚪ **Not reproducible** (user, 2026-10-22): not reproduced in Docker under ASan, did not recur on the rig (build 75). → [details](#i-0308) | **High** | Not Assigned (removed from [SP-185] 2026-10-22) |
 | **I-0313** | `[Apple]` ⚠️ **Typing into an empty scene that sits right before another empty scene is credited to the NEXT scene: the page shows the letter in the first, the scene list puts a newline in the second, and the caret jumps two characters.** Found 2026-10-20 by [SP-187]'s run-render test; reproduced after a full render too, so not caused by it. ⚠️ Not yet seen in the app. → [details](#i-0313) | **Medium** | Not Assigned |
 | **I-0312** | `[ScriviCore]` ⚠️ **`keyBetween` gives a key that sorts BEFORE an undotted legacy key it should follow: `keyBetween("004", "005")` → `"0.0.4.H"`, which byte-sorts before `"004"`.** Found 2026-10-20 testing [SP-186]'s range paste; `SceneCreator` has the same exposure. → [details](#i-0312) | **Medium** | Not Assigned |
 | **I-0301** | `[Apple]` ⚠️ **At the beginning of the manuscript, scrolling down jitters and the view does not move — as if something keeps putting it back.** Reported by the user 2026-10-13 during [SP-180]'s live pass. ✅ Caught in the diagnostics 2026-10-17 (after a Show chapter titles toggle): the view snaps back about 35 pt mid-gesture, with no Scrivi scroll call logged. Cause not yet named. → [details](#i-0301) | **Medium** | — (detached from [SP-180] 2026-10-14) |
@@ -12,6 +14,78 @@ Issues listed here are open and documented but not currently assigned to a Sprin
 | **I-0275** | `[Apple]` ⚠️ **Keystroke and caret-move cost grows LINEARLY with position in the manuscript — ~20–43 ms at the start, ~89–122 ms at the end of 1.85 MB.** ✅ **MEASURED 2026-10-04** ([SP-157] AC10c, user's run, `dumas-prose-timelines`, 1,855,917 chars): typing 20.0–42.6 ms (scene 0) · 37.1–66.2 ms (scene 291, ~460k) · 89.1–121.7 ms (scenes 1182–1184); Return and ⌫ the same as typing at each place; ⚠️ **arrow keys 0.6–1.7 ms at the start, 89–117 ms at the end — and arrows run NONE of Scrivi's per-keystroke work**, so the scaling is AppKit's (TextKit 2). Scrivi's own work (`[SCRIVI-KEY]`) is flat at 2.3–4.3 ms (→ [T-0583]). ---- ⚠️ **USER'S STANDING (quoted, not inflated):** *"I'm a little worried that we're scanning the whole document at each keystroke"* · *"I didn't say it bites. I said I was kind of concerned."* → *"Let's backlog the Issue for the real cost as well."* ⛔ **NOT ruled as biting.** ---- ✅ **Relation:** [I-0206] (closed not-a-defect) measured `setSel` linear in offset and typing "constant" — ⚠️ this shows typing and arrows are linear too ([I-0206] measured typing at one place). ⚠️ Consistent with [I-0267]'s unexplained fast/slow runs being a caret-POSITION difference — unproven. ---- ✅ **Next step: an Instruments time profile of ONE keystroke and ONE arrow at the end of the manuscript**, to name the AppKit call that grows with position. ⚠️ Only then a design decision; the structural option (not holding the whole manuscript in one text view, with a scene-position map) is Epic-sized. ---- ✅ **BACKGROUND — sync vs async (user asked 2026-10-04; added at the user's request):** ⚠️ **everything per keystroke is SYNCHRONOUS on the main thread, inside `keyDown`**: (1) AppKit's key dispatch → `insertText`; (2) our pre-edit guards in `shouldChangeText` (heading / divider refusal, escape-pair widening); (3) escaping in `insertText`; (4) the storage edit + `EscapeHidingStyler.restyle` (must finish before drawing, or a hidden backslash flashes); (5) **AppKit's own layout / selection / display**; (6) our `textDidChange` bookkeeping (boundary scan, scene lookup, text extract, history `noteEdit`, and on `.`/`!`/`?`/Return a C++ `historyRecordEvent`). ✅ **Already async (debounced `Task`s):** autosave 1 s, Navigator title 300 ms, viewport-scene-after-scroll 120 ms. ✅ **Split at the end of 1.85 MB:** `keyDown` 89–122 ms; Scrivi's (6) 2.3–2.8 ms (≈2.3 ms of it the scan → [T-0583]); (2)–(4) each < 0.5 ms; ⛔ **AppKit ≈ 85–115 ms.** ✅ Arrow keys run none of (2)–(6) and still cost ~90 ms at the end. ✅ **Can it be made async?** ⛔ AppKit's share: NO — `NSTextView`/TextKit are main-thread-only, inside the event; the lever is to find and avoid the offset-linear call, or give the view less text. ⛔ (2)–(4): NO — they decide or change what is stored or drawn. ⚠️ (6): possible, ✅ but after [T-0583] it is ~0.2 ms, and moving the history record off-main risks the EP-019 *"history commits before disk writes"* ordering (§4.d) — not worth it. | Low | Not Assigned |
 | **I-0202** | `[Apple]` ⚠️ **`MainActor.assumeIsolated` IN THE APP DELEGATE ASSERTS AN ISOLATION APPKIT DOES NOT GUARANTEE — a latent launch/URL crash.** ⚠️ **Found 2026-09-12 while investigating [I-0201]** (⚠️ **NOT its cause — the app never got far enough to call this**). ⚠️ **`AppDelegate.application(_:open:)` (`ScriviApp.swift:23`) and `applicationWillTerminate` (`:29`) both wrap their bodies in `MainActor.assumeIsolated`.** ⚠️ **`assumeIsolated` ASSERTS a precondition; it does NOT establish isolation** — ✅ **if the caller is not actually on the main actor it TRAPS, killing the process.** ⚠️ **The comment claims AppKit *"called on the main thread"*, ✅ which is true for the THREAD but is NOT the same as Swift-6 main-ACTOR isolation**, ⚠️ **and it is asserted rather than checked.** ---- ⚠️ **WHY IT MATTERS: `application(_:open:)` is the FINDER DOUBLE-CLICK PATH** — ✅ **the app declares `CFBundleDocumentTypes`, so a `.scrivi` package double-click routes here** — ⚠️ **and it can arrive DURING LAUNCH, before the SwiftUI `App` has finished establishing its actor context.** ⚠️ **A trap there is indistinguishable from [I-0201]'s symptom: no window, no console.** ---- ✅ **FIX: `Task { @MainActor in … }`, which ESTABLISHES isolation instead of asserting it.** ⚠️ **`onOpenURLs` is already `@MainActor` and the work it does is async anyway, so nothing is lost by hopping.** ⚠️ **CAUTION on `applicationWillTerminate`: it must complete BEFORE the process dies** (it freezes the session manifest, R4/T-0195), ⚠️ **so a `Task` there would NOT be awaited and could silently drop the write** — ✅ **that one needs a different treatment and must be ruled, not blindly converted.** ⚠️ **SP-151 AC2 CLOSED WITHOUT A RESOLUTION 2026-10-02 (user ruling):** *"We'll close AC2 without a resolution and if it happens reliably, will address it then."* ✅ The uncaught-exception-handler fix from 2026-09-30 stays in the code; ⚠️ never verified, because the crash is latent and has not been reproduced. ---- **STATUS AT RETURN:** ✅ **Resolved - Not Verified** (2026-09-30) — ⚠️ **THE TWO NAMED SITES WERE NOT DEFECTS; A THIRD ONE WAS.** ✅ **PROVEN BY COMPILE CHECK, both ways:** with `assumeIsolated` removed, `application(_:open:)` and `applicationWillTerminate` still compile under Swift 6 touching the `@MainActor` statics — ⚠️ **so `NSApplicationDelegate` makes them main-actor isolated and they cannot trap**; ✅ **NEGATIVE CONTROL:** the same call from a `nonisolated` method FAILS (`main actor-isolated static property 'onWillTerminate' can not be referenced from a nonisolated context`). ⛔ **THE REAL SITE: the UNCAUGHT-EXCEPTION HANDLER** (`ScriviApp.swift`, `installUncaughtExceptionHandler`) — a C callback that runs on the THROWING thread, whose own comment said so, and which called `MainActor.assumeIsolated` unconditionally: ⚠️ an off-main exception TRAPPED inside the handler before its session freeze could run. ✅ **FIX:** freeze only `if Thread.isMainThread`, else log; ⛔ NOT `DispatchQueue.main.sync` (a crash-time deadlock would lose the log too). ⚠️ The delegate's two redundant `assumeIsolated` calls were LEFT — harmless, and out of scope. ⚠️ **Not reproducible on demand** (needs an off-main ObjC exception); verified by reading + build | **Medium** | Not Assigned (returned from SP-151 at its close) |
 | **I-0147** | `[ScriviCore]` ⚠️ **KNOWN LIMITATION (user-ruled 2026-08-21, ACCEPTED — not to be fixed in SP-116).** ⚠️ **For up to `kStaleSeconds` (60 s) after an interrupted world write, the world is ENTIRELY UNWRITABLE and its abandoned `.partial` is unreclaimable.** When a volume vanishes mid-import the writer dies holding the lock, leaving `.lock` on disk with a **fresh** heartbeat. Reattach the drive quickly — the natural thing to do — and the next write is refused `worldLocked`; ⚠️ **T-0433's sweep runs only AFTER a successful acquire**, so the orphan survives until the lock ages out. **Observed on the real rig 2026-08-21**: drive pulled mid-import, reattached within ~60 s, next import refused and a **2.9 GB** `.partial` remained. ✅ **Both halves verified**: staged fresh lock + orphan → `worldLocked`, orphan stays; waited past 60 s → **acquired and swept**. ⚠️ **This is arguably CORRECT, which is why it is accepted:** `kStaleSeconds` exists precisely because the core cannot distinguish *"writer died"* from *"writer is briefly stalled"*, and guessing wrong means two processes writing a shared world at once. It **self-heals** within a minute and loses no data. **The stronger evidence available — the package's own VOLUME was unmounted, which is far better proof of a dead holder than a quiet heartbeat — is not currently used.** ⚠️ **Deferred to the network-worlds design**, which must revisit *"exactly one winner"* regardless; ruling that inside an asset sprint is how a locking model gets set by accident (the lesson of I-0144). ⚠️ **The eventual UI must not present the 60 s wait as an error** — it is a retryable state. | Low | ⚠️ **Deferred — network-worlds design.** 🟡 Accepted limitation (2026-08-21); moved to the backlog 2026-10-03 (user). 🟡 **Accepted limitation (2026-08-21)** — ⚠️ **found by the LIVE RIG PASS**; ⚠️ **my own earlier staged-orphan test PASSED because it created the orphan WITHOUT a matching fresh lock** — not the state a real crash leaves |
+
+## I-0308
+
+**Title:** Crash while typing in the Find bar
+**Status:** ⚪ **Not reproducible** (user, 2026-10-22) — kept open in the backlog
+**Platform:** `[Linux]`
+**Severity:** High. The app closed with no warning; the writer's unsaved typing (if any) would be lost.
+**Sprint:** Not Assigned (removed from [SP-185] 2026-10-22, user)
+**Date Identified:** 2026-10-15, user, rig live pass (build 74 by its stamp; the code is commit `8ebb438`, SP-182 included)
+
+**What happened (user):** *"Find opens with Replace row on Ctrl-Alt-F. App crashed while typing in the Find bar."*
+- Before it, in the same session: a cross-scene Ctrl+C / Ctrl+V in dumas-prose-timelines (step 9), File ▸ Quit, reopen,
+  and Ctrl+Z of the paste (step 10), so the manuscript had been rebuilt by two reloads.
+- ⛔ No trace: `coredumpctl` is not installed on the rig and `/var/crash` is empty. The user: *"The app simply 'went away'."*
+- The user, 2026-10-17: likely intermittent, *"it only occurs under certain circumstances that we haven't fully identified
+  yet."*
+
+**Next:** reproduce. Either the same steps on the rig under `gdb` (or with `coredumpctl` installed), or the same sequence in
+Docker on a large generated project. Suspects, by reading only: the find bar's presented-text build after a reload, and
+SP-182's presenter changes (chapter-title lines). ⏳ Not yet proven either way.
+
+- **2026-10-17 — the Docker reproduction: NOT reproduced.** The real dumas-prose manuscript (1,153 scenes), Crimson Pro 18 pt,
+  the rig pass's steps 7–11 through a real `EditorShell` under AddressSanitizer + UBSan (Qt 6.4.2, arm64, offscreen): the
+  cross-scene copy and paste, a quit and reopen, the undo from the previous session, Ctrl+Alt+F, then 9 searches typed key by
+  key (accented names, `e`, `the`), backspacing, and typing in the manuscript with the bar open. No memory error; the app
+  survived.
+- Ruled out in that setting: a use-after-free or overflow in the find bar's presented text or in SP-182's chapter-title
+  drawing on this path. ⚠️ NOT ruled out: what Docker does not have — Qt 6.10.2 (the rig's), x86-64, Wayland and its primary
+  selection, the network share's timing, the real dumas-prose-timelines (with timelines).
+- Found on the way: [I-0309] and [I-0310], both crashes, both fixed. The diagnostic log ([T-0612]) now records a crash's
+  backtrace on the rig.
+- **2026-10-21 — did not recur; kept Open (user).** The rig pass on build 75 ran the same steps 9–11 without a crash. The
+  user: *"keep I-0308 open. It is quite likely that the Find bar crash is related to background read collisions and will
+  be taken care of in an upcoming Epic."* ⏳ No work now: the user opened a discussion of background task queuing and
+  priorities (repeated gestures while an operation is pending; a Ctrl+Z queued behind the operation it undoes) and said
+  *"let's not 'do' anything yet."*
+- **2026-10-22 — not reproducible; removed from [SP-185] (user).** Not reproduced in Docker (2026-10-17) and not recurred on
+  the rig (build 75, 2026-10-21). Moved to the backlog with no Sprint. The user's 2026-10-21 lead stands: background read
+  collisions, for an upcoming Epic.
+
+---
+
+## I-0316
+
+**Title:** A missing world is looked for once per relationship endpoint on every project open
+**Status:** 🔴 Open
+**Platform:** `[ScriviCore]`
+**Component:** `RelationshipStore::repairDangling` (`ScriviCore/src/objects/RelationshipStore.cpp:439`), which runs on every
+project open → `EndpointResolver::resolve` (`ScriviCore/src/objects/EndpointResolver.cpp:43`) → `WorldStore::resolve`
+(`ScriviCore/src/worlds/WorldStore.cpp:284`) for every bound world, for each endpoint
+**Severity:** Medium. On local disk it costs little. Over a network share each failed lookup is a round trip, about 800 of
+them per open on dumas, all for an answer the first lookup already gave.
+**Sprint:** Not Assigned
+**Date Identified:** 2026-10-22 (a file-call count of `scrivi_open_project` through the C ABI, [SP-191])
+
+**Measured:** `scrivi_open_project` on a copy of dumas-prose-timelines (1,180 scenes, 135 relationships, one bound world):
+- **world missing** (the project copied without `Dumas-France-Prose.scrivworld` beside it): 2,244 file calls. Of those, 270 are
+  reads of `../Dumas-France-Prose.scrivworld/world.json`, plus 270 probes each of the project's parent folder and the folder
+  above that.
+- **world present:** 1,433 file calls, with no repeated world reads.
+- 270 = 135 relationships × 2 endpoints. `repairDangling` shares a `BindingCache`, so `binding.json` is read once. But
+  `WorldStore::resolve` reads `world.json` at each candidate path, and probes the folders to tell "absent" from "offline",
+  again for every endpoint.
+
+**Why it is not fixed by the existing cache:** `BindingCache` holds the binding record, not the resolution. Its header
+(`WorldStore.hpp:126`) explains why a cache must not outlive one read-only operation. A resolution cache with the same
+lifetime (one sweep) would keep that rule.
+
+**Steps to reproduce:** copy a project with relationships to world objects somewhere its world is not beside it, open it,
+and count file calls (`CountingFileSystem`).
+
+---
 
 ## I-0313
 

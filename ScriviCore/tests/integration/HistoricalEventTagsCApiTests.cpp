@@ -29,6 +29,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <string>
+#include <unistd.h>   // getpid: ctest runs each test case in its own process
 
 namespace fs = std::filesystem;
 using scrivi::util::JsonDoc;
@@ -58,7 +59,7 @@ struct EventFixture {
     EventFixture() {
         static std::atomic<int> counter{0};
         const std::string stem =
-            "scrivi-hist-tags-" + std::to_string(counter.fetch_add(1)) + "-" +
+            "scrivi-hist-tags-" + std::to_string(::getpid()) + "-" + std::to_string(counter.fetch_add(1)) + "-" +
             std::to_string(reinterpret_cast<std::uintptr_t>(this));
 
         projectDir    = fs::temp_directory_path() / (stem + ".scrivi");

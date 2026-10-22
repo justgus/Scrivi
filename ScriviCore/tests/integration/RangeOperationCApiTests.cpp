@@ -15,15 +15,18 @@
 #include "scrivi/Services.hpp"
 #include "scrivi/scrivi.h"
 #include "util/Json.hpp"
+#include "util/OrderKey.hpp"
 
 #include <algorithm>
 #include <atomic>
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
+#include <map>
 #include <sstream>
 #include <string>
 #include <vector>
+#include <unistd.h>   // getpid: ctest runs each test case in its own process
 
 using scrivi::util::JsonDoc;
 using scrivi::util::parseJson;
@@ -73,7 +76,7 @@ struct Project {
 
     Project(int chapters, int scenes) {
         static std::atomic<int> counter{0};
-        const auto base = fs::temp_directory_path() / ("scrivi-ep053-capi-" + std::to_string(counter.fetch_add(1)) + "-" +
+        const auto base = fs::temp_directory_path() / ("scrivi-ep053-capi-" + std::to_string(::getpid()) + "-" + std::to_string(counter.fetch_add(1)) + "-" +
                                                       std::to_string(reinterpret_cast<std::uintptr_t>(this)));
         fs::remove_all(base);
         root = base / "Novel.scrivi";
@@ -895,5 +898,335 @@ TEST_CASE("[SP-191] Q7: merging an EMPTY scene into the next keeps the next scen
     CHECK(after[1].text == Project::body(1, 3));
     p.paste(merged.getSubDoc("range"), merged.getString("undoCaretSceneID"), merged.getInt64("undoCaretByte"));
     CHECK(p.rows() == before);
+    CHECK(p.clean());
+}
+
+// ── [SP-191] MOVE THE SMALLER SIDE (user, 2026-10-22) ────────────────────────────────────────────────────────────────────
+// A chapter split, a chapter merge and their undos move the FEWER scenes: over a share each move is a rename, and renames
+// there do not overlap. Each case below is built so the smaller side is the one the plain shape would NOT move, and checks
+// the same things as the plain shape (order, text, chapter IDs and sidecars, a clean scan) plus what only this shape can
+// get wrong: a scene whose FOLDER changed without being in the delta, and an index that no longer answers as the disk.
+
+namespace {
+
+std::map<std::string, scrivi::manuscript::SceneLocation> locations(const Project& p) {
+    scrivi::platform::LocalFileSystem lfs;
+    scrivi::CoreServices services;
+    services.fileSystem = &lfs;
+    auto index = scrivi::manuscript::ProjectIndex::build(p.root.string(), services);
+    REQUIRE(index.ok());
+    std::map<std::string, scrivi::manuscript::SceneLocation> out;
+    for (const auto& s : index.value().scenesInOrder()) { out[s.sceneID.value] = s; }
+    return out;
+}
+
+// ✅ Both apps keep each scene's paths AND its chapter's sidecar path (Linux renames a chapter through it), and update
+// them only from the delta: every scene whose files or chapter folder changed must be in it, as the disk now has it.
+void deltaNamesEveryRelocatedScene(const Project& p, const std::map<std::string, scrivi::manuscript::SceneLocation>& was,
+                                   const JsonDoc& delta) {
+    std::map<std::string, std::size_t> named;   // sceneID → its place in the delta
+    for (std::size_t i = 0; i < delta.arraySize("scenes"); ++i) { named[delta.arrayItem("scenes", i).getString("sceneID")] = i; }
+    for (const auto& [id, now] : locations(p)) {
+        const auto it = was.find(id);
+        if (it == was.end()) { continue; }   // created: the delta's own check covers it
+        const auto& old = it->second;
+        if (old.metadataPath == now.metadataPath && old.chapterMetadataPath == now.chapterMetadataPath &&
+            old.chapterID.value == now.chapterID.value) {
+            continue;
+        }
+        INFO("relocated scene " << id << ": " << old.chapterMetadataPath << " → " << now.chapterMetadataPath);
+        REQUIRE(named.count(id) == 1);
+        const JsonDoc d = delta.arrayItem("scenes", named.at(id));
+        CHECK(d.getString("metadataPath") == now.metadataPath);
+        CHECK(d.getString("contentPath") == now.contentPath);
+        CHECK(d.getString("chapterMetadataPath") == now.chapterMetadataPath);
+        CHECK(d.getString("chapterID") == now.chapterID.value);
+    }
+}
+
+// ✅ The index the write PATCHED answers as a fresh build from disk does (R7).
+void indexServesDisk(const Project& p) {
+    const auto rows = p.rows();
+    const JsonDoc served = p.read(rows.front().sceneID, 0, rows.back().sceneID, 0);
+    REQUIRE(served.arraySize("scenes") == rows.size());
+    for (std::size_t i = 0; i < rows.size(); ++i) {
+        const JsonDoc e = served.arrayItem("scenes", i);
+        CHECK(e.getString("sceneID") == rows[i].sceneID);
+        CHECK(e.getString("chapterID") == rows[i].chapterID);
+    }
+}
+
+// Whole scenes without their text — a run, as an editor sends it for a relabel.
+JsonDoc runOf(const Project& p, const std::vector<std::string>& ids) {
+    JsonDoc run;
+    run.setString("schema", "scrivi.range.v1");
+    for (const auto& id : ids) {
+        const auto loc = p.locationOf(id);
+        JsonDoc e;
+        e.setString("sceneID", id);
+        e.setString("chapterID", loc.chapterID.value);
+        e.setString("chapterTitle", loc.chapterTitle);
+        e.setString("sceneTitle", loc.title);
+        e.setInt64("start", 0);
+        e.setInt64("length", 0);
+        e.setInt64("sceneLength", 0);
+        e.setString("text", "");
+        run.appendToArray("scenes", std::move(e));
+    }
+    return run;
+}
+
+// ✅ Every chapter folder is whole: it has a sidecar whose `slug` is the folder's name (`ChapterIndex.cpp` keeps that
+// invariant), no chapter ID is in two folders, and there is no folder beyond the chapters — an emptied folder left behind
+// would hold a second copy of a chapter's sidecar, which neither the scan nor the index sees.
+void chaptersAreWhole(const Project& p) {
+    std::vector<std::string> ids;
+    for (const auto& e : fs::directory_iterator(p.root / "manuscript")) {
+        if (!e.is_directory()) { continue; }
+        INFO("chapter folder " << e.path().filename());
+        REQUIRE(fs::exists(e.path() / "chapter.meta.json"));
+        auto meta = scrivi::schemas::parseChapterMeta(readFile(e.path() / "chapter.meta.json"));
+        REQUIRE(meta.ok());
+        CHECK(meta.value().slug == e.path().filename().string());
+        ids.push_back(meta.value().chapterID.value);
+    }
+    std::sort(ids.begin(), ids.end());
+    CHECK(std::adjacent_find(ids.begin(), ids.end()) == ids.end());
+    CHECK(ids.size() == p.chapterCount());
+}
+
+}  // namespace
+
+TEST_CASE("[SP-191] a chapter split near a chapter's start moves the scenes BEFORE the caret; its undo moves them back",
+          "[sp191][range][capi][smaller]") {
+    Project p(3, 6);
+    decorateChapter(p, p.id(2, 1));
+    decorate(p, p.id(2, 1), 4);
+    const auto c2  = p.chapterSidecar(p.id(2, 1));
+    const auto s21 = p.sidecar(p.id(2, 1));
+    const auto before = p.rows();
+    const auto was = locations(p);
+    const std::string c2Meta = was.at(p.id(2, 1)).chapterMetadataPath;
+
+    // In scene 2 of 6: the two scenes up to the caret are the fewer, so they move; the four after it stay in the folder.
+    const JsonDoc split = p.paste(Project::breakRange(before[6].chapterID, true), p.id(2, 2), 4);
+    const auto after = p.rows();
+    REQUIRE(after.size() == before.size() + 1);
+    CHECK(flat(after) == flat(before));
+    CHECK(p.chapterCount() == 4);
+    CHECK(after[6].sceneID == p.id(2, 1));
+    CHECK(after[7].sceneID == p.id(2, 2));
+    CHECK(after[6].chapterID == before[6].chapterID);   // chapter 2 keeps the scenes up to the caret, and its ID
+    CHECK(after[7].chapterID == before[6].chapterID);
+    CHECK(after[8].chapterID != before[6].chapterID);   // the tail opens the new chapter…
+    CHECK(after[8].text == Project::body(2, 2).substr(4));
+    for (std::size_t i = 9; i < 13; ++i) {
+        CHECK(after[i].sceneID == before[i - 1].sceneID);
+        CHECK(after[i].chapterID == after[8].chapterID);   // …with the rest of chapter 2
+    }
+    CHECK(after[13].chapterID == before[12].chapterID);
+    // ✅ The smaller side moved: the two scenes up to the caret left the folder; the four after it stayed there.
+    const auto now = locations(p);
+    CHECK(now.at(p.id(2, 1)).chapterMetadataPath != c2Meta);
+    CHECK(now.at(p.id(2, 2)).chapterMetadataPath == now.at(p.id(2, 1)).chapterMetadataPath);
+    CHECK(now.at(p.id(2, 3)).chapterMetadataPath == c2Meta);
+    CHECK(now.at(p.id(2, 3)).metadataPath == was.at(p.id(2, 3)).metadataPath);
+    sameChapterSidecar(p.chapterSidecar(p.id(2, 1)), c2);   // chapter 2's sidecar followed its scenes
+    CHECK(p.chapterSidecar(p.id(2, 3)).title.empty());      // the new chapter is untitled (Q10)
+    sameSidecar(p.sidecar(p.id(2, 1)), s21);
+    deltaMatchesDisk(p, split.getSubDoc("delta"));
+    deltaNamesEveryRelocatedScene(p, was, split.getSubDoc("delta"));
+    indexServesDisk(p);
+    chaptersAreWhole(p);
+    CHECK(p.clean());
+
+    const auto wasSplit = locations(p);
+    const JsonDoc undone = p.cut(split.getSubDoc("range"));
+    CHECK(p.rows() == before);
+    CHECK(locations(p).at(p.id(2, 1)).chapterMetadataPath == c2Meta);   // back in its own folder: the two scenes moved
+    sameChapterSidecar(p.chapterSidecar(p.id(2, 1)), c2);
+    sameSidecar(p.sidecar(p.id(2, 1)), s21);
+    deltaMatchesDisk(p, undone.getSubDoc("delta"));
+    deltaNamesEveryRelocatedScene(p, wasSplit, undone.getSubDoc("delta"));
+    indexServesDisk(p);
+    chaptersAreWhole(p);
+    CHECK(p.clean());
+
+    p.paste(undone.getSubDoc("range"), undone.getString("undoCaretSceneID"), undone.getInt64("undoCaretByte"));   // redo
+    CHECK(p.rows() == after);
+    CHECK(p.clean());
+}
+
+TEST_CASE("[SP-191] a run into a new chapter moves the fewer scenes left behind; the merge back folds the smaller chapter",
+          "[sp191][range][capi][smaller]") {
+    Project p(3, 4);
+    decorateChapter(p, p.id(1, 1));
+    decorate(p, p.id(1, 1), 1);
+    decorate(p, p.id(1, 3), 3);
+    const auto c1  = p.chapterSidecar(p.id(1, 1));
+    const auto s11 = p.sidecar(p.id(1, 1));
+    const auto s13 = p.sidecar(p.id(1, 3));
+    const auto before = p.rows();
+    const auto was = locations(p);
+    const std::string c1Meta = was.at(p.id(1, 1)).chapterMetadataPath;
+
+    // A chapter split at scene 2's start (Q8): scenes 2–4 go into a new chapter; scene 1, the fewer, is what moves.
+    const JsonDoc split = p.relabel(runOf(p, {p.id(1, 2), p.id(1, 3), p.id(1, 4)}), "");
+    const auto after = p.rows();
+    CHECK(p.chapterCount() == 4);
+    CHECK(after[0].chapterID == before[0].chapterID);
+    for (std::size_t i = 1; i < 4; ++i) { CHECK(after[i].chapterID == after[1].chapterID); }
+    CHECK(after[1].chapterID != before[0].chapterID);
+    CHECK(after[4].chapterID == before[4].chapterID);
+    CHECK(flat(after) == flat(before));
+    const auto now = locations(p);
+    CHECK(now.at(p.id(1, 1)).chapterMetadataPath != c1Meta);
+    CHECK(now.at(p.id(1, 2)).chapterMetadataPath == c1Meta);
+    sameChapterSidecar(p.chapterSidecar(p.id(1, 1)), c1);
+    sameSidecar(p.sidecar(p.id(1, 1)), s11);
+    deltaMatchesDisk(p, split.getSubDoc("delta"));
+    deltaNamesEveryRelocatedScene(p, was, split.getSubDoc("delta"));
+    CHECK(split.getSubDoc("delta").arraySize("createdChapters") == 1);
+    indexServesDisk(p);
+    chaptersAreWhole(p);
+    CHECK(p.clean());
+
+    // Its undo, a merge: chapter 1 (one scene) folds into the new chapter's folder, below the three already there.
+    const auto wasSplit = locations(p);
+    const JsonDoc merged = p.relabel(split.getSubDoc("range"), split.getString("fromChapterID"));
+    CHECK(p.rows() == before);
+    CHECK(locations(p).at(p.id(1, 1)).chapterMetadataPath == c1Meta);
+    sameChapterSidecar(p.chapterSidecar(p.id(1, 1)), c1);
+    sameSidecar(p.sidecar(p.id(1, 1)), s11);
+    sameSidecar(p.sidecar(p.id(1, 3)), s13);
+    CHECK(merged.getSubDoc("delta").getStringArray("removedChapterIDs") == std::vector<std::string>{after[1].chapterID});
+    deltaMatchesDisk(p, merged.getSubDoc("delta"));
+    deltaNamesEveryRelocatedScene(p, wasSplit, merged.getSubDoc("delta"));
+    indexServesDisk(p);
+    chaptersAreWhole(p);
+    CHECK(p.clean());
+
+    p.relabel(merged.getSubDoc("range"), merged.getString("fromChapterID"));   // redo: the split again
+    CHECK(p.rows() == after);
+    CHECK(p.clean());
+}
+
+TEST_CASE("[SP-191] a chapter merge whose earlier chapter is smaller re-keys its scenes below the later chapter's",
+          "[sp191][range][capi][smaller]") {
+    Project p(3, 4);
+    // Chapter 1's last two scenes go to chapter 2 (re-keyed before its first), so chapter 1 holds 2 scenes, chapter 2 six.
+    p.relabel(runOf(p, {p.id(1, 3), p.id(1, 4)}), p.locationOf(p.id(2, 1)).chapterID.value);
+    decorate(p, p.id(1, 2), 2);
+    decorateChapter(p, p.id(1, 1));
+    const auto c1  = p.chapterSidecar(p.id(1, 1));
+    const auto s12 = p.sidecar(p.id(1, 2));
+    const auto before = p.rows();
+    REQUIRE(before[1].chapterID == before[0].chapterID);
+    REQUIRE(before[2].chapterID != before[0].chapterID);
+    const auto was = locations(p);
+    std::vector<std::string> chapter2;
+    for (const auto& row : before) {
+        if (row.chapterID == before[2].chapterID) { chapter2.push_back(row.sceneID); }
+    }
+    REQUIRE(chapter2.size() == 6);
+    // ⚠️ The case this test exists for: chapter 1's keys (001, B) do NOT sort below chapter 2's first, so they are re-keyed.
+    CHECK(was.at(p.id(1, 2)).metadataPath.substr(was.at(p.id(1, 2)).metadataPath.rfind('/') + 1) >=
+          was.at(chapter2.front()).metadataPath.substr(was.at(chapter2.front()).metadataPath.rfind('/') + 1));
+
+    const JsonDoc merged = p.relabel(runOf(p, chapter2), before[0].chapterID);
+    const auto after = p.rows();
+    CHECK(p.chapterCount() == 2);
+    REQUIRE(after.size() == before.size());
+    for (std::size_t i = 0; i < after.size(); ++i) {
+        CHECK(after[i].sceneID == before[i].sceneID);
+        CHECK(after[i].text == before[i].text);
+    }
+    for (std::size_t i = 0; i < 8; ++i) { CHECK(after[i].chapterID == before[0].chapterID); }
+    CHECK(locations(p).at(p.id(1, 1)).chapterMetadataPath == was.at(chapter2.front()).chapterMetadataPath);
+    sameChapterSidecar(p.chapterSidecar(p.id(1, 1)), c1);
+    sameSidecar(p.sidecar(p.id(1, 2)), s12);   // re-keyed: its files renamed, its sidecar kept
+    deltaMatchesDisk(p, merged.getSubDoc("delta"));
+    deltaNamesEveryRelocatedScene(p, was, merged.getSubDoc("delta"));
+    indexServesDisk(p);
+    chaptersAreWhole(p);
+    CHECK(p.clean());
+
+    p.relabel(merged.getSubDoc("range"), merged.getString("fromChapterID"));   // undo
+    CHECK(p.rows() == before);
+    sameChapterSidecar(p.chapterSidecar(p.id(1, 1)), c1);
+    indexServesDisk(p);
+    chaptersAreWhole(p);
+    CHECK(p.clean());
+}
+
+TEST_CASE("[SP-191] a scene merge across a chapter break moves the smaller start chapter, re-keyed below the end chapter's",
+          "[sp191][range][capi][smaller]") {
+    Project p(3, 4);
+    // Chapter 1 down to 2 scenes (its last two go to chapter 2, re-keyed before its first): chapter 2 holds 6.
+    p.relabel(runOf(p, {p.id(1, 3), p.id(1, 4)}), p.locationOf(p.id(2, 1)).chapterID.value);
+    decorateChapter(p, p.id(1, 1));
+    const auto c1 = p.chapterSidecar(p.id(1, 1));
+    const auto before = p.rows();
+    const auto was = locations(p);
+    // ⌫ at chapter 2's first scene's start: the zero-length cut across the break (Q3e). Chapter 2 is emptied of that one
+    // scene and joins chapter 1; chapter 1's two scenes are the fewer, and their keys (001, B) do NOT sort below chapter 2's
+    // next scene's, so they are re-keyed there.
+    const std::string last = p.id(1, 2), next = before[2].sceneID;
+    const long long lastLen = static_cast<long long>(p.text(last).size());
+    const JsonDoc merged = p.cut(p.read(last, lastLen, next, 0));
+    const auto after = p.rows();
+    REQUIRE(after.size() == before.size() - 1);
+    CHECK(flat(after) == flat(before));
+    CHECK(p.chapterCount() == 2);
+    for (std::size_t i = 0; i < 6; ++i) { CHECK(after[i].chapterID == before[0].chapterID); }
+    CHECK(locations(p).at(p.id(1, 1)).chapterMetadataPath == was.at(before[3].sceneID).chapterMetadataPath);
+    sameChapterSidecar(p.chapterSidecar(p.id(1, 1)), c1);
+    deltaMatchesDisk(p, merged.getSubDoc("delta"));
+    deltaNamesEveryRelocatedScene(p, was, merged.getSubDoc("delta"));
+    indexServesDisk(p);
+    chaptersAreWhole(p);
+    CHECK(p.clean());
+
+    p.paste(merged.getSubDoc("range"), merged.getString("undoCaretSceneID"), merged.getInt64("undoCaretByte"));   // undo
+    CHECK(p.rows() == before);
+    sameChapterSidecar(p.chapterSidecar(p.id(1, 1)), c1);
+    indexServesDisk(p);
+    chaptersAreWhole(p);
+    CHECK(p.clean());
+}
+
+TEST_CASE("[SP-191] when the scenes before the caret move, they leave before the new scene takes one of their file names",
+          "[sp191][range][capi][smaller]") {
+    Project p(2, 6);
+    // Chapter 2's scene 2 renamed to the very key a chapter split at it gives the new tail scene: the one between nothing
+    // and scene 3's "C" (keys are only unique within a chapter, and the tail opens a chapter in this folder).
+    const std::string key = scrivi::util::keyBetween("", "C");
+    REQUIRE(key > "001");
+    REQUIRE(key < "C");
+    const auto loc = p.locationOf(p.id(2, 2));
+    const fs::path dir = (p.root / loc.metadataPath).parent_path();
+    auto meta = p.sidecar(p.id(2, 2));
+    meta.slug        = key + "-scene";
+    meta.contentPath = key + "-scene.md";
+    fs::remove(p.root / loc.metadataPath);
+    fs::rename(p.root / loc.contentPath, dir / (key + "-scene.md"));
+    std::ofstream(dir / (key + "-scene.meta.json"), std::ios::binary) << scrivi::schemas::serializeSceneMeta(meta);
+    scrivi_free(scrivi_close_project(p.r()));
+    ok(scrivi_open_project(p.r(), p.appSupport.c_str(), kIdentity));
+    REQUIRE(p.clean());
+    const auto before = p.rows();
+
+    const JsonDoc split = p.paste(Project::breakRange(before[6].chapterID, true), p.id(2, 2), 4);
+    const auto after = p.rows();
+    REQUIRE(after.size() == before.size() + 1);
+    CHECK(flat(after) == flat(before));
+    CHECK(after[7].sceneID == p.id(2, 2));
+    CHECK(after[7].text == Project::body(2, 2).substr(0, 4));
+    CHECK(after[8].text == Project::body(2, 2).substr(4));
+    chaptersAreWhole(p);
+    CHECK(p.clean());
+    p.cut(split.getSubDoc("range"));
+    CHECK(p.rows() == before);
+    chaptersAreWhole(p);
     CHECK(p.clean());
 }

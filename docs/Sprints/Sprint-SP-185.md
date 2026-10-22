@@ -9,12 +9,12 @@ created: 2026-10-17
 # SP-185 — `[Linux]` [EP-026] Responsive after load: the rig pass's freezes and its crash
 
 **Status:** 🟡 **ACTIVE** — created and activated 2026-10-17 (user: *"Yes lets do them all in a new sprint."*).
-**Carries:** [I-0308] (crash in the find bar), [I-0307] (select, copy and paste each freeze 10–15 s), [I-0297] (a structured
+**Carries:** [I-0307] (select, copy and paste each freeze 10–15 s), [I-0297] (a structured
 paste's undo takes 40 s over the share), [I-0309] (closing a window mid-load frees memory its worker uses; found by plan step 0), [I-0310] (a shown window torn down crashed)
 → [`../Issues/Issue-active.md`](../Issues/Issue-active.md) · [T-0612] (a diagnostic
 log) · [T-0613] (the find bar never freezes while the writer types) → [`../Tasks/Task-active.md`](../Tasks/Task-active.md).
 **Epic:** [EP-026] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md). Two of the three are its structured cut, copy and
-paste. [I-0308] came from [EP-048]'s find bar; it is here because the same rig pass found it, in the same session.
+paste. [I-0308] (the find-bar crash) was carried until 2026-10-22; it is in the backlog, not reproducible (user).
 **Size:** M–L. ⚠️ Every acceptance needs the **rig**: each finding showed only on the writer's 1,186-scene project over the
 network share. The rig is away until 2026-10-18 evening; Docker work runs meanwhile.
 
@@ -80,7 +80,8 @@ know exactly how many items need to be changed)."*
 
 - [x] AC0 — [I-0308] reproduced in Docker, or the reproduction attempt recorded with what it ruled out — ✅ not reproduced;
   recorded in [I-0308] with what it rules out and what it cannot.
-- [ ] AC1 — [I-0308] fixed, with a test that fails before the fix; no crash in the rig pass's step 11.
+- ~~AC1 — [I-0308] fixed, with a test that fails before the fix; no crash in the rig pass's step 11.~~ ➡️ **Removed**
+  (user, 2026-10-22): [I-0308] is in the backlog, not reproducible.
 - [x] AC1b — [I-0309] fixed: a window closed, or the app quit, during a load does not crash; proven under ASan — ✅
   `background_wait_smoke` §5 fails the old code under ASan and passes the fix. ⏳ The rig pass (AC6) closes dumas mid-load.
 - [x] AC2 — [T-0612] the log exists as ruled in Q1, and a deliberate stall shows up in it — ✅ `diagnostic_log_smoke` (CI),
@@ -192,3 +193,8 @@ User, 2026-10-21: *"I performed the live pass listed above on both the Rig and t
   2026-10-21: **kept Open** (user: likely background read collisions, for an upcoming Epic). AC1 stays unmet.
 - ⏳ Still to run on the rig for AC6: close dumas while it is loading ([I-0309], AC1b), and read a real
   `~/.local/state/scrivi/scrivi.log` ([T-0612], AC2).
+
+### 🟡 2026-10-22 — [I-0308] removed from the Sprint (user)
+- User: *"Remove I-0308 from SP-185 and put it in the backlog as 'not-reproducable'."*
+- AC1 is removed with it. What remains here: AC6's rig steps (close dumas mid-load for [I-0309]; read a real log for
+  [T-0612]).

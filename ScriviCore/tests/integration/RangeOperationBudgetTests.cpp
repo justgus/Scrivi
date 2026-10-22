@@ -20,6 +20,7 @@
 #include "schemas/SceneMetaJson.hpp"
 #include "scrivi/Requests.hpp"
 #include "scrivi/ScriviCore.hpp"
+#include "util/OrderKey.hpp"
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -31,6 +32,7 @@
 #include <iostream>
 #include <iterator>
 #include <string>
+#include <thread>
 
 namespace {
 
@@ -251,6 +253,167 @@ TEST_CASE("[SP-191] a chapter merge (relabel) of N scenes stays within N + 3 rea
     CHECK(u.readTextFile <= 2);
     CHECK(writesOf(u) <= 2 * 20 + 4);
     CHECK(back.value().indexCurrent);
+}
+
+// ✅ [SP-191] (user, 2026-10-22): MOVE THE SMALLER SIDE. Over a network share every move is a rename and renames do not
+// overlap there (measured on a Docker SMB share), so a chapter split, a chapter merge and their undos each rename only the
+// FEWER scenes: two renames a scene, never more than 2 × the smaller side. Chapter 2 (20 scenes) is split three scenes in,
+// so the three before the caret move; then the split is undone, and the three move back.
+TEST_CASE("[SP-191] a chapter split renames only the smaller side, and so does its undo", "[ep053][budget][sp191]") {
+    Harness h;
+    h.build(6, 20);
+    auto indexR = ms::ProjectIndex::build(h.root(), h.services);
+    REQUIRE(indexR.ok());
+    ms::ProjectIndex& index = indexR.value();
+    for (const std::size_t at : {std::size_t(22), std::size_t(36)}) {   // 3 scenes before the caret, then 3 after it
+        const ms::SceneLocation caret = index.scenesInOrder().at(at);
+        const std::string text = readBody(h, caret);
+        ms::Range split;   // an empty two-entry Range whose second entry opens a chapter (Q1)
+        split.append({scrivi::SceneID{}, caret.chapterID, "", "", 0, 0, 0, ""});
+        split.append({scrivi::SceneID{}, scrivi::ChapterID{}, "", "", 0, 0, 0, ""});
+        h.counting.reset();
+        ms::RangeOperations ops{h.services, h.root(), index};
+        auto r = ops.paste(split, caret.sceneID, 5, text, author());
+        REQUIRE(r.ok());
+        report(at == 22 ? "chapter split, 3 scenes before the caret" : "chapter split, 3 scenes after the caret", h.counting);
+        CHECK(h.counting.total().renamePath <= 2 * 3);
+        CHECK(h.counting.total().listDirectory == 0);
+        CHECK(r.value().indexCurrent);
+
+        h.counting.reset();
+        auto back = ops.cut(r.value().range, author());
+        REQUIRE(back.ok());
+        report("its undo", h.counting);
+        CHECK(h.counting.total().renamePath <= 2 * 3);
+        CHECK(back.value().indexCurrent);
+    }
+}
+
+// The same for a relabel: chapter 2's last 17 scenes go into a new chapter (a split at a scene's start, Q8) — the 3 left
+// behind move — and the merge back folds those 3 into the 17's folder.
+TEST_CASE("[SP-191] a relabel into a new chapter, and the merge back, rename only the smaller side", "[ep053][budget][sp191]") {
+    Harness h;
+    h.build(6, 20);
+    auto indexR = ms::ProjectIndex::build(h.root(), h.services);
+    REQUIRE(indexR.ok());
+    ms::ProjectIndex& index = indexR.value();
+    ms::Range run;
+    for (std::size_t i = 23; i < 40; ++i) {
+        const auto& s = index.scenesInOrder().at(i);
+        run.append({s.sceneID, s.chapterID, s.chapterTitle, s.title, 0, 0, 0, ""});
+    }
+    h.counting.reset();
+    ms::RangeOperations ops{h.services, h.root(), index};
+    auto r = ops.relabel(run, scrivi::ChapterID{}, author());
+    REQUIRE(r.ok());
+    report("relabel of 17 scenes into a new chapter (3 left behind)", h.counting);
+    CHECK(h.counting.total().renamePath <= 2 * 3);
+    CHECK(r.value().indexCurrent);
+
+    h.counting.reset();
+    auto back = ops.relabel(r.value().range, r.value().fromChapterID, author());
+    REQUIRE(back.ok());
+    report("the merge back (3 into 17)", h.counting);
+    CHECK(h.counting.total().renamePath <= 2 * 3);
+    CHECK(back.value().indexCurrent);
+}
+
+// ✅ [SP-191]: a file call that fails inside a CONCURRENT batch fails the operation, as a sequential one did. One of the
+// scenes a chapter split must move has lost its text file behind the index's back, so its rename fails mid-batch.
+TEST_CASE("[SP-191] a file call that fails in a concurrent batch fails the operation", "[ep053][budget][sp191]") {
+    Harness h;
+    h.build(2, 20);
+    auto indexR = ms::ProjectIndex::build(h.root(), h.services);
+    REQUIRE(indexR.ok());
+    ms::ProjectIndex& index = indexR.value();
+    const ms::SceneLocation caret = index.scenesInOrder().at(4);    // 5 scenes up to the caret, 15 after: the 5 move
+    fs::remove(fs::path(h.root()) / index.scenesInOrder().at(2).contentPath);
+    ms::Range split;
+    split.append({scrivi::SceneID{}, caret.chapterID, "", "", 0, 0, 0, ""});
+    split.append({scrivi::SceneID{}, scrivi::ChapterID{}, "", "", 0, 0, 0, ""});
+    ms::RangeOperations ops{h.services, h.root(), index};
+    auto r = ops.paste(split, caret.sceneID, 5, readBody(h, caret), author());
+    CHECK(!r.ok());
+}
+
+// A FileSystem whose renames are SLOW, as over a share — so a write sent in the same batch as a rename overtakes it.
+class SlowRenames final : public scrivi::FileSystem {
+public:
+    explicit SlowRenames(scrivi::FileSystem& inner) : inner_(inner) {}
+    scrivi::Result<bool> exists(const scrivi::AbsolutePath& p) override { return inner_.exists(p); }
+    scrivi::Result<bool> isDirectory(const scrivi::AbsolutePath& p) override { return inner_.isDirectory(p); }
+    scrivi::Result<std::uint64_t> deviceID(const scrivi::AbsolutePath& p) override { return inner_.deviceID(p); }
+    scrivi::Result<void> createDirectories(const scrivi::AbsolutePath& p) override { return inner_.createDirectories(p); }
+    scrivi::Result<scrivi::Utf8Text> readTextFile(const scrivi::AbsolutePath& p) override { return inner_.readTextFile(p); }
+    scrivi::Result<void> atomicWriteTextFile(const scrivi::AbsolutePath& p, std::string_view t) override {
+        return inner_.atomicWriteTextFile(p, t);
+    }
+    scrivi::Result<void> createFileExclusive(const scrivi::AbsolutePath& p, std::string_view t) override {
+        return inner_.createFileExclusive(p, t);
+    }
+    scrivi::Result<void> appendTextFile(const scrivi::AbsolutePath& p, std::string_view t) override {
+        return inner_.appendTextFile(p, t);
+    }
+    scrivi::Result<std::vector<scrivi::AbsolutePath>> listDirectory(const scrivi::AbsolutePath& p) override {
+        return inner_.listDirectory(p);
+    }
+    scrivi::Result<void> removeFile(const scrivi::AbsolutePath& p) override { return inner_.removeFile(p); }
+    scrivi::Result<void> renamePath(const scrivi::AbsolutePath& from, const scrivi::AbsolutePath& to) override {
+        std::this_thread::sleep_for(std::chrono::milliseconds(30));
+        return inner_.renamePath(from, to);
+    }
+    scrivi::Result<void> copyFileInBlocks(const scrivi::AbsolutePath& from, const scrivi::AbsolutePath& to, std::size_t block,
+                                          const std::function<scrivi::Result<void>()>& onBlock) override {
+        return inner_.copyFileInBlocks(from, to, block, onBlock);
+    }
+
+private:
+    scrivi::FileSystem& inner_;
+};
+
+// ✅ [SP-191]: when a chapter split moves the scenes before the caret, they leave their folder in a batch of their own,
+// BEFORE the new tail scene is written there — its file name can be one of theirs (keys are only unique within a chapter).
+// Scene 2's key is made the very one the tail gets; with slow renames, a write in the same batch would land first and then
+// be carried off by the move.
+TEST_CASE("[SP-191] the scenes before the caret leave before the new scene takes one of their names", "[ep053][budget][sp191]") {
+    Harness h;
+    h.build(1, 6);   // keys 001, B, C, D, E, F
+    const fs::path dir = [&] {
+        for (const auto& e : fs::directory_iterator(fs::path(h.root()) / "manuscript")) {
+            if (e.is_directory()) { return e.path(); }
+        }
+        return fs::path();
+    }();
+    const std::string key = scrivi::util::keyBetween("", "C");   // what the tail scene of a split in scene 2 is given
+    REQUIRE(key > "001");
+    REQUIRE(key < "C");
+    fs::remove(dir / "B-scene.meta.json");
+    fs::rename(dir / "B-scene.md", dir / (key + "-scene.md"));
+    Harness::writeScene(dir.string(), key, "scene-c1-B");   // the same scene, under that key (its text written anew)
+    std::ofstream(dir / (key + "-scene.md"), std::ios::binary) << "Body of scene B.\n";
+
+    SlowRenames slow{h.real};
+    h.services.fileSystem = &slow;
+    auto indexR = ms::ProjectIndex::build(h.root(), h.services);
+    REQUIRE(indexR.ok());
+    ms::ProjectIndex& index = indexR.value();
+    const ms::SceneLocation caret = index.scenesInOrder().at(1);
+    REQUIRE(caret.sceneID.value == "scene-c1-B");
+    ms::Range split;
+    split.append({scrivi::SceneID{}, caret.chapterID, "", "", 0, 0, 0, ""});
+    split.append({scrivi::SceneID{}, scrivi::ChapterID{}, "", "", 0, 0, 0, ""});
+    ms::RangeOperations ops{h.services, h.root(), index};
+    auto r = ops.paste(split, caret.sceneID, 5, readBody(h, caret), author());
+    REQUIRE(r.ok());
+
+    auto fresh = ms::ProjectIndex::build(h.root(), h.services);
+    REQUIRE(fresh.ok());
+    const auto& order = fresh.value().scenesInOrder();
+    REQUIRE(order.size() == 7);
+    CHECK(order[1].sceneID.value == "scene-c1-B");
+    CHECK(readBody(h, order[1]) == "Body ");
+    CHECK(readBody(h, order[2]) == "of scene B.\n");   // the tail, in its own files
+    CHECK(order[2].chapterID.value != order[1].chapterID.value);
 }
 
 // AC2: a range read reads its scenes' texts and nothing else.

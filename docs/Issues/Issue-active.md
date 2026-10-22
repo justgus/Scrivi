@@ -13,7 +13,6 @@ Issues awaiting **user verification**. An Issue leaves this file only when the u
 | **I-0311** | `[ScriviCore]` ⛔ **A structured paste that opens a CHAPTER in the middle of a chapter scrambles the reading order: the target scene's remaining text lands AFTER the scenes that followed it.** Found 2026-10-17 by reading the core while measuring [I-0297]; ⚠️ the new `[I-0297]` ABI test asserts the wrong order (expectations taken from the code). → [details](#i-0311) | **High** | [SP-191] | 🟠 **Resolved - Not Verified** (2026-10-21) — both apps paste through `scrivi_range_paste`; ⏳ live passes |
 | **I-0310** | `[Linux]` ⛔ **Destroying a shown, focused project window crashed: the editor's focus-out read the document its shell had already freed.** Found 2026-10-17 by the [I-0307] measurement harness (a segfault at its exit). ✅ Fixed. → [details](#i-0310) | **High** | [SP-185] | 🟠 **Resolved - Not Verified** |
 | **I-0309** | `[Linux]` ⛔ **Closing a project window while the project is still LOADING frees memory the load's worker is still using** (use-after-free of the shell's `ScriviBridge`). Found 2026-10-17 by AddressSanitizer in Docker, while reproducing [I-0308]. ✅ Fixed: every worker builds its own bridge. → [details](#i-0309) | **High** | [SP-185] | 🟠 **Resolved - Not Verified** |
-| **I-0308** | `[Linux]` ⛔ **The app CRASHED while the writer typed in the Find bar** (dumas-prose-timelines over the share, right after a cross-scene paste, a quit, a reopen and an undo of the paste). Found on the rig 2026-10-15 (live pass, step 11). No crash trace was kept. → [details](#i-0308) | **High** | [SP-185] | 🔵 **Open** |
 | **I-0306** | `[Apple]` ⚠️ **File ▸ Close Project (⌘W) skips the "Some changes can't be saved" question** ([T-0570]): it calls `NSWindow.close()`, which never asks `windowShouldClose`. Found 2026-10-15 by reading ([SP-181]). → [details](#i-0306) | **Medium** | ⛔ **Unassigned** | 🔵 **Open** |
 | **I-0297** | `[Linux]` ⛔ **A structured paste, its undo and its redo FREEZE the UI for 90 s – 2 min on a project over the network share** (dumas-prose-timelines, 1,186 scenes). 436 ms in Docker on local disk. Found 2026-10-13 ([SP-180] live pass, steps 36–37). ✅ Fixed: measured, the walks cut, and the work moved off the UI thread (7,683 UI-thread file calls → 16). → [details](#i-0297) | **High** | [SP-185] · [SP-191] | 🟠 **Resolved - Not Verified** (2026-10-21) — the reload is gone ([SP-191]); ⏳ the rig live pass over the share |
 | **I-0242** | `[Linux]` ⛔ **THE WRITER'S CARD STACK IS IGNORED — Linux ENUMERATES KINDS instead of honouring the chosen stack, and DROPS any card that is empty.** ⚠️ **FOUND BY THE USER on the real rig, 2026-09-21**, during [SP-142]'s live pass on `the-stairs-of-tintagael` — ⛔ **not by any test.** ✅ **USER RULING (2026-09-21), and it is the whole specification:** ⚠️ ***"The writer chooses which Card elements to display and in what order they appear. Therefore, if the writer chooses to display an empty card in the stack, then it should be displayed with an appropriate 'No Objects to Display' message. Apple already does this. Linux must as well."*** ⚠️ **REPORTED AS 'Factions is missing'; ⛔ THAT IS THE SYMPTOM, NOT THE DEFECT.** ✅ **Linux CAN render factions** — it derives kinds from `ObjectKindScope`/`kAllStorableKinds` and hardcodes nothing (the standing rule WAS followed). ⛔ **THE DEFECT IS THAT IT NEVER ASKS WHAT THE WRITER CHOSE.** ✅ **`SceneInspector.cpp:551` lists the CORE's kinds and `:577` skips any with no entries in this scene** (*"a kind with nothing in this scene is simply not a row"*) — ⚠️ **so the stack is DERIVED FROM DATA, while Apple's is DECLARED BY THE WRITER.** ⚠️ **APPLE IS THE REFERENCE AND IT IS EXPLICIT:** `ObjectCard.swift:450` renders *"No <kind> in this scene yet."* with the comment ⚠️ ***"§2: empty is a normal state, not an error."*** ⛔ **THE ROOT CAUSE IS A DANGLING READ.** ✅ **`inspector-layout.json` HOLDS the answer — `defaultStacks` and per-scene `scenes` — and [T-0537] just proved Linux ROUND-TRIPS both LOSSLESSLY.** ⚠️ **But `InspectorLayoutStore` exposes ONLY `selectedTab`: ⛔ ZERO reads of `defaultStacks` or `scenes` anywhere in `platforms/linux/`.** ✅ **So Linux has been faithfully PRESERVING a document it does not consult** — ⚠️ **`project_capability_without_surface` in its exact form: a dangling read with no reader.** ⚠️ **CONSEQUENCE BEYOND THE MISSING CARD: ORDER IS ALSO WRONG.** ⛔ **Linux emits kinds in the CORE's order; the writer's chosen order is in `defaultStacks` and is ignored** — ✅ **the user's ruling names order explicitly.** ⚠️ **AND IT BLOCKS THE STACK PICKER ([EP-036] AC4b): a '+' menu that adds a card to a stack nothing reads would change nothing on screen.** ⛔ **That picker had NO Task number; ⚠️ an earlier draft of this row cited `T-0543`, which is now [SP-134]'s — ✅ corrected 2026-09-22.** | **Medium** | ⛔ **UNASSIGNED** — ⚠️ **candidate for [EP-036]; ✅ it is the PREREQUISITE for T-0543, so they should sequence together** | 🔵 **Open** |
@@ -193,44 +192,6 @@ closes or quits normally.
 
 ---
 
-## I-0308
-
-**Title:** Crash while typing in the Find bar
-**Status:** 🔵 **Open**
-**Platform:** `[Linux]`
-**Severity:** High. The app closed with no warning; the writer's unsaved typing (if any) would be lost.
-**Sprint:** [SP-185]
-**Date Identified:** 2026-10-15, user, rig live pass (build 74 by its stamp; the code is commit `8ebb438`, SP-182 included)
-
-**What happened (user):** *"Find opens with Replace row on Ctrl-Alt-F. App crashed while typing in the Find bar."*
-- Before it, in the same session: a cross-scene Ctrl+C / Ctrl+V in dumas-prose-timelines (step 9), File ▸ Quit, reopen,
-  and Ctrl+Z of the paste (step 10), so the manuscript had been rebuilt by two reloads.
-- ⛔ No trace: `coredumpctl` is not installed on the rig and `/var/crash` is empty. The user: *"The app simply 'went away'."*
-- The user, 2026-10-17: likely intermittent, *"it only occurs under certain circumstances that we haven't fully identified
-  yet."*
-
-**Next:** reproduce. Either the same steps on the rig under `gdb` (or with `coredumpctl` installed), or the same sequence in
-Docker on a large generated project. Suspects, by reading only: the find bar's presented-text build after a reload, and
-SP-182's presenter changes (chapter-title lines). ⏳ Not yet proven either way.
-
-- **2026-10-17 — the Docker reproduction: NOT reproduced.** The real dumas-prose manuscript (1,153 scenes), Crimson Pro 18 pt,
-  the rig pass's steps 7–11 through a real `EditorShell` under AddressSanitizer + UBSan (Qt 6.4.2, arm64, offscreen): the
-  cross-scene copy and paste, a quit and reopen, the undo from the previous session, Ctrl+Alt+F, then 9 searches typed key by
-  key (accented names, `e`, `the`), backspacing, and typing in the manuscript with the bar open. No memory error; the app
-  survived.
-- Ruled out in that setting: a use-after-free or overflow in the find bar's presented text or in SP-182's chapter-title
-  drawing on this path. ⚠️ NOT ruled out: what Docker does not have — Qt 6.10.2 (the rig's), x86-64, Wayland and its primary
-  selection, the network share's timing, the real dumas-prose-timelines (with timelines).
-- Found on the way: [I-0309] and [I-0310], both crashes, both fixed. The diagnostic log ([T-0612]) now records a crash's
-  backtrace on the rig.
-- **2026-10-21 — did not recur; kept Open (user).** The rig pass on build 75 ran the same steps 9–11 without a crash. The
-  user: *"keep I-0308 open. It is quite likely that the Find bar crash is related to background read collisions and will
-  be taken care of in an upcoming Epic."* ⏳ No work now: the user opened a discussion of background task queuing and
-  priorities (repeated gestures while an operation is pending; a Ctrl+Z queued behind the operation it undoes) and said
-  *"let's not 'do' anything yet."*
-
----
-
 ## I-0306
 
 **Title:** ⌘W (File ▸ Close Project) skips the unsavable-changes question
@@ -357,6 +318,8 @@ ONE range call on a worker, and the editor applies the returned delta to only th
 `SceneDocument::applyRangeDelta`) — the project is never re-read. Measured (`structural_baseline_smoke`): 0 project loads and
 0 document builds per operation (was 1 and 1); a 5-scene paste lands in ~12 ms in Docker. ⏳ The rig times it over the share.
 ---
+
+*Last Updated: 2026-10-22 — **I-0308** `[Linux]` → the backlog, not reproducible (user); removed from [SP-185].*
 
 *Last Updated: 2026-10-21 — **I-0315** `[Linux]` assigned to SP-191 (user) and moved here from the backlog; → 🟠 Resolved - Not Verified (the Inspector writes only what changed, never to a removed scene).*
 

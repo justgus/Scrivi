@@ -28,6 +28,7 @@
 #include <iterator>
 #include <string>
 #include <vector>
+#include <unistd.h>   // getpid: ctest runs each test case in its own process
 
 namespace fs = std::filesystem;
 using scrivi::util::JsonDoc;
@@ -70,7 +71,7 @@ struct CApiFixture {
     CApiFixture() {
         static std::atomic<int> counter{0};
         const std::string stem =
-            "scrivi-object-capi-" + std::to_string(counter.fetch_add(1)) + "-" +
+            "scrivi-object-capi-" + std::to_string(::getpid()) + "-" + std::to_string(counter.fetch_add(1)) + "-" +
             std::to_string(reinterpret_cast<std::uintptr_t>(this));
 
         projectDir    = fs::temp_directory_path() / (stem + ".scrivi");

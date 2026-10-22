@@ -17,6 +17,7 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <unistd.h>   // getpid: ctest runs each test case in its own process
 
 // Scene writing-tool card content — tags / outline / todo (EP-030 SP-091, T-0393).
 // Exercises the facade endpoints that back the inspector's Writing-tab cards, plus the
@@ -31,7 +32,7 @@ struct TempDir {
     TempDir() {
         static std::atomic<int> counter{0};
         path = fs::temp_directory_path() /
-               ("scrivi-scene-notes-" + std::to_string(counter.fetch_add(1)) + "-" +
+               ("scrivi-scene-notes-" + std::to_string(::getpid()) + "-" + std::to_string(counter.fetch_add(1)) + "-" +
                 std::to_string(reinterpret_cast<std::uintptr_t>(this)));
         fs::create_directories(path);
     }

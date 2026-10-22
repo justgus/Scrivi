@@ -25,6 +25,7 @@
 
 #include <algorithm>
 #include <map>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -170,7 +171,10 @@ public:
     }
 
 private:
+    // ✅ [SP-191]: thread-safe — the core makes file calls from several threads at once (the open's prefetch, a range
+    // operation's concurrent batch). The read accessors are for after the work, on the calling thread.
     void tally(const AbsolutePath& path, std::size_t Counts::* field) {
+        const std::lock_guard<std::mutex> lock(mutex_);
         ++(total_.*field);
         ++(byPath_[path].*field);
         if (!phase_.empty()) {
@@ -180,6 +184,7 @@ private:
     }
 
     FileSystem& inner_;
+    std::mutex  mutex_;
     std::string phase_;
     Counts      total_;
 
