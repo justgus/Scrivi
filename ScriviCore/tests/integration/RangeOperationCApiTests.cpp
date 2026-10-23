@@ -1230,3 +1230,101 @@ TEST_CASE("[SP-191] when the scenes before the caret move, they leave before the
     chaptersAreWhole(p);
     CHECK(p.clean());
 }
+
+// ── [SP-188] Q3: the cut BALANCES its join, and its undo is exact ─────────────────────────────────────────────────────────
+
+namespace {
+
+// Give two scenes their own text, behind the core's back, and reopen (as an editor's save would leave it).
+void setTexts(Project& p, const std::vector<std::pair<std::string, std::string>>& texts) {
+    for (const auto& [id, text] : texts) { std::ofstream(p.contentOf(id), std::ios::binary) << text; }
+    scrivi_free(scrivi_close_project(p.r()));
+    ok(scrivi_open_project(p.r(), p.appSupport.c_str(), kIdentity));
+}
+
+std::size_t count(const std::string& s, const std::string& needle) {
+    std::size_t n = 0;
+    for (auto at = s.find(needle); at != std::string::npos; at = s.find(needle, at + needle.size())) { ++n; }
+    return n;
+}
+
+}  // namespace
+
+TEST_CASE("[SP-188] Q3: a cut that begins inside bold closes it in the survivor; undo and redo are exact",
+          "[sp188][range][capi]") {
+    Project p(2, 3);
+    setTexts(p, {{p.id(1, 2), "**Alpha beta.**"}, {p.id(1, 3), "Gamma delta."}});
+    const auto before = p.rows();
+    const JsonDoc range = p.read(p.id(1, 2), 10, p.id(1, 3), 6);   // from inside `be|ta` to `Gamma |delta.`
+    const JsonDoc cut = p.cut(range);
+    const std::string survivor = p.text(p.id(1, 2));
+    CHECK(survivor == "**Alpha be**delta.");   // ⛔ the plain join would be `**Alpha bedelta.` — bold left open
+    const JsonDoc removed = cut.getSubDoc("range");
+    REQUIRE(removed.contains("join"));
+    CHECK(removed.getSubDoc("join").getString("sceneID") == p.id(1, 2));
+    deltaMatchesDisk(p, cut.getSubDoc("delta"));
+
+    // Undo: the paste at the survivor's seam (in the PLAIN text) puts the plain join back first.
+    CHECK(cut.getString("undoCaretSceneID") == p.id(1, 2));
+    p.paste(removed, cut.getString("undoCaretSceneID"), cut.getInt64("undoCaretByte"));
+    CHECK(p.rows() == before);
+    CHECK(p.clean());
+
+    // Redo: the cut of the node's Range — the join it carries is ignored and recomputed the same.
+    const JsonDoc again = p.cut(removed);
+    CHECK(p.text(p.id(1, 2)) == survivor);
+    CHECK(again.getSubDoc("range").getSubDoc("join").dump(-1) == removed.getSubDoc("join").dump(-1));
+    CHECK(p.clean());
+}
+
+TEST_CASE("[SP-188] Q3: a cut that ends inside bold re-opens it in the survivor; undo is exact", "[sp188][range][capi]") {
+    Project p(2, 3);
+    setTexts(p, {{p.id(1, 2), "Alpha beta."}, {p.id(1, 3), "**Gamma delta.**"}});
+    const auto before = p.rows();
+    const JsonDoc cut = p.cut(p.read(p.id(1, 2), 6, p.id(1, 3), 5));   // `Alpha |beta.` to `**Gam|ma`
+    const std::string survivor = p.text(p.id(1, 2));
+    CHECK(count(survivor, "**") == 2);   // ⛔ the plain join `Alpha ma delta.**` has ONE
+    CHECK(survivor.starts_with("Alpha "));
+    CHECK(survivor.ends_with("ma delta.**"));
+    p.paste(cut.getSubDoc("range"), cut.getString("undoCaretSceneID"), cut.getInt64("undoCaretByte"));
+    CHECK(p.rows() == before);
+    CHECK(p.clean());
+}
+
+TEST_CASE("[SP-188] Q3: a cut across a CHAPTER from a scene's first character balances, and undoes exactly",
+          "[sp188][range][capi]") {
+    Project p(2, 2);
+    setTexts(p, {{p.id(1, 2), "**Alpha beta.**"}, {p.id(2, 1), "**Gamma** delta."}});
+    const auto before = p.rows();
+    const JsonDoc cut = p.cut(p.read(p.id(1, 2), 0, p.id(2, 1), 4));   // the whole of 1.2 (Q7: the END scene survives)
+    CHECK(p.chapterCount() == 1);
+    for (const auto& row : p.rows()) { CHECK(count(row.text, "**") % 2 == 0); }
+    p.paste(cut.getSubDoc("range"), cut.getString("undoCaretSceneID"), cut.getInt64("undoCaretByte"));
+    CHECK(p.rows() == before);
+    CHECK(p.clean());
+}
+
+TEST_CASE("[SP-188] Q3: a plain cut carries no join; a join is refused anywhere but at its survivor",
+          "[sp188][range][capi]") {
+    Project p(2, 3);
+    const JsonDoc plain = p.cut(p.read(p.id(1, 1), 3, p.id(1, 2), 2));
+    CHECK_FALSE(plain.getSubDoc("range").contains("join"));
+
+    setTexts(p, {{p.id(2, 2), "**Alpha beta.**"}, {p.id(2, 3), "Gamma delta."}});
+    const JsonDoc cut = p.cut(p.read(p.id(2, 2), 10, p.id(2, 3), 6));
+    const JsonDoc removed = cut.getSubDoc("range");
+    REQUIRE(removed.contains("join"));
+    const auto before = p.rows();
+    const std::string json = removed.dump(-1);
+    // A paste of the undo record at another scene: refused, nothing written.
+    CHECK(refused(scrivi_range_paste(p.r(), json.c_str(), p.id(2, 1).c_str(), 0, p.text(p.id(2, 1)).c_str(),
+                                     kIdentity, kPersona, kName)));
+    // At its survivor, after the writer changed the join: refused too.
+    std::ofstream(p.contentOf(p.id(2, 2)), std::ios::binary) << "**Alpha beXYZ delta.**";   // no `**` at the join
+    scrivi_free(scrivi_close_project(p.r()));
+    ok(scrivi_open_project(p.r(), p.appSupport.c_str(), kIdentity));
+    CHECK(refused(scrivi_range_paste(p.r(), json.c_str(), p.id(2, 2).c_str(), 10, p.text(p.id(2, 2)).c_str(),
+                                     kIdentity, kPersona, kName)));
+    CHECK(p.text(p.id(2, 2)) == "**Alpha beXYZ delta.**");
+    CHECK(p.rows().size() == before.size());
+}

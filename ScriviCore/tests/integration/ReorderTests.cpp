@@ -16,9 +16,12 @@
 #include "util/PathUtils.hpp"
 
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <filesystem>
 #include <string>
+
+#include <unistd.h>
 
 namespace fs = std::filesystem;
 
@@ -30,8 +33,12 @@ struct TempDir {
     fs::path path;
 
     TempDir() {
-        path = fs::temp_directory_path() / ("scrivi-reorder-" + std::to_string(
-            std::chrono::steady_clock::now().time_since_epoch().count()));
+        // ⚠️ ctest runs each test case in its OWN process, 8 at a time: the clock alone can give two processes the same
+        // name, and one's teardown then deletes the other's project (a Linux ctest run failed here once, 2026-10-22).
+        static std::atomic<int> counter{0};
+        path = fs::temp_directory_path() / ("scrivi-reorder-" + std::to_string(::getpid()) + "-" +
+                                            std::to_string(counter.fetch_add(1)) + "-" +
+                                            std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
         fs::create_directories(path);
     }
 

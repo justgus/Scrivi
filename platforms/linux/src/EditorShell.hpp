@@ -793,8 +793,9 @@ private:
     using RangeCall  = std::function<QVariantMap(ScriviBridge&)>;
     using RangeNode  = std::function<QJsonObject(const QVariantMap&)>;
     using RangeCaret = std::function<std::pair<QString, qint64>(const QVariantMap&)>;
+    // `then` runs once it has landed and the caret is placed (✅ [SP-188]: a cut's clipboard, a paste over the selection).
     bool runRangeEdit(const QString& label, RangeCall call, RangeNode node, RangeCaret caret,
-                      std::function<void()> failed = {});
+                      std::function<void()> failed = {}, std::function<void(const QVariantMap&)> then = {});
     // The delta of a range call's result → the scene list and the document (`SceneDocument::applyRangeDelta`); the
     // written scenes clean, history's view of their text, the navigator.
     void applyRangeResult(const QVariantMap& result);
@@ -810,7 +811,15 @@ private:
     // ⌃↩ / ⌃⇧↩: a paste of a break at the caret (Q1); `newChapter` puts its second entry in another chapter.
     void insertBreak(bool newChapter, const QString& label);
     // A merge: a cut of `rangeJson` (the zero-length range across a break), recorded as a `rangeCut` node.
-    void cutRange(const QString& rangeJson, const QString& label);
+    bool cutRange(const QString& rangeJson, const QString& label, std::function<void(const QVariantMap&)> then = {});
+    // ✅ [SP-188] (design R4, §4.3; Apple: `cutAcrossScenes`) — a cut, Alt+N, Backspace or Delete over a selection that takes
+    // more than one scene REMOVES THE STRUCTURE: ONE `rangeCut` of the editor's `crossSceneCutRange`, off the GUI thread,
+    // the delta applied. ⛔ It was [I-0270]'s "delete the text, keep the scenes". Ctrl+X: other apps get the text at the key
+    // press; when the cut lands Scrivi's clipboard (or the slot) takes the Range it returned — sidecars included, its pieces
+    // the balanced copy's, its join dropped (Q4). Backspace / Delete leave both alone. `then` runs once it has landed (Q6).
+    // False when the selection takes one scene; true when handled (cut, or ignored while an edit is in flight).
+    enum class CutKeeping { Nothing, Clipboard, Buffer };
+    bool cutAcrossScenes(CutKeeping keeping, const QString& bufferID = {}, std::function<void()> then = {});
     // A chapter merge / a chapter split at a scene's start (Q8): a relabel of the run into `target` ("" = a new chapter).
     void relabel(const QString& rangeJson, const QString& target, const QString& keepCaretIn, const QString& label);
     // A paste of `rangeJson` at (caretScene, caretByte); `records` = a new `rangePaste` node (false for an undo/redo).

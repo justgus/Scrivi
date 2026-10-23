@@ -373,8 +373,10 @@ EditorShell::EditorShell(QWidget* parent, AppEnvironment* env)
     connect(viewport_, &ManuscriptEditor::pasteOrCutEnded, this, [this](const QString& kind) {
         if (history_ != nullptr) { history_->flush(kind, kind); }
     });
-    connect(viewport_, &ManuscriptEditor::groupedEditBegins, this, &EditorShell::beginGroupedEdit);
-    connect(viewport_, &ManuscriptEditor::groupedEditEnded, this, &EditorShell::endGroupedEdit);
+    connect(viewport_, &ManuscriptEditor::crossSceneCutRequested, this, [this](int keeping, bool thenPaste) {
+        cutAcrossScenes(keeping == 1 ? CutKeeping::Clipboard : CutKeeping::Nothing, {},
+                        thenPaste ? std::function<void()>([this] { viewport_->pasteClipboard(); }) : nullptr);
+    });
     // SP-181 (EP-048 S4b): the find bar's Replace All is the shell's — off the GUI thread (Q3).
     findBar_->setReplaceAllHandler([this](const QVector<MarkdownRange>& matches, const QString& typed,
                                           std::function<void(int)> done) { replaceAll(matches, typed, std::move(done)); });
@@ -1890,7 +1892,7 @@ qint64 byteLength(const QString& s) { return s.toUtf8().size(); }
 }   // namespace
 
 bool EditorShell::runRangeEdit(const QString& label, RangeCall call, RangeNode node, RangeCaret caret,
-                               std::function<void()> failed)
+                               std::function<void()> failed, std::function<void(const QVariantMap&)> then)
 {
     if (loading_ || projectPath_.isEmpty()) {
         return false;   // ✅ Q5: a repeat (or anything else) while an edit is in flight is IGNORED, not queued
@@ -1973,7 +1975,7 @@ bool EditorShell::runRangeEdit(const QString& label, RangeCall call, RangeNode n
             lap("· story times");
             return o;
         },
-        [this, jobs, caret = std::move(caret), failed, label, clock](const Outcome& o) {
+        [this, jobs, caret = std::move(caret), failed, then = std::move(then), label, clock](const Outcome& o) {
             DiagnosticLog::note(QStringLiteral("structural \"%1\": worker finished in %2 ms%3 —%4")
                                     .arg(label).arg(clock.elapsed()).arg(o.failed ? QStringLiteral(" (FAILED)") : QString(),
                                                                          o.phases));
@@ -2010,6 +2012,7 @@ bool EditorShell::runRangeEdit(const QString& label, RangeCall call, RangeNode n
             DiagnosticLog::note(QStringLiteral("structural \"%1\": applied in %2 ms").arg(label).arg(applying.elapsed()));
             endBackgroundWork();
             emit structuralEditFinished(true);
+            if (then) { then(o.result); }   // ✅ [SP-188] Q4 / Q6
         },
         [this, label, failed] {
             DiagnosticLog::note(QStringLiteral("structural \"%1\": TIMED OUT").arg(label));
@@ -2220,10 +2223,10 @@ void EditorShell::onMergeChapterRequested()
     relabel(rangeJsonOf(run), previous, current.sceneID, tr("Merging the chapters…"));
 }
 
-void EditorShell::cutRange(const QString& rangeJson, const QString& label)
+bool EditorShell::cutRange(const QString& rangeJson, const QString& label, std::function<void(const QVariantMap&)> then)
 {
     const QString root = projectPath_, name = bridge_->displayName();
-    runRangeEdit(
+    return runRangeEdit(
         label,
         [=](ScriviBridge& bridge) { return bridge.rangeCut(root, rangeJson, name); },
         [](const QVariantMap& r) {
@@ -2234,7 +2237,52 @@ void EditorShell::cutRange(const QString& rangeJson, const QString& label)
         },
         [](const QVariantMap& r) -> std::pair<QString, qint64> {
             return {r.value(QStringLiteral("undoCaretSceneID")).toString(), r.value(QStringLiteral("undoCaretByte")).toLongLong()};
-        });
+        },
+        {}, std::move(then));
+}
+
+bool EditorShell::cutAcrossScenes(CutKeeping keeping, const QString& bufferID, std::function<void()> then)
+{
+    const auto range = viewport_->crossSceneCutRange();
+    if (!range) {
+        return false;
+    }
+    if (loading_ || projectPath_.isEmpty()) {
+        return true;   // ✅ Q5: ignored, not queued
+    }
+    std::optional<ManuscriptEditor::CrossSceneCopy> copy;
+    QString token;
+    if (keeping != CutKeeping::Nothing) {
+        copy = viewport_->crossSceneCopy();
+    }
+    if (keeping == CutKeeping::Clipboard && copy) {
+        token = viewport_->putCutOnClipboard(*copy);
+    }
+    const QString json = QString::fromUtf8(QJsonDocument(*range).toJson(QJsonDocument::Compact));
+    cutRange(json, keeping == CutKeeping::Nothing ? tr("Deleting…") : tr("Cutting…"),
+             [this, keeping, bufferID, copy, token, then = std::move(then)](const QVariantMap& r) {
+                 // Q4: the returned Range, the copy's balanced pieces in place of the stored ones (same scenes, same order).
+                 QJsonObject held = QJsonObject::fromVariantMap(r.value(QStringLiteral("range")).toMap());
+                 held.remove(QStringLiteral("join"));   // an undo record: the core refuses it anywhere but at its survivor
+                 QJsonArray entries = held.value(QStringLiteral("scenes")).toArray();
+                 const QJsonArray copied = copy ? copy->range.value(QStringLiteral("scenes")).toArray() : QJsonArray();
+                 if (copied.size() == entries.size()) {
+                     for (qsizetype k = 0; k < entries.size(); ++k) {
+                         QJsonObject e = entries.at(k).toObject();
+                         e.insert(QStringLiteral("text"), copied.at(k).toObject().value(QStringLiteral("text")));
+                         entries.replace(k, e);
+                     }
+                     held.insert(QStringLiteral("scenes"), entries);
+                 }
+                 held = ManuscriptEditor::normalizedRange(held);
+                 if (keeping == CutKeeping::Clipboard) {
+                     viewport_->holdCutRange(token, held);
+                 } else if (keeping == CutKeeping::Buffer && buffers_ != nullptr) {
+                     buffers_->load(copy ? copy->source : QString(), bufferID, held);
+                 }
+                 if (then) { then(); }
+             });
+    return true;
 }
 
 void EditorShell::relabel(const QString& rangeJson, const QString& target, const QString& keepCaretIn, const QString& label)
@@ -2377,6 +2425,9 @@ void EditorShell::cutIntoBuffer(const QString& bufferID)
         return;
     }
     viewport_->setFocus();   // a palette click must not leave the editor unfocused (Apple: `makeFirstResponder`)
+    if (cutAcrossScenes(CutKeeping::Buffer, bufferID)) {
+        return;   // ✅ [SP-188] across scenes: the structural cut, its Range into the slot when it lands (Q4)
+    }
     viewport_->cutSelectionIntoBuffer(bufferID, [this, bufferID](const QString& source, const QJsonObject& range) {
         return buffers_->load(source, bufferID, range);
     });
@@ -2414,7 +2465,11 @@ void EditorShell::pasteRange(const QJsonObject& rangeIn)
     }
     viewport_->setFocus();
     viewport_->removePendingPair();
-    // ✅ [SP-180] Q2 ([I-0295]): a selection is replaced — removed first, as its own step.
+    // ✅ [SP-180] Q2 ([I-0295]): a selection is replaced — removed first, as its own step. ✅ [SP-188] Q6: across scenes
+    // the removal is the structural cut, and the paste follows when it lands (the caret then at the join).
+    if (cutAcrossScenes(CutKeeping::Nothing, {}, [this, rangeIn] { pasteRange(rangeIn); })) {
+        return;
+    }
     if (!viewport_->removeSelectionForPaste()) {
         QApplication::beep();   // the caret is in a heading or separator (Apple flashes and does not paste)
         return;

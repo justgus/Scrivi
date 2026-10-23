@@ -23,6 +23,7 @@
 
 #include <cstddef>
 #include <list>
+#include <optional>
 #include <string>
 #include <string_view>
 
@@ -48,6 +49,19 @@ struct RangeEntry {
     [[nodiscard]] bool coversWholeScene() const { return start == 0 && length == sceneLength; }
 };
 
+// ✅ [SP-188] Q3 (user, 2026-10-22): a cut BALANCES the join — the survivor's head and tail, joined directly, can leave an
+// emphasis span open (`**Alpha be` + `Gamma.`). The cut writes the balanced text and records, on the Range it returns, how to
+// turn it back into the plain join: `balanced` at `byte` of the survivor became `plain`. The paste that undoes the cut puts
+// `plain` back first, so cut ∘ undo is exact. ⚠️ A Range with a join is an undo record: it pastes only at its survivor, and
+// a platform drops the join before the Range goes on the clipboard or into a buffer. A cut IGNORES a join it is given (its
+// redo recomputes the same one).
+struct RangeJoin {
+    SceneID     sceneID;   // the survivor
+    std::size_t byte = 0;  // where `balanced` begins in the survivor's text as the cut wrote it (UTF-8 bytes)
+    std::string balanced;  // what the cut wrote there
+    std::string plain;     // what the plain join had there
+};
+
 class Range {
 public:
     using Entries = std::list<RangeEntry>;
@@ -57,6 +71,8 @@ public:
     [[nodiscard]] const Entries& entries() const { return entries_; }
     [[nodiscard]] Entries& entries() { return entries_; }
     void append(RangeEntry entry) { entries_.push_back(std::move(entry)); }
+    [[nodiscard]] const std::optional<RangeJoin>& join() const { return join_; }
+    void setJoin(std::optional<RangeJoin> join) { join_ = std::move(join); }
 
     // True when the entry after `it` begins a new chapter (its chapterID differs).
     [[nodiscard]] static bool opensChapter(Entries::const_iterator previous, Entries::const_iterator it) {
@@ -66,6 +82,7 @@ public:
     // `scrivi.range.v1`: { "schema": "scrivi.range.v1", "scenes": [ entry, … ] } — the array's order IS the links.
     // ✅ `sceneMeta` / `chapterMeta` are optional STRINGS (serialized JSON), so a platform's codec carries them through
     // untouched. ✅ An empty `sceneID` / `chapterID` is allowed (Q1): a paste mints a fresh one.
+    // ✅ [SP-188] Q3: an optional top-level `"join": {sceneID, byte, balanced, plain}` (`RangeJoin`).
     [[nodiscard]] util::JsonDoc toJson() const;
     [[nodiscard]] static Result<Range> fromJson(const util::JsonDoc& doc);
     [[nodiscard]] std::string toJsonString() const;
@@ -82,6 +99,7 @@ public:
 
 private:
     Entries entries_;
+    std::optional<RangeJoin> join_;
 };
 
 }  // namespace scrivi::manuscript

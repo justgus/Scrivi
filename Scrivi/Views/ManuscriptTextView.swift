@@ -1066,14 +1066,8 @@ struct ManuscriptTextView: NSViewRepresentable {
             let sel = tv.selectedRange()
             guard sel.length > 0 else { return }
 
-            // ✅ [I-0270] Cross-boundary cut into a slot = the cross-boundary COPY into the slot
-            // (unchanged, structured fragment) + delete-keeping-scenes. ⛔ No longer the
-            // collapsing `fragmentCut` (user ruling 2026-10-02).
-            if selectionCrossesBoundary(sel) {
-                copyIntoBuffer(bufferID)
-                deleteAcrossScenes(sel, kind: "cut")
-                return
-            }
+            // ✅ [SP-188] Across scenes: the structural cut, its Range into the slot when it lands (Q4).
+            if cutAcrossScenes(sel, keeping: .buffer(bufferID)) { return }
 
             let text = balancedSource(tv, sel)   // ✅ [I-0289]; the delete below is balanced by `shouldChangeText`
             // Load into the slot first — a cut must not lose the text if the store
@@ -1294,7 +1288,8 @@ struct ManuscriptTextView: NSViewRepresentable {
                                _ call: @escaping @Sendable (ScriviEngine, String, AuthorshipRef) throws -> RangeOperationResult,
                                node: StructuralNode?,
                                caret: @escaping StructuralCaret,
-                               failed: (@MainActor () -> Void)? = nil) -> Bool {
+                               failed: (@MainActor () -> Void)? = nil,
+                               then: (@MainActor (RangeOperationResult) -> Void)? = nil) -> Bool {
             let loader = parent.loader
             guard !loader.structuralInFlight, let tv = textView,
                   let root = parent.session.projectRootPath, let ref = parent.env.authorshipRef else { return false }
@@ -1321,14 +1316,15 @@ struct ManuscriptTextView: NSViewRepresentable {
                 return StructuralLanding(result: result, history: history,
                                          storyTimes: try? engine.listStoryTimes(projectRootPath: root))
             }, landed: { [weak self] outcome in
-                self?.structuralEditLanded(outcome, caret: caret, failed: failed)
+                self?.structuralEditLanded(outcome, caret: caret, failed: failed, then: then)
             })
             if !started { tv.isEditable = true }
             return started
         }
 
         private func structuralEditLanded(_ outcome: Result<StructuralLanding, Error>, caret: StructuralCaret,
-                                          failed: (@MainActor () -> Void)?) {
+                                          failed: (@MainActor () -> Void)?,
+                                          then: (@MainActor (RangeOperationResult) -> Void)?) {
             let loader = parent.loader
             guard let tv = textView else { return }
             tv.isEditable = true
@@ -1365,6 +1361,7 @@ struct ManuscriptTextView: NSViewRepresentable {
                                          scenes: loader.allScenes)
                 timeline.updateDotTitles(liveTitles: loader.liveTitles, allScenes: loader.allScenes)
             }
+            then?(landing.result)   // ✅ [SP-188] after the caret is placed: a cut's clipboard, a paste over a selection (Q4, Q6)
         }
 
         /// The caret's scene, its index, and the caret's scene-local UTF-8 byte offset — where a range call is anchored.
@@ -1479,13 +1476,15 @@ struct ManuscriptTextView: NSViewRepresentable {
                     label: "Merging the chapters…")
         }
 
-        private func cut(_ range: ScriviRange, label: String) {
+        @discardableResult
+        private func cut(_ range: ScriviRange, label: String,
+                         then: (@MainActor (RangeOperationResult) -> Void)? = nil) -> Bool {
             runStructuralEdit(label, { engine, root, ref in
                 try engine.rangeCut(projectRootPath: root, range: range, authorshipRef: ref)
             }, node: { r in
                 HistoryStructuralPayload(op: "rangeCut", caretSceneID: r.undoCaretSceneID ?? "",
                                          caretByte: r.undoCaretByte ?? 0, rangeJSON: (try? r.range.toJSON()) ?? "")
-            }, caret: { r in r.undoCaretSceneID.map { ($0, r.undoCaretByte ?? 0) } })
+            }, caret: { r in r.undoCaretSceneID.map { ($0, r.undoCaretByte ?? 0) } }, then: then)
         }
 
         private func relabel(_ run: ScriviRange, into target: String, keepingCaretIn sceneID: String, label: String) {
@@ -2148,14 +2147,47 @@ struct ManuscriptTextView: NSViewRepresentable {
         // (AC5).
 
         // True if `sel` overlaps more than one scene boundary (i.e. spans a divider/heading).
-        func selectionCrossesBoundary(_ sel: NSRange) -> Bool {
-            guard sel.length > 0 else { return false }
-            var touched = 0
-            for range in sceneBoundaries where NSIntersectionRange(range, sel).length > 0 {
-                touched += 1
-                if touched > 1 { return true }
+        func selectionCrossesBoundary(_ sel: NSRange) -> Bool { (selectionRun(sel)?.count ?? 0) > 1 }
+
+        /// ✅ [SP-188] The scenes a selection takes, in reading order, each with the part of it selected (storage ranges) —
+        /// what a copy and a cut build their Range from. A scene is in it when the selection overlaps its text, and:
+        ///  - Q5 / Q2: a selection that covers a SCENE divider takes the scenes on both sides of it — the one before at its
+        ///    end, the one after at its start (zero-length parts) — so whole scenes go whole, and a selection of exactly one
+        ///    divider is the merge;
+        ///  - Q1: a chapter divider (its title) is skipped — presentation, in no scene's text — unless the selection covers
+        ///    the whole chapter, which then takes the break after it (or, at the manuscript's end, the one before), so the cut
+        ///    removes the chapter.
+        /// nil for an empty selection or one that reaches no scene.
+        func selectionRun(_ sel: NSRange) -> [(segIdx: Int, part: NSRange)]? {
+            guard sel.length > 0 else { return nil }
+            let segments = parent.loader.segments
+            let bounds = sceneBoundaries
+            let n = min(bounds.count, segments.count)
+            var lo = Int.max, hi = Int.min
+            func take(_ i: Int) { lo = min(lo, i); hi = max(hi, i) }
+            for i in 0..<n where NSIntersectionRange(bounds[i], sel).length > 0 { take(i) }
+            for i in 0..<max(0, n - 1) where segments[i].chapterID == segments[i + 1].chapterID
+                && sel.location <= NSMaxRange(bounds[i]) && NSMaxRange(sel) >= bounds[i + 1].location {
+                take(i); take(i + 1)
             }
-            return false
+            var c0 = 0
+            while c0 < n {
+                var c1 = c0
+                while c1 + 1 < n, segments[c1 + 1].chapterID == segments[c0].chapterID { c1 += 1 }
+                if sel.location <= bounds[c0].location, NSMaxRange(sel) >= NSMaxRange(bounds[c1]) {
+                    take(c0); take(c1)
+                    if c1 + 1 < n { take(c1 + 1) } else if c0 > 0 { take(c0 - 1) }
+                }
+                c0 = c1 + 1
+            }
+            guard lo <= hi else { return nil }
+            return (lo...hi).map { i in
+                let part = NSIntersectionRange(bounds[i], sel)
+                if part.length > 0 { return (i, part) }
+                // Untouched text: the scene before the selection is taken at its end, the one after at its start.
+                return (i, NSRange(location: i == lo && bounds[i].location < sel.location ? NSMaxRange(bounds[i])
+                                                                                          : bounds[i].location, length: 0))
+            }
         }
 
         // T-0572 — where a caret proposed at `loc` goes instead, when `loc` is in the GAP
@@ -2263,13 +2295,8 @@ struct ManuscriptTextView: NSViewRepresentable {
             let infos = Dictionary(loader.allScenes.map { ($0.sceneID, $0) }, uniquingKeysWith: { a, _ in a })
             var entries: [ScriviRange.Entry] = []
             var presented: [String] = []
-            for (i, range) in sceneBoundaries.enumerated() where loader.segments.indices.contains(i) {
-                var part = NSIntersectionRange(range, sel)
-                if part.length == 0 {
-                    // A scene the selection only touches at its start (a break crossed with nothing selected in it).
-                    guard sel.location <= range.location, range.location < NSMaxRange(sel) else { continue }
-                    part = NSRange(location: range.location, length: 0)
-                }
+            for (i, part) in selectionRun(sel) ?? [] {   // ✅ [SP-188] Q5 / Q1: the same scenes a cut takes
+                let range = sceneBoundaries[i]
                 let seg = loader.segments[i]
                 let copy = presenter.balancedCopy(in: storage, part)
                 let info = infos[seg.sceneID]
@@ -2344,80 +2371,71 @@ struct ManuscriptTextView: NSViewRepresentable {
             return parts.isEmpty ? nil : parts
         }
 
-        // ✅ [I-0270] (user ruling 2026-10-02) — DELETE ACROSS SCENES, KEEP THE SCENES.
-        // ⌫ / ⌦ / ⌘X / ⌥N on a selection that spans scene breaks removes the selected text
-        // from EACH scene it overlaps and keeps every scene, divider and heading; a scene
-        // wholly inside the selection becomes EMPTY, not deleted. User: *"when I copy text
-        // across a scene boundary and paste it somewhere else the scene boundary does not
-        // copy with the text. Therefore in this instance, and with cut, the scene boundary
-        // also must not disappear."*
-        // ⛔ This REPLACES the EP-029 cross-boundary cut (`fragmentCut` = delete + COLLAPSE
-        // into a survivor). Old `structuredCut` history nodes still undo via
-        // `applyStructuralInverse`.
-        // ✅ Recorded as ONE edit group (one event per scene, shared groupID), so a single
-        // ⌘Z restores every scene and a single redo re-applies them (user ruling, same day).
-        // Returns false for a selection inside one scene — the ordinary path handles it.
+        /// Where a cut across scenes puts what it removed.
+        enum CutKeeping { case nothing, clipboard, buffer(String) }
+
+        // ✅ [SP-188] (design R4, §4.3) — A CUT ACROSS SCENES REMOVES THE STRUCTURE. ⛔ It replaces [I-0270]'s "delete the
+        // text, keep the scenes" (2026-10-02), which R4 reversed: ⌘X, ⌥N, ⌫ and ⌦ over a selection that crosses a break are
+        // ONE `rangeCut` of the scenes `selectionRun` takes, off the main actor, the delta applied — the start scene's head
+        // joins the end scene's tail (balanced, Q3), the scenes between go, an emptied chapter goes. Undo pastes it back.
+        //  - ⌘X / ⌥N: other apps get the presented text at the key press; when the cut LANDS, Scrivi's clipboard (or the
+        //    slot) takes the Range the cut returned — sidecars included, its pieces the balanced copy's, its join dropped
+        //    (Q4) — so a cut, then a paste elsewhere, moves the scenes with their tags, story time, outline and to-dos.
+        //  - ⌫ / ⌦: the same cut; the clipboard and buffers are left alone (design Q4).
+        // `then` runs once it has landed, the caret at the join (Q6: a paste over the selection).
+        // Returns false for a selection that takes one scene — the ordinary path handles it; true when handled (cut, or
+        // ignored while another structural edit is in flight).
         @discardableResult
-        func deleteAcrossScenes(_ sel: NSRange, kind: String) -> Bool {
-            guard let tv = textView, let storage = tv.textStorage, sel.length > 0 else { return false }
+        func cutAcrossScenes(_ sel: NSRange, keeping: CutKeeping, then: (@MainActor () -> Void)? = nil) -> Bool {
+            guard let tv = textView else { return false }
             ensureBoundaries(tv)
-            let loader = parent.loader
-            // Every scene the selection overlaps: its index, its range BEFORE the edit,
-            // and the part of it that is selected.
-            var parts: [(segIdx: Int, range: NSRange, cut: NSRange)] = []
-            for (i, range) in sceneBoundaries.enumerated() where loader.segments.indices.contains(i) {
-                let cut = NSIntersectionRange(range, sel)
-                if cut.length > 0 { parts.append((i, range, cut)) }
+            guard let run = selectionRun(sel), run.count > 1 else { return false }
+            if parent.loader.structuralInFlight { return true }   // ✅ Q5: ignored, not queued
+            let segments = parent.loader.segments
+            // The stored text of each part — the core checks it against the disk (⛔ never the balanced copy).
+            let entries: [ScriviRange.Entry] = run.map { i, part in
+                let seg = segments[i], bounds = sceneBoundaries[i]
+                let a = byteOffset(charOffset: part.location - bounds.location, in: seg.text)
+                let b = byteOffset(charOffset: NSMaxRange(part) - bounds.location, in: seg.text)
+                let bytes = Array(seg.text.utf8)
+                return .init(sceneID: seg.sceneID, chapterID: seg.chapterID, chapterTitle: "", sceneTitle: "",
+                             start: a, length: b - a, sceneLength: bytes.count,
+                             text: String(decoding: bytes[a..<b], as: UTF8.self))
             }
-            guard parts.count > 1 else { return false }
-
-            let ns = tv.string as NSString
-            let before = parts.map { ns.substring(with: $0.range) }
-            // Back to front, so the earlier ranges stay valid. Only scene text is removed;
-            // dividers and headings sit outside every scene range.
-            // ✅ [T-0591]: each scene's removal is BALANCED (E2-S2's `balancedEdit`) — a cut that starts inside bold
-            // closes it in the first scene, one that ends inside bold re-opens it in the last.
-            var caret = parts[0].cut.location
-            storage.beginEditing()
-            for part in parts.reversed() {
-                if let edit = presenter.balancedEdit(in: storage, replacing: part.cut, with: "") {
-                    storage.replaceCharacters(in: edit.range, with: edit.replacement)
-                    if part.segIdx == parts[0].segIdx { caret = edit.caret }
-                } else {
-                    storage.deleteCharacters(in: part.cut)
+            var copy: (range: ScriviRange, presented: String, source: String)?
+            var changeCount = 0
+            switch keeping {
+            case .nothing: break
+            case .clipboard:
+                copy = copiedRange(sel)
+                let pb = NSPasteboard.general
+                pb.clearContents()
+                pb.setString(copy?.presented ?? "", forType: .string)   // EP-045 AC4: what the writer SEES
+                changeCount = pb.changeCount
+            case .buffer:
+                copy = copiedRange(sel)
+            }
+            let label = if case .nothing = keeping { "Deleting…" } else { "Cutting…" }
+            return cut(ScriviRange(scenes: entries), label: label) { [weak self] r in
+                guard let self else { return }
+                // Q4: the returned Range, the copy's balanced pieces in place of the stored ones (same scenes, same order).
+                var held = r.range.withoutJoin
+                if let copy, copy.range.scenes.count == held.scenes.count {
+                    for k in held.scenes.indices { held.scenes[k].text = copy.range.scenes[k].text }
                 }
-            }
-            storage.endEditing()
-            ensureBoundaries(tv)
-
-            var edits: [HistoryCapture.GroupedSceneEdit] = []
-            for (n, part) in parts.enumerated() where sceneBoundaries.indices.contains(part.segIdx) {
-                let after = (tv.string as NSString).substring(with: sceneBoundaries[part.segIdx])
-                let seg = loader.segments[part.segIdx]
-                loader.updateText(after, at: part.segIdx)
-                edits.append(.init(sceneID: seg.sceneID, textBefore: before[n], textAfter: after,
-                                   caret: part.cut.location - part.range.location))
-                let firstLine = after.components(separatedBy: .newlines)
-                    .first { !$0.trimmingCharacters(in: .whitespaces).isEmpty } ?? ""
-                loader.updateLiveTitle(firstLine, forSceneID: seg.sceneID)
-            }
-            parent.session.historyCapture?.recordGroupedEdit(edits, kind: kind)
-
-            // The caret goes where the edit began, in the first scene.
-            tv.setSelectedRange(NSRange(location: caret, length: 0))
-            tv.scrollRangeToVisible(NSRange(location: caret, length: 0))
-            lastCursorSegmentIndex = parts[0].segIdx
-            loader.setCurrentIndex(parts[0].segIdx)
-
-            // Save every touched scene — the 1 s autosave only writes the CURRENT one.
-            if let ref = parent.env.authorshipRef {
-                let env = parent.env
-                for part in parts {
-                    Task { @MainActor in await loader.saveScene(at: part.segIdx, engine: env.engine, ref: ref) }
+                held = held.normalized()
+                switch keeping {
+                case .nothing: break
+                case .clipboard:
+                    // ⚠️ [I-0279]: only if nothing else was copied while the cut ran.
+                    if NSPasteboard.general.changeCount == changeCount { self.internalClipboardRange = held }
+                case .buffer(let bufferID):
+                    if let json = try? held.toJSON() {
+                        self.parent.session.bufferService?.load(copy?.source ?? "", intoSlot: bufferID, rangeJSON: json)
+                    }
                 }
+                then?()
             }
-            parent.session.timelineModel?.updateDotTitles(liveTitles: loader.liveTitles, allScenes: loader.allScenes)
-            return true
         }
 
         // ⌘V when the internal clipboard holds a Range: reconstruct it at the caret. Refuses (flash) if the caret is in a
@@ -2438,9 +2456,12 @@ struct ManuscriptTextView: NSViewRepresentable {
             if caretInHeading(sel.location) { flashRefuse(tv); return true }   // handled = refused, no super
             if parent.loader.structuralInFlight { return true }               // ✅ Q5: ignored, not queued
             // ✅ [I-0295] ([SP-180] Q2): a selection is REPLACED, as a flat paste replaces it — removed first, as its own
-            // undo step (across scenes [I-0270]'s grouped delete, inside one scene an ordinary delete), then the Range
-            // lands where it began.
-            if sel.length > 0, !deleteAcrossScenes(sel, kind: "delete") {
+            // undo step, then the Range lands where it began. ✅ [SP-188] Q6: across scenes the removal is the structural cut,
+            // and the paste follows when it lands (the caret then at the join).
+            if sel.length > 0 {
+                if cutAcrossScenes(sel, keeping: .nothing, then: { [weak self] in _ = self?.pasteStructuredRange(range) }) {
+                    return true
+                }
                 tv.insertText("", replacementRange: sel)
             }
             guard let at = caretInScene() else { return false }
@@ -3026,21 +3047,18 @@ final class ManuscriptNSTextView: NSTextView {
         // the normal system-pasteboard paste runs (AC5). EP-029 SP-089.
         if coordinator?.hasInternalStructuredRange == true,
            coordinator?.structuredPasteIfAvailable() == true { return }
+        // ✅ [SP-188] Q6: over a cross-scene selection, the structural cut first; the text goes in when it lands.
+        if coordinator?.cutAcrossScenes(selectedRange(), keeping: .nothing,
+                                        then: { [weak self] in self?.paste(sender) }) == true { return }
         coordinator?.parent.session.historyCapture?.beginPasteOrCut(kind: "paste")
         super.paste(sender)
         coordinator?.parent.session.historyCapture?.flush(trigger: "paste", kind: "paste")
     }
 
     override func cut(_ sender: Any?) {
-        // ✅ [I-0270] A cross-boundary cut = the cross-boundary COPY (unchanged) + delete the
-        // selected text from each scene, KEEPING the scenes (user ruling 2026-10-02). ⛔ Not the
-        // EP-029 collapse. A single-scene selection uses the normal cut (AC5).
-        if let c = coordinator, c.selectionCrossesBoundary(selectedRange()) {
-            let sel = selectedRange()
-            copy(sender)
-            c.deleteAcrossScenes(sel, kind: "cut")
-            return
-        }
+        // ✅ [SP-188] (design R4) A cross-boundary cut removes the structure: one `rangeCut`, the Range on Scrivi's clipboard
+        // when it lands (Q4). A single-scene selection uses the normal cut (AC5).
+        if coordinator?.cutAcrossScenes(selectedRange(), keeping: .clipboard) == true { return }
         coordinator?.parent.session.historyCapture?.beginPasteOrCut(kind: "cut")
         super.cut(sender)
         coordinator?.parent.session.historyCapture?.flush(trigger: "cut", kind: "cut")
@@ -3183,12 +3201,12 @@ final class ManuscriptNSTextView: NSTextView {
     // ⚠️ [I-0269] Both delete overrides guard the ONE character a bare caret would remove.
     // With a SELECTION, the selection is what is deleted — so a selection starting at a
     // scene's first character was refused because the character BEFORE it is the divider's
-    // `\n`. ✅ A selection across scenes → `deleteAcrossScenes` ([I-0270], text removed
-    // from each scene, scenes kept); within one scene → super.
+    // `\n`. ✅ [SP-188] A selection across scenes → the structural cut, minus the clipboard (design Q4);
+    // within one scene → super.
     override func deleteBackward(_ sender: Any?) {
         guard let storage = textStorage else { super.deleteBackward(sender); return }
         if selectedRange().length > 0 {
-            if coordinator?.deleteAcrossScenes(selectedRange(), kind: "delete") == true { return }
+            if coordinator?.cutAcrossScenes(selectedRange(), keeping: .nothing) == true { return }
             super.deleteBackward(sender); return
         }
         let loc = selectedRange().location
@@ -3257,7 +3275,7 @@ final class ManuscriptNSTextView: NSTextView {
     override func deleteForward(_ sender: Any?) {
         guard let storage = textStorage else { super.deleteForward(sender); return }
         if selectedRange().length > 0 {
-            if coordinator?.deleteAcrossScenes(selectedRange(), kind: "delete") == true { return }
+            if coordinator?.cutAcrossScenes(selectedRange(), keeping: .nothing) == true { return }
             super.deleteForward(sender); return
         }
         let loc = selectedRange().location

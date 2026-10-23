@@ -8,7 +8,6 @@ Sprints listed here are in 🔵 Planning status — defined and ready to activat
 
 | Sprint | Scope | Record | Waits on |
 | ------ | ----- | ------ | -------- |
-| **SP-188** | `[Cross]` **S3** — structural cut, Backspace / Delete over scenes, and their undo | [`Sprint-SP-188.md`](Sprint-SP-188.md) | Q1–Q2 |
 | **SP-189** | `[Cross]` **S4** — the background sync verification | [`Sprint-SP-189.md`](Sprint-SP-189.md) | SP-188; Q1–Q2 |
 | **SP-190** | `[Cross]` **S5** — Mac and rig live passes over the share, timed | [`Sprint-SP-190.md`](Sprint-SP-190.md) | SP-189; Q1 |
 
@@ -57,7 +56,7 @@ source *creation*, AC5's footnotes are verifiable only on hand-authored fixtures
 
 ---
 
-*Last Updated: 2026-10-22 (SP-191 closed; SP-188 no longer waits on it.)*
+*Last Updated: 2026-10-22 (SP-188 activated → Sprint-active.md.)*
 
 *Last Updated: 2026-10-21 (SP-191 activated and removed.)*
 

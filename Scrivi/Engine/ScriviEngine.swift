@@ -2513,6 +2513,17 @@ public struct FragmentUncutPasteResult: Decodable, Sendable {
 public struct ScriviRange: Codable, Sendable, Equatable {
     public var schema: String = "scrivi.range.v1"
     public var scenes: [Entry]
+    /// ✅ [SP-188] Q3: on the Range a cut RETURNS, when it balanced the join — how the paste that undoes it turns the
+    /// survivor back into the plain join (`balanced` at `byte` → `plain`). ⚠️ An undo record: the core refuses it anywhere
+    /// but at that survivor, so it is dropped before the Range goes on the clipboard or into a buffer (`withoutJoin`).
+    public var join: Join?
+
+    public struct Join: Codable, Sendable, Equatable {
+        public var sceneID: String
+        public var byte: Int
+        public var balanced: String
+        public var plain: String
+    }
 
     public struct Entry: Codable, Sendable, Equatable {
         public var sceneID: String
@@ -2540,6 +2551,9 @@ public struct ScriviRange: Codable, Sendable, Equatable {
     }
 
     public init(scenes: [Entry]) { self.scenes = scenes }
+
+    /// The Range without its undo record — what the clipboard and a buffer hold.
+    public var withoutJoin: ScriviRange { var out = self; out.join = nil; return out }
 
     /// The wire form the range endpoints take.
     public func toJSON() throws -> String { String(decoding: try JSONEncoder().encode(self), as: UTF8.self) }

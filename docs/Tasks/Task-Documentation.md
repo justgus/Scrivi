@@ -769,7 +769,7 @@ archive files reconstructed after the fact from secondary sources.
 | T-0613 | `[Linux]` Find bar: search after a 500 ms pause; the searchable text built ahead, never on a keystroke | ✅ **SP-185** | **EP-026** | ✅ **Verified 2026-10-21** | [`Task-verified-0613.md`](Verified/Task-verified-0613.md) |
 | T-0614 | `[ScriviCore]` EP-053 S1: the Range (`scrivi.range.v1`) and the aggregate range operations | ✅ **SP-186** | **EP-053** | ✅ **Verified 2026-10-20** | [`Task-verified-0614.md`](Verified/Task-verified-0614.md) |
 | T-0615 | `[Cross]` EP-053 S2a: the scene list as the model of record — no visible change | ✅ **SP-187** | **EP-053** | ✅ **Verified 2026-10-21** | [`Task-verified-0615.md`](Verified/Task-verified-0615.md) |
-| T-0616 | `[Cross]` EP-053 S3: structural cut, Backspace / Delete over scenes, and their undo | 🔵 **SP-188** | **EP-053** | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
+| T-0616 | `[Cross]` EP-053 S3: structural cut, Backspace / Delete over scenes, and their undo | 🟡 **SP-188** | **EP-053** | 🟠 **Implemented - Not Verified** | [`Task-unverified.md`](Task-unverified.md) |
 | T-0617 | `[Cross]` EP-053 S4: the background sync verification | 🔵 **SP-189** | **EP-053** | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
 | T-0618 | `[Cross]` EP-053 S5: Mac and rig live passes over the share, timed | 🔵 **SP-190** | **EP-053** | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
 | T-0619 | `[Cross]` EP-053 S2b: copy, paste and its undo, split and merge — as deltas, off the main thread, no reload | ✅ **SP-191** | **EP-053** | ✅ **Verified 2026-10-22** | [`Task-verified-0619.md`](Verified/Task-verified-0619.md) |

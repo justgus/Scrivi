@@ -248,22 +248,25 @@ int main(int argc, char** argv)
     rig.undo();
     check(rig.disk(1) == QStringLiteral("Bravo two."), QStringLiteral("then the typing before it"));
 
-    // ── 3. A delete across a scene break is ONE step restoring every scene ([I-0270]) ─────────────────────────────
+    // ── 3. A delete across a scene break is ONE structural cut ([SP-188], design Q4: Cut minus the clipboard) ──────────
+    // ⛔ It was [I-0270]'s "delete the text, keep the scenes".
     const QString s0 = rig.disk(0);
     const QString s1 = rig.disk(1);
     const QString s2 = rig.disk(2);
+    const qsizetype scenes = rig.shell->sceneDocument().segments().size();
+    const QString joined = s0.left(s0.indexOf(QStringLiteral("Made glorious"))) + s2.mid(s2.indexOf(QStringLiteral("Charlie")) + 7);
     rig.select(QStringLiteral("Made glorious"), QStringLiteral("Charlie"));
-    rig.key(Qt::Key_Backspace);
-    check(rig.disk(0) != s0 && rig.disk(1).isEmpty() && rig.disk(2) == QStringLiteral(" three."),
-          QStringLiteral("the cross-scene delete removed text from all three scenes (got: \"%1\" | \"%2\" | \"%3\")")
-              .arg(rig.disk(0), rig.disk(1), rig.disk(2)));
-    rig.undo();
+    check(rig.landing([&] { rig.key(Qt::Key_Backspace); }), QStringLiteral("the cross-scene delete landed"));
+    check(rig.disk(0) == joined && rig.shell->sceneDocument().segments().size() == scenes - 2,
+          QStringLiteral("the cross-scene delete joined the ends and removed the scenes between (got: \"%1\", %2 scenes)")
+              .arg(rig.disk(0)).arg(rig.shell->sceneDocument().segments().size()));
+    check(rig.landing([&] { rig.undo(); }), QStringLiteral("its undo landed"));
     check(rig.disk(0) == s0 && rig.disk(1) == s1 && rig.disk(2) == s2,
           QStringLiteral("ONE Ctrl+Z restored every scene (got: \"%1\" | \"%2\" | \"%3\")")
               .arg(rig.disk(0), rig.disk(1), rig.disk(2)));
-    rig.redo();
-    check(rig.disk(1).isEmpty(), QStringLiteral("ONE Ctrl+Shift+Z re-applied it"));
-    rig.undo();
+    check(rig.landing([&] { rig.redo(); }), QStringLiteral("its redo landed"));
+    check(rig.disk(0) == joined, QStringLiteral("ONE Ctrl+Shift+Z re-applied it"));
+    check(rig.landing([&] { rig.undo(); }), QStringLiteral("and undone again"));
 
     // ── 4. Close → reopen: history persists; the first undo warns once; no external-change barrier ─────────────────
     rig.close();

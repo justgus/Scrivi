@@ -32,6 +32,14 @@ util::JsonDoc Range::toJson() const
         if (!e.chapterMeta.empty()) { item.setString("chapterMeta", e.chapterMeta); }
         doc.appendToArray("scenes", std::move(item));
     }
+    if (join_) {
+        util::JsonDoc j;
+        j.setString("sceneID", join_->sceneID.value);
+        j.setInt64("byte", static_cast<int64_t>(join_->byte));
+        j.setString("balanced", join_->balanced);
+        j.setString("plain", join_->plain);
+        doc.setSubDoc("join", std::move(j));
+    }
     return doc;
 }
 
@@ -70,6 +78,14 @@ Result<Range> Range::fromJson(const util::JsonDoc& doc)
         e.length = static_cast<std::size_t>(length);
         e.sceneLength = static_cast<std::size_t>(whole);
         out.append(std::move(e));
+    }
+    if (doc.contains("join")) {
+        const util::JsonDoc j = doc.getSubDoc("join");
+        const int64_t byte = j.getInt64("byte", -1);
+        if (!j.isObject() || j.getString("sceneID").empty() || byte < 0)
+            return R::failure(invalid("the range's join names no scene or no byte"));
+        out.setJoin(RangeJoin{.sceneID = SceneID{j.getString("sceneID")}, .byte = static_cast<std::size_t>(byte),
+                              .balanced = j.getString("balanced"), .plain = j.getString("plain")});
     }
     return R::success(std::move(out));
 }

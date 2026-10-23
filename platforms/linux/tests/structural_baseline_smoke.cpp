@@ -18,6 +18,7 @@
 
 #include <QAbstractButton>
 #include <QApplication>
+#include <QClipboard>
 #include <QEventLoop>
 #include <QMessageBox>
 #include <QTest>
@@ -432,11 +433,171 @@ int main(int argc, char* argv[])
         r.headingsDrawnRight(QStringLiteral("one chapter again"));
     }
 
+    // ── [SP-188] (design R4, §4.3): a cut, Backspace or Delete across scenes REMOVES THE STRUCTURE — one `rangeCut` on the
+    //    worker, the delta applied, undone by a paste and redone by the cut. ⛔ It was [I-0270]'s "keep the scenes". ───────
+    {
+        const auto bodyEnd = [&](int i) {
+            const SceneSegment& seg = r.shell->sceneDocument().segments().at(i);
+            return seg.bodyStart + seg.bodyLength;
+        };
+        const auto selectPositions = [&](int a, int b) {
+            QTextCursor c = r.editor->textCursor();
+            c.setPosition(a);
+            c.setPosition(b, QTextCursor::KeepAnchor);
+            r.editor->setTextCursor(c);
+            QApplication::processEvents();
+        };
+        const auto scenes = [&] { return int(r.shell->sceneDocument().segments().size()); };
+        const QStringList before = r.state();
+        const int n = scenes();
+        const auto holding = [&](const QString& text) {
+            return r.shell->sceneDocument().sceneIndexForCaret(int(r.editor->document()->find(text).selectionStart()));
+        };
+        const int ia = holding(QStringLiteral("Alpha two.")), ib = holding(QStringLiteral("Beta ")), ig = holding(QStringLiteral("Gamma "));
+        const QString beta = r.shell->sceneDocument().segments().at(ib).sceneID;
+
+        // Ctrl+X: joined directly, the scenes between gone; the measured path (no load, no build, list = disk).
+        // The selection made FIRST, so the count starts at the key press. ✅ Traced 2026-10-22 (a temporary envelope print, in
+        // a copy of the repo): both are the Scene Inspector's `scrivi_get_scene_notes` as the delta lands — none is the cut's.
+        r.select(QStringLiteral("Alpha two."), QStringLiteral("Gamma "));
+        QTest::qWait(200);
+        check(r.measured("cut across scenes", [&] { r.control(Qt::Key_X); }) <= 2,
+              QStringLiteral("cut across scenes: at most 2 GUI-thread core calls (the Inspector's notes reads)"));
+        check(scenes() == n - (ig - ia) && r.shell->sceneDocument().segments().at(ia).text.endsWith(QStringLiteral("body."))
+                  && r.texts().join(QString()).indexOf(QStringLiteral("Alpha two.")) < 0,
+              QStringLiteral("cut: the ends joined, two scenes gone (got \"%1\", %2 scenes)")
+                  .arg(r.shell->sceneDocument().segments().at(0).text).arg(scenes()));
+        check(QApplication::clipboard()->text().startsWith(QStringLiteral("Alpha two.")), QStringLiteral("cut: other apps get the text"));
+        // Q4: the clipboard's Range is the cut's — a paste elsewhere moves the scenes WITH their identity.
+        check(r.landing([&] { r.caretAt(QStringLiteral("Delta body.")); r.control(Qt::Key_V); }), QStringLiteral("Q4: the paste landed"));
+        check(r.shell->sceneDocument().sceneIndexForScene(beta) >= 0, QStringLiteral("Q4: the cut scene came back under its own ID"));
+        r.listMatchesDisk(QStringLiteral("Q4: the paste of the cut"));
+        check(r.landing([&] { r.control(Qt::Key_Z); }), QStringLiteral("(the paste undone)"));
+        check(r.landing([&] { r.control(Qt::Key_Z); }), QStringLiteral("(the cut undone)"));
+        check(r.state() == before, QStringLiteral("cut: undone exactly"));
+
+        // Backspace and Delete: the same cut, the clipboard untouched.
+        for (const Qt::Key key : {Qt::Key_Backspace, Qt::Key_Delete}) {
+            QApplication::clipboard()->setText(QStringLiteral("kept"));
+            roundTrip(key == Qt::Key_Backspace ? QStringLiteral("Backspace across scenes") : QStringLiteral("Delete across scenes"), [&] {
+                r.select(QStringLiteral("Alpha two."), QStringLiteral("Gamma "));
+                QTest::keyClick(r.editor, key);
+            });
+            check(QApplication::clipboard()->text() == QStringLiteral("kept"), QStringLiteral("Backspace / Delete leave the clipboard alone"));
+        }
+
+        // Q2: Backspace over exactly one scene separator merges the scenes.
+        roundTrip(QStringLiteral("Backspace over a separator"), [&] {
+            selectPositions(bodyEnd(0), r.shell->sceneDocument().segments().at(1).bodyStart);
+            QTest::keyClick(r.editor, Qt::Key_Backspace);
+        });
+        check(r.landing([&] {
+            selectPositions(bodyEnd(0), r.shell->sceneDocument().segments().at(1).bodyStart);
+            QTest::keyClick(r.editor, Qt::Key_Backspace);
+        }) && scenes() == n - 1, QStringLiteral("Q2: one scene fewer"));
+        check(r.landing([&] { r.control(Qt::Key_Z); }), QStringLiteral("(undone)"));
+
+        // Q5: through the separator after scene 2, scenes 1 and 2 go whole — none is left empty.
+        check(r.landing([&] {
+            selectPositions(r.shell->sceneDocument().segments().at(1).bodyStart, r.shell->sceneDocument().segments().at(3).bodyStart);
+            QTest::keyClick(r.editor, Qt::Key_Backspace);
+        }), QStringLiteral("Q5: the cut landed"));
+        check(scenes() == n - 2 && r.texts().indexOf(QString()) < 0, QStringLiteral("Q5: two scenes gone whole, none left empty (%1)")
+                                                                          .arg(r.texts().join(QStringLiteral(" | "))));
+        r.listMatchesDisk(QStringLiteral("Q5"));
+        check(r.landing([&] { r.control(Qt::Key_Z); }), QStringLiteral("(undone)"));
+        check(r.state() == before, QStringLiteral("Q5: undone exactly"));
+
+        // Q1: a whole chapter, from its title — the chapter goes; its undo brings it back.
+        check(r.landing([&] { r.caretAt(QStringLiteral("Gamma "), true); r.shell->splitChapter(); }), QStringLiteral("(chapter 2)"));
+        const QStringList twoChapters = r.state();
+        check(r.landing([&] {
+            selectPositions(bodyEnd(ig - 1), bodyEnd(scenes() - 1));
+            QTest::keyClick(r.editor, Qt::Key_Backspace);
+        }), QStringLiteral("Q1: the cut landed"));
+        check(r.chapterCount() == 1 && scenes() == ig, QStringLiteral("Q1: the chapter and its scenes are gone (%1 scenes)").arg(scenes()));
+        check(r.state().mid(0, ig) == twoChapters.mid(0, ig), QStringLiteral("Q1: the scenes before it untouched"));
+        r.listMatchesDisk(QStringLiteral("Q1"));
+        check(r.landing([&] { r.control(Qt::Key_Z); }), QStringLiteral("(undone)"));
+        check(r.state() == twoChapters, QStringLiteral("Q1: undone exactly, chapter and all"));
+        check(r.landing([&] { r.control(Qt::Key_Z); }), QStringLiteral("(chapter 2 undone)"));
+
+        // Q6: Ctrl+V over a cross-scene selection — the cut, then the paste; two undo steps.
+        r.select(QStringLiteral("one."), QStringLiteral("Beta"));
+        r.control(Qt::Key_C);
+        QApplication::processEvents();
+        int landed = 0;
+        const auto counter = QObject::connect(r.shell.get(), &EditorShell::structuralEditFinished, [&](bool) { ++landed; });
+        r.select(QStringLiteral("Gamma "), QStringLiteral("Delta body"));
+        r.control(Qt::Key_V);
+        for (int i = 0; i < 300 && landed < 2; ++i) { QTest::qWait(50); }
+        QObject::disconnect(counter);
+        check(landed == 2, QStringLiteral("Q6: the cut and then the paste landed (%1)").arg(landed));
+        r.listMatchesDisk(QStringLiteral("Q6"));
+        check(r.landing([&] { r.control(Qt::Key_Z); }), QStringLiteral("(the paste undone)"));
+        check(r.landing([&] { r.control(Qt::Key_Z); }), QStringLiteral("(the cut undone)"));
+        check(r.state() == before, QStringLiteral("Q6: two undos restore it exactly"));
+    }
+
     r.shell->flushHistory();
     r.shell->saveDirtyScenes();
     r.shell->releaseProject();
     r.shell->hide();
     r.shell.reset();
+
+    // ── [SP-188] Q3: a cut from inside bold — the survivor balanced by the core, its undo exact (a project of its own) ────
+    {
+        Rig b;
+        b.projectDir = r.projectDir + QStringLiteral("-bold");
+        b.appSupport = r.appSupport;
+        b.bridge.bootstrap(QStringLiteral("Baseline Tester"), b.appSupport);
+        b.projectID = b.bridge.createProject(b.projectDir, b.appSupport, QStringLiteral("Bold"), QStringLiteral("bold"))
+                          .value(QStringLiteral("projectID")).toString();
+        const QVariantMap s0 = b.bridge.openProject(b.projectDir, b.appSupport).value(QStringLiteral("scenes")).toList().at(0).toMap();
+        const auto saveIn = [&](const QVariantMap& sc, const QString& text) {
+            b.bridge.saveScene(b.projectID, b.projectDir, b.appSupport, sc.value(QStringLiteral("sceneID")).toString(),
+                               sc.value(QStringLiteral("metadataPath")).toString(), sc.value(QStringLiteral("contentPath")).toString(),
+                               text, 0, 0, 0.0);
+        };
+        saveIn(s0, QStringLiteral("**Alpha beta.**"));
+        saveIn(b.bridge.createScene(b.projectDir, b.appSupport, b.projectID, s0.value(QStringLiteral("chapterID")).toString(),
+                                    s0.value(QStringLiteral("sceneID")).toString()),
+               QStringLiteral("Gamma delta."));
+        check(b.load(), QStringLiteral("Q3: the bold project loaded"));
+        armConfirmer(b.shell.get());   // an unexpected notice must fail the smoke, not hang it
+        const QStringList before = b.state();
+        check(b.landing([&] {
+            QTextCursor c = b.editor->textCursor();
+            const QList<SceneSegment>& segs = b.shell->sceneDocument().segments();
+            c.setPosition(segs.at(0).bodyStart + 10);   // **Alpha be|ta.**
+            c.setPosition(segs.at(1).bodyStart + 6, QTextCursor::KeepAnchor);   // Gamma |delta.
+            b.editor->setTextCursor(c);
+            b.control(Qt::Key_X);
+        }), QStringLiteral("Q3: the cut landed"));
+        check(b.texts() == QStringList({QStringLiteral("**Alpha be**delta.")}),
+              QStringLiteral("Q3: the survivor balanced (got %1)").arg(b.texts().join(QStringLiteral(" | "))));
+        b.listMatchesDisk(QStringLiteral("Q3"));
+        // Q4: the clipboard's Range has NO join — a paste at the survivor itself is a plain paste, never an undo record
+        // (with the join it would first put the plain join back: `**Alpha bedelta.`).
+        check(b.landing([&] {
+            QTextCursor c = b.editor->textCursor();
+            const SceneSegment& seg = b.shell->sceneDocument().segments().at(0);
+            c.setPosition(seg.bodyStart + seg.bodyLength);
+            b.editor->setTextCursor(c);
+            b.control(Qt::Key_V);
+        }), QStringLiteral("Q4: the paste at the survivor landed"));
+        // ... and its pieces are the copy's, balanced (`**ta.**`), not the stored `ta.**`.
+        check(b.texts() == QStringList({QStringLiteral("**Alpha be**delta.**ta.**"), QStringLiteral("Gamma ")}),
+              QStringLiteral("Q4: a plain paste of the balanced pieces (got %1)").arg(b.texts().join(QStringLiteral(" | "))));
+        check(b.landing([&] { b.control(Qt::Key_Z); }), QStringLiteral("(the paste undone)"));
+        check(b.landing([&] { b.control(Qt::Key_Z); }), QStringLiteral("(undone)"));
+        check(b.state() == before, QStringLiteral("Q3: undone exactly"));
+        b.listMatchesDisk(QStringLiteral("Q3, undone"));
+        b.shell->flushHistory();
+        b.shell->releaseProject();
+        b.shell->hide();
+        b.shell.reset();
+    }
     if (failures == 0) { std::printf("structural_baseline_smoke: all checks passed\n"); }
     return failures == 0 ? 0 : 1;
 }

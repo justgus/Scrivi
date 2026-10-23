@@ -7098,6 +7098,8 @@ struct UndoAfterStructuralOpTests {
         tv.textStorage?.delegate = c.presenter
         if let storage = tv.textStorage { c.boundaryTable.observe(storage) }
         c.textView = tv
+        // A modal notice would block the test host until it is killed: an unexpected one fails the test instead.
+        c.onBarrierNotice = { Issue.record("unexpected barrier notice: \($0)") }
         c.rebuildStorage(tv, segments: loader.segments)
         return Harness(root: root, env: env, session: session, loader: loader, c: c, tv: tv, window: window,
                        projectID: projectID, identityID: identityID)
@@ -7444,9 +7446,9 @@ struct UndoAfterStructuralOpTests {
         let from = h.tv.selectedRange().location
         h.caret(scene: 1, at: 7)
         let sel = NSRange(location: from, length: h.tv.selectedRange().location - from)
-        #expect(h.c.deleteAcrossScenes(sel, kind: "delete"))
-        try await Task.sleep(for: .milliseconds(300))               // the per-scene saves are Tasks
-        #expect(h.loader.segments.map(\.text) == ["Alpha ", " Delta"])
+        #expect(h.c.cutAcrossScenes(sel, keeping: .nothing))   // ✅ [SP-188]: the structural cut
+        try await h.landed()
+        #expect(h.loader.segments.map(\.text) == ["Alpha  Delta"])
         let again = try await h.reopened()
         var flagged: [String] = []
         for seg in again.loader.segments {
@@ -7526,8 +7528,19 @@ struct UndoAfterStructuralOpTests {
         x.caret(scene: 1, at: 3)                                    // "Bravo" … across the break … "Sec"
         x.tv.setSelectedRange(NSRange(location: from, length: x.tv.selectedRange().location - from))
         #expect(x.c.pasteStructuredRange(frag))
+        // ✅ [SP-188] Q6: across scenes the removal is the structural cut ("Alpha " + "ond" joined), then the paste.
+        for _ in 0..<500 where x.loader.segments.count != 3 || x.loader.structuralInFlight {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        #expect(x.loader.segments.map(\.text) == ["Alpha one", "two", "threeond"])
+        try x.listMatchesDisk("the paste over a cross-scene selection")
+        x.c.performUndo()                                           // the paste
         try await x.landed()
-        #expect(x.loader.segments.map(\.text) == ["Alpha one", "two", "three", "ond"])
+        #expect(x.loader.segments.map(\.text) == ["Alpha ond"])
+        x.c.performUndo()                                           // the cut
+        try await x.landed()
+        #expect(x.loader.segments.map(\.text) == ["Alpha Bravo", "Second"])
+        try x.listMatchesDisk("both undone")
     }
 
     /// [I-0303] — Replace All wrote every changed scene ON THE MAIN THREAD, one after another (`saveScene` is `async` in name
@@ -7969,3 +7982,223 @@ struct RunRenderTests {
 }
 
 #endif
+
+/// ✅ [SP-188] (design R4, §4.3) — a cut, ⌥N, ⌫ or ⌦ across scenes REMOVES THE STRUCTURE: one `rangeCut` off the main actor,
+/// the delta applied, undone by a paste and redone by the cut. ⛔ It used to delete the text and keep every scene ([I-0270]).
+@Suite("Structural cut, Backspace / Delete over scenes ([SP-188], Apple)")
+@MainActor
+struct StructuralCutTests {
+
+    private func harness(_ bodies: [String]) async throws -> UndoAfterStructuralOpTests.Harness {
+        try await UndoAfterStructuralOpTests().harness(bodies)
+    }
+    /// Selects storage `from` (scene `a`, offset) through `to` (scene `b`, offset).
+    private func select(_ h: UndoAfterStructuralOpTests.Harness, _ a: Int, _ from: Int, _ b: Int, _ to: Int) {
+        h.c.ensureBoundaries(h.tv)
+        let start = h.c.sceneBoundaries[a].location + from
+        h.tv.setSelectedRange(NSRange(location: start, length: h.c.sceneBoundaries[b].location + to - start))
+    }
+    private func select(_ h: UndoAfterStructuralOpTests.Harness, _ range: NSRange) {
+        h.tv.setSelectedRange(range)
+    }
+    private func state(_ h: UndoAfterStructuralOpTests.Harness) -> [[String]] {
+        h.loader.segments.map { [$0.sceneID, $0.chapterID, $0.text] }
+    }
+    /// The op, then undo and redo: each exact, the list the disk after each, no core call of the edit's own on the main thread.
+    /// `slotCalls`: an ⌥N's calls to the buffer store when it lands — its load and its refresh (`BufferService.load`), on the
+    /// main thread as every ⌘N's are — counted apart from the cut's own (none).
+    private func roundTrip(_ h: UndoAfterStructuralOpTests.Harness, _ what: String, expect: [String], slotCalls: Int = 0,
+                           _ op: () -> Void) async throws {
+        let before = state(h)
+        let own = h.loader.structuralCalls.counts.withLock { $0 }
+        op()
+        try await h.landed()
+        let ownAfter = h.loader.structuralCalls.counts.withLock { $0 }.own
+        #expect(ownAfter == own.own + slotCalls,
+                "\(what): no core call of the cut's own on the main thread (\(ownAfter - own.own))")
+        #expect(h.loader.segments.map(\.text) == expect, "\(what)")
+        let after = state(h)
+        try h.listMatchesDisk(what)
+        h.c.performUndo()
+        try await h.landed()
+        #expect(state(h) == before, "\(what): undone exactly, in ONE step")
+        try h.listMatchesDisk("\(what), undone")
+        h.c.performRedo()
+        try await h.landed()
+        #expect(state(h) == after, "\(what): redone exactly")
+        try h.listMatchesDisk("\(what), redone")
+    }
+
+    @Test("⌘X across scenes joins head to tail and removes the scenes between; the Range goes on Scrivi's clipboard")
+    func cutAcrossScenes() async throws {
+        let h = try await harness(["Alpha Bravo", "Charlie", "Delta Echo"])
+        let ids = h.loader.segments.map(\.sceneID)
+        var changeCount = 0, presented: String?
+        try await roundTrip(h, "⌘X", expect: ["Alpha Echo"]) {
+            select(h, 0, 6, 2, 6)
+            h.tv.cut(nil)
+            changeCount = NSPasteboard.general.changeCount
+            presented = NSPasteboard.general.string(forType: .string)
+        }
+        #expect(h.loader.segments.map(\.sceneID) == [ids[0]], "the start scene survives")
+        #expect(presented == "Bravo\n\nCharlie\n\nDelta ", "other apps get the text, at the key press")
+        // ⚠️ The system pasteboard is shared with the suites running in parallel: only if none wrote it meanwhile.
+        if NSPasteboard.general.changeCount == changeCount {
+            #expect(h.c.hasInternalStructuredRange, "Scrivi's own ⌘V gets the Range once the cut lands")
+        }
+    }
+
+    @Test("⌫ and ⌦ across scenes: the same cut, the clipboard untouched")
+    func deleteAcrossScenes() async throws {
+        for forward in [false, true] {
+            let h = try await harness(["Alpha Bravo", "Charlie", "Delta Echo"])
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString("kept", forType: .string)
+            let changeCount = NSPasteboard.general.changeCount
+            var during = 0
+            try await roundTrip(h, forward ? "⌦" : "⌫", expect: ["Alpha Echo"]) {
+                select(h, 0, 6, 2, 6)
+                if forward { h.tv.deleteForward(nil) } else { h.tv.deleteBackward(nil) }
+                during = NSPasteboard.general.changeCount
+            }
+            #expect(during == changeCount, "the key press wrote nothing to the pasteboard")
+            #expect(!h.c.hasInternalStructuredRange)
+            // ⚠️ Shared with the suites running in parallel: only if none wrote it meanwhile.
+            if NSPasteboard.general.changeCount == changeCount {
+                #expect(NSPasteboard.general.string(forType: .string) == "kept")
+            }
+        }
+    }
+
+    @Test("⌥N across scenes: the slot holds the cut's Range, with the removed scenes' sidecars")
+    func bufferCut() async throws {
+        let h = try await harness(["Alpha Bravo", "Charlie", "Delta Echo"])
+        try h.env.engine.setSceneTags(projectRootPath: h.root.path, sceneID: h.loader.segments[1].sceneID, tags: ["dusk"])
+        select(h, 0, 6, 2, 6)
+        h.c.cutIntoBuffer("5")
+        try await h.landed()
+        #expect(h.loader.segments.map(\.text) == ["Alpha Echo"])
+        let range = try #require(h.session.bufferService?.range(inSlot: "5"))
+        #expect(range.scenes.map(\.text) == ["Bravo", "Charlie", "Delta "])
+        #expect(range.scenes[1].sceneMeta?.contains("dusk") == true, "the removed scene's sidecar travels")
+        #expect(range.join == nil)
+        #expect(h.session.bufferService?.text(inSlot: "5") == "Bravo\n\nCharlie\n\nDelta ")
+        try h.listMatchesDisk("⌥N")
+    }
+
+    /// ⚠️ Through a buffer slot (⌥N, then ⌃⌘N), not ⌘X / ⌘V: the system pasteboard is shared with the suites running in
+    /// parallel. Both hold the same Range (`cutAcrossScenes`, Q4).
+    @Test("Q4: a cut, then a paste elsewhere — the scenes move WITH their identity, tags and outline")
+    func cutThenPasteMovesTheScenes() async throws {
+        let h = try await harness(["Alpha Bravo", "Charlie", "Delta Echo", "Foxtrot"])
+        let charlie = h.loader.segments[1].sceneID
+        try h.env.engine.setSceneTags(projectRootPath: h.root.path, sceneID: charlie, tags: ["night"])
+        try h.env.engine.setSceneOutline(projectRootPath: h.root.path, sceneID: charlie, outline: "Charlie's outline")
+        select(h, 0, 6, 2, 6)
+        h.c.cutIntoBuffer("6")
+        try await h.landed()
+        #expect(h.loader.segments.map(\.text) == ["Alpha Echo", "Foxtrot"])
+        h.caret(scene: 1, at: 3)
+        h.c.pasteFromBuffer("6")
+        try await h.landed()
+        #expect(h.loader.segments.map(\.text) == ["Alpha Echo", "FoxBravo", "Charlie", "Delta trot"])
+        try #require(h.loader.segments.count == 4)
+        #expect(h.loader.segments[2].sceneID == charlie)
+        let notes = try h.env.engine.getSceneNotes(projectRootPath: h.root.path, sceneID: charlie)
+        #expect(notes.tags == ["night"])
+        #expect(notes.outline == "Charlie's outline")
+        try h.listMatchesDisk("the paste of the cut")
+    }
+
+    @Test("Q3: a cut from inside bold leaves the survivor balanced, the clipboard's pieces balanced; undo is exact")
+    func cutInsideBold() async throws {
+        let h = try await harness(["**Alpha beta.**", "Gamma delta."])
+        try await roundTrip(h, "⌥N inside bold", expect: ["**Alpha be**delta."], slotCalls: 2) {
+            select(h, 0, 10, 1, 6); h.c.cutIntoBuffer("7")
+        }
+        h.c.performUndo()
+        try await h.landed()
+        // The slot's Range is the balanced copy's pieces (the stored ones would be `ta.**` and `Gamma `).
+        h.caret(scene: 1, at: 0)
+        h.c.pasteFromBuffer("7")
+        try await h.landed()
+        #expect(h.loader.segments.map(\.text).prefix(2) == ["**Alpha beta.**", "**ta.**"])
+    }
+
+    @Test("Q5: a selection through a scene's divider takes the scenes whole — none is left empty")
+    func wholeScenes() async throws {
+        let h = try await harness(["One", "Two", "Three", "Four"])
+        h.c.ensureBoundaries(h.tv)
+        let b = h.c.sceneBoundaries
+        try await roundTrip(h, "two whole scenes", expect: ["One", "Four"]) {
+            select(h, NSRange(location: b[1].location, length: b[3].location - b[1].location))
+            h.tv.deleteBackward(nil)
+        }
+        // A copy of the same selection pastes as whole scenes: it ends with the break before "Four".
+        h.c.performUndo()
+        try await h.landed()
+        select(h, NSRange(location: b[1].location, length: b[3].location - b[1].location))
+        #expect(h.c.structuredCopyIfCrossBoundary())
+    }
+
+    @Test("Q2: ⌫ over exactly one scene divider merges the two scenes")
+    func backspaceOverADivider() async throws {
+        let h = try await harness(["One", "Two", "Three"])
+        h.c.ensureBoundaries(h.tv)
+        let b = h.c.sceneBoundaries
+        try await roundTrip(h, "⌫ over a divider", expect: ["OneTwo", "Three"]) {
+            select(h, NSRange(location: NSMaxRange(b[0]), length: b[1].location - NSMaxRange(b[0])))
+            h.tv.deleteBackward(nil)
+        }
+    }
+
+    @Test("Q1: a selection of a whole chapter, from its title, removes the chapter; part of one skips the title")
+    func wholeChapter() async throws {
+        let h = try await harness(["One", "Two", "Three", "Four"])
+        h.caret(scene: 1, at: 0)
+        h.c.handleCreateChapter()                                   // chapter 2 = Two, Three, Four
+        try await h.landed()
+        h.caret(scene: 3, at: 0)
+        h.c.handleCreateChapter()                                   // chapter 3 = Four
+        try await h.landed()
+        #expect(ManuscriptTextView.Coordinator.chapterCount(h.loader.segments) == 3)
+        h.c.ensureBoundaries(h.tv)
+        let b = h.c.sceneBoundaries
+        // From the end of "One" (its title in between) through the end of "Three": chapter 2, whole.
+        try await roundTrip(h, "a whole chapter", expect: ["One", "Four"]) {
+            select(h, NSRange(location: NSMaxRange(b[0]), length: NSMaxRange(b[2]) - NSMaxRange(b[0])))
+            h.tv.deleteBackward(nil)
+        }
+        #expect(ManuscriptTextView.Coordinator.chapterCount(h.loader.segments) == 2)
+        // From chapter 2's title into "Three": the title is skipped — the Range starts at "Two".
+        h.c.performUndo()
+        try await h.landed()
+        h.c.ensureBoundaries(h.tv)
+        let c = h.c.sceneBoundaries
+        let run = try #require(h.c.selectionRun(NSRange(location: NSMaxRange(c[0]), length: c[2].location + 2 - NSMaxRange(c[0]))))
+        #expect(run.map(\.segIdx) == [1, 2])
+        #expect(run[0].part.location == c[1].location)
+    }
+
+    @Test("an old [I-0270] grouped delete still undoes as one text edit")
+    func oldGroupedDeleteUndoes() async throws {
+        let h = try await harness(["Alpha Bravo", "Charlie Delta"])
+        let capture = try #require(h.session.historyCapture)
+        h.c.ensureBoundaries(h.tv)
+        let b = h.c.sceneBoundaries
+        // What [I-0270]'s delete recorded: the text removed from each scene, every scene kept, ONE edit group.
+        let parts = [NSRange(location: b[1].location, length: 7), NSRange(location: b[0].location + 6, length: 5)]
+        capture.flush(trigger: "flush")
+        capture.withApplying { for part in parts { h.tv.textStorage?.deleteCharacters(in: part) } }
+        h.c.ensureBoundaries(h.tv)
+        let after = [(h.tv.string as NSString).substring(with: h.c.sceneBoundaries[0]),
+                     (h.tv.string as NSString).substring(with: h.c.sceneBoundaries[1])]
+        #expect(after == ["Alpha ", " Delta"])
+        for (i, text) in after.enumerated() { h.loader.updateText(text, at: i) }
+        capture.recordGroupedEdit([.init(sceneID: h.loader.segments[0].sceneID, textBefore: "Alpha Bravo", textAfter: after[0], caret: 6),
+                                   .init(sceneID: h.loader.segments[1].sceneID, textBefore: "Charlie Delta", textAfter: after[1], caret: 0)],
+                                  kind: "delete")
+        h.c.performUndo()
+        #expect(h.loader.segments.map(\.text) == ["Alpha Bravo", "Charlie Delta"])
+    }
+}

@@ -21,6 +21,8 @@
 #include "AppSupport.hpp"
 #include "BufferService.hpp"
 #include "BuffersPalette.hpp"
+#include <QEventLoop>
+#include <functional>
 #include "EditorShell.hpp"
 #include "HistoryCapture.hpp"
 #include "ManuscriptEditor.hpp"
@@ -170,6 +172,25 @@ void control(ManuscriptEditor* e, Qt::Key k, Qt::KeyboardModifiers extra = Qt::N
     settle();
 }
 void undo(ManuscriptEditor* e) { control(e, Qt::Key_Z); }
+// ✅ [SP-188]: `act` starts a structural edit (a cut across scenes, or its undo) — wait for it to LAND (it runs on a worker).
+bool landing(EditorShell* shell, const std::function<void()>& act)
+{
+    QEventLoop loop;
+    bool ok = false;
+    bool done = false;
+    QObject::connect(shell, &EditorShell::structuralEditFinished, &loop, [&](bool r) {
+        ok = r;
+        done = true;
+        loop.quit();
+    });
+    QTimer::singleShot(30000, &loop, &QEventLoop::quit);
+    act();
+    if (!done) {
+        loop.exec();
+    }
+    settle();
+    return ok;
+}
 void redo(ManuscriptEditor* e) { control(e, Qt::Key_Z, Qt::ShiftModifier); }
 
 // What pasting `source` (Scrivi's own copy) at scene-local `pos` must store — the core's balanced edit.
@@ -322,19 +343,22 @@ int main(int argc, char** argv)
         check(disk(bridge, wa, A, 1) == before, QStringLiteral("Ctrl+Shift+5 on an empty slot changed nothing"));
     }
 
-    // ── 7. Across a scene break: Alt+6 cuts from each scene — ONE grouped step ([SP-179] Q1: flat text) ──────────────────
+    // ── 7. Across a scene break: Alt+6 is the structural cut ([SP-188], design R4) — the slot takes its Range (Q4) ──────
+    // ⛔ It cut the text from each scene and kept both ([I-0270]).
     {
         const QString d0 = disk(bridge, wa, A, 0);
         const QString d1 = disk(bridge, wa, A, 1);
         const int a = found(ea, QStringLiteral(" y")).first;
         const int b = found(ea, QStringLiteral("Bravo")).second;
         select(ea, a, b);
-        cutChord(ea, 6);
+        check(landing(sa, [&] { cutChord(ea, 6); }), QStringLiteral("Alt+6 across scenes: the structural cut landed"));
         check(slot(A, QStringLiteral("6")).startsWith(QStringLiteral(" y")) && slot(A, QStringLiteral("6")).endsWith(QStringLiteral("Bravo")),
               QStringLiteral("the slot holds the flat text across the break (got \"%1\")").arg(slot(A, QStringLiteral("6"))));
-        check(disk(bridge, wa, A, 0) == QStringLiteral("x **bold text**") && !disk(bridge, wa, A, 1).startsWith(QStringLiteral("Bravo")),
-              QStringLiteral("each scene lost its part (\"%1\" / \"%2\")").arg(disk(bridge, wa, A, 0), disk(bridge, wa, A, 1)));
-        undo(ea);
+        check(!ScriviBridge::buffersGet(A.dir, QStringLiteral("6")).value(QStringLiteral("range")).toMap().isEmpty(),
+              QStringLiteral("…and the cut's Range"));
+        check(disk(bridge, wa, A, 0) == QStringLiteral("x **bold text**") + d1.mid(d1.indexOf(QStringLiteral("Bravo")) + 5),
+              QStringLiteral("the ends joined, one scene left (\"%1\")").arg(disk(bridge, wa, A, 0)));
+        check(landing(sa, [&] { undo(ea); }), QStringLiteral("its undo landed"));
         check(disk(bridge, wa, A, 0) == d0 && disk(bridge, wa, A, 1) == d1, QStringLiteral("ONE Ctrl+Z restored both scenes"));
     }
 

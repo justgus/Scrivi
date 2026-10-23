@@ -1015,6 +1015,11 @@ const char* scrivi_fragment_uncut_paste(const char* projectRootPath,
  * ✅ [SP-191] Q3b: a Range entry may carry `sceneMeta` / `chapterMeta` — the removed scene's / chapter's sidecar, serialized
  * as a STRING. A cut and a relabel that empties a chapter fill them; a paste that keeps an entry's ID (the manuscript no
  * longer has it) writes them back, so an undo restores the sidecar exactly. An empty `sceneID` / `chapterID` mints one.
+ * ✅ [SP-188] Q3: a Range may carry a top-level `"join": { sceneID, byte, balanced, plain }` — set by scrivi_range_cut on
+ * the Range it returns when it BALANCED the join (head and tail joined directly would leave an emphasis span open): at
+ * `byte` of the survivor it wrote `balanced` where the plain join had `plain`. An UNDO RECORD: scrivi_range_paste puts
+ * `plain` back before pasting, and refuses the Range anywhere but at that survivor as the cut left it. A platform drops it
+ * before the Range goes on the clipboard or into a buffer. A cut ignores a join it is given.
  */
 
 /* Reads the Range from (startSceneID, startByte) to (endSceneID, endByte), walking the manuscript's order — reads only
@@ -1048,8 +1053,10 @@ const char* scrivi_range_paste(const char* projectRootPath,
  * brings the IDs back). ⛔ Refused (invalidArgument) when the Range is not what the manuscript holds — its scenes
  * consecutive, in the chapters it names, its first and last texts as on disk. ✅ [SP-191] Q7: when the Range begins at
  * the start scene's very first character the END scene survives instead (with its tail): the scene whose text survives
- * keeps its identity. result: { delta, range, undoCaretSceneID, undoCaretByte } — `range` is the Range removed (the
- * clipboard's content); its undo is scrivi_range_paste of it at (undoCaretSceneID, undoCaretByte). */
+ * keeps its identity. ✅ [SP-188] Q3: the join is BALANCED (emphasis never left open); `range` then carries the `join` its
+ * undo needs. result: { delta, range, undoCaretSceneID, undoCaretByte } — `range` is the Range removed (the clipboard's
+ * content, its join dropped); its undo is scrivi_range_paste of it at (undoCaretSceneID, undoCaretByte), a byte of the
+ * PLAIN join. */
 const char* scrivi_range_cut(const char* projectRootPath,
                              const char* rangeJson,
                              const char* identityID,

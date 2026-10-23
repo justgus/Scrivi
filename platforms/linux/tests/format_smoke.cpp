@@ -13,6 +13,7 @@
 #include <QMenuBar>
 #include <QMimeData>
 #include <QSet>
+#include <QSignalSpy>
 #include <QTest>
 #include <QTextCursor>
 
@@ -249,7 +250,9 @@ int main(int argc, char** argv)
         same(h.body(1), QStringLiteral("a  c"), QStringLiteral("⌫ of a span's only character removes the span"));
     }
 
-    // ── Across scenes: a command is refused; a cut is balanced per scene ──
+    // ── Across scenes: a command is refused; a cut is the SHELL's structural cut ([SP-188]) — the editor asks for it and
+    //    changes nothing itself (its balanced join is the core's: `RangeOperationCApiTests` [sp188], and
+    //    `structural_baseline_smoke` through a real shell) ──
     {
         Harness h(QStringLiteral("Alpha **bold one**"), QStringLiteral("**two** words"));
         const QString doc0 = h.doc.document()->toPlainText();
@@ -260,9 +263,11 @@ int main(int argc, char** argv)
         h.key(Qt::Key_B, Qt::ControlModifier);
         same(h.doc.document()->toPlainText(), doc0, QStringLiteral("Ctrl+B across a chapter title changes nothing"));
         h.editor->setTextCursor(c);
+        QSignalSpy asked(h.editor, &ManuscriptEditor::crossSceneCutRequested);
         h.control(Qt::Key_X);
-        same(h.body(0), QStringLiteral("Alpha **bo**"), QStringLiteral("cross-scene cut: scene 1 keeps balanced bold"));
-        same(h.body(1), QStringLiteral("**o** words"), QStringLiteral("cross-scene cut: scene 2 keeps balanced bold"));
+        check(asked.size() == 1 && asked.at(0).at(0).toInt() == 1,
+              QStringLiteral("cross-scene Ctrl+X asks the shell for the structural cut, keeping the clipboard's Range"));
+        same(h.doc.document()->toPlainText(), doc0, QStringLiteral("…and the editor changes nothing itself"));
     }
 
     // ── Typing over a selection that crosses a span edge (Q3) ──

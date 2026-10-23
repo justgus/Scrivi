@@ -589,8 +589,9 @@ struct SceneSegment: Identifiable {
                 }.value
                 guard let self else { return }
                 self.structuralInFlight = false
-                self.structuralProgress = nil
                 landed(outcome)
+                // ✅ [SP-188] Q6: an edit that starts another as it lands (a paste over a cut selection) keeps the row.
+                if !self.structuralInFlight { self.structuralProgress = nil }
                 let waiters = self.structuralWaiters
                 self.structuralWaiters = []
                 for w in waiters { w() }

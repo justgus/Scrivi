@@ -470,26 +470,32 @@ int main(int argc, char** argv)
           QStringLiteral("Q4a: an old fragment slot reads as empty"));
 
     rig.select(QStringLiteral("Alpha two."), QStringLiteral("Bravo one."));
-    rig.bufferCut(3);
+    check(rig.landing([&] { rig.bufferCut(3); }), QStringLiteral("Alt+3 across scenes: the structural cut landed"));
     check(ScriviBridge::buffersGet(rig.projectDir, QStringLiteral("3")).contains(QStringLiteral("range")),
           QStringLiteral("Alt+3 across scenes stored the Range"));
-    check(rig.texts() == QStringList({QStringLiteral("Alpha one. "), QStringLiteral(" Bravo two."), C, D}),
-          QStringLiteral("Alt+3 across scenes kept the scenes ([I-0270]): %1").arg(shown(rig.texts())));
-    rig.undo();
+    // ✅ [SP-188] (design R4): the structure goes — ⛔ [I-0270] kept both scenes ("Alpha one. " | " Bravo two.").
+    check(rig.texts() == QStringList({QStringLiteral("Alpha one.  Bravo two."), C, D}),
+          QStringLiteral("Alt+3 across scenes joined the ends: %1").arg(shown(rig.texts())));
+    check(rig.undoStructural(), QStringLiteral("(its undo landed)"));
     check(rig.texts() == base, QStringLiteral("(undone in one step): %1").arg(shown(rig.texts())));
     check(notices.isEmpty(), QStringLiteral("no notices so far (got: %1)").arg(notices.join(QStringLiteral(" | "))));
 
-    // ── 6. The Linux paste's history node carries what the Mac reads: a `rangePaste`, its Range, its caret ─────────────
+    // ── 6. The Linux paste's history node carries what the Mac reads: a `rangePaste`, its Range, its caret (and §5's ONE
+    //       Alt+3, a `rangeCut` with the same fields, [SP-188]) ─────────────────────────────────────────────────────────
     {
         const QList<QJsonObject> payloads = structuralPayloads(rig.projectDir);
         check(!payloads.isEmpty(), QStringLiteral("the log holds structural nodes"));
+        int cuts = 0;
         for (const QJsonObject& p : payloads) {
             const QJsonObject range = QJsonDocument::fromJson(p.value(QStringLiteral("rangeJSON")).toString().toUtf8()).object();
-            check(p.value(QStringLiteral("op")).toString() == QStringLiteral("rangePaste")
+            if (p.value(QStringLiteral("op")).toString() == QStringLiteral("rangeCut")) { ++cuts; }
+            check((p.value(QStringLiteral("op")).toString() == QStringLiteral("rangePaste")
+                   || p.value(QStringLiteral("op")).toString() == QStringLiteral("rangeCut"))
                       && range.value(QStringLiteral("schema")).toString() == QStringLiteral("scrivi.range.v1")
                       && !p.value(QStringLiteral("caretSceneID")).toString().isEmpty() && p.contains(QStringLiteral("caretByte")),
                   QStringLiteral("a rangePaste node with its Range and caret (got %1)").arg(compact(p)));
         }
+        check(cuts == 1, QStringLiteral("§5's Alt+3 is the one rangeCut node (got %1)").arg(cuts));
     }
 
     // ── 7. A history made on the MAC: a `structuredPaste`, then an old collapsing `structuredCut` ───────────────────

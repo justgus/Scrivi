@@ -1,6 +1,7 @@
 #include "manuscript/RangeOperations.hpp"
 
 #include "domain/TextStats.hpp"
+#include "markdown/Editing.hpp"
 #include "manuscript/SceneIndex.hpp"
 #include "schemas/ChapterMetaJson.hpp"
 #include "schemas/ManuscriptMetaJson.hpp"
@@ -309,6 +310,32 @@ std::vector<SceneLocation> relabelledInPlace(const std::vector<SceneLocation>& r
     return out;
 }
 
+// ✅ [SP-188] Q3 (user, 2026-10-22): the cut's join, BALANCED. The plain join is `head + tail`; a cut that began inside an
+// emphasis span (or ended inside one) leaves it open. The removal is re-done as the editor's balanced edit of ONE text —
+// head + the removed edge pieces + tail, the pieces kept apart by a blank line as the scene break keeps them apart — so a
+// cut across scenes balances exactly as a cut across paragraphs does. `survivor` becomes the balanced text; the result says
+// how to turn it back into the plain join (`RangeJoin`), or nothing when the plain join is already balanced.
+std::optional<RangeJoin> balanceJoin(const std::string& head, const std::string& firstText, const std::string* lastText,
+                                     const std::string& tail, std::string& survivor) {
+    namespace md = scrivi::markdown;
+    const md::Units h = md::toUnits(head);
+    md::Units removed = md::toUnits(firstText);
+    if (lastText != nullptr) { removed += u"\n\n"; removed += md::toUnits(*lastText); }
+    const md::Units t = md::toUnits(tail);
+    const int r0 = static_cast<int>(h.size()), r1 = r0 + static_cast<int>(removed.size());
+    const md::editing::Scene whole(h + removed + t);
+    const auto e = md::editing::balancedEdit(whole, {r0, r1 - r0}, md::UnitsView());
+    if (!e || e->range.location > r0 || e->range.end() < r1) { return std::nullopt; }
+    const md::Units& text = whole.text();
+    const auto a = static_cast<std::size_t>(e->range.location), b = static_cast<std::size_t>(e->range.end());
+    const md::Units plain = text.substr(a, r0 - a) + text.substr(r1, b - r1);
+    if (plain == e->replacement) { return std::nullopt; }
+    RangeJoin join{.byte = md::toUtf8(text.substr(0, a)).size(), .balanced = md::toUtf8(e->replacement),
+                   .plain = md::toUtf8(plain)};
+    survivor = md::toUtf8(text.substr(0, a)) + join.balanced + md::toUtf8(text.substr(b));
+    return join;
+}
+
 }   // namespace
 
 RangeOperations::RangeOperations(CoreServices& services, AbsolutePath projectRoot, ProjectIndex& index)
@@ -371,10 +398,19 @@ Result<RangeOperationResult> RangeOperations::paste(const Range& range, const Sc
     // READ 1: the caret scene's text — and the proof the editor is not stale.
     auto bodyR = fs.readTextFile(util::join(root_, caret->contentPath));
     if (!bodyR.ok()) { return R::failure(bodyR.error()); }
-    const std::string body = bodyR.value();
+    std::string body = bodyR.value();
     if (body != caretSceneText) {
         return R::failure(invalid("the caret scene's text is not what is on disk (the editor is stale): " +
                                   caretScene.value));
+    }
+    // ✅ [SP-188] Q3: the undo of a cut whose join was balanced — the plain join first, then the paste (`caretByte` is in
+    // the plain text). ⛔ Refused anywhere but at that survivor, as the cut left it: a join is an undo record.
+    if (const auto& join = range.join()) {
+        if (join->sceneID.value != caretScene.value || join->byte + join->balanced.size() > body.size() ||
+            body.compare(join->byte, join->balanced.size(), join->balanced) != 0) {
+            return R::failure(invalid("the range's join is not what is on disk at scene " + caretScene.value));
+        }
+        body.replace(join->byte, join->balanced.size(), join->plain);
     }
     if (!onUtf8Boundary(body, caretByte)) {
         return R::failure(invalid("caret byte offset is past the scene's end or inside a UTF-8 sequence"));
@@ -842,7 +878,11 @@ Result<RangeOperationResult> RangeOperations::cut(const Range& range, const Auth
         endBody = lastBody.value();
     }
     // ✅ Joined DIRECTLY (no blank-line seam — the 2026-07-27 ruling for cuts; [SP-191] Q3a: a scene merge too).
-    const std::string survivorText = firstBody.value().substr(0, first.start) + endBody.substr(last.start + last.length);
+    std::string survivorText = firstBody.value().substr(0, first.start) + endBody.substr(last.start + last.length);
+    // ✅ [SP-188] Q3: balanced — the undo puts the plain join back first (`RangeJoin`).
+    std::optional<RangeJoin> join = balanceJoin(firstBody.value().substr(0, first.start), first.text,
+                                                n > 1 ? &last.text : nullptr, endBody.substr(last.start + last.length),
+                                                survivorText);
 
     // The scenes the cut removes, by their place in the Range: all but the survivor.
     const std::size_t removedFrom = endSurvives ? 0 : 1;
@@ -925,6 +965,8 @@ Result<RangeOperationResult> RangeOperations::cut(const Range& range, const Auth
     // ✅ [SP-191] Q3b: what an undo needs to bring back what this cut removes — each removed scene's sidecar, and on the
     // entry that opens a removed chapter, that chapter's sidecar. Read before any write, like every other check.
     Range removedRange = range;
+    if (join) { join->sceneID = survivor.sceneID; }
+    removedRange.setJoin(std::move(join));   // ⚠️ never the join of the Range it was given (a redo's)
     std::vector<FileJob> jobs;
     {
         auto it = removedRange.entries().begin();

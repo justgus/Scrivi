@@ -488,14 +488,14 @@ void ManuscriptEditor::keyPressEvent(QKeyEvent* event)
         return;   // e.g. Backspace at document start — nothing to do; swallow.
     }
 
-    // [I-0270] (user ruling 2026-10-02, Apple shape): Backspace / Delete / Cut on a
-    // selection that spans scene breaks removes the selected text from EACH scene and
-    // keeps every scene. Anything else that crosses a boundary is still refused below.
-    const bool deletes = event->key() == Qt::Key_Backspace || event->key() == Qt::Key_Delete
-                         || event->matches(QKeySequence::Cut);
+    // ✅ [SP-188] (design R4, Q4; Apple shape): Backspace / Delete on a selection that takes more than one scene is the
+    // structural cut, minus the clipboard — the shell's. ⛔ It was [I-0270]'s "delete the text, keep the scenes". Anything
+    // else that crosses a boundary is still refused below.
+    const bool deletes = event->key() == Qt::Key_Backspace || event->key() == Qt::Key_Delete;
     if (deletes && textCursor().hasSelection() && !sceneDoc_->isEditableRange(start, end)) {
-        widenOverPairs(start, end);   // EP-049: never leave half an escape pair at either end
-        deleteAcrossScenes(start, end, event->matches(QKeySequence::Cut));
+        if (selectionCrossesScenes()) {
+            emit crossSceneCutRequested(0, false);
+        }
         return;
     }
 
@@ -870,6 +870,11 @@ void ManuscriptEditor::pasteClipboard()
         emit structuredPasteRequested(heldRange_);
         return;
     }
+    // ✅ [SP-188] Q6: over a selection that takes more than one scene, the structural cut first; the paste once it lands.
+    if (sceneDoc_ != nullptr && selectionCrossesScenes()) {
+        emit crossSceneCutRequested(0, true);
+        return;
+    }
     // The flat paste: widen a selection that would split an escape pair, then Qt's paste → `insertFromMimeData`.
     QTextCursor c = textCursor();
     if (c.hasSelection()) {
@@ -892,25 +897,21 @@ std::optional<ManuscriptEditor::CrossSceneCopy> ManuscriptEditor::crossSceneCopy
     int start = cursor.selectionStart();
     int end = cursor.selectionEnd();
     widenOverPairs(start, end);
-    // One entry per scene the selection touches, in reading order (Apple: `copiedRange`): the selected part of each body —
-    // and an EMPTY entry for a scene whose start lies inside the selection with none of its text selected (a boundary
-    // crossed). Crossing needs two scenes with text selected (`selectionCrossesBoundary`).
+    // One entry per scene the selection takes, in reading order (Apple: `copiedRange`): the selected part of each body.
+    // ✅ [SP-188] Q5 / Q1: the same scenes a cut takes (`selectionRun`).
+    const QList<RunPart> run = selectionRun(start, end);
+    if (run.size() < 2) {
+        return std::nullopt;
+    }
     QJsonArray entries;
     QStringList sources;
     QStringList presented;
-    int withText = 0;
     const QList<SceneSegment>& segs = sceneDoc_->segments();
-    for (int i = 0; i < segs.size(); ++i) {
+    for (const RunPart& part : run) {
+        const int i = part.index;
         const SceneSegment& seg = segs.at(i);
-        const int a = std::max(start, seg.bodyStart);
-        const int b = std::min(end, seg.bodyStart + seg.bodyLength);
-        if (b > a) {
-            ++withText;
-        } else if (!(start <= seg.bodyStart && seg.bodyStart < end)) {
-            continue;
-        }
-        const int from = b > a ? a - seg.bodyStart : 0;
-        const int to = b > a ? b - seg.bodyStart : 0;
+        const int from = part.start - seg.bodyStart;
+        const int to = part.end - seg.bodyStart;
         const QString body = sceneDoc_->bodyText(i);
         // ✅ [T-0591]: each scene's piece is BALANCED (EP-046 AC12) — the stateless markdown call, on the piece's text.
         const auto copy = ScriviBridge::markdownBalancedCopy(body, from, to);
@@ -924,9 +925,6 @@ std::optional<ManuscriptEditor::CrossSceneCopy> ManuscriptEditor::crossSceneCopy
                                    {QStringLiteral("text"), copy.first}});
         sources.append(copy.first);
         presented.append(copy.second);
-    }
-    if (withText < 2) {
-        return std::nullopt;
     }
     const QJsonObject range{{QStringLiteral("schema"), QStringLiteral("scrivi.range.v1")}, {QStringLiteral("scenes"), entries}};
     return CrossSceneCopy{normalizedRange(range), sources.join(QStringLiteral("\n\n")), presented.join(QStringLiteral("\n\n"))};
@@ -966,7 +964,7 @@ bool ManuscriptEditor::removeSelectionForPaste()
         replaceRange(start, end, QString());   // the balanced removal — a typing step the shell commits before the paste
         return true;
     }
-    return deleteAcrossScenes(start, end, /*copyFirst=*/false, QStringLiteral("delete"));   // [I-0270]
+    return false;   // ✅ [SP-188] Q6: across scenes the shell's structural cut has removed it first
 }
 
 void ManuscriptEditor::insertFromMimeData(const QMimeData* source)
@@ -1089,8 +1087,11 @@ void ManuscriptEditor::cutSelection()
         emit pasteOrCutEnded(QStringLiteral("cut"));
         return;
     }
-    // Across scenes → per-scene removal; touching only a boundary → refused (no-op).
-    deleteAcrossScenes(start, end, /*copyFirst=*/true);
+    // ✅ [SP-188] Across scenes → the shell's structural cut, its Range on the clipboard when it lands (Q4); touching only a
+    // chapter heading → refused (no-op).
+    if (selectionCrossesScenes()) {
+        emit crossSceneCutRequested(1, false);
+    }
 }
 
 // ── EP-026 S5 (SP-179 / T-0606): the copy buffers ─────────────────────────────────────────────────────────────────
@@ -1118,19 +1119,12 @@ bool ManuscriptEditor::cutSelectionIntoBuffer(const QString& bufferID,
     int start = cursor.selectionStart();
     int end = cursor.selectionEnd();
     widenOverPairs(start, end);   // EP-049: a cut never leaves half an escape pair
-    const bool inOneScene = sceneDoc_->isEditableRange(start, end);
-    if (!inOneScene && sceneDoc_->crossSceneCuts(start, end).isEmpty()) {
-        return false;   // it touches only a boundary — refused, as Ctrl+X refuses it
+    if (!sceneDoc_->isEditableRange(start, end)) {
+        return false;   // ✅ [SP-188]: across scenes the shell's structural cut runs; only a boundary — refused
     }
-    // The slot FIRST: the text must survive a store failure and the delete being undone. Across scenes, the Range.
-    const auto cross = inOneScene ? std::nullopt : crossSceneCopy();
-    const bool stored = cross ? store(cross->source, cross->range)
-                              : store(balancedCopyOf(start, end).first, QJsonObject());
-    if (!stored) {
+    // The slot FIRST: the text must survive a store failure and the delete being undone.
+    if (!store(balancedCopyOf(start, end).first, QJsonObject())) {
         return false;
-    }
-    if (!inOneScene) {
-        return deleteAcrossScenes(start, end, /*copyFirst=*/false, QStringLiteral("cut"));   // [I-0270]
     }
     emit pasteOrCutBegins(QStringLiteral("cut"), bufferID);   // ONE `cut` step, tagged with the slot (Trade T3)
     replaceRange(start, end, QString());                       // ✅ SP-175: the balanced removal
@@ -1182,32 +1176,106 @@ void ManuscriptEditor::snapForTyping(int& start, int& end) const
     widenOverPairs(start, end);
 }
 
-bool ManuscriptEditor::deleteAcrossScenes(int start, int end, bool copyFirst, const QString& kind)
+QList<ManuscriptEditor::RunPart> ManuscriptEditor::selectionRun(int start, int end) const
 {
-    if (sceneDoc_ == nullptr) {
-        return false;
+    QList<RunPart> out;
+    if (sceneDoc_ == nullptr || start >= end) {
+        return out;
     }
-    const QList<QPair<int, int>> cuts = sceneDoc_->crossSceneCuts(start, end);
-    if (cuts.isEmpty()) {
-        return false;
+    const QList<SceneSegment>& segs = sceneDoc_->segments();
+    const int n = int(segs.size());
+    const auto endOf = [&](int i) { return segs.at(i).bodyStart + segs.at(i).bodyLength; };
+    int lo = n, hi = -1;
+    const auto take = [&](int i) { lo = std::min(lo, i); hi = std::max(hi, i); };
+    for (int i = 0; i < n; ++i) {
+        if (std::min(end, endOf(i)) > std::max(start, segs.at(i).bodyStart)) { take(i); }
     }
-    if (copyFirst) {
-        copyToClipboard();
+    for (int i = 0; i + 1 < n; ++i) {   // Q5 / Q2: a scene separator covered
+        if (segs.at(i).chapterID == segs.at(i + 1).chapterID && start <= endOf(i) && end >= segs.at(i + 1).bodyStart) {
+            take(i);
+            take(i + 1);
+        }
     }
-    // Back to front, ONE edit per body, so each contentsChange lands inside a single
-    // body and SceneDocument::applyContentsChange reconciles it (an edit spanning a
-    // boundary would be charged entirely to one scene).
-    // ✅ SP-175: each part through `replaceRange`, so every scene stays balanced (Apple: T-0591's per-scene cut).
-    // EP-026 S2: the parts are ONE undo step — the shell reports them together.
-    emit groupedEditBegins();
-    for (int k = cuts.size() - 1; k >= 0; --k) {
-        replaceRange(cuts.at(k).first, cuts.at(k).second, QString());
+    for (int c0 = 0; c0 < n;) {   // Q1: a whole chapter
+        int c1 = c0;
+        while (c1 + 1 < n && segs.at(c1 + 1).chapterID == segs.at(c0).chapterID) { ++c1; }
+        if (start <= segs.at(c0).bodyStart && end >= endOf(c1)) {
+            take(c0);
+            take(c1);
+            if (c1 + 1 < n) { take(c1 + 1); } else if (c0 > 0) { take(c0 - 1); }
+        }
+        c0 = c1 + 1;
     }
-    emit groupedEditEnded(!kind.isEmpty() ? kind : copyFirst ? QStringLiteral("cut") : QStringLiteral("delete"));
-    QTextCursor caret = textCursor();
-    caret.setPosition(cuts.first().first);
-    setTextCursor(caret);
-    return true;
+    for (int i = lo; i <= hi; ++i) {
+        const int a = std::max(start, segs.at(i).bodyStart), b = std::min(end, endOf(i));
+        if (b > a) {
+            out.append({i, a, b});
+        } else {
+            // Untouched text: the scene before the selection is taken at its end, the one after at its start.
+            const int at = i == lo && segs.at(i).bodyStart < start ? endOf(i) : segs.at(i).bodyStart;
+            out.append({i, at, at});
+        }
+    }
+    return out;
+}
+
+bool ManuscriptEditor::selectionCrossesScenes() const
+{
+    const QTextCursor cursor = textCursor();
+    int start = cursor.selectionStart();
+    int end = cursor.selectionEnd();
+    widenOverPairs(start, end);
+    return selectionRun(start, end).size() > 1;
+}
+
+std::optional<QJsonObject> ManuscriptEditor::crossSceneCutRange() const
+{
+    const QTextCursor cursor = textCursor();
+    if (sceneDoc_ == nullptr || !cursor.hasSelection()) {
+        return std::nullopt;
+    }
+    int start = cursor.selectionStart();
+    int end = cursor.selectionEnd();
+    widenOverPairs(start, end);   // EP-049: never half an escape pair at either end
+    const QList<RunPart> run = selectionRun(start, end);
+    if (run.size() < 2) {
+        return std::nullopt;
+    }
+    QJsonArray entries;
+    for (const RunPart& part : run) {
+        const SceneSegment& seg = sceneDoc_->segments().at(part.index);
+        const QString body = sceneDoc_->bodyText(part.index);
+        const QString text = body.mid(part.start - seg.bodyStart, part.end - part.start);
+        const qint64 from = body.left(part.start - seg.bodyStart).toUtf8().size();
+        entries.append(QJsonObject{{QStringLiteral("sceneID"), seg.sceneID},
+                                   {QStringLiteral("chapterID"), seg.chapterID},
+                                   {QStringLiteral("chapterTitle"), QString()},
+                                   {QStringLiteral("sceneTitle"), QString()},
+                                   {QStringLiteral("start"), from},
+                                   {QStringLiteral("length"), qint64(text.toUtf8().size())},
+                                   {QStringLiteral("sceneLength"), qint64(body.toUtf8().size())},
+                                   {QStringLiteral("text"), text}});
+    }
+    return QJsonObject{{QStringLiteral("schema"), QStringLiteral("scrivi.range.v1")}, {QStringLiteral("scenes"), entries}};
+}
+
+QString ManuscriptEditor::putCutOnClipboard(const CrossSceneCopy& copy)
+{
+    auto* mime = new QMimeData;
+    heldRange_ = {};   // until the cut lands
+    heldToken_ = QStringLiteral("%1:%2").arg(quintptr(this)).arg(++copySerial_);
+    mime->setText(copy.presented);   // other apps: what the writer SEES
+    mime->setData(kSourceMime, copy.source.toUtf8());
+    mime->setData(kFragmentTokenMime, heldToken_.toUtf8());
+    QApplication::clipboard()->setMimeData(mime);
+    return heldToken_;
+}
+
+void ManuscriptEditor::holdCutRange(const QString& token, const QJsonObject& range)
+{
+    if (token == heldToken_) {   // nothing copied in this editor since
+        heldRange_ = range;
+    }
 }
 
 // ── SP-175 / T-0602 (EP-048 S3b): the Format commands and the pending pair ──────────────────────────────────────

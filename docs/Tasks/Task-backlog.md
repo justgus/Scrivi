@@ -35,7 +35,6 @@ status changes on its own layer.
 | **T-0497** | ⚠️ **`[Linux]` World CREATION** — the one Worlds action SP-127 deliberately deferred. ⚠️ **Apple entangles it with `WorldBookmarkStore` (macOS sandbox grants, NO Linux equivalent)**, and ✅ **AC3 asks for added / status read / relinked, not created**. ⚠️ **PRIORITY ARGUMENT CHANGED BY THE T-0496 LIVE PASS (2026-09-01):** ⚠️ **the user hit this as a DEAD END while setting up a test** — `Project ▸ Manage Worlds…` offers **no create affordance**, so ⚠️ **a project with no world cannot proceed on Linux at all**: there is nothing to *add* or *relink*. ✅ **Apple detects the no-world case and PROMPTS the writer to create one** — ⚠️ **the deferral assumed add+relink were enough to be USABLE, and they are not.** ⚠️ **The step-7 test could not be completed on Linux alone; the world (`Alpha Centauri`) had to be created in the APPLE app** — ⚠️ **the sharpest evidence available that this is a gap, not a nicety.** | **EP-035** | 🔵 **Backlog** — ⚠️ **unscheduled, but ⚠️ NOW BLOCKING a Linux-only writer** |
 | T-0610 | `[Linux]` EP-048 S5b: line spacing and the first-line indent | EP-048 ([SP-183], 🔵 Planning) | 🔵 Backlog |
 | T-0611 | `[Linux]` EP-048 S5c: Show chapter titles, and the chapter-ending divider | EP-048 ([SP-184], 🔵 Planning) | 🔵 Backlog |
-| T-0616 | `[Cross]` EP-053 S3: structural cut, Backspace / Delete over scenes, and their undo | EP-053 ([SP-188], 🔵 Planning) | 🔵 Backlog |
 | T-0617 | `[Cross]` EP-053 S4: the background sync verification | EP-053 ([SP-189], 🔵 Planning) | 🔵 Backlog |
 | T-0618 | `[Cross]` EP-053 S5: Mac and rig live passes over the share, timed | EP-053 ([SP-190], 🔵 Planning) | 🔵 Backlog |
 
@@ -389,17 +388,6 @@ formats, so the mechanism is measured first and ruled from the numbers ([SP-183]
 **What:** the dialog's Writing Surface ▸ Show chapter titles in manuscript ([EP-026] Q4), read from the shared settings file
 (absent per [SP-184] Q1). `SceneDocument` builds with or without chapter headings, and every chapter boundary gets Apple's
 full-strength closing divider ([T-0575]). Every structural operation and its undo is tested with titles off and on.
-
----
-
-## 🔵 T-0616 — `[Cross]` EP-053 S3: structural cut, Backspace / Delete over scenes, and their undo
-
-**Epic:** [EP-053] (S3) · **Status:** 🔵 Backlog · **Sprint:** [SP-188] (🔵 Planning) →
-[`../Sprints/Sprint-SP-188.md`](../Sprints/Sprint-SP-188.md) · **Date Requested:** 2026-10-20 (user: *"complete planning for EP-053"*)
-
-**What:** a cut, buffer cut, or Backspace / Delete across scenes removes the structure (design v0.2 R4, §4.3, Q2, Q4) through
-`scrivi_range_cut`, off the main thread, delta applied. Undo is a range paste (`rangeCut` history node). Old `structuredCut`
-nodes and [I-0270]'s grouped deletes still undo. Replaces both platforms' cross-scene `deleteAcrossScenes`.
 
 ---
 

@@ -82,10 +82,9 @@ public:
     // What a slot gets for a selection inside ONE scene: the BALANCED stored source Ctrl+C keeps for Scrivi's own paste
     // ([I-0289], Q2). Across scenes the shell stores `crossSceneCopy()` instead (EP-026 S4). Empty when nothing is selected.
     [[nodiscard]] QString selectionSource() const;
-    // Cut the selection into a slot: `store(source, range)` FIRST (a cut must never lose its text), then the balanced
-    // removal as ONE `cut` step tagged with `bufferID` — across scenes, [I-0270]'s per-scene removal, one grouped `cut`
-    // step (Apple's shape: the grouped step carries no slot), and `store` gets the cross-scene copy's Range and flat
-    // source (EP-026 S4). Changes nothing when nothing removable is selected or `store` fails.
+    // Cut a selection inside ONE scene into a slot: `store(source, range)` FIRST (a cut must never lose its text), then the
+    // balanced removal as ONE `cut` step tagged with `bufferID`. Changes nothing when the selection is not inside one scene
+    // (✅ [SP-188]: across scenes the shell's structural cut runs instead) or `store` fails.
     bool cutSelectionIntoBuffer(const QString& bufferID,
                                 const std::function<bool(const QString& source, const QJsonObject& range)>& store);
     // Paste a slot's STORED text verbatim (never re-escaped, EP-045 AC4) over the selection: ONE `paste` step. A slot is
@@ -114,10 +113,29 @@ public:
     // start mid-scene, only the last may end mid-scene) — for a Range whose texts were rebuilt (balanced), which only a
     // PASTE reads: a paste takes the texts, never the offsets. Apple: `ScriviRange.normalized()`.
     [[nodiscard]] static QJsonObject normalizedRange(QJsonObject range);
-    // Before a structured paste ([SP-180] Q2, Apple [I-0295]): the selection is REMOVED, as its own step — inside one
-    // scene a plain delete, across scenes [I-0270]'s grouped delete. False (nothing changed) when the caret or selection
-    // is only in a heading or separator.
+    // Before a structured paste ([SP-180] Q2, Apple [I-0295]): a selection inside one scene is REMOVED, as its own step.
+    // False (nothing changed) when the caret or selection is only in a heading or separator, or crosses scenes
+    // (✅ [SP-188] Q6: the shell's structural cut removes that one first).
     bool removeSelectionForPaste();
+
+    // ── [SP-188] (design R4, §4.3): a cut across scenes removes the structure — Apple's `selectionRun` / `cutAcrossScenes`.
+    // The scenes a selection [start, end) takes, in reading order, each with the part of it selected (document positions):
+    // a scene whose body it overlaps, and
+    //  - Q5 / Q2: across a SCENE separator it covers, the scenes on both sides — the one before at its end, the one after
+    //    at its start (empty parts) — so whole scenes go whole, and a selection of exactly one separator is the merge;
+    //  - Q1: a chapter heading is skipped (presentation, in no scene's text) unless the selection covers the whole chapter,
+    //    which then takes the break after it (or, at the manuscript's end, the one before), so the cut removes the chapter.
+    struct RunPart { int index; int start; int end; };
+    [[nodiscard]] QList<RunPart> selectionRun(int start, int end) const;
+    // True when the selection takes more than one scene (`selectionRun`).
+    [[nodiscard]] bool selectionCrossesScenes() const;
+    // The selection's Range with each part's STORED text (the core checks it against the disk — ⛔ never the balanced
+    // copy), or nullopt when it takes one scene.
+    [[nodiscard]] std::optional<QJsonObject> crossSceneCutRange() const;
+    // A cut's clipboard (Q4): other apps get `copy`'s text NOW, with a fresh token; `holdCutRange` gives Scrivi's own paste
+    // the cut's Range once it lands — only while the clipboard still carries that token.
+    QString putCutOnClipboard(const CrossSceneCopy& copy);
+    void holdCutRange(const QString& token, const QJsonObject& range);
 
 signals:
     // Ctrl+Return — the Linux analogue of Apple's ⌘↩ "new scene" (T-0240). The
@@ -144,10 +162,9 @@ signals:
     // `bufferID` tags a cut INTO a copy buffer (S5); empty otherwise.
     void pasteOrCutBegins(const QString& kind, const QString& bufferID);
     void pasteOrCutEnded(const QString& kind);
-    // [I-0270] ONE edit across several scenes is about to run / has run, one `contentsChange` per scene in between —
-    // EditorShell reports it as ONE grouped undo step. `kind` is "delete" | "cut".
-    void groupedEditBegins();
-    void groupedEditEnded(const QString& kind);
+    // ✅ [SP-188] Backspace / Delete (keeping 0) or Ctrl+X (keeping 1: the clipboard) over a selection that takes more than
+    // one scene — the shell's structural cut. `thenPaste`: a flat paste over it, done once the cut lands (Q6).
+    void crossSceneCutRequested(int keeping, bool thenPaste);
 
     // ── EP-026 S5 (SP-179): the buffer chords (✅ EP-026 Q3: Ctrl+N copy · Ctrl+Shift+N paste · Alt+N cut). Caught HERE,
     // each claimed in ShortcutOverride first; EditorShell acts on the slot. `bufferID` is "1"–"9". ──
@@ -221,11 +238,6 @@ private:
     // Apple's `paragraphJoin` (Q3): the range to replace with one space, or false.
     bool paragraphJoinRange(int loc, int& start) const;
 
-    // [I-0270] Removes [start, end)'s text from each scene it spans, keeping the scenes.
-    // `copyFirst` copies the selection to the clipboard first (a cut). Returns false —
-    // and changes nothing — when the range does not span two or more scene bodies.
-    // `kind` names the grouped step; empty = "cut" when copying first, else "delete" (S5: a cut into a slot is a "cut").
-    bool deleteAcrossScenes(int start, int end, bool copyFirst, const QString& kind = {});
     // The balanced {source, presented} of [start, end) — scene by scene, headings and separators as they are (SP-175).
     [[nodiscard]] std::pair<QString, QString> balancedCopyOf(int start, int end) const;
     // The buffer chord `event` is ({action, digit}), or {0, 0}: action 1 copy · 2 paste · 3 cut.
