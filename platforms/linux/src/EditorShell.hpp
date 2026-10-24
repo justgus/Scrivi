@@ -777,9 +777,9 @@ private:
     // Undo/redo crossed a structural node — ✅ [SP-191] its inverse range call, off the GUI thread, the delta applied (Apple's
     // `applyStructuralInverse`); an old fragment node is converted to a Range ([SP-187] Q2).
     void applyStructuralInverse(const QVariantMap& inverse, bool isUndo);
-    // The step crossed into a previous session's work: Apple's warning, once per crossing (§5, T-0209). Every kind of step
-    // — text or structural ([I-0298]).
-    void warnIfSessionBoundary(const QVariantMap& step);
+    // ✅ [I-0319] (user, 2026-10-24): the next undo would undo an earlier session's change — asked BEFORE it, Undo / Cancel
+    // (Apple's `confirmEarlierSessionUndo`). True: undo.
+    bool confirmEarlierSessionUndo(const QString& timestamp);
     // ✅ [SP-191] The ONE path every structural edit takes — paste, split, chapter split, merge, chapter merge, and the
     // undo and redo of each (Apple: `runStructuralEdit` + `ViewportSceneLoader.runStructural`):
     //  1. the cue, in the key press's own turn (Q5): read-only (`lockForWork`), the progress row after 400 ms;

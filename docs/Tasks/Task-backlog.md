@@ -37,6 +37,7 @@ status changes on its own layer.
 | T-0611 | `[Linux]` EP-048 S5c: Show chapter titles, and the chapter-ending divider | EP-048 ([SP-184], 🔵 Planning) | 🔵 Backlog |
 | T-0617 | `[Cross]` EP-053 S4: the background sync verification | EP-053 ([SP-189], 🔵 Planning) | 🔵 Backlog |
 | T-0618 | `[Cross]` EP-053 S5: Mac and rig live passes over the share, timed | EP-053 ([SP-190], 🔵 Planning) | 🔵 Backlog |
+| T-0621 | `[Cross]` Explore a whole-manuscript history view (a tree, or a branching timeline) | ⚠️ None yet | 🔵 Backlog — exploration |
 
 > ✅ **T-0477 – T-0479 LEFT this file 2026-08-31 when SP-124 was ACTIVATED**, per the standing rule that
 > active Tasks never sit in the backlog. ✅ **They are now VERIFIED (2026-09-10) and ARCHIVED** →
@@ -410,6 +411,33 @@ corrects any difference from the disk silently (design v0.2 R3, P4, Q3), never o
 and redo, timed by each platform's log, with no freeze. Includes the Mac's timing source if [SP-190] Q1 rules one.
 
 ---
+
+## 🔵 T-0621 — `[Cross]` Explore a whole-manuscript history view
+
+**Epic:** ⚠️ none yet · **Status:** 🔵 Backlog (exploration) · **Sprint:** none · **Date Requested:** 2026-10-24
+
+**The user (2026-10-24):** *"I'm looking at the history card and it is not very revealing. It only shows a list of events
+but a branch can have multiple sub events. Also Undo is global, so if I undo past a scene's current events I might be taken
+to another event in a far part of the manuscript for the next historical undo. Globally the tree may be very large … at
+some point my writer starts typing again and that becomes the new "leaf" from which the manuscript will flow (the primary
+path). It would be really cool if we could somehow visualize this globally for the whole manuscript. … some kind of
+external popup that shows the whole document history from beginning to end. Maybe in a tree display or graphically as a
+branching timeline from beginning on the left or the current state on the right and all the major steps in between
+branching above and below."*
+
+**What:** an exploration (a design / trade study first, no code): what the view shows (every event, or major steps), how
+branches with many events are summarised, how the primary path reads, how a far-away scene's step is shown, what acting on
+it does, and how it scales to a tree of thousands of events (capacity 20,000). Includes "this passage has other versions"
+markers in the manuscript (user, 2026-10-24: *"I also want to do the other one"*). `scrivi_history_get_tree` exists (a
+window of the tree).
+
+---
+
+*Last Updated: 2026-10-24 (**T-0620 → active** with SP-192's activation; it left this file.)*
+
+*Last Updated: 2026-10-24 (**T-0620** Q1–Q4 ruled (user): left margin, with the Shift-Cmd-H markers, click opens the chooser, Linux in EP-026 S3.)*
+
+*Last Updated: 2026-10-24 (**T-0620**, **T-0621 filed** (user): the branch-point marker; the whole-history view, an exploration.)*
 
 *Last Updated: 2026-10-21 (**T-0619 → active** with SP-191's activation; it left this file.)*
 

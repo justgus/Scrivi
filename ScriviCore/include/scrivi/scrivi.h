@@ -750,6 +750,13 @@ const char* scrivi_history_record_barrier(const char* projectRootPath,
  *   {committed, canUndo, canRedo, hasPending, idleDeadlineMs, atBarrier}   (idleDeadlineMs -1 = nothing pending)
  * atBarrier [I-0302]: the newest step is a hard barrier — canUndo is false, but an undo there reports the barrier
  * (stoppedAtBarrier), so a platform keeps Undo available to show its notice.
+ * undoCrossesSessionAt [I-0319] (present only then): the next undo crosses a session BORDER — it undoes a change, made
+ * at this timestamp, from an earlier session than the undos are in (this session after a new change or an open; else the
+ * session of the last change undone or redone) — the platform asks the writer (Undo / Cancel) BEFORE calling undo.
+ * redoFork [I-0320] (present only then): the redo from here has >= 2 branches — {nodeID, children:[{eventID, preview,
+ * timestamp, isPrimary, sceneID, changeOffsetUtf8}]} as forkAhead ([SP-192]: sceneID + scene-local UTF-8 byte where the
+ * branch parts from the current text, as the tree's). The
+ * platform shows the branch chooser on REDO (choosing = scrivi_history_select_branch, then redo), never after an undo.
  * Rules (design §4.a / §4.a.1): an edit LATCHES; it commits on `.` `!` `?` or a newline typed, a caret move (another
  * scene: always; the same scene: unless only whitespace changed), paste/cut, 45 s idle, a barrier, undo, close. An
  * autosave never commits unless already idle. A scene's floor is seeded on its first edit of the session. */
@@ -789,6 +796,8 @@ const char* scrivi_capture_state(const char* projectRootPath);
 /* Moves the current pointer back one node.
  * result: {moved, changes:[{sceneID,newText,cursorAfter}], nodeID,
  *          canUndo, canRedo, crossedSessionBoundary, boundaryTimestamp?,
+ *          (crossedSessionBoundary [I-0319]: this undo crossed a session border (see undoCrossesSessionAt);
+ *           boundaryTimestamp = that change's time — never set for undoing this session's change),
  *          stoppedAtBarrier:{kind,note}?,
  *          structuralInverse:{direction:"undo"|"redo", payload:{…}}?,
  *          forkAhead:{nodeID, children:[{eventID,preview,timestamp,isPrimary}]}?}

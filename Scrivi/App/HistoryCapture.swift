@@ -42,6 +42,10 @@ final class HistoryCapture {
     var atBarrierNow: Bool { state?.atBarrier ?? false }
     var canRedoNow: Bool { state?.canRedo ?? false }
     var hasPendingChanges: Bool { state?.hasPending ?? false }
+    /// [SP-192]: the branch point the last report named (nil while an edit is pending) — the margin mark's.
+    var redoForkNow: HistoryForkAhead? { state?.redoFork }
+    /// [SP-192]: told after every report, so the margin mark follows the history pointer.
+    var onReport: (@MainActor () -> Void)?
 
     // A monotonic millisecond clock (SP-177 Q1) — the same one the deadline is in.
     private static func nowMs() -> Int64 { Int64(ProcessInfo.processInfo.systemUptime * 1000) }
@@ -60,6 +64,7 @@ final class HistoryCapture {
     private func take(_ r: CaptureState?) -> Bool {
         guard let r else { return false }
         state = r
+        onReport?()
         if r.committed { bumpRevision() }
         idleTask?.cancel()
         idleTask = nil
@@ -182,6 +187,21 @@ final class HistoryCapture {
     }
 
     // MARK: — Undo / Redo (T-0205 — the editor applies the returned change)
+
+    /// [I-0319]: when the next undo would undo an earlier session's change, that change's time (nil: it would not). Asked
+    /// fresh — a structural step records outside `scrivi_capture_*`, so the last report can be stale.
+    func undoEntersEarlierSession() -> String? {
+        guard isOpen else { return nil }
+        take(try? engine.captureState(projectRootPath: projectRootPath))
+        return state?.undoCrossesSessionAt
+    }
+
+    /// [I-0320]: the branches the next redo could take, when there are two or more (nil: a plain redo). Asked fresh, as above.
+    func redoFork() -> HistoryForkAhead? {
+        guard isOpen else { return nil }
+        take(try? engine.captureState(projectRootPath: projectRootPath))
+        return state?.redoFork
+    }
 
     func undo() -> HistoryStepResult? {
         guard isOpen else { return nil }

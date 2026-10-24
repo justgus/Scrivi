@@ -64,6 +64,7 @@ void HistoryCapture::take(const QVariantMap& r)
     atBarrier_ = r.value(QStringLiteral("atBarrier")).toBool();
     canRedo_ = r.value(QStringLiteral("canRedo")).toBool();
     hasPending_ = r.value(QStringLiteral("hasPending")).toBool();
+    undoCrossesSessionAt_ = r.value(QStringLiteral("undoCrossesSessionAt")).toString();
     idleTimer_->stop();
     const qint64 deadline = r.value(QStringLiteral("idleDeadlineMs"), -1).toLongLong();
     if (deadline >= 0) {
@@ -74,6 +75,15 @@ void HistoryCapture::take(const QVariantMap& r)
 void HistoryCapture::refreshState()
 {
     take(ScriviBridge::captureState(root_));
+}
+
+QString HistoryCapture::undoEntersEarlierSession()
+{
+    if (!open_) {
+        return {};
+    }
+    refreshState();
+    return undoCrossesSessionAt_;
 }
 
 void HistoryCapture::adoptOpened(bool opened)
@@ -96,6 +106,7 @@ void HistoryCapture::close()
     ScriviBridge::historyClose(root_);
     open_ = false;
     canUndo_ = canRedo_ = hasPending_ = atBarrier_ = false;
+    undoCrossesSessionAt_.clear();
 }
 
 void HistoryCapture::noteEdit(const QString& sceneID, const QString& text, int caretUtf16, const QString& textBefore)

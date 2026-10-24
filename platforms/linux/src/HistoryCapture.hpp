@@ -43,6 +43,9 @@ public:
     [[nodiscard]] bool hasPending() const { return hasPending_; }
     [[nodiscard]] bool isApplying() const { return applying_; }
     void setApplying(bool on) { applying_ = on; }
+    // [I-0319]: when the next undo would undo an earlier session's change, that change's timestamp (empty: it would not).
+    // Asked fresh — a structural step records outside `scrivi_capture_*`, so the last report can be stale.
+    [[nodiscard]] QString undoEntersEarlierSession();
 
     // The monotonic clock every `nowMs` and deadline is in.
     static qint64 nowMs();
@@ -101,5 +104,6 @@ private:
     bool atBarrier_ = false;
     bool canRedo_ = false;
     bool hasPending_ = false;
+    QString undoCrossesSessionAt_;
     QTimer* idleTimer_ = nullptr;
 };

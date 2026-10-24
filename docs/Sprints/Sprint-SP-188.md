@@ -10,7 +10,7 @@ created: 2026-10-20
 
 **Status:** 🟡 **ACTIVE** 2026-10-22 (user: *"activate and implement SP-188"*) — created 2026-10-20 (user: *"complete planning for EP-053"*); code re-read 2026-10-22 after
 [SP-191]. ✅ Q1–Q6 ruled 2026-10-22 (user: *"Q1–Q6 agreed as recommended"*).
-**Carries:** [T-0616] (🟠 Implemented - Not Verified) → [`../Tasks/Task-unverified.md`](../Tasks/Task-unverified.md).
+**Carries:** [T-0616] (🟠 Implemented - Not Verified) → [`../Tasks/Task-unverified.md`](../Tasks/Task-unverified.md). · [I-0319], [I-0321] (🟠 Resolved - Not Verified) and [I-0320] (✅ Verified), added 2026-10-24 → [`../Issues/Issue-active.md`](../Issues/Issue-active.md).
 **Epic:** [EP-053] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md).
 **Builds on:** [SP-186] (S1, `scrivi_range_cut`) · [SP-187] + [SP-191] (S2a + S2b: the scene list as the model of record, the delta applied,
 `rangePaste` / `rangeCut` history, the one off-main path).
@@ -204,3 +204,53 @@ no reload. Undo is a range paste; redo is the cut again.
   parallel processes (each failed once on Linux); now pid + counter + clock. ⚠️ 36 other test files use the same naming.
 - [T-0616] → 🟠 Implemented - Not Verified.
 
+
+### 🟡 2026-10-23 — Rig live pass: ✅ all 9 steps (user); ⏳ Mac
+- User: *"I did the rig first while I still have it. All 9 steps passed."* Build 79, on the share, against the
+  `dumas-prose-timelines` fixture (1,180 scenes) rather than a scratch project.
+- Timings from the rig log (`~/.local/state/scrivi/scrivi.log`): each step's cut / undo / redo landed in 0.3–0.6 s
+  (worker), applied in 50–320 ms. The last step (Q6) pasted over most of the document: the cut took 49 s, all of it in
+  the range call, and the paste 131 s (range call 105 s, history node 26 s). Both ran off the main thread, and the window
+  answered throughout.
+- ⚠️ Not this Sprint's code: while the user drag-selected toward the top / bottom (autoscroll), the window stopped
+  answering for up to 25.6 s (14.5 s, 8.1 s, 6.9 s ...). Every autoscroll step that enters a new scene runs
+  `EditorShell::promoteActiveScene` → `SceneInspector::setScene` synchronously (50–290 ms each, back to back), so the
+  event loop never idles. ⏳ To be filed as an Issue.
+- ⚠️ One `QTextCursor::setPosition: Position '1846043' out of range` warning, right after the 49 s cut was applied: the
+  caret was restored to a position past the end of the shortened document. ⏳ To be filed with it.
+
+### 🟡 2026-10-24 — Mac live pass: 8 of 9 (user); step 6 fixed, ⏳ re-run
+- User: steps 2, 3, 4, 5, 7 and 8 passed. Step 9: the same large cut and paste as on the rig, then undone, *"without
+  serious delay or lag"*, and no freeze during the drag-selection. ⚠️ On a LOCAL disk, not over the share (AC11 says the
+  share).
+- ❌ **Step 6:** with only the divider selected, ⌫ did nothing (nor ⌘⌫; ⌘⌫ with the caret at a scene's start still merges).
+  Cause: `selectionRun` (`ManuscriptTextView.swift:2168`) took the divider only when the selection also covered the `\n`
+  after it, which is what the Q2 test selected. A click or drag over the divider selects the divider alone. ✅ Fixed: a
+  selection that reaches past the scene's end (the divider) takes both scenes. New interop test
+  `backspaceOverTheDividerAlone`; `StructuralCutTests` 10/10. Linux unchanged (its separator is one block; step 6 passed on
+  the rig). ⏳ Step 6 to re-run on the Mac.
+- ⚠️ **Step 1:** the first ⌘Z after the ⌘X showed *"Undoing changes from a previous session"* (after the undo, OK only).
+  Not this Sprint's code, but surfaced by it. ✅ User ruling: a question only for an undo of an earlier session's change,
+  BEFORE it, with Cancel. *"Ownership of an issue does not absolve a work product from the need to fix it."* → [I-0319],
+  assigned here, fixed in the core and on both platforms. ⏳ Step 1 to re-run on the Mac.
+- [I-0318]: the user may have caused it by pasting at the document's end after the cut. A smoke for that added
+  (`structural_baseline_smoke`).
+- Xcode warning fixed: `ViewportSceneLoader.swift:585` (a `[weak self]` inside a closure that held `self` strongly); the outer
+  closure now captures `self` weakly. Clean build, no warnings.
+- [I-0317] (autoscroll freeze) and [I-0318] (out-of-range caret) filed `[Linux]` from the rig log (user).
+
+### 🟡 2026-10-24 — Mac re-run: steps 1 and 6 pass (user); [I-0319] revised, [I-0320] added
+- User: step 1 passes as described, ⚠️ but the next ⌘Z (into the previous session) asked nothing. The first fix asked
+  once per session per run. ✅ Ruling: ask at EVERY session border an undo crosses, going back, and again on re-crossing
+  one. Core `undoSession_` replaces `warnedSessions_`. Step 6 passes.
+- User: the branch chooser must appear on ⇧⌘Z, never after ⌘Z → [I-0320], assigned here and fixed (core `redoFork`,
+  Apple `performRedo`). A visible branch-point marker in the manuscript is open for discussion; nothing decided.
+- Counts: ctest Mac 765/765; interop 313/313.
+
+### 🟡 2026-10-24 — Mac checks pass (user); [I-0320] verified; [I-0321] added
+- User: *"I did the checks on the Mac. Both steps pass."* [I-0320] ✅ Verified (Mac only, as it is Mac-only).
+  [I-0319]: the Mac passed; ⏳ the Linux half waits for the rig.
+- User: a choice with no text in the chooser → [I-0321]. The project's history log showed a branch that only typed two
+  spaces. The core now folds a branch with no text into its siblings and shows each branch's first text. Core
+  `[I-0321]`; ctest 766/766; interop 313/313.
+- Not this Sprint: the branch-point marker → [T-0620]; the whole-history view → [T-0621] (both 🔵 backlog).

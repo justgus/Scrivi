@@ -539,7 +539,7 @@ int main(int argc, char** argv)
     notices.clear();
     check(rig.undoStructural(), QStringLiteral("Ctrl+Z over the Mac's paste landed"));
     // [I-0298]: the undo crossed into an earlier session — the warning, as for any undo.
-    check(notices.contains(QStringLiteral("Undoing changes from a previous session")),
+    check(notices.contains(QStringLiteral("Undo a change from a previous session?")),
           QStringLiteral("[I-0298] the previous-session warning after a structural undo (notices: %1)")
               .arg(notices.join(QStringLiteral(" | "))));
     check(rig.texts() == kept, QStringLiteral("the Mac's paste undone on Linux: %1").arg(shown(rig.texts())));

@@ -3249,6 +3249,9 @@ public struct HistoryForkChild: Decodable, Sendable {
     public let preview:   String
     public let timestamp: String
     public let isPrimary: Bool
+    /// [SP-192]: where the branch parts from the current text — the scene and its scene-local UTF-8 byte.
+    public let sceneID:          String?
+    public let changeOffsetUtf8: Int?
 }
 
 public struct HistorySelectBranchResult: Decodable, Sendable {
@@ -3436,8 +3439,14 @@ public struct CaptureState: Decodable, Sendable {
     public let idleDeadlineMs: Int64
     /// [I-0302]: the newest step is a hard barrier — `canUndo` is false, but an undo there shows the barrier's notice.
     public let atBarrier:      Bool
+    /// [I-0319]: the next undo would undo a change an EARLIER session made at this time — ask the writer first.
+    public let undoCrossesSessionAt: String?
+    /// [I-0320]: the redo from here has two or more branches — the writer chooses one ON REDO.
+    public let redoFork: HistoryForkAhead?
 
-    private enum CodingKeys: String, CodingKey { case committed, canUndo, canRedo, hasPending, idleDeadlineMs, atBarrier }
+    private enum CodingKeys: String, CodingKey {
+        case committed, canUndo, canRedo, hasPending, idleDeadlineMs, atBarrier, undoCrossesSessionAt, redoFork
+    }
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         committed      = try c.decode(Bool.self, forKey: .committed)
@@ -3446,6 +3455,8 @@ public struct CaptureState: Decodable, Sendable {
         hasPending     = try c.decode(Bool.self, forKey: .hasPending)
         idleDeadlineMs = try c.decode(Int64.self, forKey: .idleDeadlineMs)
         atBarrier      = try c.decodeIfPresent(Bool.self, forKey: .atBarrier) ?? false
+        undoCrossesSessionAt = try c.decodeIfPresent(String.self, forKey: .undoCrossesSessionAt)
+        redoFork = try c.decodeIfPresent(HistoryForkAhead.self, forKey: .redoFork)
     }
 }
 

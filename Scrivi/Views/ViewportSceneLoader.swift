@@ -579,7 +579,8 @@ struct SceneSegment: Identifiable {
         _ = saveScenesOffMain(segments.indices, engine: engine, ref: ref)
         let engine = engine
         let group = offMainWrites
-        whenScenesLand {
+        whenScenesLand { [weak self] in
+            guard let self else { return }
             group.enter()   // the quit path waits on this group (`saveAllDirtyBlocking`)
             // ⚠️ Re-marked: this closure can run later, from a save's landing, outside the caller's task.
             StructuralCallAccounting.$sink.withValue(self.structuralCalls) { Task { @MainActor [weak self] in

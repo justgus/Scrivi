@@ -749,20 +749,27 @@ static void appendStructuralInverse(scrivi::util::JsonDoc& doc,
 // Serializes step.forkAhead into the undo/redo envelope (§7/§10 T2) when the
 // pointer landed on a fork. Absent otherwise, so the Swift popover shows/dismisses
 // purely on the field's presence.
-static void appendForkAhead(scrivi::util::JsonDoc& doc,
-                            const scrivi::history::StepResult& step) {
-    if (!step.forkAhead.has_value()) return;
+static void appendFork(scrivi::util::JsonDoc& doc, const char* key,
+                       const std::optional<scrivi::history::ForkAhead>& fork) {
+    if (!fork.has_value()) return;
     scrivi::util::JsonDoc fa;
-    fa.setString("nodeID", step.forkAhead->nodeID);
-    for (const auto& child : step.forkAhead->children) {
+    fa.setString("nodeID", fork->nodeID);
+    for (const auto& child : fork->children) {
         scrivi::util::JsonDoc c;
         c.setString("eventID",   child.eventID);
         c.setString("preview",   child.preview);
         c.setString("timestamp", child.timestamp);
         c.setBool("isPrimary",   child.isPrimary);
+        c.setString("sceneID",   child.sceneID);
+        c.setInt64("changeOffsetUtf8", static_cast<int64_t>(child.changeOffsetUtf8));
         fa.appendToArray("children", std::move(c));
     }
-    doc.setSubDoc("forkAhead", std::move(fa));
+    doc.setSubDoc(key, std::move(fa));
+}
+
+static void appendForkAhead(scrivi::util::JsonDoc& doc,
+                            const scrivi::history::StepResult& step) {
+    appendFork(doc, "forkAhead", step.forkAhead);
 }
 
 static scrivi::RepairActionKind repairKindFromStr(std::string_view s) {
@@ -3642,6 +3649,13 @@ const char* withCapture(const char* projectRootPath, Fn&& fn) {
     // [I-0302]: every capture result says whether the newest step is a hard barrier — the platform keeps Undo available
     // there, so an undo shows the barrier's notice instead of doing nothing at all.
     doc.setBool("atBarrier", it->second->service().atBarrier());
+    // [I-0319]: the next undo would undo an earlier session's change — the platform asks first. A pending edit is this
+    // session's and is what the undo takes, so never then.
+    if (!c->second.hasPending())
+        if (const auto at = it->second->service().undoEntersEarlierSession()) doc.setString("undoCrossesSessionAt", *at);
+    // [I-0320]: the redo from here is a choice of branches — the platform shows them on REDO, never after an undo.
+    // A pending edit is a new change: the redo it leaves is not the writer's to take.
+    if (!c->second.hasPending()) appendFork(doc, "redoFork", it->second->service().redoFork());
     return heap(okEnvelope(std::move(doc)));
 }
 

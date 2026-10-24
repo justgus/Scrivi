@@ -204,7 +204,7 @@ std::string whitespaceKind(const EventNode& node) {
 } // namespace
 
 HistoryService::HistoryService(std::string sessionID, std::string rootTimestamp)
-    : sessionID_(std::move(sessionID)) {
+    : sessionID_(std::move(sessionID)), undoSession_(sessionID_) {
     EventNode root;
     root.eventID = "evt_root";
     root.kind = EventKind::Barrier;   // the root is a non-textual anchor
@@ -272,6 +272,7 @@ RecordResult HistoryService::record(const RecordParams& p, std::string eventID) 
     const bool forked = !parent.childIDs.empty();
     parent.childIDs.push_back(newID);
     parent.primaryChildID = newID;
+    undoSession_ = sessionID_;   // [I-0319]: a new change — the next undo starts in this session
 
     nodes_.emplace(newID, std::move(node));
     currentNodeID_ = newID;
@@ -318,6 +319,7 @@ RecordResult HistoryService::recordBarrier(const BarrierParams& p, std::string e
     EventNode& parent = nodeRef(currentNodeID_);
     parent.childIDs.push_back(newID);
     parent.primaryChildID = newID;
+    undoSession_ = sessionID_;   // [I-0319]: a new change — the next undo starts in this session
 
     nodes_.emplace(newID, std::move(node));
     currentNodeID_ = newID;
@@ -347,6 +349,24 @@ bool HistoryService::canRedo() const {
     // Redo re-applies text nodes and reversible structural nodes; a hard barrier ahead
     // is not redoable, but a Structural node (T-0356) is (redo re-runs its forward op).
     return nodeRef(*cur.primaryChildID).kind != EventKind::Barrier;
+}
+
+// [I-0319] (user, 2026-10-24): asked at every session BORDER an undo crosses, going back — the undo of a change from a
+// session other than the one the undos are in (`undoSession_`: this session after a new change or on open; the session
+// of the last change undone or redone). Undoing today's first change lands on yesterday's last and is not a crossing.
+std::optional<std::string> HistoryService::undoEntersEarlierSession() const {
+    if (!canUndo()) return std::nullopt;
+    const EventNode& cur = nodeRef(currentNodeID_);
+    if (cur.sessionID == undoSession_) return std::nullopt;
+    return cur.timestamp;
+}
+
+void HistoryService::noteSessionCrossing(const EventNode& departed, StepResult& r) {
+    if (departed.sessionID != undoSession_) {
+        r.crossedSessionBoundary = true;
+        r.boundaryTimestamp = departed.timestamp;
+    }
+    undoSession_ = departed.sessionID;
 }
 
 StepResult HistoryService::undo() {
@@ -397,14 +417,7 @@ StepResult HistoryService::undo() {
         r.nodeID = currentNodeID_;
         r.canUndo = canUndo();
         r.canRedo = canRedo();
-        // Session-boundary warning still applies to where we landed.
-        const EventNode& landed = nodeRef(currentNodeID_);
-        if (landed.sessionID != sessionID_ &&
-            warnedSessions_.find(landed.sessionID) == warnedSessions_.end()) {
-            warnedSessions_.insert(landed.sessionID);
-            r.crossedSessionBoundary = true;
-            r.boundaryTimestamp = landed.timestamp;
-        }
+        noteSessionCrossing(cur, r);
         r.forkAhead = forkAheadAt(currentNodeID_);
         return r;
     }
@@ -447,19 +460,7 @@ StepResult HistoryService::undo() {
     r.canUndo = canUndo();
     r.canRedo = canRedo();
 
-    // Session-boundary crossing (§5): warn when the node we undo *into* belongs
-    // to a session other than the current (open) one — i.e. we are stepping into
-    // a previous session's work — and we have not already warned for crossing
-    // into that session this run. Compared against sessionID_ (the current open
-    // session), so it fires even when the entire loaded chain predates this
-    // launch. `warnedSessions_` makes it once-per-crossing.
-    const EventNode& landed = nodeRef(currentNodeID_);
-    if (landed.sessionID != sessionID_ &&
-        warnedSessions_.find(landed.sessionID) == warnedSessions_.end()) {
-        warnedSessions_.insert(landed.sessionID);
-        r.crossedSessionBoundary = true;
-        r.boundaryTimestamp = landed.timestamp;
-    }
+    noteSessionCrossing(cur, r);
 
     // If undo landed on a fork (>= 2 children), surface the branches (§10 T2.1).
     r.forkAhead = forkAheadAt(currentNodeID_);
@@ -491,6 +492,7 @@ StepResult HistoryService::redo() {
     // re-runs the structural op + reloads. The pointer advances onto the structural node.
     if (child.kind == EventKind::Structural) {
         currentNodeID_ = child.eventID;
+        undoSession_ = child.sessionID;   // [I-0319]: the undos are back in the redone change's session
         applyBarrierTexts(child, headText_);   // [I-0293]: the app re-runs the op — the heads read what it leaves
         r.moved = true;
         r.crossedStructural = true;
@@ -508,6 +510,7 @@ StepResult HistoryService::redo() {
     const std::string childText = applyForward(curText, child.diff);
 
     currentNodeID_ = child.eventID;
+    undoSession_ = child.sessionID;   // [I-0319]: the undos are back in the redone change's session
     headText_[sceneID] = childText;
 
     SceneChange change;
@@ -543,21 +546,45 @@ StepResult HistoryService::redo() {
     return r;
 }
 
+// [I-0321] (user, 2026-10-24): *"the writer is always presented with text to choose from."* A change is TEXT when it
+// inserted or removed something other than whitespace; a structural step always is.
+static bool changesText(const EventNode& node) {
+    if (node.kind == EventKind::Structural) return true;
+    const std::string& src = !node.diff.inserted.empty() ? node.diff.inserted : node.diff.removed;
+    return src.find_first_not_of(" \t\r\n") != std::string::npos;
+}
+
 std::optional<ForkAhead> HistoryService::forkAheadAt(const std::string& nodeID) const {
     const EventNode& n = nodeRef(nodeID);
     if (n.childIDs.size() < 2) return std::nullopt;   // not a fork
 
+    // [I-0321]: a branch with no text anywhere in it (spaces typed, then undone) is folded into its siblings — not
+    // offered; the others show the first text down their primary path (a branch can start with whitespace).
+    const auto anyText = [&](const std::string& id, const auto& self) -> bool {
+        const EventNode& e = nodeRef(id);
+        if (changesText(e)) return true;
+        for (const std::string& c : e.childIDs) if (self(c, self)) return true;
+        return false;
+    };
     ForkAhead fa;
     fa.nodeID = nodeID;
     for (const std::string& childID : n.childIDs) {
+        if (!anyText(childID, anyText)) continue;
         const EventNode& child = nodeRef(childID);
+        const EventNode* shown = &child;
+        while (!changesText(*shown) && shown->primaryChildID.has_value()) shown = &nodeRef(*shown->primaryChildID);
         ForkChild fc;
         fc.eventID   = child.eventID;
-        fc.preview   = forkPreview(child);
+        fc.preview   = forkPreview(*shown);
+        const auto first = fc.preview.find_first_not_of(' '), last = fc.preview.find_last_not_of(' ');
+        fc.preview   = first == std::string::npos ? std::string{} : fc.preview.substr(first, last - first + 1);
         fc.timestamp = child.timestamp;
         fc.isPrimary = n.primaryChildID.has_value() && *n.primaryChildID == childID;
+        fc.sceneID   = child.sceneID;
+        fc.changeOffsetUtf8 = child.kind == EventKind::Structural ? 0 : child.diff.offsetUtf8;
         fa.children.push_back(std::move(fc));
     }
+    if (fa.children.size() < 2) return std::nullopt;   // one branch with text: nothing to choose
     return fa;
 }
 
@@ -1019,6 +1046,7 @@ void HistoryService::setPointers(std::string rootID, std::string currentNodeID,
     rootID_        = std::move(rootID);
     currentNodeID_ = std::move(currentNodeID);
     sessionID_     = std::move(sessionID);
+    undoSession_   = sessionID_;
 }
 
 void HistoryService::finalizeLoad(const std::vector<std::string>& currentTrail) {

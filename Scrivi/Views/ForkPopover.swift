@@ -41,6 +41,7 @@ final class ForkPopoverController {
     // + redo. onCancel() is invoked when the writer dismisses without choosing.
     func show(fork: HistoryForkAhead,
               in textView: NSTextView,
+              at anchor: NSRect? = nil,   // [SP-192]: the margin mark that was clicked; nil = the caret
               onSelect: @escaping (_ childEventID: String) -> Void,
               onCancel: @escaping () -> Void) {
         close()   // replace any prior popover
@@ -94,7 +95,7 @@ final class ForkPopoverController {
         // Anchor at the caret. firstRect(forCharacterRange:) returns a screen
         // rect for the insertion point; convert it into the text view's bounds so
         // the popover points at the caret rather than a corner.
-        let caretRect = caretBoundsRect(in: textView)
+        let caretRect = anchor ?? caretBoundsRect(in: textView)
         pop.show(relativeTo: caretRect, of: textView, preferredEdge: .maxY)
         popover = pop
     }

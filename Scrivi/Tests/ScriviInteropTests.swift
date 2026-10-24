@@ -7100,6 +7100,8 @@ struct UndoAfterStructuralOpTests {
         c.textView = tv
         // A modal notice would block the test host until it is killed: an unexpected one fails the test instead.
         c.onBarrierNotice = { Issue.record("unexpected barrier notice: \($0)") }
+        // [I-0320]: so is an unexpected branch chooser (⇧⌘Z at a fork): it would silently redo nothing.
+        c.onRedoFork = { fork, _ in Issue.record("unexpected branch chooser at \(fork.nodeID)"); return nil }
         c.rebuildStorage(tv, segments: loader.segments)
         return Harness(root: root, env: env, session: session, loader: loader, c: c, tv: tv, window: window,
                        projectID: projectID, identityID: identityID)
@@ -7240,6 +7242,8 @@ struct UndoAfterStructuralOpTests {
         let start = h.loader.segments.map(\.text)
         let ids = h.loader.segments.map(\.sceneID)
         func state() -> [[String]] { h.loader.segments.map { [$0.sceneID, $0.chapterID, $0.text] } }
+        // Each op after the first starts a new branch from the same point: ⇧⌘Z there asks, and takes the newest ([I-0320]).
+        h.c.onRedoFork = { fork, _ in fork.children.first(where: \.isPrimary)?.eventID }
         func roundTrip(_ what: String, _ op: () -> Void) async throws {
             let before = state()
             op()
@@ -7462,22 +7466,118 @@ struct UndoAfterStructuralOpTests {
 
     /// [I-0298] — an undo across a STRUCTURAL step into an earlier session warns, as any undo into it does. ⛔ The structural
     /// branch of `apply(step:)` returned before the warning.
-    @Test("a structural undo into an earlier session shows the previous-session warning")
-    func structuralUndoAcrossSessionsWarns() async throws {
+    @Test("[I-0319] an undo of an earlier session's change is asked FIRST, with Cancel; this session's never is")
+    func earlierSessionUndoIsAskedFirst() async throws {
         let h = try await harness(["Alpha Bravo"])
         h.typeBeforeTheOp(scene: 0)                                 // an edit in the first session, before the paste
         h.caret(scene: 0, at: 6)
-        let frag = Harness.range(["one", "two"])
-        #expect(h.c.pasteStructuredRange(frag))
+        #expect(h.c.pasteStructuredRange(Harness.range(["one", "two"])))
         try await h.landed()
         let again = try await h.reopened()
-        #expect(again.loader.segments.map(\.text) == ["Alpha one", "twoBravo Pre"])
-        var warned: [String?] = []
-        again.c.onSessionBoundary = { warned.append($0) }
+        let yesterday = ["Alpha one", "twoBravo Pre"]
+        #expect(again.loader.segments.map(\.text) == yesterday)
+        var asked = 0, answer = false
+        again.c.onEarlierSessionUndo = { _ in asked += 1; return answer }
+
+        // SP-188 live pass step 1: a change made in THIS session, undone — no question.
+        again.caret(scene: 0, at: 0)
+        #expect(again.c.pasteStructuredRange(Harness.range(["x", "y"])))
+        try await again.landed()
         again.c.performUndo()
         try await again.landed()
+        #expect(asked == 0, "undoing this session's change asked nothing (\(asked))")
+        #expect(again.loader.segments.map(\.text) == yesterday)
+
+        // The next undo is the earlier session's paste: asked first; Cancel undoes nothing.
+        again.c.performUndo()
+        #expect(asked == 1)
+        #expect(again.loader.segments.map(\.text) == yesterday, "Cancel undid nothing")
+        answer = true
+        again.c.performUndo()
+        try await again.landed()
+        #expect(asked == 2)
         #expect(again.loader.segments.map(\.text) == ["Alpha Bravo Pre"], "the paste is undone")
-        #expect(warned.count == 1, "the previous-session warning was shown once (\(warned.count))")
+    }
+
+    @Test("[SP-192] with the hints on, a margin mark sits on the line where ⇧⌘Z will ask; a click asks; typing or hints off remove it")
+    func branchPointMark() async throws {
+        let h = try await harness(["Alpha.\n\nBravo."])               // the branch in the SECOND paragraph: a line of its own
+        var offered: [HistoryForkAhead] = []
+        var anchors: [NSRect?] = []
+        h.c.onRedoFork = { fork, at in offered.append(fork); anchors.append(at); return nil }
+        func type(_ t: String) { for ch in t { h.tv.insertText(String(ch), replacementRange: h.tv.selectedRange()) } }
+        func marks() -> [NSButton] {
+            h.tv.textLayoutManager?.textViewportLayoutController.layoutViewport()
+            h.c.refreshBranchMarks()
+            return h.c.branchMarks
+        }
+        h.caret(scene: 0, at: 14)                                      // after "Bravo."
+        type(" One")
+        h.c.performUndo()
+        type(" Two")
+        h.c.performUndo()                                              // a branch point: " One" | " Two", both at byte 14
+        let text = h.tv.string
+
+        let shown = marks()
+        #expect(shown.count == 1, "one mark: both branches part on the same line (\(shown.count))")
+        h.c.ensureBoundaries(h.tv)
+        let at = h.c.sceneBoundaries[0].location + 14                   // a chapter title may come before the scene
+        let firstLine = try #require(h.c.lineRect(forCharacterIndex: h.c.sceneBoundaries[0].location, in: h.tv))
+        let mark = try #require(shown.first)
+        let line = try #require(h.c.lineRect(forCharacterIndex: at - 1, in: h.tv))   // the branch is at the text's END
+        #expect(abs(mark.frame.midY - line.midY) < 1, "on the branch's line")
+        #expect(abs(line.midY - firstLine.midY) > 1, "(the test's branch line is not the scene's first)")
+        #expect(mark.frame.maxX <= h.tv.textContainerInset.width, "in the left margin")
+        #expect(mark.toolTip == "⇧⌘Z will ask which branch to redo")
+        #expect(mark.accessibilityLabel() == "⇧⌘Z will ask which branch to redo")
+        h.c.branchMarkClicked(mark)
+        #expect(offered.count == 1 && offered.first?.children.count == 2, "a click offers the chooser")
+        #expect(anchors.last == mark.frame, "…at the mark")
+        h.c.performRedo()                                              // ⇧⌘Z: the same chooser, at the same mark (user)
+        #expect(offered.count == 2 && anchors.last == mark.frame, "⇧⌘Z opens the chooser at the mark")
+        #expect(h.tv.string == text, "drawn only: the text is unchanged")
+
+        if let ts = h.tv.textStorage { h.c.presenter.setHints(false, selection: h.tv.selectedRange(), in: ts) }
+        #expect(marks().isEmpty, "no mark with the hints off")
+        h.c.performRedo()
+        #expect(offered.count == 3 && anchors.last == mark.frame, "with the hints off, ⇧⌘Z still opens it at the branch's line")
+        if let ts = h.tv.textStorage { h.c.presenter.setHints(true, selection: h.tv.selectedRange(), in: ts) }
+        #expect(marks().count == 1)
+        type(" Three")
+        #expect(marks().isEmpty, "typing starts a new change: no branch point to redo from")
+    }
+
+    @Test("[I-0320] the branch chooser is offered on REDO at a fork, never as the undo lands; dismissing it redoes nothing")
+    func branchChooserOnRedoOnly() async throws {
+        let h = try await harness(["Alpha Bravo"])
+        let start = h.loader.segments.map(\.text)
+        var offered: [HistoryForkAhead] = []
+        var choice: (HistoryForkAhead) -> String? = { _ in nil }
+        h.c.onRedoFork = { fork, _ in offered.append(fork); return choice(fork) }
+
+        h.caret(scene: 0, at: 6)
+        #expect(h.c.pasteStructuredRange(Harness.range(["one", "two"])))
+        try await h.landed()
+        let first = h.loader.segments.map(\.text)
+        h.c.performUndo()
+        try await h.landed()
+        h.caret(scene: 0, at: 6)
+        #expect(h.c.pasteStructuredRange(Harness.range(["x", "y"])))   // a second branch from the same point
+        try await h.landed()
+        h.c.performUndo()
+        try await h.landed()
+        #expect(offered.isEmpty, "no chooser as the undo landed on the fork (\(offered.count))")
+        #expect(h.loader.segments.map(\.text) == start)
+
+        h.c.performRedo()                                              // dismissed: nothing redone
+        #expect(offered.count == 1 && offered.first?.children.count == 2)
+        #expect(h.loader.segments.map(\.text) == start, "dismissing the chooser redid nothing")
+
+        choice = { fork in fork.children.first { !$0.isPrimary }?.eventID }   // the older branch, "one / two"
+        h.c.performRedo()
+        try await h.landed()
+        #expect(offered.count == 2)
+        #expect(h.loader.segments.map(\.text) == first, "the chosen branch was redone")
     }
 
     /// A structured paste is written by the CORE, so the save path never reports its bytes. Does the next open take the
@@ -8148,6 +8248,17 @@ struct StructuralCutTests {
         let b = h.c.sceneBoundaries
         try await roundTrip(h, "⌫ over a divider", expect: ["OneTwo", "Three"]) {
             select(h, NSRange(location: NSMaxRange(b[0]), length: b[1].location - NSMaxRange(b[0])))
+            h.tv.deleteBackward(nil)
+        }
+    }
+
+    @Test("Q2: ⌫ over the divider ALONE (what a click on it selects, without its \\n) merges the two scenes")
+    func backspaceOverTheDividerAlone() async throws {
+        let h = try await harness(["One", "Two", "Three"])
+        h.c.ensureBoundaries(h.tv)
+        let b = h.c.sceneBoundaries
+        try await roundTrip(h, "⌫ over the divider alone", expect: ["OneTwo", "Three"]) {
+            select(h, NSRange(location: NSMaxRange(b[0]), length: 1))
             h.tv.deleteBackward(nil)
         }
     }

@@ -1,6 +1,9 @@
 # Active Tasks
 
----
+*Last Updated: 2026-10-24 (**T-0620 → 🟠 Implemented - Not Verified** → `Task-unverified.md`.)*
+
+*Last Updated: 2026-10-24 (**T-0620 → active** with SP-192's activation.)*
+
 
 *Last Updated: 2026-10-22 (**T-0616 → 🟠 Implemented - Not Verified** → `Task-unverified.md`.)*
 

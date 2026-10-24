@@ -273,16 +273,23 @@ int main(int argc, char** argv)
     check(rig.load(), QStringLiteral("project reopened"));
     check(rig.shell->canUndo(), QStringLiteral("history survived close → reopen"));
     notices.clear();
+    // [I-0319] (SP-188 live pass step 1): a change made in THIS session, undone — no question.
+    const QString beforeToday = rig.disk(0);
+    rig.caretAt(QStringLiteral("Made glorious"));
+    rig.type(QStringLiteral(" Today."));
+    rig.undo();
+    check(notices.isEmpty(), QStringLiteral("undoing this session's change asked nothing (notices: %1)").arg(notices.join(QStringLiteral(" / "))));
+    check(rig.disk(0) == beforeToday, QStringLiteral("this session's change was undone (got: \"%1\")").arg(rig.disk(0)));
     rig.undo();   // the newest step is the cross-scene redo's undo… i.e. the previous session's last applied step
-    check(notices.contains(QStringLiteral("Undoing changes from a previous session")),
+    check(notices.contains(QStringLiteral("Undo a change from a previous session?")),
           QStringLiteral("the first undo into the previous session warned (notices: %1)").arg(notices.join(QStringLiteral(" / "))));
     for (const QString& n : std::as_const(notices)) {
         check(!n.startsWith(QStringLiteral("Can't undo")),
               QStringLiteral("no barrier on a clean reopen — the save path reported its bytes (got: %1)").arg(n));
     }
-    const int warnings = notices.count(QStringLiteral("Undoing changes from a previous session"));
+    const int warnings = notices.count(QStringLiteral("Undo a change from a previous session?"));
     rig.undo();
-    check(notices.count(QStringLiteral("Undoing changes from a previous session")) == warnings,
+    check(notices.count(QStringLiteral("Undo a change from a previous session?")) == warnings,
           QStringLiteral("the session warning is shown ONCE per crossing"));
     rig.redo();
     rig.redo();

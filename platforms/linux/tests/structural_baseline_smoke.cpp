@@ -44,6 +44,15 @@ void check(bool cond, const QString& what)
     }
 }
 
+// [I-0318]: Qt's own warnings (a caret set past the end is only a qWarning), passed on as before.
+QStringList qtWarnings;
+QtMessageHandler previousHandler = nullptr;
+void catchWarnings(QtMsgType type, const QMessageLogContext& context, const QString& message)
+{
+    qtWarnings.append(message);
+    if (previousHandler != nullptr) { previousHandler(type, context, message); }
+}
+
 // A structural operation may ask first (a chapter split renumbers the chapters after it): answer yes.
 void armConfirmer(QObject* owner)
 {
@@ -537,6 +546,37 @@ int main(int argc, char* argv[])
         check(r.landing([&] { r.control(Qt::Key_Z); }), QStringLiteral("(the paste undone)"));
         check(r.landing([&] { r.control(Qt::Key_Z); }), QStringLiteral("(the cut undone)"));
         check(r.state() == before, QStringLiteral("Q6: two undos restore it exactly"));
+    }
+
+    // ── [I-0318]: a cut of most of the document, then a paste at its end — the caret is never set past the end ─────────
+    {
+        const QStringList before = r.state();
+        previousHandler = qInstallMessageHandler(catchWarnings);
+        for (const bool backward : {false, true}) {
+            const QString what = backward ? QStringLiteral("I-0318 (selected backward)") : QStringLiteral("I-0318");
+            qtWarnings.clear();
+            check(r.landing([&] {
+                r.select(QStringLiteral("one."), QStringLiteral("Delta bo"));
+                if (backward) {   // the anchor at the end, as a drag from the bottom up leaves it
+                    QTextCursor c = r.editor->textCursor();
+                    const int a = c.anchor(), f = c.position();
+                    c.setPosition(f);
+                    c.setPosition(a, QTextCursor::KeepAnchor);
+                    r.editor->setTextCursor(c);
+                }
+                r.control(Qt::Key_X);
+            }), QStringLiteral("%1: the cut landed").arg(what));
+            check(r.landing([&] { r.editor->moveCursor(QTextCursor::End); r.control(Qt::Key_V); }),
+                  QStringLiteral("%1: the paste at the end landed").arg(what));
+            r.listMatchesDisk(what);
+            check(r.landing([&] { r.control(Qt::Key_Z); }), QStringLiteral("(the paste undone)"));
+            check(r.landing([&] { r.control(Qt::Key_Z); }), QStringLiteral("(the cut undone)"));
+            check(r.state() == before, QStringLiteral("%1: two undos restore it exactly").arg(what));
+            for (const QString& w : std::as_const(qtWarnings)) {
+                check(!w.contains(QStringLiteral("out of range")), QStringLiteral("%1: %2").arg(what, w));
+            }
+        }
+        qInstallMessageHandler(previousHandler);
     }
 
     r.shell->flushHistory();

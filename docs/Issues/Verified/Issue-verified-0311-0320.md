@@ -8,6 +8,7 @@ Issues the user has VERIFIED, archived out of `Issue-active.md`.
 | **I-0311** | `[ScriviCore]` ⛔ **A structured paste that opens a CHAPTER in the middle of a chapter scrambles the reading order: the target scene's remaining text lands AFTER the scenes that followed it.** Found 2026-10-17 by reading the core while measuring [I-0297]; ⚠️ the new `[I-0297]` ABI test asserts the wrong order (expectations taken from the code). → [details](#i-0311) | **High** | [SP-191] | ✅ **VERIFIED 2026-10-22** (user, 2026-10-22: *"Yes, mark them verified and close SP-191"* — after the rig re-pass on build 79: *"all items pass"*; the Mac pass 2026-10-21) |
 | **I-0314** | `[Apple]` ⛔ **A chapter split on the Mac puts the scenes out of order ON DISK: the new chapter is appended at the manuscript END, and the scenes after the split stay in the old chapter.** The editor shows the right order until the project is reopened. Linux had the same defect and fixed it in July ([I-0074]: create in place, then move the following scenes). Found 2026-10-21 planning [SP-191] (an interop probe). → [details](#i-0314) | **High** | [SP-191] | ✅ **VERIFIED 2026-10-22** (user, 2026-10-22: *"Yes, mark them verified and close SP-191"* — after the rig re-pass on build 79: *"all items pass"*; the Mac pass 2026-10-21) |
 | **I-0315** | `[Linux]` ⚠️ **Every move of the caret into another scene WRITES the previous scene's outline and to-do list, changed or not — two sidecar writes on the GUI thread per scene switch.** Found 2026-10-21 tracing [SP-191]'s GUI-thread core calls (`structural_baseline_smoke`). → [details](#i-0315) | Medium | [SP-191] | ✅ **VERIFIED 2026-10-22** (user, 2026-10-22: *"I-0315 is verified"*) |
+| **I-0320** | `[ScriviCore]` `[Apple]` ⚠️ **The branch chooser (a history choice point) pops up as an UNDO lands on a fork; choosing in it redoes, which is never what a writer wants right after an undo.** Reported by the user 2026-10-24 ([SP-188] Mac live pass). → [details](#i-0320) | **Medium** | [SP-188] | ✅ **VERIFIED 2026-10-24** |
 
 ---
 
@@ -112,6 +113,48 @@ write only on an explicit add / toggle / remove), adopted on Linux:
 
 
 ---
+
+## I-0320
+
+**Title:** The branch chooser appears after an undo instead of on redo
+**Status:** ✅ **VERIFIED 2026-10-24** (user, Mac: *"Ok, I did the checks on the Mac. Both steps pass."* — the chooser check: no chooser after ⌘Z, both branches on ⇧⌘Z, Esc redoes nothing, choosing redoes it)
+**Platform:** `[ScriviCore]` `[Apple]` (Linux has no branch chooser: its redo follows the primary branch, [SP-178] Q3)
+**Component:** Apple `apply(step:)` / `performRedo` / `presentForkPopover` (`Scrivi/Views/ManuscriptTextView.swift`);
+the capture envelope (`ScriviCore/src/public_api/scrivi_c_api.cpp`, `withCapture`)
+**Severity:** Medium. The popover obstructs the writer after an undo, and its only action (choosing) re-applies text the
+writer just undid or undid long ago.
+**Sprint:** [SP-188]
+**Date Identified:** 2026-10-24, user, during [SP-188]'s Mac live pass
+
+**What happened (user):** *"Let's say I just typed some text, and then I type undo (Cmd-Z) and the choice point appears.
+Now if I actually choose something it reapplies my typing, or it reapplies the typing I undid a while ago. In neither
+case do I want to do that after an undo! In most cases after an undo what I want to do is either start typing, or undo
+again. The historical choice point should not appear until I choose redo (Shift-Cmd-Z). Then I will want to know which
+branch to redo into."*
+
+**Cause:** `apply(step:)` showed the popover whenever a step's `forkAhead` was set, which includes every undo that lands
+on a fork.
+
+**✅ Ruling (user, 2026-10-24):** the choice point appears on ⇧⌘Z only.
+
+**Resolution (2026-10-24):**
+- **Core:** every `scrivi_capture_*` envelope carries `redoFork` (`{nodeID, children}`, as `forkAhead`) when the redo from
+  the current node has two or more branches (`HistoryService::redoFork`); never while an edit is pending. `scrivi.h`
+  documents it; no new endpoint. `forkAhead` on a step result is unchanged; the app no longer acts on it.
+- **Apple:** ⇧⌘Z asks the core afresh. At a fork it shows the chooser instead of redoing: choosing a branch re-primaries
+  it and redoes, and dismissing it redoes nothing. Undo never shows it, and any step closes an open one.
+- **Tests:** core `[I-0320]` (no `redoFork` after a single-branch undo or at the tip; two children at a real fork);
+  interop `branchChooserOnRedoOnly` (no chooser as the undo lands; ⇧⌘Z offers both branches; dismissed = nothing
+  redone; choosing the older branch redoes it). The interop harness now fails on an unexpected chooser, as it does on an
+  unexpected barrier notice. `structuralEditsUndoAndRedo` builds a fork with each op and now answers the chooser with
+  the newest branch.
+- Follow-ups: a blank choice in the chooser → [I-0321]; the "will ⇧⌘Z ask here" marker → [T-0620]; the whole-history view → [T-0621].
+- ⏳ **Not decided:** a visible marker in the manuscript where a branch point is (user, 2026-10-24: *"I might be able to
+  be persuaded … we should explore the concept a bit"*). Discussion only.
+
+---
+
+*Last Updated: 2026-10-24 — **I-0320** archived (user-verified, Mac).*
 
 *Last Updated: 2026-10-22 — **I-0315** archived (user-verified).*
 

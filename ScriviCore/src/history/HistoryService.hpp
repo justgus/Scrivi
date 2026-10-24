@@ -168,6 +168,10 @@ struct ForkChild {
     std::string preview;      // short text preview of that branch's change
     std::string timestamp;    // the child's ISO-8601 timestamp
     bool isPrimary = false;   // true for the current primaryChildID
+    // [SP-192]: where the branch parts from the current text — the scene, and the scene-local UTF-8 byte of its first
+    // node's change (a structural node changes no text in place: 0). As TreeNode's sceneID / changeOffsetUtf8.
+    std::string sceneID;
+    std::size_t changeOffsetUtf8 = 0;
 };
 
 // Present on a StepResult only when the pointer LANDS ON a node with >= 2
@@ -187,8 +191,8 @@ struct StepResult {
     std::string nodeID;                    // the new current node
     bool canUndo = false;
     bool canRedo = false;
-    bool crossedSessionBoundary = false;   // undo landed on an earlier session
-    std::string boundaryTimestamp;         // timestamp of the earlier-session node
+    bool crossedSessionBoundary = false;   // [I-0319] this undo undid an earlier session's change (first time this run)
+    std::string boundaryTimestamp;         // timestamp of that change
 
     // Set when undo is blocked by a barrier (§4.5): the step does not move.
     bool stoppedAtBarrier = false;
@@ -375,6 +379,11 @@ public:
     // [I-0302]: the newest step is a hard barrier — nothing to undo, but an undo there shows the barrier's notice.
     [[nodiscard]] bool atBarrier() const;
     [[nodiscard]] bool canRedo() const;
+    // [I-0319]: when the next undo crosses a session border (undoes a change from another session than the undos are
+    // in), that change's timestamp — the platform asks the writer first. nullopt otherwise, at a barrier or the root.
+    [[nodiscard]] std::optional<std::string> undoEntersEarlierSession() const;
+    // [I-0320]: the branches a redo from here could take (>= 2 children), else nullopt — asked BEFORE a redo.
+    [[nodiscard]] std::optional<ForkAhead> redoFork() const { return forkAheadAt(currentNodeID_); }
     [[nodiscard]] const std::string& sessionID() const { return sessionID_; }
     [[nodiscard]] const std::string& currentNodeID() const { return currentNodeID_; }
 
@@ -443,7 +452,7 @@ public:
     void applyPrimaryOverride(const std::string& forkNodeID, const std::string& childEventID);
 
     // Replaces the current session id (used on idle rollover / new session at open).
-    void setSessionID(std::string sessionID) { sessionID_ = std::move(sessionID); }
+    void setSessionID(std::string sessionID) { sessionID_ = std::move(sessionID); undoSession_ = sessionID_; }
 
     // Capacity (Trade T1): the max number of event nodes retained. 0 = unlimited.
     // When record() pushes the count above this, the oldest node(s) are evicted
@@ -459,6 +468,7 @@ public:
 private:
     EventNode& nodeRef(const std::string& id);
     [[nodiscard]] const EventNode& nodeRef(const std::string& id) const;
+    void noteSessionCrossing(const EventNode& departed, StepResult& r);
 
     // Rebuilds the per-scene head-text cache for `currentNodeID_` by walking the
     // root→current path and applying each node's diff to its scene.
@@ -503,9 +513,9 @@ private:
     // text when replaying the log on load.
     std::map<std::string, std::string> floorTexts_;
 
-    // Earlier sessions we have already surfaced a boundary warning for this run,
-    // so undo warns once per crossing (§5), not on every step into that session.
-    std::set<std::string> warnedSessions_;
+    // [I-0319]: the session the undos are in — this one after a new change or on open, else the session of the last
+    // change undone or redone. An undo of a change from any other session crosses a border and is asked first.
+    std::string undoSession_;
 
     // Max retained event nodes (Trade T1); 0 = unlimited.
     int capacityEvents_ = 0;

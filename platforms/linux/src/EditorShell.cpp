@@ -25,6 +25,7 @@
 #include <QCursor>
 #include <QMenu>
 #include <QMessageBox>
+#include <QPushButton>
 #include <QScrollBar>
 #include <QSettings>
 #include <QShowEvent>
@@ -2351,6 +2352,11 @@ void EditorShell::undo()
 {
     const Span span("undo");
     if (history_ != nullptr && !loading_) {
+        // ✅ [I-0319]: asked before an undo of an earlier session's change, never for this session's.
+        const QString when = history_->undoEntersEarlierSession();
+        if (!when.isEmpty() && !confirmEarlierSessionUndo(when)) {
+            return;
+        }
         applyHistoryStep(history_->undo(), /*isUndo=*/true);
     }
 }
@@ -3025,7 +3031,6 @@ void EditorShell::applyHistoryStep(const QVariantMap& step, bool isUndo)
     const QVariantMap inverse = step.value(QStringLiteral("structuralInverse")).toMap();
     if (!inverse.isEmpty()) {
         applyStructuralInverse(inverse, isUndo);
-        warnIfSessionBoundary(step);   // ✅ [I-0298]: a structural step can cross into an earlier session too
         return;
     }
 
@@ -3069,19 +3074,23 @@ void EditorShell::applyHistoryStep(const QVariantMap& step, bool isUndo)
         history_->noteApplied(first.sceneID, first.text);
     }
     history_->setApplying(false);
-
-    warnIfSessionBoundary(step);
 }
 
-void EditorShell::warnIfSessionBoundary(const QVariantMap& step)
+bool EditorShell::confirmEarlierSessionUndo(const QString& timestamp)
 {
-    // The session-boundary warning (§5, T-0209): the first undo into a previous session's work, once per crossing.
-    if (step.value(QStringLiteral("crossedSessionBoundary")).toBool()) {
-        const QString when = HistoryCapture::friendlyTimestamp(step.value(QStringLiteral("boundaryTimestamp")).toString());
-        historyNotice(this, tr("Undoing changes from a previous session"),
-                      when.isEmpty() ? tr("You are now undoing changes made before this session.")
-                                     : tr("You are now undoing changes made %1.").arg(when));
-    }
+    const QString when = HistoryCapture::friendlyTimestamp(timestamp);
+    QMessageBox box(this);
+    box.setIcon(QMessageBox::Information);
+    box.setObjectName(QStringLiteral("historyNotice"));
+    box.setText(tr("Undo a change from a previous session?"));
+    box.setInformativeText(when.isEmpty() ? tr("This undo changes text you wrote before this session.")
+                                          : tr("This undo changes text you wrote %1.").arg(when));
+    QPushButton* undoButton = box.addButton(tr("Undo"), QMessageBox::AcceptRole);
+    QPushButton* cancel = box.addButton(QMessageBox::Cancel);
+    box.setDefaultButton(undoButton);
+    box.setEscapeButton(cancel);
+    box.exec();
+    return box.clickedButton() != cancel;   // a programmatic accept() (the smokes' catcher) clicks nothing: Undo
 }
 
 // --- EP-024 Scene Inspector visibility (SP-078, T-0319) -------------------

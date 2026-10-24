@@ -459,6 +459,7 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-189** | `[Cross]` **[EP-053] S4** — the background sync verification: disk wins, silently (T-0617) | EP-053 | — | — | 🔵 **PLANNING** → [`Sprint-SP-189.md`](Sprint-SP-189.md) |
 | **SP-190** | `[Cross]` **[EP-053] S5** — Mac and rig live passes over the share, timed (T-0618) | EP-053 | — | — | 🔵 **PLANNING** → [`Sprint-SP-190.md`](Sprint-SP-190.md) |
 | **SP-191** | `[Cross]` **[EP-053] S2b** — copy, paste and its undo, split and merge: as deltas, off the main thread, no reload (T-0619) | EP-053 | 2026-10-21 | 2026-10-22 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-191.md) |
+| **SP-192** | `[Apple]` the branch-point marker: where ⇧⌘Z will ask which branch (T-0620) | — | 2026-10-24 | 2026-10-24 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-192.md) |
 | **SP-160** | `[Linux]` **[EP-049] S1** — Linux writes Apple's manuscript format: escaping, paste/copy, pair deletion, Return/⌫, shared corpus (T-0586); + I-0276 | EP-049 | 2026-10-04 | 2026-10-04 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-160.md) |
 
 ## Statistics
@@ -500,6 +501,10 @@ by status, read the table.**
 ---
 
 *Last Updated: 2026-10-22 (**SP-185 → ✅ CLOSED** (user: *"SP-185 can be closed (authorized)."*); I-0309, I-0310, T-0612 verified and archived; AC5 → EP-052.)*
+
+*Last Updated: 2026-10-24 (**SP-192 → ✅ CLOSED** (user: *"go ahead and mark the Task verified and the sprint closed"*); T-0620 verified and archived.)*
+
+*Last Updated: 2026-10-24 (**SP-192 created → 🟡 ACTIVE** (user: *"create and activate the T-0620 sprint now"*); T-0620 → active.)*
 
 *Last Updated: 2026-10-22 (**SP-188 → 🟡 ACTIVE** as EP-053 S3 (user: *"activate and implement SP-188"*); T-0616 → active.)*
 

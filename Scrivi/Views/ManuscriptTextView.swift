@@ -244,7 +244,9 @@ struct ManuscriptTextView: NSViewRepresentable {
         // ✅ EP-047 S4: hints on/off — attributes only, never a rebuild.
         if markupHints != coordinator.presenter.hintsEnabled, let ts = tv.textStorage {
             coordinator.presenter.setHints(markupHints, selection: tv.selectedRange(), in: ts)
+            coordinator.scheduleBranchMarks()   // [SP-192] the mark shows only with the hints
         }
+        session.historyCapture?.onReport = { [weak coordinator] in coordinator?.scheduleBranchMarks() }
         if segIDs != coordinator.lastSegmentIDs
             || showChapterTitles != coordinator.lastShowChapterTitles
             || chapterTitleFingerprint != coordinator.lastChapterTitleFingerprint
@@ -386,11 +388,23 @@ struct ManuscriptTextView: NSViewRepresentable {
         // cursor, and saves immediately.
         func performUndo() {
             guard !isWritingOffMain, !parent.loader.structuralInFlight, let capture = parent.session.historyCapture else { return }
+            // ✅ [I-0319] (user, 2026-10-24): asked BEFORE an undo of an earlier session's change, with Cancel — never for
+            // this session's.
+            if let when = capture.undoEntersEarlierSession(), !confirmEarlierSessionUndo(when) { return }
             apply(step: capture.undo(), fallbackMessage: "Nothing to undo")
         }
 
         func performRedo() {
             guard !isWritingOffMain, !parent.loader.structuralInFlight, let capture = parent.session.historyCapture else { return }
+            // ✅ [I-0320] (user, 2026-10-24): the branch chooser is a REDO question — shown here, never as an undo lands.
+            if let fork = capture.redoFork(), let tv = textView {
+                // ✅ [SP-192] (user, 2026-10-24): at the branch's mark, as a click on it — the one nearest the caret; the
+                // same place with the hints off; the caret only when the branch's line is not on screen.
+                let caretY = lineRect(forCharacterIndex: tv.selectedRange().location, in: tv)?.midY ?? 0
+                let anchor = branchMarkFrames(for: fork, in: tv).min { abs($0.midY - caretY) < abs($1.midY - caretY) }
+                presentForkPopover(fork, in: tv, at: anchor)
+                return
+            }
             apply(step: capture.redo(), fallbackMessage: nil)
         }
 
@@ -411,10 +425,9 @@ struct ManuscriptTextView: NSViewRepresentable {
             // Reversible structural step: the pointer crossed a structural node. ✅ [SP-191]: the inverse range call, off the
             // main actor, the delta applied — no reload.
             if let inverse = step.structuralInverse {
+                forkPopover.close()
                 applyStructuralInverse(inverse)
                 capture.refreshCanState()
-                // ✅ [I-0298]: a structural step can cross into an earlier session too — warn, as below. ⛔ It returned first.
-                if step.crossedSessionBoundary { sessionBoundaryReached(step.boundaryTimestamp) }
                 return
             }
 
@@ -450,21 +463,8 @@ struct ManuscriptTextView: NSViewRepresentable {
                 }
             }
             capture.refreshCanState()
-
-            // Fork popover (§10 T2, T-0211): if this step landed on a fork show
-            // the branch chooser at the caret; otherwise the writer has moved off
-            // any prior fork, so dismiss a lingering popover.
-            if let fork = step.forkAhead {
-                presentForkPopover(fork, in: tv)
-            } else {
-                forkPopover.close()
-            }
-
-            // Session-boundary warning (§5, T-0209): the engine flags the first
-            // undo that steps into a previous session's work (once per crossing).
-            if step.crossedSessionBoundary {
-                sessionBoundaryReached(step.boundaryTimestamp)
-            }
+            // [I-0320]: a step moves off any fork the chooser was offered for; the next ⇧⌘Z asks again.
+            forkPopover.close()
         }
 
         // Applies ONE scene's undo/redo text into its storage range, places the caret,
@@ -530,45 +530,113 @@ struct ManuscriptTextView: NSViewRepresentable {
             return (segIdx, caret)
         }
 
-        // Shows the inline fork popover for `fork` at the caret. Selecting a
-        // branch re-primaries the fork (selectBranch) then redoes onto it;
-        // dismissing without a choice leaves the primary child in place (§10 T2).
-        private func presentForkPopover(_ fork: HistoryForkAhead, in tv: NSTextView) {
+        // Shows the inline fork popover for `fork` at the caret, on ⇧⌘Z ([I-0320]). Selecting a branch re-primaries the
+        // fork (selectBranch) then redoes onto it; dismissing it redoes nothing (§10 T2).
+        /// Tests choose a branch (its eventID; nil = dismissed) instead of the popover, told where it would open.
+        var onRedoFork: ((HistoryForkAhead, NSRect?) -> String?)?
+        private func presentForkPopover(_ fork: HistoryForkAhead, in tv: NSTextView, at anchor: NSRect? = nil) {
             guard let _ = parent.session.historyCapture else { return }
+            if let hook = onRedoFork {
+                if let child = hook(fork, anchor) { redoBranch(child, of: fork) }
+                return
+            }
             forkPopover.show(
                 fork: fork,
                 in: tv,
-                onSelect: { [weak self] childEventID in
-                    guard let self, let capture = self.parent.session.historyCapture else { return }
-                    // Re-primary the fork, then walk forward onto the chosen
-                    // branch. redo() returns the step to apply just like a normal
-                    // redo; apply() also handles a possible nested fork ahead.
-                    guard capture.selectBranch(forkNodeID: fork.nodeID, childEventID: childEventID) else { return }
-                    self.apply(step: capture.redo(), fallbackMessage: nil)
-                },
-                onCancel: { /* leave the existing primary child in place */ })
+                at: anchor,
+                onSelect: { [weak self] childEventID in self?.redoBranch(childEventID, of: fork) },
+                onCancel: { /* no redo; the primary child stays */ })
         }
 
-        // Warns that undo has stepped into a previous session's changes, showing
-        // the boundary's wall-clock time when available.
-        /// Tests replace the modal notice with this ([I-0298]); nil = the notice.
-        var onSessionBoundary: ((String?) -> Void)?
-        private func sessionBoundaryReached(_ boundaryTimestamp: String?) {
-            if let hook = onSessionBoundary { hook(boundaryTimestamp) } else { presentSessionBoundaryNotice(boundaryTimestamp: boundaryTimestamp) }
+        // Re-primary the fork, then redo onto the chosen branch.
+        private func redoBranch(_ childEventID: String, of fork: HistoryForkAhead) {
+            guard let capture = parent.session.historyCapture,
+                  capture.selectBranch(forkNodeID: fork.nodeID, childEventID: childEventID) else { return }
+            apply(step: capture.redo(), fallbackMessage: nil)
         }
 
-        private func presentSessionBoundaryNotice(boundaryTimestamp: String?) {
+        // MARK: — [SP-192] The branch-point mark ([T-0620])
+
+        /// ✅ [SP-192] (user, 2026-10-24): with Show Markup Hints on, a mark in the LEFT MARGIN on each line where a branch
+        /// of the current branch point parts (Q1), i.e. where ⇧⌘Z will ask. A button over the text view — drawn only, never in
+        /// the text; a click opens the chooser (Q3); a tooltip and VoiceOver label (Q4).
+        private(set) var branchMarks: [NSButton] = []
+        private var branchMarksScheduled = false
+        private static let branchMarkLabel = "⇧⌘Z will ask which branch to redo"
+
+        /// After the turn: a report can arrive before the step it reports has been applied to the text.
+        func scheduleBranchMarks() {
+            guard !branchMarksScheduled else { return }
+            branchMarksScheduled = true
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.branchMarksScheduled = false
+                self.refreshBranchMarks()
+            }
+        }
+
+        /// Where `fork`'s branches part, one margin frame per distinct line (Q1) — laid-out lines only (Q2).
+        func branchMarkFrames(for fork: HistoryForkAhead, in tv: NSTextView) -> [NSRect] {
+            ensureBoundaries(tv)
+            let segments = parent.loader.segments
+            var lines: [NSRect] = []
+            for child in fork.children {
+                guard let sceneID = child.sceneID, let i = segments.firstIndex(where: { $0.sceneID == sceneID }),
+                      i < sceneBoundaries.count else { continue }
+                let at = sceneBoundaries[i].location + charOffsetForByteOffset(child.changeOffsetUtf8 ?? 0, in: segments[i].text)
+                // At the very END of the text there is no character, so no line: the line of the one before (typing at a
+                // scene's end is the common branch).
+                guard let line = lineRect(forCharacterIndex: at, in: tv) ?? (at > 0 ? lineRect(forCharacterIndex: at - 1, in: tv) : nil),
+                      !lines.contains(where: { abs($0.midY - line.midY) < 1 }) else { continue }
+                lines.append(line)
+            }
+            return lines.map { line in
+                let side = min(line.height, 18)
+                return NSRect(x: tv.textContainerInset.width - side - 6, y: line.midY - side / 2, width: side, height: side)
+            }
+        }
+
+        func refreshBranchMarks() {
+            guard let tv = textView else { return }
+            var frames: [NSRect] = []
+            if presenter.hintsEnabled, let fork = parent.session.historyCapture?.redoForkNow {
+                frames = branchMarkFrames(for: fork, in: tv)
+            }
+            while branchMarks.count > frames.count { branchMarks.removeLast().removeFromSuperview() }
+            while branchMarks.count < frames.count {
+                let image = NSImage(systemSymbolName: "arrow.triangle.branch", accessibilityDescription: Self.branchMarkLabel)
+                let mark = NSButton(image: image ?? NSImage(), target: self, action: #selector(branchMarkClicked(_:)))
+                mark.isBordered = false
+                mark.imageScaling = .scaleProportionallyDown
+                mark.contentTintColor = .secondaryLabelColor   // follows light and dark (Q3)
+                mark.toolTip = Self.branchMarkLabel
+                mark.setAccessibilityLabel(Self.branchMarkLabel)
+                tv.addSubview(mark)
+                branchMarks.append(mark)
+            }
+            for (mark, frame) in zip(branchMarks, frames) { mark.frame = frame }
+        }
+
+        @objc func branchMarkClicked(_ sender: NSButton) {
+            guard let tv = textView, let fork = parent.session.historyCapture?.redoFork() else { return }
+            presentForkPopover(fork, in: tv, at: sender.frame)
+        }
+
+        /// [I-0319] Asks before an undo crosses into an earlier session. Tests answer the question instead of the modal.
+        var onEarlierSessionUndo: ((String) -> Bool)?
+        private func confirmEarlierSessionUndo(_ timestamp: String) -> Bool {
+            if let hook = onEarlierSessionUndo { return hook(timestamp) }
             let alert = NSAlert()
             alert.alertStyle = .informational
-            if let ts = boundaryTimestamp, let when = HistoryTimestamp.friendly(ts) {
-                alert.messageText = "Undoing changes from a previous session"
-                alert.informativeText = "You are now undoing changes made \(when)."
+            alert.messageText = "Undo a change from a previous session?"
+            alert.informativeText = if let when = HistoryTimestamp.friendly(timestamp) {
+                "This undo changes text you wrote \(when)."
             } else {
-                alert.messageText = "Undoing changes from a previous session"
-                alert.informativeText = "You are now undoing changes made before this session."
+                "This undo changes text you wrote before this session."
             }
-            alert.addButton(withTitle: "OK")
-            alert.runModal()
+            alert.addButton(withTitle: "Undo")
+            alert.addButton(withTitle: "Cancel")
+            return alert.runModal() == .alertFirstButtonReturn
         }
 
         // Scene-local UTF-8 byte offset → character offset within `sceneText`.
@@ -752,6 +820,7 @@ struct ManuscriptTextView: NSViewRepresentable {
         }
 
         @objc func clipFrameDidChange(_ notification: Notification) {
+            if !branchMarks.isEmpty || parent.session.historyCapture?.redoForkNow != nil { scheduleBranchMarks() }   // [SP-192]
             guard let pending = pendingRestoreCentre, !isCentringRestore, let tv = textView,
                   let clip = tv.enclosingScrollView?.contentView, clip.bounds.height > 0 else { return }
             if let until = restoreCentreUntil, Date() > until { cancelRestoreCentre(); return }
@@ -778,6 +847,7 @@ struct ManuscriptTextView: NSViewRepresentable {
         @objc func scrollDidChange(_ notification: Notification) {
             guard let clipView = notification.object as? NSClipView,
                   let tv = textView else { return }
+            if !branchMarks.isEmpty || parent.session.historyCapture?.redoForkNow != nil { scheduleBranchMarks() }   // [SP-192]
 
             // ⚠️ [I-0301] DIAGNOSTIC (Debug builds only; kept until the jitter is caught): the document's height changing, or the view jumping.
             if let docView = clipView.documentView {
@@ -1327,6 +1397,7 @@ struct ManuscriptTextView: NSViewRepresentable {
                                           then: (@MainActor (RangeOperationResult) -> Void)?) {
             let loader = parent.loader
             guard let tv = textView else { return }
+            defer { scheduleBranchMarks() }   // [SP-192] the text moved after the report
             tv.isEditable = true
             let landing: StructuralLanding
             switch outcome {
@@ -2167,7 +2238,8 @@ struct ManuscriptTextView: NSViewRepresentable {
             func take(_ i: Int) { lo = min(lo, i); hi = max(hi, i) }
             for i in 0..<n where NSIntersectionRange(bounds[i], sel).length > 0 { take(i) }
             for i in 0..<max(0, n - 1) where segments[i].chapterID == segments[i + 1].chapterID
-                && sel.location <= NSMaxRange(bounds[i]) && NSMaxRange(sel) >= bounds[i + 1].location {
+                // The divider is the character at the scene's end: a click or drag over it selects it without its `\n`.
+                && sel.location <= NSMaxRange(bounds[i]) && NSMaxRange(sel) > NSMaxRange(bounds[i]) {
                 take(i); take(i + 1)
             }
             var c0 = 0

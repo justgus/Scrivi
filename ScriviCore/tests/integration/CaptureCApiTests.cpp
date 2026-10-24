@@ -922,3 +922,105 @@ TEST_CASE("fragment ABI: a paste and its undo keep the project index true to the
     std::error_code ec;
     fs::remove_all(base, ec);
 }
+
+TEST_CASE("capture ABI: the session question comes BEFORE each undo that crosses a session border, and only then",
+          "[capture-abi][I-0319]") {
+    Root r;
+    std::string text = "Base.";
+    const auto event = [&](const char* add) {
+        JsonDoc p;
+        p.setString("kind", "typing");
+        p.setInt64("cursorBefore", int64_t(text.size()));
+        text += add;
+        p.setInt64("cursorAfter", int64_t(text.size()));
+        ok(scrivi_history_record_event(r.c(), "scene_a", text.c_str(), p.dump().c_str()));
+    };
+    const auto asks = [&] { return ok(scrivi_capture_state(r.c())).contains("undoCrossesSessionAt"); };
+    const auto undo = [&] { return ok(scrivi_capture_undo(r.c())).getBool("crossedSessionBoundary"); };
+    const auto redo = [&] { ok(scrivi_capture_redo(r.c())); };
+    const auto newSession = [&] { scrivi_free(scrivi_history_close(r.c())); ok(scrivi_history_open(r.c())); };
+
+    ok(scrivi_history_seed_scene(r.c(), "scene_a", "Base."));
+    event(" A1."); event(" A2.");   // session 1
+    newSession();
+    CHECK(asks());                  // reopened: the next undo is the last session's
+    event(" B1."); event(" B2.");   // session 2
+    newSession();
+    event(" C1.");                  // session 3, today
+
+    // Back through all three: asked at each border, never inside a session (the live-pass step 1 case first).
+    CHECK_FALSE(asks()); CHECK_FALSE(undo());   // C1, today's
+    CHECK(asks());       CHECK(undo());         // B2: into session 2
+    CHECK_FALSE(asks()); CHECK_FALSE(undo());   // B1
+    CHECK(asks());       CHECK(undo());         // A2: into session 1
+    CHECK_FALSE(asks()); CHECK_FALSE(undo());   // A1
+    CHECK_FALSE(asks());                        // the root
+
+    // Forward again into session 2, then back: the border into session 1 is asked again.
+    redo(); redo(); redo();                     // A1, A2, B1
+    CHECK_FALSE(asks()); CHECK_FALSE(undo());   // B1, inside session 2
+    CHECK(asks());       CHECK(undo());         // A2: across the border again
+    // Forward to today, then back: the border into session 2 is asked again.
+    redo(); redo(); redo(); redo();             // A2, B1, B2, C1
+    CHECK_FALSE(asks()); CHECK_FALSE(undo());   // C1
+    CHECK(asks());                              // B2
+}
+
+TEST_CASE("capture ABI: a fork is reported for the REDO from it, not as the undo lands", "[capture-abi][I-0320]") {
+    Root r;
+    const auto event = [&](const char* text, int before, int after) {
+        JsonDoc p;
+        p.setString("kind", "typing");
+        p.setInt64("cursorBefore", before);
+        p.setInt64("cursorAfter", after);
+        ok(scrivi_history_record_event(r.c(), "scene_a", text, p.dump().c_str()));
+    };
+    ok(scrivi_history_seed_scene(r.c(), "scene_a", "Base."));
+    event("Base. One.", 5, 10);
+    CHECK_FALSE(ok(scrivi_capture_state(r.c())).contains("redoFork"));   // nothing ahead
+    ok(scrivi_capture_undo(r.c()));
+    CHECK_FALSE(ok(scrivi_capture_state(r.c())).contains("redoFork"));   // one branch: a plain redo
+    event("Base. Two.", 5, 10);                                          // a second branch from the same point
+    CHECK_FALSE(ok(scrivi_capture_state(r.c())).contains("redoFork"));   // at the tip, nothing to redo
+    ok(scrivi_capture_undo(r.c()));
+    const JsonDoc st = ok(scrivi_capture_state(r.c()));
+    REQUIRE(st.contains("redoFork"));
+    CHECK(st.getSubDoc("redoFork").arraySize("children") == 2);
+}
+
+TEST_CASE("capture ABI: the chooser offers only branches with text; a branch that starts with spaces shows its text",
+          "[capture-abi][I-0321]") {
+    Root r;
+    const auto event = [&](const std::string& text, int before, int after) {
+        JsonDoc p;
+        p.setString("kind", "typing");
+        p.setInt64("cursorBefore", before);
+        p.setInt64("cursorAfter", after);
+        ok(scrivi_history_record_event(r.c(), "scene_a", text.c_str(), p.dump().c_str()));
+    };
+    const auto previews = [&] {
+        std::vector<std::string> out;
+        const JsonDoc st = ok(scrivi_capture_state(r.c()));
+        if (!st.contains("redoFork")) return out;
+        const JsonDoc f = st.getSubDoc("redoFork");
+        for (std::size_t i = 0; i < f.arraySize("children"); ++i) out.push_back(f.arrayItem("children", i).getString("preview"));
+        return out;
+    };
+    ok(scrivi_history_seed_scene(r.c(), "scene_a", "Base."));
+    event("Base. One.", 5, 10);
+    ok(scrivi_capture_undo(r.c()));
+    event("Base.  ", 5, 7);                 // spaces typed, then undone: no text anywhere in this branch
+    ok(scrivi_capture_undo(r.c()));
+    CHECK(previews().empty());              // One plus a blank: one branch with text, nothing to choose
+    event("Base.  ", 5, 7);                 // spaces, and then text after them
+    event("Base.  Two.", 7, 11);
+    ok(scrivi_capture_undo(r.c()));
+    ok(scrivi_capture_undo(r.c()));
+    CHECK(previews() == std::vector<std::string>{"One.", "Two."});
+    // [SP-192]: each branch says where it parts from the current text — the margin mark's line.
+    const JsonDoc f = ok(scrivi_capture_state(r.c())).getSubDoc("redoFork");
+    for (std::size_t i = 0; i < f.arraySize("children"); ++i) {
+        CHECK(f.arrayItem("children", i).getString("sceneID") == "scene_a");
+        CHECK(f.arrayItem("children", i).getInt64("changeOffsetUtf8") == 5);   // after "Base."
+    }
+}
