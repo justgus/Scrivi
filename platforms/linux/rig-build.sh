@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
-# rig-build.sh — bump, commit, push, PULL ON THE RIG, rebuild, and PROVE which
-# build is now installed. This is the DEFAULT route to the rig.
+# rig-build.sh — push, PULL ON THE RIG, rebuild, and PROVE which build is now
+# installed. This is the DEFAULT route to the rig.
 #
-#   platforms/linux/rig-build.sh              # bump + push + pull + build + verify
+#   platforms/linux/rig-build.sh              # push + pull + build + verify
 #   platforms/linux/rig-build.sh --test       # …and run ctest + the smokes, non-root
 #   platforms/linux/rig-build.sh --run        # …and launch the app on the rig
-#   platforms/linux/rig-build.sh --no-bump    # rebuild the rig at HEAD, stamp unchanged
+#
+# ✅ [T-0622]: the app's version is `1.0.<commits> (<hash>)`, read from git at build
+# time, so the rig's binary names the commit it was built from. No counter to bump.
 #
 # Host defaults to `oathkeeper` (override with SCRIVI_RIG); remote path defaults
 # to ~/Dev/Scrivi (override with SCRIVI_RIG_PATH).
@@ -19,8 +21,7 @@
 #
 # ⚠️ THIS script is the DEFAULT route: it puts the rig on a KNOWN COMMIT via
 # `git pull`, so "what is the rig running?" has an answer you can name, diff and
-# return to. The two share the build-number counter (~/.scrivi-rig-build-number)
-# so they can never collide or reuse a number.
+# return to.
 #
 # ⚠️ THE RIG IS READ-ONLY FOR SOURCE. Nothing here edits files on the rig, and
 # neither should you: a hand-edit there destroys checksum equivalence with the
@@ -47,12 +48,11 @@ RIG_PATH="${SCRIVI_RIG_PATH:-Dev/Scrivi}"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$REPO_ROOT"
 
-DO_TEST=0; DO_RUN=0; DO_BUMP=1
+DO_TEST=0; DO_RUN=0
 for arg in "$@"; do
     case "$arg" in
         --test)    DO_TEST=1 ;;
         --run)     DO_RUN=1 ;;
-        --no-bump) DO_BUMP=0 ;;
         *) echo "unknown option: $arg" >&2; exit 2 ;;
     esac
 done
@@ -85,16 +85,6 @@ if [ -n "$(git status --porcelain)" ]; then
     exit 1
 fi
 
-# --- 3. bump the stamp ------------------------------------------------------
-# ⚠️ The counter belongs to the PUSH, not the compile. Two CMake-side attempts to
-# generate it during the build both failed (see platforms/linux/CMakeLists.txt).
-if [ "$DO_BUMP" -eq 1 ]; then
-    echo "==> Bumping the build stamp"
-    "${REPO_ROOT}/platforms/linux/bump-build-stamp.sh" --commit
-else
-    echo "==> --no-bump: stamp unchanged"
-fi
-
 # --- 4. push ----------------------------------------------------------------
 BRANCH="$(git rev-parse --abbrev-ref HEAD)"
 echo "==> Pushing ${BRANCH}"
@@ -113,6 +103,7 @@ $SSH "$RIG" "set -e
     git fetch origin
     git checkout ${BRANCH}
     git pull --ff-only origin ${BRANCH}
+    rm -f .scrivi-version-override   # a deploy-to-rig.sh leftover would name the WRONG commit
     cmake -S . -B build-native -DSCRIVI_BUILD_LINUX=ON -DSCRIVI_BUILD_TESTS=ON \
         -DCMAKE_BUILD_TYPE=Debug >/dev/null
     cmake --build build-native --parallel"
@@ -137,6 +128,14 @@ if [ "$LOCAL_SHA" != "$REMOTE_SHA" ]; then
     exit 1
 fi
 echo "    ✅ rig HEAD matches local HEAD"
+# ✅ [T-0622]: and the BINARY says so — its version carries the commit it was built from.
+if ! printf '%s' "$VERSION_LINE" | grep -q "(${LOCAL_SHA:0:7})"; then
+    echo
+    echo "ERROR: the rig's binary does not report commit ${LOCAL_SHA:0:7}: ${VERSION_LINE}" >&2
+    echo "       ⚠️  The build did not pick up the commit just pulled — DO NOT run a live pass against it." >&2
+    exit 1
+fi
+echo "    ✅ the binary reports that commit"
 
 # --- 7. optional: tests -----------------------------------------------------
 # ⚠️ NON-ROOT deliberately: the Docker image builds with tests OFF and runs as

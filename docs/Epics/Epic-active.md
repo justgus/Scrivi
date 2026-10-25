@@ -1,5 +1,59 @@
 # Active Epics
 
+## EP-054: `[ScriviCore]` **Import & Export** — projects, worlds and manuscripts in and out
+
+**Status:** 🟡 **ACTIVE** 2026-10-24 with [SP-193] (S0) — created 2026-10-24 (user: *"Lets start planning these features."*). ⚠️ The Epic's own Q1–Q6 are still to rule before S1.
+**Codebase:** `[ScriviCore]` is home: the archive, the format writers and readers, behind `scrivi_*` endpoints. Each
+platform's File menu / share sheet is its own AC (the [EP-052] precedent; see Q1).
+**Goal:** a writer can **bring existing work in**, **take the manuscript out** in the formats they publish in (including
+the formatted HTML the fanfic community posts), and **move a whole project, with its world, between machines**, or send
+it with a bug report, without losing its history.
+
+**What the code has today (read 2026-10-24):** no project, world or manuscript import/export at all. The only
+import/export endpoints are `scrivi_import_external_timeline` / `scrivi_export_project_timeline`, `scrivi_import_asset`
+and `scrivi_import_from_inbox`. A scene's text is Markdown (`.md`), so Markdown export is mostly assembly. [EP-032]
+(inline object references, backlog) already records an **export gap**: references must resolve on export once they exist.
+
+**Scope (draft):**
+- **A — Project archive:** one file holding the whole `.scrivi` package (scenes, sidecars, timelines, assets, settings
+  and **the history**), optionally with its bound world(s); opening it creates the project on the new machine.
+- **B — Worlds:** a `.scrivworld` travels with the archive or on its own, and binds by world ID on arrival.
+- **C — Manuscript export:** Markdown, **formatted HTML** (fanfic), Word `.docx`, PDF, ePub. The whole manuscript or
+  chosen chapters/scenes; chapter titles and scene breaks as the writer has them.
+- **D — Manuscript import:** Markdown / plain text, Word `.docx`, Scrivener `.scriv`, with headings and breaks mapped
+  to chapters and scenes.
+- **E — Surfaces:** File ▸ Import / Export on the Mac and Linux; Files and the share sheet on iPad/iPhone.
+
+**Acceptance Criteria (draft):**
+- [ ] AC1 — A project exported as an archive and opened on another machine reads, edits, undoes and redoes exactly as it
+      did (history included), on Mac, iPad and Linux
+- [ ] AC2 — An archive can carry the project's world(s); on arrival the world binds and its objects resolve
+- [ ] AC3 — Opening an archive whose project already exists never overwrites it silently (Q4)
+- [ ] AC4 — Export to formatted HTML that pastes and posts correctly on the fanfic sites the user names (Q2)
+- [ ] AC5 — Export to Markdown, `.docx`, PDF and ePub (order per Q5), with chapters, scene breaks and emphasis preserved
+- [ ] AC6 — Import from Markdown / text, `.docx` and Scrivener, with chapters and scenes mapped and nothing dropped
+      silently (what can't be mapped is reported)
+- [ ] AC7 — Every format boundary-tested through `scrivi_*`, with round-trip fixtures
+- [ ] AC8 — The surfaces on Mac, iPad/iPhone and Linux, each live-passed on its platform
+
+**Questions (to rule):**
+
+| # | Question | Recommendation |
+| - | -------- | -------------- |
+| **Q1** | One Epic with a platform AC each (as [EP-052] was ruled), or one Epic per platform (`Epic-GUIDELINES.md`)? | **One Epic**: the formats live in the core and must be identical everywhere; each surface is a small AC. |
+| **Q2** | **Formatted HTML for fanfic:** which sites (AO3, FanFiction.net, Wattpad, Tumblr …), and paste into a rich-text box or into an HTML field? | ⏳ **OPEN, the user is finding out** (2026-10-24). Known: *"it requires specific `<p></p>` tags for each paragraph."* So every paragraph becomes its own `<p>…</p>`; never `<br>` runs, never bare text. |
+| **Q3** | **The archive:** a zip with its own extension, history always included? | **Yes:** one `.zip`-based file; history **included** (testers' real histories are the point); world optional, asked at export. |
+| **Q4** | **Opening an archive of a project that already exists** on that machine (same project ID). | **Open it as a copy with a new ID**, named "… (imported)"; never replace. |
+| **Q5** | **Order for the alpha.** | Archive + worlds first (testers move work and send you projects); then **HTML** and Markdown; then `.docx`; then PDF and ePub; **Scrivener import last** (the most complex format). |
+| **Q6** | **Where each format is produced.** | In the core: Markdown, HTML, `.docx` and ePub (text and zipped XML). **PDF on each platform** from the HTML (PDFKit / Qt's PDF writer): page layout is a platform strength. |
+
+**Provisional Sprints:** **S0 = [SP-193]** (🔵 Planning, 2026-10-24): fix before the alpha ([I-0306], [I-0313], [I-0202]) and one version everywhere ([T-0622]) · S1 archive + worlds (core) · S2 archive surfaces (Mac, Linux, iPad) · S3 Markdown + HTML export ·
+S4 `.docx` export · S5 PDF + ePub · S6 Markdown/text + `.docx` import · S7 Scrivener import. Each with live passes.
+**Depends on:** nothing open. ⚠️ [EP-055] needs S1–S2 on iPad to move projects onto it, unless iCloud Drive does (see
+EP-055 Q2).
+
+---
+
 ## EP-053: `[Cross]` **Range-Based Structural Editing** — cut, copy, paste and undo as one Range, one core call, no reload
 
 **Status:** 🟡 **ACTIVE 2026-10-17** — created and started the same day (user: *"draft EP-053, start the first sprint and publish

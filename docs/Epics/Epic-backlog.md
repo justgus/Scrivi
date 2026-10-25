@@ -10,6 +10,120 @@ _(EP-019 `[Apple]` Undo/Redo was un-deferred back to Active 2026-07-24 — now i
 
 ---
 
+## ⭐ The alpha release: three Epics (created 2026-10-24)
+
+The user (2026-10-24): *"It is time to get this app into the hands of my alpha testers. They will be able to work on real
+projects and provide feedback. These projects will have real histories. What I need for this is three major features.
+Import/Export of projects, full support on iPad/iPhone, and an Ubuntu Linux install capability."* Ruled the same day:
+import/export covers project archives, worlds, manuscript export (including **formatted HTML** for the fanfic community)
+and manuscript import; iPad and iPhone **together** (iPad full, iPhone possibly limited, and the unreleased "iPhone Duo");
+Apple delivery by **TestFlight**; Linux as a **.deb**.
+
+**Cross-cutting, ruled 2026-10-24 (user):**
+- ✅ **Debug.** *"Debug still. The alpha is 'pre-release'."* TestFlight archives and the `.deb` are Debug builds.
+- ✅ **No Linux feedback channel needed:** the Linux tester *"cohabits with me here so feedback will be verbal or via
+  text."*
+- ✅ **[I-0308]** (the Linux Find-bar crash) stays in the backlog: not reproduced since the range refactor.
+- ✅ **One version: `1.0.<build>`** on every platform, the build indicator managed as development continues; the user
+  asked whether GitHub can supply it, with the commit's hash at the end → [T-0622].
+
+---
+
+## ➡️ EP-054 — ACTIVATED 2026-10-24, no longer on this backlog
+
+⚠️ **[EP-054] `[ScriviCore]` Import & Export MOVED TO [`Epic-active.md`](Epic-active.md) on 2026-10-24** with [SP-193] (S0).
+
+---
+
+## EP-055: `[Apple]` **iPad and iPhone** — the full app on iPad, and a phone surface
+
+**Status:** 🔵 **Draft** — created 2026-10-24. No Sprint assigned. (The user's *"There will be more questions for this"*
+meant the questions below.)
+**Codebase:** `[Apple]` (`Scrivi/`, the `ScriviApp-iOS` target). The core is shared and already cross-builds for iOS.
+**Goal:** an alpha tester can write a real project on an **iPad** with the full feature set (manuscript, navigator,
+inspector, timeline, worlds, undo history, buffers), and use a **phone** surface (possibly limited, including the
+unreleased "iPhone Duo"), all delivered by **TestFlight**.
+
+**What the code has today (read 2026-10-24):**
+- ✅ A `ScriviApp-iOS` target at 27.0, and a build phase that cross-builds ScriviCore for the iOS SDK
+  (`build-${PLATFORM_NAME}`). Bundle `com.caposoft.scrivi`, automatic signing, team set.
+- ⚠️ **The manuscript editor on iOS is a stub:** *"Manuscript editor not yet available on this platform."*
+  (`ManuscriptTextView.swift:3672`). The Mac editor is ~3,670 lines of AppKit (`NSTextView`, TextKit 2).
+- About 10 `#if os(iOS)` branches (EditorView's toolbar menu and sheets; the engine).
+- The porting outline (`Scrivi_Platform_Porting_Outline_v0_1.md` §7) puts iPad 2nd and iPhone 3rd. Its first step is a
+  **gap audit of the surfaces** (the binding is shared with the Mac), and it warns that **§4.7 (no gesture-only
+  affordance) inverts** on touch.
+
+**Scope (draft):** a surface gap audit first; the manuscript editor on UIKit (TextKit 2) with the same presenter and
+Markdown model; navigator, inspector card stack, timeline, worlds and detail sheets; undo/redo with the session question,
+the branch chooser and mark; buffers and keyboard shortcuts with a hardware keyboard; Find; project settings; file
+access (Files, iCloud Drive, external drives on iPad); iPad multi-window; a phone layout; TestFlight delivery.
+
+**Acceptance Criteria (draft, to be rewritten after the gap audit):**
+- [ ] AC1 — A surface gap audit: every Mac surface and its iPad / iPhone disposition, ruled
+- [ ] AC2 — The manuscript editor on iPad: typing, selection, the markers and hints, chapter titles, structural edits,
+      undo/redo, Find — the Mac's behaviour, by touch, by Pencil where ruled, and by hardware keyboard
+- [ ] AC3 — Navigator, inspector, timeline, worlds and detail sheets on iPad
+- [ ] AC4 — Projects opened from, and kept on, the places the testers use (Q2), surviving app relaunch
+- [ ] AC5 — The phone surface, per Q1's feature set
+- [ ] AC6 — TestFlight builds for iPad/iPhone (and the Mac, per the delivery ruling), installable by external testers
+- [ ] AC7 — Live passes on a real iPad and a real iPhone
+
+**Questions (to rule):**
+
+| # | Question | Recommendation |
+| - | -------- | -------------- |
+| **Q1** | **The phone's feature set:** which surfaces does a phone get (write and navigate only? the inspector? the timeline?), and does the iPhone Duo get the iPad layout when unfolded? | **Write, navigate, undo, Find and the inspector** on the phone; the timeline and world management iPad-only at first. Treat an unfolded Duo as a **regular-width size class** (the iPad layout) so it needs no special case until Apple documents the device. |
+| **Q2** | **Where projects live on iPad/iPhone,** and how they get there from a Mac. | **Files / iCloud Drive** (a project folder the tester opens through the document picker, kept by a security-scoped bookmark as the Mac does), plus the [EP-054] archive. CloudKit sync stays future. |
+| **Q3** | **The editor:** port the AppKit editor to UIKit, sharing the presenter and Markdown model, or first extract a platform-neutral editing core? | **Audit first (AC1)**, then decide. Extracting the parts that don't touch AppKit (presentation, caret and selection rules, structural editing) is likely, so iPad and Mac don't diverge. |
+| **Q4** | **One Epic or two?** The editor port alone may be several Sprints. | **One Epic now**; split after AC1 if the audit shows the editor is an Epic of its own. |
+| **Q5** | **TestFlight prerequisites:** an active Apple Developer Program membership and an App Store Connect record for `com.caposoft.scrivi`? External testers need a beta review. | ✅ **RULED (user, 2026-10-24): *"yes, I am all setup for testflight."*** Builds are Debug (pre-release). |
+
+**Depends on:** [EP-054] S1–S2 (the archive) for moving projects onto an iPad, unless Q2's iCloud Drive route is enough.
+
+---
+
+## EP-056: `[Linux]` **Install on Ubuntu** — a `.deb` alpha testers can install, update and remove
+
+**Status:** 🔵 **Draft** — created 2026-10-24. No Sprint assigned.
+**Codebase:** `[Linux]` (`platforms/linux/`): CMake install rules and the packaging.
+**Goal:** an alpha tester on Ubuntu installs Scrivi from a `.deb`, finds it in the app launcher, opens projects by
+double-click, updates to a newer alpha without losing anything, and can uninstall it cleanly.
+
+**What the code has today (read 2026-10-24):** the app builds with CMake against **Qt 6.4+** (`find_package(Qt6 6.4 …)`),
+but there are **no `install()` rules and no packaging** of any kind (no CPack, no `debian/`, no `.desktop` file). Builds
+reach the rig by `rig-build.sh` / `deploy-to-rig.sh` with a build stamp (`bump-build-stamp.sh`). Docker builds on Ubuntu
+24.04 / Qt 6.4.2; the rig runs **Ubuntu 26.04 with Qt 6.10**. The diagnostic log is at `~/.local/state/scrivi/`.
+
+**Scope (draft):** `install()` rules (binary, QML, fonts and other resources); a `.desktop` entry and icon; the MIME type
+for `.scrivi` projects (folders on Linux, so double-click needs care); the package with its Qt runtime dependencies; the
+version shown in Help ▸ About; upgrade and uninstall that never touch the writer's projects or settings; where testers
+download it.
+
+**Acceptance Criteria (draft):**
+- [ ] AC1 — `install()` rules: a staged install runs the app with every resource found (no build-tree paths)
+- [ ] AC2 — A `.deb` for each supported Ubuntu release (Q1) that installs with `apt install ./scrivi_….deb`, pulling its
+      Qt dependencies
+- [ ] AC3 — Scrivi appears in the launcher with its icon; a `.scrivi` project opens from Files (Q4)
+- [ ] AC4 — Upgrading to a newer `.deb` keeps projects, settings, session restore and history; uninstalling removes
+      the app and leaves the writer's data
+- [ ] AC5 — Help ▸ About shows the version and build that the package carries
+- [ ] AC6 — Installed and live-passed on a clean Ubuntu machine (not the dev rig), per Q1's releases
+
+**Questions (to rule):**
+
+| # | Question | Recommendation |
+| - | -------- | -------------- |
+| **Q1** | **Which Ubuntu releases?** 24.04 LTS ships Qt 6.4.2 (the Docker image); the rig (26.04) runs Qt 6.10, ⚠️ not yet checked whether that is the distro's own package. One `.deb` per release, built against that release's Qt. | ✅ **RULED (user, 2026-10-24): 26.04 LTS and 24.04 LTS** (*"Let's support 24.04 as well."*). |
+| **Q2** | **How testers get it and its updates:** a downloadable `.deb` (e.g. GitHub Releases), or an apt repository (a PPA) so `apt upgrade` brings new alphas? | **A downloadable `.deb` for the alpha**; a PPA later, when updates are frequent. |
+| **Q3** | **Architectures:** amd64 only, or arm64 too? | **amd64** for the alpha (the rig and most desktops); arm64 if a tester needs it. |
+| **Q4** | **Opening projects from Files:** a `.scrivi` project is a FOLDER on Linux, and Nautilus opens folders, not apps. | A MIME type plus an "Open with Scrivi" entry; or let the archive ([EP-054]) be the double-clickable file. To rule after a spike. |
+| **Q5** | **Signing:** a GPG-signed package / repository? | **Not for a downloadable alpha `.deb`** (publish its SHA-256); required if Q2 picks a repository. |
+
+**Depends on:** nothing open. The package is a Debug build (ruled above). Its version comes from [T-0622].
+
+---
+
 ## ➡️ EP-047 — PLANNED 2026-10-07, no longer on this backlog
 
 ⚠️ **[EP-047] `[Apple]` Manuscript Typography & Preferences MOVED TO [`Epic-active.md`](Epic-active.md) on 2026-10-07** — 🔵 Draft with
@@ -840,6 +954,12 @@ project; sharing/binding across projects; repair for a world whose package moved
 
 ---
 
+
+*Last Updated: 2026-10-24 (**EP-054 → 🟡 Active** with [SP-193] (user: *"activate SP-193"*); moved to `Epic-active.md`.)*
+
+*Last Updated: 2026-10-24 (alpha rulings (user): Debug; no Linux feedback channel; I-0308 stays in the backlog; version `1.0.<build>` → T-0622; EP-054 Q2 open (each paragraph a `<p>`); EP-055 Q5 TestFlight ready; EP-056 Q1 24.04 + 26.04.)*
+
+*Last Updated: 2026-10-24 (**EP-054** `[ScriviCore]` Import & Export, **EP-055** `[Apple]` iPad and iPhone, **EP-056** `[Linux]` Install on Ubuntu created in 🔵 Draft for the alpha release (user).)*
 
 *Last Updated: 2026-10-22 (**EP-052** gains AC7, Replace All's visible progress, moved from [SP-185] AC5 (user).)*
 

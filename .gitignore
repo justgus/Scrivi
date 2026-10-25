@@ -96,3 +96,6 @@ ScriviCore/tests/output/
 *.gcda
 *.gcno
 coverage/
+
+# [T-0622] deploy-to-rig.sh ships the Mac's version with a tree that has no git history
+.scrivi-version-override

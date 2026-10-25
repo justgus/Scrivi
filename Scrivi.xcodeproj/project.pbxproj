@@ -438,6 +438,7 @@
 				C_SOURCES /* Sources */,
 				C_RESOURCES /* Resources */,
 				C_FW /* Frameworks */,
+				C_VERSION_PHASE /* Stamp the version (T-0622) */,
 			);
 			buildRules = (
 			);
@@ -456,6 +457,7 @@
 				D_SOURCES /* Sources */,
 				D_FW /* Frameworks */,
 				86BF02832FEDE0A600531EAC /* Resources */,
+				D_VERSION_PHASE /* Stamp the version (T-0622) */,
 			);
 			buildRules = (
 			);
@@ -620,6 +622,46 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/zsh;
 			shellScript = "set -e\nexport PATH=\"/opt/homebrew/bin:$PATH\"\ncd \"$SRCROOT\"\n# Cross-build ScriviCore for the iOS SDK currently selected by Xcode.\n# $SDKROOT, $ARCHS, $PLATFORM_NAME come from the build; a per-platform build dir\n# (build-$PLATFORM_NAME) keeps simulator and device slices separate.\nBUILD_DIR=\"build-${PLATFORM_NAME}\"\nARCH_LIST=\"${ARCHS// /;}\"\ncmake -S . -B \"$BUILD_DIR\" \\\n  -DSCRIVI_BUILD_TESTS=OFF \\\n  -DCMAKE_BUILD_TYPE=Debug \\\n  -DCMAKE_SYSTEM_NAME=iOS \\\n  -DCMAKE_OSX_SYSROOT=\"$SDKROOT\" \\\n  -DCMAKE_OSX_ARCHITECTURES=\"$ARCH_LIST\" \\\n  -DCMAKE_OSX_DEPLOYMENT_TARGET=\"$IPHONEOS_DEPLOYMENT_TARGET\"\ncmake --build \"$BUILD_DIR\" --parallel\n";
+		};
+		C_VERSION_PHASE /* Stamp the version (T-0622) */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)",
+			);
+			name = "Stamp the version (T-0622)";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"$SRCROOT/scripts/stamp-version.sh\"\n";
+		};
+		D_VERSION_PHASE /* Stamp the version (T-0622) */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)",
+			);
+			name = "Stamp the version (T-0622)";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"$SRCROOT/scripts/stamp-version.sh\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

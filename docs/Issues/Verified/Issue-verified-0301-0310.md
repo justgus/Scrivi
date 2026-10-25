@@ -9,6 +9,7 @@ Issues the user has VERIFIED, archived out of `Issue-active.md`.
 | **I-0303** | `[Apple]` ⚠️ **Replace All writes every changed scene on the MAIN THREAD, one after another — `saveScene` is `async` in name only.** Found 2026-10-15 by reading, planning [SP-181] Q3. Fix before Linux copies the shape (user ruling). | **Medium** | [SP-181] | ✅ **VERIFIED 2026-10-21** |
 | **I-0304** | `[Linux]` ⛔ **A scene whose save FAILS is dropped from the dirty set, so it is never retried and quitting loses its edits.** The Mac keeps it dirty ([I-0259]). Found 2026-10-15 by reading ([SP-181]). ✅ Fixed: a failed write stays dirty. → [details](#i-0304) | **High** | [SP-181] | ✅ **VERIFIED 2026-10-21** |
 | **I-0305** | `[Apple]` `[Linux]` ⚠️ **Closing a project window, or quitting, while scenes are being written in the background does not wait for the writes.** Found 2026-10-15 by reading ([SP-181]). ✅ Fixed on both platforms: a close or quit waits behind *"Please wait — saving updates…"*. → [details](#i-0305) | **Medium** | [SP-181] | ✅ **VERIFIED 2026-10-21** |
+| **I-0306** | `[Apple]` ⚠️ **File ▸ Close Project (⌘W) skips the "Some changes can't be saved" question** ([T-0570]): it calls `NSWindow.close()`, which never asks `windowShouldClose`. Found 2026-10-15 by reading ([SP-181]). → [details](#i-0306) | **Medium** | [SP-193] | ✅ **VERIFIED 2026-10-25** (user, Mac live pass 2026-10-24: step 1 *"passes"*, step 2 *"passes"*) |
 | **I-0307** | `[Linux]` ⛔ **Selecting across a scene break, Ctrl+C and Ctrl+V each FREEZE the window for 10–15 s** (dumas-prose-timelines over the share). Found on the rig 2026-10-15 (live pass, step 9). ✅ Measured and fixed in Docker: Ctrl+C's GUI-thread file calls 2,678 → 3; a mouse selection no longer extracts. → [details](#i-0307) | **High** | [SP-185] | ✅ **VERIFIED 2026-10-21** |
 | **I-0309** | `[Linux]` ⛔ **Closing a project window while the project is still LOADING frees memory the load's worker is still using** (use-after-free of the shell's `ScriviBridge`). Found 2026-10-17 by AddressSanitizer in Docker, while reproducing [I-0308]. ✅ Fixed: every worker builds its own bridge. → [details](#i-0309) | **High** | [SP-185] | ✅ **VERIFIED 2026-10-22** (user, 2026-10-22: *"the step in item 1 passed"* — on the rig, build 79, dumas over the share: a window closed and a quit, each mid-load; both sessions logged `session ended (exit code 0)`) |
 | **I-0310** | `[Linux]` ⛔ **Destroying a shown, focused project window crashed: the editor's focus-out read the document its shell had already freed.** Found 2026-10-17 by the [I-0307] measurement harness (a segfault at its exit). ✅ Fixed. → [details](#i-0310) | **High** | [SP-185] | ✅ **VERIFIED 2026-10-22** (user, 2026-10-22: *"T-0612 and I-0310 are verified"* — on `background_wait_smoke` §6, mutation-checked) |
@@ -218,6 +219,44 @@ off-main saves, Replace All and structural workers). Window close and quit wait 
   fit it.
 - Re-check: ✅ *"the sheet looks right now."* ⏳ Linux, on the rig.
 
+---
+
+---
+
+## I-0306
+
+**Title:** ⌘W (File ▸ Close Project) skips the unsavable-changes question
+**Status:** ✅ **VERIFIED 2026-10-25** (user, Mac live pass 2026-10-24: step 1 *"passes"*, step 2 *"passes"*). Was 🟠 Resolved - Not Verified (2026-10-24, [SP-193]).
+**Platform:** `[Apple]`
+**Component:** `ProjectWindowController.close()` / `windowShouldClose` (`Scrivi/App/ProjectWindowManager.swift:245, :263`);
+the Close Project command (`Scrivi/App/ScriviApp.swift`, `env.windows.closeWindow`)
+**Severity:** Medium. With the project's drive pulled, ⌘W closes the project without warning, and the edits the drive could
+not receive are lost: the case [T-0570] exists to warn about. The red button and Quit still ask.
+**Sprint:** [SP-193] — fix before the alpha (user, 2026-10-24)
+**Date Identified:** 2026-10-15, by reading, while fixing [I-0305] (filed by user request: *"file the ⌘W gap"*)
+
+**Description (read, not yet reproduced):**
+- File ▸ Close Project (⌘W) calls `ProjectWindowManager.closeWindow` → `ProjectWindowController.close()` →
+  `window.close()`. `NSWindow.close()` does not send `windowShouldClose`; only `performClose` (the red button, File ▸ Close)
+  does.
+- So [T-0570]'s `confirmDiscardingUnsavable(…, action: "Close")` never runs for ⌘W, although the comment above
+  `windowShouldClose` said it covers *"every close path (red button, ⌘W, window.close())"*.
+- ✅ Not affected: [I-0305]'s wait for background writes, which is in `close()` as well as `windowShouldClose`.
+
+**Expected:** ⌘W asks the same question as the red button before a project with unsavable changes closes.
+
+**Fix direction:** route `close()` through the same check as `windowShouldClose` (or `performClose`), and prove it with a
+test that fails first. ⚠️ Check what else calls `close()` before changing it.
+
+
+**Resolution (2026-10-24, [SP-193]):** `ProjectWindowController.close()` (`ProjectWindowManager.swift`) now asks
+`windowShouldClose` itself and closes only if it agrees: the red button's check, both the [I-0305] wait and the [T-0570]
+question. The duplicate wait code is gone. Not `performClose`: by its documentation it beeps whenever the close is
+refused, so a Cancel would beep. `close()` has one caller (`closeWindow`, File ▸ Close Project). A test hook
+`AppEnvironment.onConfirmDiscardingUnsavable` answers the question in tests. Interop `closeProjectAsksAboutUnsavable`:
+the project folder moved away (the drive pulled), an edit typed, `close()` asks once ("Close", 1 scene); Cancel keeps it
+open; Close Anyway closes it. Mutation-checked in a copy (`close()` → `window.close()`: caught). ⚠️ Linux has no
+unsavable-changes question at all (T-0570 was Apple-only) — noted in [SP-193], not fixed here.
 ---
 
 ---

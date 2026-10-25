@@ -92,6 +92,9 @@ user-approved), ⛔ not from either copy.\*\* ⚠️ **The table is now ONE unbr
 | EP-051 | `[Docs]` **Design Documentation Consolidation** — one living design document; `docs/studies`, `docs/runbooks`, `docs/archives`; CLAUDE.md points at the design document | 🔵 **Draft** (backlog) 2026-10-10 | — | — |
 | EP-052 | `[ScriviCore]` **Background Writes** — one ordered write queue per project in the core: undo, redo, Replace All, structural operations and the autosave off the GUI thread; Apple and Linux adopt it together | 🔵 **Draft** (backlog) 2026-10-15 | — | — |
 | EP-053 | `[Cross]` **Range-Based Structural Editing** — cut, copy, paste and undo as one Range and one core call, applied in memory with no reload; the same on the Mac and Linux | 🟡 **ACTIVE** 2026-10-17 | [SP-186]–[SP-191] | — |
+| EP-054 | `[ScriviCore]` **Import & Export** — project archives (with history), worlds, manuscript export (formatted HTML for fanfic, Markdown, .docx, PDF, ePub) and import (Markdown, .docx, Scrivener); for the alpha | 🟡 **ACTIVE** 2026-10-24 | [SP-193] (S0) |
+| EP-055 | `[Apple]` **iPad and iPhone** — the full app on iPad, a phone surface (incl. the iPhone Duo), TestFlight; for the alpha | 🔵 **Draft** (backlog) 2026-10-24 | — |
+| EP-056 | `[Linux]` **Install on Ubuntu** — a .deb testers can install, update and remove; for the alpha | 🔵 **Draft** (backlog) 2026-10-24 | — |
 
 ## Statistics
 
@@ -132,6 +135,10 @@ ruling **R-23(②)**. **To count Epics by status, read the table.**
 *Last Updated: 2026-10-15 (**EP-048**: S4b and S5a–S5c planned as [SP-181]–[SP-184] (🔵 Planning); the S5 split awaits [SP-182] Q2. The index row's stale *"SP-166 (S2) active"* replaced by a pointer.)*
 
 *Last Updated: 2026-10-15 (**EP-026**: [SP-179] (S5) CLOSED (user-approved); [I-0287] VERIFIED; the index row's stale *"S1 next"* replaced by a pointer.)*
+
+*Last Updated: 2026-10-24 (**EP-054 → 🟡 ACTIVE** with [SP-193] (S0).)*
+
+*Last Updated: 2026-10-24 (**EP-054, EP-055, EP-056 created** in 🔵 Draft for the alpha release (user: *"Lets start planning these features."*).)*
 
 *Last Updated: 2026-10-22 (**EP-026**: [SP-185] CLOSED (user-approved); **EP-052** gains AC7 from SP-185 AC5 (user).)*
 

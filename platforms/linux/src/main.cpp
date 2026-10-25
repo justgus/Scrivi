@@ -42,30 +42,15 @@
 // be running a DAY-OLD binary that predated the whole sprint — a live pass
 // against it would have reported on the wrong code entirely.
 //
-// ⚠️ SCRIVI_BUILD_STAMP comes from a GENERATED header
-// (platforms/linux/generated/ScriviBuildStamp.hpp), written by
-// platforms/linux/deploy-to-rig.sh — ⚠️ by the DEPLOY, NOT by CMake. The counter
-// belongs to the PUSH, because the question being answered is "did the source I
-// just pushed reach the rig?" See the rationale in platforms/linux/CMakeLists.txt:
-// two CMake-side attempts were tried on 2026-08-30 and BOTH failed misleadingly
-// (a custom target trailed by one build; a custom command froze at 1).
-// ⚠️ A checked-in fallback keeps a plain `cmake --build` working for a fresh
-// clone or the Docker image — ⚠️ so a build that never runs the deploy script
-// reports the LAST DEPLOYED number, not its own. Deliberately NOT
-// `__DATE__`/`__TIME__` of this file: those only update when main.cpp itself
-// recompiles, so a build that changed other files left the stamp reading the
-// PREVIOUS build's time — a version check that reports "unchanged" after a real
-// change, which is worse than none.
+// ✅ [T-0622]: the version comes from a header GENERATED on every build from git (platforms/linux/cmake/ScriviVersion.cmake):
+// `1.0.<commits on HEAD> (<hash>)`, `-dirty` with uncommitted changes. The same numbers as the Apple build, so one commit
+// reads the same on every platform. Not __DATE__/__TIME__: those only move when this file recompiles.
 namespace {
 QString buildStamp()
 {
-    // ⚠️ The BUILD NUMBER leads, because it is the unambiguous half: "build 48"
-    // either matches what the deploy printed or it does not, with no clock
-    // arithmetic. The timestamp follows as context.
-    return QStringLiteral("Scrivi (Linux) — build %1 (%2), Qt %3")
-        .arg(QString::number(SCRIVI_BUILD_NUMBER),
-             QLatin1String(SCRIVI_BUILD_STAMP),
-             QLatin1String(qVersion()));
+    // The commit names exactly what is running: it matches the rig's `git rev-parse` or it does not.
+    return QStringLiteral("Scrivi (Linux) %1 (%2), Qt %3")
+        .arg(QLatin1String(SCRIVI_VERSION), QLatin1String(SCRIVI_COMMIT), QLatin1String(qVersion()));
 }
 } // namespace
 

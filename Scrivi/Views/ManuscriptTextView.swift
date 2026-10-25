@@ -2163,6 +2163,14 @@ struct ManuscriptTextView: NSViewRepresentable {
             return storageOffset - (separatorCount * 2)
         }
 
+        // ✅ [I-0313]: at a line's start AppKit gives typing the attributes of the character AFTER the caret. Before an
+        // empty scene's divider that is the divider's, so typed text carried `.scriviDivider` and the boundary scan took
+        // it for a scene break, crediting the text to the next scene. Typing never carries it: the body's attributes.
+        func textView(_ textView: NSTextView, shouldChangeTypingAttributes oldTypingAttributes: [String: Any],
+                      toAttributes newTypingAttributes: [NSAttributedString.Key: Any]) -> [NSAttributedString.Key: Any] {
+            newTypingAttributes[.scriviDivider] == nil ? newTypingAttributes : presenter.typography.bodyAttributes
+        }
+
         private func segmentIndex(for characterLocation: Int) -> Int? {
             for (i, range) in sceneBoundaries.enumerated() {
                 let end = range.location + range.length

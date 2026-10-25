@@ -453,13 +453,10 @@ void ScriviWindow::buildMenuBar()
         name->setFont(nameFont);
         layout->addWidget(name);
 
-        // ⚠️ From the GENERATED stamp header, refreshed on EVERY build — not
-        // __DATE__/__TIME__, which only move when this file recompiles.
+        // ✅ [T-0622]: from the header generated on every build from git — the same version as the Apple build.
         auto* build = new QLabel(
-            tr("Build %1\n%2\nQt %3")
-                .arg(QString::number(SCRIVI_BUILD_NUMBER),
-                     QLatin1String(SCRIVI_BUILD_STAMP),
-                     QLatin1String(qVersion())),
+            tr("Version %1 (%2)\nQt %3")
+                .arg(QLatin1String(SCRIVI_VERSION), QLatin1String(SCRIVI_COMMIT), QLatin1String(qVersion())),
             &dlg);
         // Selectable so a tester can copy the stamp into a bug report.
         build->setTextInteractionFlags(Qt::TextSelectableByMouse);

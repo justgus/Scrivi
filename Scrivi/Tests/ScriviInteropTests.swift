@@ -7499,6 +7499,63 @@ struct UndoAfterStructuralOpTests {
         #expect(again.loader.segments.map(\.text) == ["Alpha Bravo Pre"], "the paste is undone")
     }
 
+    @Test("[SP-193] About opens with a project window open, and reads 1.0.<count> (<commit>)")
+    func aboutPanelShowsTheVersion() async throws {
+        let h = try await harness(["Alpha."])                           // a project window is up; no Welcome window
+        _ = h
+        let before = Set(NSApp.windows.map(ObjectIdentifier.init))
+        AboutPanel.show()
+        let panel = try #require(NSApp.windows.first { !before.contains(ObjectIdentifier($0)) && $0.isVisible },
+                                 "a new window is on screen")
+        func texts(_ v: NSView) -> [String] { ((v as? NSTextField).map { [$0.stringValue] } ?? []) + v.subviews.flatMap(texts) }
+        let shown = texts(try #require(panel.contentView)).joined(separator: " | ")
+        let version = try #require(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String)
+        let commit = try #require(Bundle.main.object(forInfoDictionaryKey: "ScriviCommit") as? String)
+        #expect(version.hasPrefix("1.0."), "stamped by scripts/stamp-version.sh (\(version))")
+        #expect(shown.contains("\(version) (\(commit))"), "the panel reads the version and commit: \(shown)")
+        panel.close()
+    }
+
+    @Test("[I-0313] typing into the first of two empty scenes stays in that scene: on the page, in the list, on disk")
+    func typingIntoFirstOfTwoEmptyScenes() async throws {
+        let h = try await harness(["Alpha one. \n\nAlpha two.", "Beta.", "", "", "Gamma."])
+        h.c.ensureBoundaries(h.tv)
+        let at = h.c.sceneBoundaries[2].location                       // the first empty scene, right before its divider
+        h.tv.setSelectedRange(NSRange(location: at, length: 0))
+        h.tv.insertText("Z", replacementRange: h.tv.selectedRange())
+        let ts = try #require(h.tv.textStorage)
+        #expect(ts.attribute(.scriviDivider, at: at, effectiveRange: nil) == nil, "typed text never carries the divider key")
+        #expect(h.loader.segments.map(\.text) == ["Alpha one. \n\nAlpha two.", "Beta.", "Z", "", "Gamma."])
+        #expect(h.c.sceneBoundaries == (SceneDivider.sceneBoundaries(in: ts) ?? []), "the table is the scan")
+        #expect(h.c.sceneBoundaries[2] == NSRange(location: at, length: 1))
+        #expect(h.tv.selectedRange() == NSRange(location: at + 1, length: 0), "the caret after the Z")
+        await h.loader.saveScene(at: 2, engine: h.env.engine, ref: try #require(h.env.authorshipRef))
+        try h.listMatchesDisk("I-0313")
+    }
+
+    @Test("[I-0306] File ▸ Close Project (⌘W) asks before losing changes the pulled drive can't receive, as the red button does")
+    func closeProjectAsksAboutUnsavable() async throws {
+        let h = try await harness(["Alpha."])
+        let gone = h.root.url.deletingLastPathComponent().appendingPathComponent(h.root.url.lastPathComponent + "-gone")
+        try FileManager.default.moveItem(at: h.root.url, to: gone)           // the drive is pulled
+        defer { try? FileManager.default.moveItem(at: gone, to: h.root.url) }
+        h.caret(scene: 0, at: 6)
+        h.tv.insertText(" Bravo", replacementRange: h.tv.selectedRange())   // an edit that cannot reach disk
+        #expect(h.session.unsavedSceneCount == 1)
+
+        var asked: [(Int, String)] = []
+        var answer = false
+        h.env.onConfirmDiscardingUnsavable = { asked.append(($0, $1)); return answer }
+        var closed = 0
+        let controller = ProjectWindowController(session: h.session, env: h.env, onClose: { closed += 1 })
+        controller.close()                                                  // what ⌘W calls
+        #expect(asked.count == 1 && asked.first?.0 == 1 && asked.first?.1 == "Close", "⌘W asked (\(asked.count))")
+        #expect(closed == 0, "Cancel keeps the project open")
+        answer = true
+        controller.close()
+        #expect(asked.count == 2 && closed == 1, "Close Anyway closes it")
+    }
+
     @Test("[SP-192] with the hints on, a margin mark sits on the line where ⇧⌘Z will ask; a click asks; typing or hints off remove it")
     func branchPointMark() async throws {
         let h = try await harness(["Alpha.\n\nBravo."])               // the branch in the SECOND paragraph: a line of its own
@@ -8037,8 +8094,7 @@ struct RunRenderTests {
         #expect(h.loader.segments[0].text == "Alpha one. Alpha two.", "✅ [SP-191] Q3a: joined directly")
         try h.listMatchesDisk("after the scene operations")
         // ✅ Typing after run renders lands in the right scene: the spliced table is the one the edit path reads.
-        // ⚠️ Into a scene WITH text: typing into an empty scene that sits before another empty one is attributed to the
-        // next scene, after a full render too — [I-0313], not this Sprint's.
+        // (Typing into the first of two empty scenes is [I-0313]'s own test, `typingIntoFirstOfTwoEmptyScenes`.)
         h.caret(scene: 1, at: 0)
         h.tv.insertText("Z", replacementRange: h.tv.selectedRange())
         #expect(h.loader.segments[1].text == "ZBeta.")

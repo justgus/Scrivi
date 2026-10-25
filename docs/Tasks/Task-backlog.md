@@ -433,6 +433,12 @@ window of the tree).
 
 ---
 
+*Last Updated: 2026-10-24 (**T-0622 → active** with SP-193's activation; it left this file.)*
+
+*Last Updated: 2026-10-24 (**T-0622 approved** (user); assigned to [SP-193] (🔵 Planning).)*
+
+*Last Updated: 2026-10-24 (**T-0622 filed** (user): one version on every platform, `1.0.<commits>` + the hash; proposal to rule.)*
+
 *Last Updated: 2026-10-24 (**T-0620 → active** with SP-192's activation; it left this file.)*
 
 *Last Updated: 2026-10-24 (**T-0620** Q1–Q4 ruled (user): left margin, with the Shift-Cmd-H markers, click opens the chooser, Linux in EP-026 S3.)*

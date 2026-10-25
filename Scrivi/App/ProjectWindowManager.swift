@@ -241,23 +241,17 @@ final class ProjectWindowController: NSObject, NSWindowDelegate {
         }
     }
 
-    // File ▸ Close Project. ⚠️ `NSWindow.close()` does NOT ask `windowShouldClose`, so the [I-0305] wait is here too.
+    // File ▸ Close Project (⌘W). ✅ [I-0306]: `NSWindow.close()` asks nothing, so this asks `windowShouldClose` itself, the
+    // red button's check: the [I-0305] wait and the [T-0570] unsavable-changes question. (Not `performClose`: it beeps
+    // whenever the close is refused, so the writer's Cancel would beep.)
     func close() {
-        if waitingForWrites { return }
-        if SavingUpdatesWait.waitFor([session], over: window, then: { [weak self] in
-            self?.waitingForWrites = false
-            self?.window.close()
-        }) {
-            waitingForWrites = true
-            return
-        }
-        window.close()
+        if windowShouldClose(window) { window.close() }
     }
 
     /// [I-0305] — a close is waiting for this project's background writes.
     private var waitingForWrites = false
 
-    // NSWindowDelegate: the red button and File ▸ Close (performClose). ⚠️ NOT ⌘W (`close()` above) — [I-0306].
+    // NSWindowDelegate: the red button and File ▸ Close (performClose); ⌘W asks it through `close()` above ([I-0306]).
     // ⚠️ [T-0570] — closing the window closes the project, which loses edits the pulled
     // drive could not receive exactly as quitting does, so it is guarded the same way.
     func windowShouldClose(_ sender: NSWindow) -> Bool {

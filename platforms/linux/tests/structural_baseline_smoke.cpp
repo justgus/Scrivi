@@ -638,6 +638,41 @@ int main(int argc, char* argv[])
         b.shell->hide();
         b.shell.reset();
     }
+    // ── [I-0313] (Apple's): typing into the first of two EMPTY scenes stays in that scene (a project of its own) ────────
+    {
+        Rig e;
+        e.projectDir = r.projectDir + QStringLiteral("-empty");
+        e.appSupport = r.appSupport;
+        e.bridge.bootstrap(QStringLiteral("Baseline Tester"), e.appSupport);
+        e.projectID = e.bridge.createProject(e.projectDir, e.appSupport, QStringLiteral("Empty"), QStringLiteral("empty"))
+                          .value(QStringLiteral("projectID")).toString();
+        const QVariantMap s0 = e.bridge.openProject(e.projectDir, e.appSupport).value(QStringLiteral("scenes")).toList().at(0).toMap();
+        const auto saveIn = [&](const QVariantMap& sc, const QString& text) {
+            e.bridge.saveScene(e.projectID, e.projectDir, e.appSupport, sc.value(QStringLiteral("sceneID")).toString(),
+                               sc.value(QStringLiteral("metadataPath")).toString(), sc.value(QStringLiteral("contentPath")).toString(),
+                               text, 0, 0, 0.0);
+        };
+        saveIn(s0, QStringLiteral("Beta."));
+        QVariantMap prev = s0;
+        for (const QString& body : {QString(), QString(), QStringLiteral("Gamma.")}) {
+            const QVariantMap made = e.bridge.createScene(e.projectDir, e.appSupport, e.projectID,
+                                                          s0.value(QStringLiteral("chapterID")).toString(),
+                                                          prev.value(QStringLiteral("sceneID")).toString());
+            saveIn(made, body);
+            prev = made;
+        }
+        check(e.load(), QStringLiteral("I-0313: the empty-scenes project loaded"));
+        armConfirmer(e.shell.get());
+        e.caretAtSceneStart(1);
+        QTest::keyClicks(e.editor, QStringLiteral("Z"));
+        QApplication::processEvents();
+        check(e.texts() == QStringList({QStringLiteral("Beta."), QStringLiteral("Z"), QString(), QStringLiteral("Gamma.")}),
+              QStringLiteral("I-0313: the Z is in the first empty scene (got %1)").arg(e.texts().join(QStringLiteral(" | "))));
+        e.shell->flushHistory();
+        e.shell->releaseProject();
+        e.shell->hide();
+        e.shell.reset();
+    }
     if (failures == 0) { std::printf("structural_baseline_smoke: all checks passed\n"); }
     return failures == 0 ? 0 : 1;
 }

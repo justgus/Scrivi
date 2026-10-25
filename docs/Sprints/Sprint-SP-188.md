@@ -10,7 +10,7 @@ created: 2026-10-20
 
 **Status:** 🟡 **ACTIVE** 2026-10-22 (user: *"activate and implement SP-188"*) — created 2026-10-20 (user: *"complete planning for EP-053"*); code re-read 2026-10-22 after
 [SP-191]. ✅ Q1–Q6 ruled 2026-10-22 (user: *"Q1–Q6 agreed as recommended"*).
-**Carries:** [T-0616] (🟠 Implemented - Not Verified) → [`../Tasks/Task-unverified.md`](../Tasks/Task-unverified.md). · [I-0319], [I-0321] (🟠 Resolved - Not Verified) and [I-0320] (✅ Verified), added 2026-10-24 → [`../Issues/Issue-active.md`](../Issues/Issue-active.md).
+**Carries:** [T-0616] (🟠 Implemented - Not Verified) → [`../Tasks/Task-unverified.md`](../Tasks/Task-unverified.md). · [I-0319] (🟠 Resolved - Not Verified), [I-0320] and [I-0321] (✅ Verified), added 2026-10-24 → [`../Issues/Issue-active.md`](../Issues/Issue-active.md).
 **Epic:** [EP-053] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md).
 **Builds on:** [SP-186] (S1, `scrivi_range_cut`) · [SP-187] + [SP-191] (S2a + S2b: the scene list as the model of record, the delta applied,
 `rangePaste` / `rangeCut` history, the one off-main path).
@@ -254,3 +254,7 @@ no reload. Undo is a range paste; redo is the cut again.
   spaces. The core now folds a branch with no text into its siblings and shows each branch's first text. Core
   `[I-0321]`; ctest 766/766; interop 313/313.
 - Not this Sprint: the branch-point marker → [T-0620]; the whole-history view → [T-0621] (both 🔵 backlog).
+
+### 🟡 2026-10-24 — [I-0321] verified (user)
+- User: *"I-0321 passes, mark it verified"* → archived (`Issues/Verified/Issue-verified-0321-0330.md`). Open here:
+  [I-0319]'s Linux half and AC11 (rig).

@@ -564,6 +564,8 @@ import UniformTypeIdentifiers
     /// cannot be saved because the project's drive is gone. ✅ Returns true to proceed.
     /// ⚠️ Re-checks availability first: if the drive is BACK, nothing is lost — the normal
     /// quit/close path saves — so no prompt.
+    /// Tests answer the question (the unsavable scene count, the action) instead of the modal.
+    @ObservationIgnored var onConfirmDiscardingUnsavable: ((Int, String) -> Bool)?
     func confirmDiscardingUnsavable(in sessions: [ProjectSession], action: String) -> Bool {
         var unsaved = 0
         for s in sessions {
@@ -571,6 +573,7 @@ import UniformTypeIdentifiers
             if s.projectUnavailable { unsaved += s.unsavedSceneCount }
         }
         guard unsaved > 0 else { return true }
+        if let hook = onConfirmDiscardingUnsavable { return hook(unsaved, action) }
         let alert = NSAlert()
         alert.alertStyle = .critical
         alert.messageText = "Some changes can't be saved"

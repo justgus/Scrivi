@@ -6,6 +6,7 @@ Issues the user has VERIFIED, archived out of `Issue-active.md`.
 | ID | Title | Severity | Sprint | Status |
 | -- | ----- | -------- | ------ | ------ |
 | **I-0311** | `[ScriviCore]` ⛔ **A structured paste that opens a CHAPTER in the middle of a chapter scrambles the reading order: the target scene's remaining text lands AFTER the scenes that followed it.** Found 2026-10-17 by reading the core while measuring [I-0297]; ⚠️ the new `[I-0297]` ABI test asserts the wrong order (expectations taken from the code). → [details](#i-0311) | **High** | [SP-191] | ✅ **VERIFIED 2026-10-22** (user, 2026-10-22: *"Yes, mark them verified and close SP-191"* — after the rig re-pass on build 79: *"all items pass"*; the Mac pass 2026-10-21) |
+| **I-0313** | `[Apple]` ⚠️ **Typing into an empty scene that sits right before another empty scene is credited to the NEXT scene: the page shows the letter in the first, the scene list puts a newline in the second, and the caret jumps two characters.** Found 2026-10-20 by [SP-187]'s run-render test; reproduced after a full render too, so not caused by it. ⚠️ Not yet seen in the app. → [details](#i-0313) | **Medium** | [SP-193] | ✅ **VERIFIED 2026-10-25** (user, Mac live pass 2026-10-24: step 1 *"passes"*, step 2 *"passes"*) |
 | **I-0314** | `[Apple]` ⛔ **A chapter split on the Mac puts the scenes out of order ON DISK: the new chapter is appended at the manuscript END, and the scenes after the split stay in the old chapter.** The editor shows the right order until the project is reopened. Linux had the same defect and fixed it in July ([I-0074]: create in place, then move the following scenes). Found 2026-10-21 planning [SP-191] (an interop probe). → [details](#i-0314) | **High** | [SP-191] | ✅ **VERIFIED 2026-10-22** (user, 2026-10-22: *"Yes, mark them verified and close SP-191"* — after the rig re-pass on build 79: *"all items pass"*; the Mac pass 2026-10-21) |
 | **I-0315** | `[Linux]` ⚠️ **Every move of the caret into another scene WRITES the previous scene's outline and to-do list, changed or not — two sidecar writes on the GUI thread per scene switch.** Found 2026-10-21 tracing [SP-191]'s GUI-thread core calls (`structural_baseline_smoke`). → [details](#i-0315) | Medium | [SP-191] | ✅ **VERIFIED 2026-10-22** (user, 2026-10-22: *"I-0315 is verified"*) |
 | **I-0320** | `[ScriviCore]` `[Apple]` ⚠️ **The branch chooser (a history choice point) pops up as an UNDO lands on a fork; choosing in it redoes, which is never what a writer wants right after an undo.** Reported by the user 2026-10-24 ([SP-188] Mac live pass). → [details](#i-0320) | **Medium** | [SP-188] | ✅ **VERIFIED 2026-10-24** |
@@ -30,6 +31,45 @@ Issues the user has VERIFIED, archived out of `Issue-active.md`.
 boundary should carry them into the last created chapter — the mirror of the cut's "promote the survivors" (design §4.4).
 ⚠️ `CaptureCApiTests` `[I-0297]` encodes the scrambled order as expected; it must change with the fix.
 
+
+---
+
+## I-0313
+
+**Title:** Typing into an empty scene followed by another empty scene is credited to the next scene
+**Status:** ✅ **VERIFIED 2026-10-25** (user, Mac live pass 2026-10-24: step 1 *"passes"*, step 2 *"passes"*). Was 🟠 Resolved - Not Verified (2026-10-24, [SP-193]).
+**Platform:** `[Apple]`
+**Component:** `ManuscriptTextView` — the edit path (`textDidChange` → `segmentIndex(for:)`) and `SceneBoundaryTable.apply`
+**Severity:** Medium — the writer's text lands in the wrong scene's record; on save the wrong scene gets it
+**Sprint:** [SP-193] — fix before the alpha (user, 2026-10-24)
+**Date Identified:** 2026-10-20 (`RunRenderTests`, [SP-187])
+
+**Measured (interop harness, one chapter: "Alpha one. \n\nAlpha two." · "Beta." · "" · "" · "Gamma."):** the caret at the
+first empty scene's start (storage 32, its range `{32, 0}`; the next empty scene is `{34, 0}`), then
+`insertText("Z")`:
+- the storage reads `Beta.￼\nZ￼\n￼\nGamma.` — the "Z" IS in the first empty scene on the page;
+- the boundary table after the edit: `{32, 0}`, `{34, 1}` — it grew the SECOND empty scene;
+- the scene list: `["…", "Beta.", "", "\n", "Gamma."]`; the selection moved to 34, not 33.
+✅ **Reproduced after a full `rebuildStorage`** (probe, 2026-10-20), so it is not [SP-187]'s run render.
+**Lead, not a diagnosis:** two zero-length scenes two characters apart, and an edit whose processed range may be widened
+(the note at `SceneBoundaryTable`, *"by `didProcessEditing`, `editedRange` has been WIDENED to whole lines"*). ⚠️ Prove it
+by instrument before fixing. Not yet reproduced in the app; it needs two empty scenes in a row (e.g. two quick ⌘↩ at a
+scene's end, then type into the first).
+**Test:** `RunRenderTests.sceneOperations` types into a scene WITH text, and says why.
+
+
+**Cause (shown by instrument, 2026-10-24):** the storage reported the edit exactly (`edited={32, 1}, delta=1`), but the
+boundary table was already dirty: the typed "Z" carried **`scrivi.divider`**. At a line's start AppKit gives typing
+the attributes of the character AFTER the caret, and before an empty scene's divider that character is the divider. The
+table's update treated text bringing the divider key as structure and marked itself dirty. The rescan, which finds
+dividers by that key, then took the "Z" for a divider: `{32,0}`, `{34,1}`, so the next scene got the text.
+**Resolution:** the coordinator implements `textView(_:shouldChangeTypingAttributes:toAttributes:)` (`NSTextViewDelegate`,
+`NS_SWIFT_UI_ACTOR` in NSTextView.h). When the new typing attributes carry `.scriviDivider`, typing uses the body's
+attributes instead. Interop `typingIntoFirstOfTwoEmptyScenes`: the Z has no divider key, the list is
+`["…", "Beta.", "Z", "", "Gamma."]`, the table equals a fresh scan, the caret sits after the Z, and the disk matches.
+Mutation-checked (hook removed: 4 expectations fail). ✅ Linux: a `structural_baseline_smoke` block types into the first
+of two empty scenes. It passes with no change: Linux never had this.
+---
 
 ---
 

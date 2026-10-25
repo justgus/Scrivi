@@ -111,8 +111,9 @@ never used). **This is not a filing defect** — do not re-open it as one.
 | 28 | I-0271 – I-0280 | [`Issue-verified-0271-0280.md`](Verified/Issue-verified-0271-0280.md) | 8 |
 | 29 | I-0281 – I-0290 | [`Issue-verified-0281-0290.md`](Verified/Issue-verified-0281-0290.md) | 8 |
 | 30 | I-0291 – I-0300 | [`Issue-verified-0291-0300.md`](Verified/Issue-verified-0291-0300.md) | 10 |
-| 31 | I-0301 – I-0310 | [`Issue-verified-0301-0310.md`](Verified/Issue-verified-0301-0310.md) | 7 |
-| 32 | I-0311 – I-0320 | [`Issue-verified-0311-0320.md`](Verified/Issue-verified-0311-0320.md) | 3 |
+| 31 | I-0301 – I-0310 | [`Issue-verified-0301-0310.md`](Verified/Issue-verified-0301-0310.md) | 8 |
+| 32 | I-0311 – I-0320 | [`Issue-verified-0311-0320.md`](Verified/Issue-verified-0311-0320.md) | 5 |
+| 33 | I-0321 – I-0330 | [`Issue-verified-0321-0330.md`](Verified/Issue-verified-0321-0330.md) | 1 |
 
 ⚠️ **Rows 15 onward added 2026-09-30 ([SP-148] Audit Check A6)** — the table had stopped at batch 14. ✅ Each count is re-derived from the file (distinct IDs in its table rows ∪ `## I-0` sections), ⛔ never copied.
 
@@ -165,8 +166,20 @@ stands as a marker.**
 | [`Issue-closed-0201.md`](Closed/Issue-closed-0201.md) | I-0201 — ⚪ **OBE** (`[Apple]` launch arguments no longer used; closed 2026-10-03) |
 | [`Issue-closed-0267.md`](Closed/Issue-closed-0267.md) | I-0267 — ⚠️ **duplicate of [I-0206]'s ruling** (keystroke cost accepted 2026-09-25; filed 2026-10-01 without checking `Closed/`) |
 | [`Issue-closed-0274.md`](Closed/Issue-closed-0274.md) | I-0274 — ⚪ **not a defect** (Control-Return mis-measured by a direct-`keyDown` harness; in the app it opens the context menu; closed 2026-10-04) |
+| [`Issue-closed-0202.md`](Closed/Issue-closed-0202.md) | I-0202 — ⚪ **not reachable** (`NSApplicationDelegate` is `NS_SWIFT_UI_ACTOR`; the `assumeIsolated` wrappers removed; closed 2026-10-24) |
+| [`Issue-closed-0312.md`](Closed/Issue-closed-0312.md) | I-0312 — ⚪ **OBE** (`keyBetween` vs legacy undotted keys; no project uses that scheme; closed 2026-10-24) |
 
 ---
+
+*Last Updated: 2026-10-25 (**I-0306**, **I-0313 → ✅ Verified** (user's Mac live pass, [SP-193]) and archived to batches 31 and 32.)*
+
+*Last Updated: 2026-10-25 (**I-0322, I-0323 filed** to `Issue-backlog.md` (user-directed): I-0322 `[Linux]` no project-drive-lost handling ([T-0570]'s Linux half); I-0323 `[ScriviCore]` raw parser error when an older build opens a newer project. Unassigned.)*
+
+*Last Updated: 2026-10-24 (**I-0202 CLOSED — not reachable** (user-confirmed, [SP-193] Q1) → `Closed/Issue-closed-0202.md`.)*
+
+*Last Updated: 2026-10-24 (**I-0312 CLOSED — OBE** (user-directed) → `Closed/Issue-closed-0312.md`; removed from the backlog.)*
+
+*Last Updated: 2026-10-24 (**I-0320, I-0321 VERIFIED** (user, Mac) → batch 32 now 4; batch 33 (I-0321 – I-0330) started with 1.)*
 
 *Last Updated: 2026-10-20 (**I-0313** `[Apple]` filed → backlog: typing into an empty scene before another empty one is credited to the next.)*
 

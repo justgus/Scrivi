@@ -204,35 +204,27 @@ set_property(TARGET scrivi_linux PROPERTY ENABLE_EXPORTS ON)
 # emitted at the build-tree root and #includes "ScriviBridge.hpp" by bare name.
 # On Qt 6.4 it doesn't inherit per-file include dirs, so add src/ explicitly so
 # both that generated file and our own sources resolve the header.
-# --- Build stamp -----------------------------------------------------------
+# --- The version ([T-0622]) -----------------------------------------------
 #
-# ⚠️ The stamp header is written by the DEPLOY SCRIPT, not by CMake.
+# ✅ `1.0.<commits on HEAD> (<hash>[-dirty])`, read from git on EVERY build by `cmake/ScriviVersion.cmake` into a header
+# in the BUILD tree (nothing generated is checked in; a commit cannot hold its own hash). The same numbers as Apple's.
 #
-# ⚠️ Two CMake-side attempts failed on 2026-08-30, both in misleading ways:
-#   1. A custom TARGET touching main.cpp — Ninja computes its dependency graph
-#      BEFORE any build step runs, so the touch was only noticed on the NEXT
-#      build. The stamp trailed reality by exactly one build, which looks like it
-#      works until you check it carefully.
-#   2. A custom COMMAND generating the header — Ninja saw the output already
-#      existed and never re-ran the step at all, so the number froze at 1.
-#
-# ✅ The question being answered is "did the source I just pushed reach the rig?",
-# so ⚠️ **the counter belongs to the PUSH, not to the compile.**
-# `platforms/linux/deploy-to-rig.sh` increments it and ships the header with the
-# source, which makes the number change exactly when the code does.
-#
-# ⚠️ A checked-in fallback header keeps a plain `cmake --build` working for anyone
-# who never uses the deploy script (the Docker image, a fresh clone).
-# ⚠️ CONSEQUENCE, stated plainly: a build that does NOT go through the deploy
-# script reports the LAST DEPLOYED number, not its own. ✅ That is the right
-# trade for the question being asked ("is the rig running what I just pushed?"),
-# ⚠️ but it means the number is NOT evidence for a locally-built binary.
-#
-# ⚠️ A `cmake/WriteBuildStamp.cmake` from failed attempt #2 was committed on
-# 2026-09-07 while rescuing rig-only files, and DELETED the same day: it was
-# never referenced, and leaving it invited exactly the re-wiring this comment
-# block warns against. The lessons above are the part worth keeping.
-target_include_directories(scrivi_linux PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/generated)
+# ⚠️ Two earlier attempts (2026-08-30) failed, and this shape avoids both:
+#   1. A custom target that TOUCHED main.cpp trailed by one build: Ninja had planned the build before it ran. ✅ Here the
+#      header is a declared BYPRODUCT, so Ninja re-checks it after the target runs and recompiles its includers in the
+#      same build.
+#   2. A custom COMMAND whose output already existed never re-ran, freezing the number. ✅ A custom TARGET runs on every
+#      build; the script rewrites the header only when the numbers change.
+# (The old route, a counter bumped and committed by `bump-build-stamp.sh`, is retired: git's count does its job.)
+set(SCRIVI_VERSION_HEADER ${CMAKE_CURRENT_BINARY_DIR}/generated/ScriviBuildStamp.hpp)
+add_custom_target(scrivi_version ALL
+    COMMAND ${CMAKE_COMMAND} -DSRC=${CMAKE_SOURCE_DIR} -DOUT=${SCRIVI_VERSION_HEADER}
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/ScriviVersion.cmake
+    BYPRODUCTS ${SCRIVI_VERSION_HEADER}
+    COMMENT "Scrivi version"
+    VERBATIM)
+add_dependencies(scrivi_linux scrivi_version)
+target_include_directories(scrivi_linux PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/generated)
 
 target_include_directories(scrivi_linux PRIVATE src)
 
@@ -1616,7 +1608,8 @@ target_link_libraries(scrivi_linux_buffers_smoke
         Qt6::Test           # QTest key clicks: the real dispatch, ShortcutOverride included
 )
 
-target_include_directories(scrivi_linux_buffers_smoke PRIVATE src ${CMAKE_CURRENT_SOURCE_DIR}/generated)
+target_include_directories(scrivi_linux_buffers_smoke PRIVATE src ${CMAKE_CURRENT_BINARY_DIR}/generated)
+add_dependencies(scrivi_linux_buffers_smoke scrivi_version)
 target_compile_features(scrivi_linux_buffers_smoke PRIVATE cxx_std_23)
 
 # background_wait_smoke (SP-181, [I-0304] / [I-0305]) — a failed save stays dirty; closing a window or quitting while a
@@ -1710,7 +1703,8 @@ target_link_libraries(scrivi_linux_background_wait_smoke
         Qt6::Test
 )
 
-target_include_directories(scrivi_linux_background_wait_smoke PRIVATE src ${CMAKE_CURRENT_SOURCE_DIR}/generated)
+target_include_directories(scrivi_linux_background_wait_smoke PRIVATE src ${CMAKE_CURRENT_BINARY_DIR}/generated)
+add_dependencies(scrivi_linux_background_wait_smoke scrivi_version)
 target_compile_features(scrivi_linux_background_wait_smoke PRIVATE cxx_std_23)
 
 # settings_smoke (EP-048 S5a / SP-182, T-0609) — Linux's Project Settings dialog, the bundled typefaces and Markup Hints.
@@ -1802,7 +1796,8 @@ target_link_libraries(scrivi_linux_settings_smoke
         Qt6::Test
 )
 
-target_include_directories(scrivi_linux_settings_smoke PRIVATE src ${CMAKE_CURRENT_SOURCE_DIR}/generated)
+target_include_directories(scrivi_linux_settings_smoke PRIVATE src ${CMAKE_CURRENT_BINARY_DIR}/generated)
+add_dependencies(scrivi_linux_settings_smoke scrivi_version)
 target_compile_features(scrivi_linux_settings_smoke PRIVATE cxx_std_23)
 scrivi_add_bundled_fonts(scrivi_linux_settings_smoke)
 

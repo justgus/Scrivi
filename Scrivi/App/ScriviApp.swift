@@ -78,8 +78,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             // or waiting on this one, and a deadlock would lose the log lines above too.
             // ⚠️ Skipping it off-main loses little: the manifest is also written on every
             // project open and close (`persistOpenManifest`).
-            // ✅ The delegate's own `assumeIsolated` calls are NOT this case: they are
-            // main-actor isolated by `NSApplicationDelegate` (proven by compile check).
+            // ✅ The delegate methods are NOT this case: `NSApplicationDelegate` makes them
+            // main-actor isolated ([I-0202]: they call these handlers with no wrapper).
             if Thread.isMainThread {
                 MainActor.assumeIsolated {
                     AppDelegate.onWillTerminate?()
@@ -123,10 +123,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // cannot crash the app.
     }
 
+    // [I-0202]: `NSApplicationDelegate` marks this `NS_SWIFT_UI_ACTOR` (NSApplication.h), so it is main-actor isolated
+    // already — no `assumeIsolated`; the compile is the proof.
     func application(_ application: NSApplication, open urls: [URL]) {
-        MainActor.assumeIsolated {
-            AppDelegate.onOpenURLs?(urls)
-        }
+        AppDelegate.onOpenURLs?(urls)
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
@@ -139,10 +139,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return (AppDelegate.onShouldTerminate?() ?? true) ? .terminateNow : .terminateCancel
     }
 
-    func applicationWillTerminate(_ notification: Notification) {
-        MainActor.assumeIsolated {
-            AppDelegate.onWillTerminate?()
-        }
+    func applicationWillTerminate(_ notification: Notification) {   // NS_SWIFT_UI_ACTOR too ([I-0202])
+        AppDelegate.onWillTerminate?()
     }
 
     // Do NOT quit when the last project window closes — Scrivi returns to the Welcome
@@ -190,7 +188,6 @@ struct ScriviApp: App {
                 .environment(env)
                 .task { await launchSetup() }
                 .modifier(AppEventsModifier(env: env))
-                .sheet(isPresented: $showAbout) { AboutView() }
         }
         .defaultSize(width: 720, height: 480)
         .commands { appCommands }
@@ -510,9 +507,9 @@ struct ScriviApp: App {
             .disabled(focusedSession?.bufferService == nil)
         }
 
-        // About menu.
+        // About menu. ✅ [SP-193]: the standard panel, which needs no window (the Welcome sheet did).
         CommandGroup(replacing: .appInfo) {
-            Button("About Scrivi") { showAbout = true }
+            Button("About Scrivi") { AboutPanel.show() }
         }
         CommandGroup(after: .appInfo) {
             Button("User Manual") { }
