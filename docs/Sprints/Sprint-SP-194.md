@@ -9,7 +9,7 @@ created: 2026-10-26
 # SP-194 — `[ScriviCore]` [EP-052] **S1**: two locks per project and the write queue
 
 **Status:** 🟡 **ACTIVE 2026-10-26** (user: *"(a) agreed, activate SP-194"*) — created 2026-10-26 (user: *"Q1–Q7 agreed as recommended"*; v0.2 Q7 makes this S1). ✅ Q1 ruled (a).
-**Carries:** [T-0623], [T-0624] (🟠 Implemented - Not Verified) → [`../Tasks/Task-unverified.md`](../Tasks/Task-unverified.md).
+**Carries:** [T-0623], [T-0624] (✅ Verified 2026-10-26) → `../Tasks/Verified/Task-verified-0623.md`, `Task-verified-0624.md`.
 **Epic:** [EP-052] (AC0–AC3) → [`../Epics/Epic-active.md`](../Epics/Epic-active.md).
 **Authority:** [`../Scrivi_Background_Writes_Design_v0_2.md`](../Scrivi_Background_Writes_Design_v0_2.md) §3 (✅ ruled
 2026-10-26) · [`../Scrivi_Background_Writes_Design_v0_1.md`](../Scrivi_Background_Writes_Design_v0_1.md) W1–W7 (✅ ruled
@@ -66,7 +66,7 @@ recommended.
   their new form
 - [x] AC3 — The queue and its endpoints (EP-052 AC1, AC2); a structural job's delta inside its outcome (Q1 (a))
 - [x] AC4 — Boundary tests through `scrivi_*` and a ThreadSanitizer stress run, macOS and Linux (EP-052 AC3)
-- [ ] AC5 — ✅ **Mac and rig smoke pass (user):** nothing a writer does has changed
+- [x] AC5 — ✅ **Mac and rig smoke pass (user):** nothing a writer does has changed
 
 ## Progress log
 
@@ -99,4 +99,7 @@ recommended.
 - **What the apps already get (no platform code changed):** the Mac inventory re-run, main-thread file operations —
   ending a sentence 1 → 0, ⌘Z 8 → 5, ⇧⌘Z 7 → 5, autosave 6 → 5; the remaining 5 are `scrivi_save_scene` (S2), the
   Inspector's reads and Spotlight (S3).
+
+### ✅ 2026-10-26 — AC5 met: the Mac and rig smoke pass (user, 2026-10-26: *"passes for Linux.  passes for macos."*)
+- T-0623 and T-0624 → ✅ Verified and archived. All five ACs met; ⏳ the close awaits the user's approval.
 
