@@ -8369,3 +8369,80 @@ struct StructuralCutTests {
         #expect(h.loader.segments.map(\.text) == ["Alpha Bravo", "Charlie Delta"])
     }
 }
+
+// MARK: - [SP-188] AC11 / EP-052 v0.2 — the main-thread inventory
+
+/// ⚠️ A MEASUREMENT, not a gate: every core call each writer gesture makes ON THE MAIN THREAD, with its file operations — the
+/// cost over a share, where each one is a network round trip — and its time here (local disk). Run on demand:
+/// `TEST_RUNNER_SCRIVI_INVENTORY=1 scripts/run-interop-tests.sh -only-testing:ScriviInteropTests/MainThreadInventoryTests`.
+@Suite("Main-thread inventory (EP-052 v0.2, on demand)")
+@MainActor
+struct MainThreadInventoryTests {
+    @Test("each gesture's main-thread core calls", .enabled(if: ProcessInfo.processInfo.environment["SCRIVI_INVENTORY"] != nil))
+    func inventory() async throws {
+        let para = "He wrote at speed, for serial publication. D'Artagnan arrives in Paris with a yellow horse and no money."
+        let bodies = (0..<40).map { i in (0..<6).map { _ in "\(i) " + para }.joined(separator: "\n\n") }
+        let h = try await UndoAfterStructuralOpTests().harness(bodies)
+        let ref = try #require(h.env.authorshipRef)
+        let engine = h.env.engine, root = h.root.path
+        func type(_ t: String) { for ch in t { h.tv.insertText(String(ch), replacementRange: h.tv.selectedRange()) } }
+        func landed() async throws { while h.loader.structuralInFlight { try await Task.sleep(for: .milliseconds(20)) } }
+        func select(_ a: Int, _ from: Int, _ b: Int, _ to: Int) {
+            h.c.ensureBoundaries(h.tv)
+            let start = h.c.sceneBoundaries[a].location + from
+            h.tv.setSelectedRange(NSRange(location: start, length: h.c.sceneBoundaries[b].location + to - start))
+        }
+        func measure(_ gesture: String, _ body: () async throws -> Void) async throws {
+            try await Task.sleep(for: .milliseconds(300))           // the previous gesture's debounced follow-ups land first
+            mainThreadCoreCalls.withLock { $0 = [] }
+            let before = coreCallCounts.withLock { $0.mainThreadCalls }
+            try await body()
+            try await Task.sleep(for: .milliseconds(300))           // this gesture's (viewport scene 80–120 ms)
+            let calls = mainThreadCoreCalls.withLock { c in defer { c = nil }; return c ?? [] }
+            let untraced = coreCallCounts.withLock { $0.mainThreadCalls } - before - calls.count
+            var order: [String] = [], by: [String: (n: Int, ops: Int64, ms: Int64)] = [:]
+            for c in calls {
+                if by[c.endpoint] == nil { order.append(c.endpoint) }
+                var e = by[c.endpoint] ?? (0, 0, 0); e.n += 1; e.ops += c.fileOps; e.ms += c.ms; by[c.endpoint] = e
+            }
+            let detail = order.map { k in "\(k)×\(by[k]!.n) (\(by[k]!.ops) ops, \(by[k]!.ms) ms)" }.joined(separator: ", ")
+            print("[INVENTORY] \(gesture) | calls \(calls.count) (+\(untraced) not project calls) | file ops \(calls.reduce(0) { $0 + $1.fileOps }) | \(detail.isEmpty ? "—" : detail)")
+        }
+
+        try await measure("click in the same scene") { h.caret(scene: 3, at: 10); h.caret(scene: 3, at: 40) }
+        try await measure("click into another scene") { h.caret(scene: 8, at: 5) }
+        try await measure("drag-select across scenes") { select(8, 5, 10, 5) }
+        try await measure("scroll to another scene") {
+            h.c.ensureBoundaries(h.tv)
+            h.tv.scrollRangeToVisible(NSRange(location: h.c.sceneBoundaries[20].location, length: 0))
+            h.c.scrollDidChange(Notification(name: NSView.boundsDidChangeNotification, object: h.tv.enclosingScrollView?.contentView))
+        }
+        try await measure("navigator click") { h.c.navigateToScene(h.loader.segments[30].sceneID, in: h.tv) }
+        try await measure("the Inspector follows to a new scene (every card)") {
+            let scene = h.loader.segments[30].sceneID
+            _ = SceneNotesModel(engine: engine, projectRootPath: root, sceneID: scene)
+            SourcesCardModel(engine: engine, projectRootPath: root, sceneID: scene).load()
+            for kind in ObjectCardKind.all {
+                _ = ObjectCardModel(engine: engine, projectRootPath: root, sceneID: scene, cardKind: kind)
+                _ = try? engine.listWorlds(projectRootPath: root)
+            }
+        }
+        h.caret(scene: 8, at: 5)
+        try await measure("type a word") { type("quick ") }
+        try await measure("end a sentence") { type("Done. ") }
+        try await measure("autosave (1 s after typing)") {
+            h.session.historyCapture?.flushThenSave()
+            await h.loader.saveCurrentIfDirty(engine: engine, ref: ref)
+        }
+        type("more ")
+        try await measure("switch to another app, after typing") { await h.session.saveAllDirty() }
+        try await measure("switch to another app, nothing typed") { await h.session.saveAllDirty() }
+        type("again. ")
+        try await measure("⌘Z (typing)") { h.c.performUndo() }
+        try await measure("⇧⌘Z (typing)") { h.c.performRedo() }
+        select(12, 5, 14, 5)
+        try await measure("⌘X across scenes (the main thread's part)") { h.tv.cut(nil); try await landed() }
+        try await measure("⌘Z of that cut (the main thread's part)") { h.c.performUndo(); try await landed() }
+        try await measure("opening: Spotlight donation") { h.session.donateSpotlight(projectRootPath: root) }
+    }
+}

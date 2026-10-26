@@ -1,6 +1,8 @@
 #pragma once
 
 #include <QObject>
+
+#include <functional>
 #include <QString>
 #include <QVariantMap>
 #include <QStringList>
@@ -658,6 +660,10 @@ public:
     static LockWaitStats lockWaitStats();
     // EP-053 S2a (SP-187): core calls made ON THE GUI THREAD, process-wide — the baseline S2b removes. Read by smokes.
     static qint64 guiThreadCallCount();
+    // [SP-188] AC11 / EP-052 inventory: each GUI-thread project call as the core traced it (endpoint, time after the lock,
+    // file operations) and its lock wait. The app logs them (`main.cpp`); smokes tabulate them. Set on the GUI thread only.
+    struct GuiCoreCall { QString endpoint; qint64 ms = 0; qint64 fileOps = 0; qint64 lockWaitMs = 0; };
+    static std::function<void(const GuiCoreCall&)>& guiCoreCallObserver();
 
 signals:
     void readyChanged();

@@ -387,6 +387,7 @@ struct ManuscriptTextView: NSViewRepresentable {
         // returned full scene text into that scene's storage range, restores the
         // cursor, and saves immediately.
         func performUndo() {
+            let span = ScriviDiag.begin("undo"); defer { ScriviDiag.end(span) }
             guard !isWritingOffMain, !parent.loader.structuralInFlight, let capture = parent.session.historyCapture else { return }
             // ✅ [I-0319] (user, 2026-10-24): asked BEFORE an undo of an earlier session's change, with Cancel — never for
             // this session's.
@@ -395,6 +396,7 @@ struct ManuscriptTextView: NSViewRepresentable {
         }
 
         func performRedo() {
+            let span = ScriviDiag.begin("redo"); defer { ScriviDiag.end(span) }
             guard !isWritingOffMain, !parent.loader.structuralInFlight, let capture = parent.session.historyCapture else { return }
             // ✅ [I-0320] (user, 2026-10-24): the branch chooser is a REDO question — shown here, never as an undo lands.
             if let fork = capture.redoFork(), let tv = textView {
@@ -845,6 +847,7 @@ struct ManuscriptTextView: NSViewRepresentable {
         // Updates the viewport scene (Navigator highlight) based on scroll position.
         // Does not load or release any scenes.
         @objc func scrollDidChange(_ notification: Notification) {
+            let span = ScriviDiag.begin("scrolled"); defer { ScriviDiag.end(span) }
             guard let clipView = notification.object as? NSClipView,
                   let tv = textView else { return }
             if !branchMarks.isEmpty || parent.session.historyCapture?.redoForkNow != nil { scheduleBranchMarks() }   // [SP-192]
@@ -1276,6 +1279,7 @@ struct ManuscriptTextView: NSViewRepresentable {
         }
 
         func textViewDidChangeSelection(_ notification: Notification) {
+            let span = ScriviDiag.begin("caret moved"); defer { ScriviDiag.end(span) }
             guard !isRebuilding else { return }
             guard let tv = notification.object as? NSTextView else { return }
             let loc = tv.selectedRange().location
@@ -1403,7 +1407,7 @@ struct ManuscriptTextView: NSViewRepresentable {
             switch outcome {
             case .success(let l): landing = l
             case .failure(let error):
-                print("[Scrivi] structural edit failed: \(error)")
+                NSLog("[SCRIVI-DIAG] structural edit failed: %@", String(describing: error))   // [SP-188] AC11: was print, never in the log
                 NSSound.beep()
                 failed?()
                 return

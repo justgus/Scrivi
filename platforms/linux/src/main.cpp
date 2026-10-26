@@ -1,4 +1,5 @@
 #include "DiagnosticLog.hpp"
+#include "ScriviBridge.hpp"
 #include "ManuscriptTypography.hpp"
 #include <QApplication>
 #include <cstdio>
@@ -76,6 +77,13 @@ int main(int argc, char* argv[])
     BundledFonts::registerAll();
     // [SP-185] T-0612: the diagnostic log (~/.local/state/scrivi/scrivi.log) — from here to the end of the session.
     DiagnosticLog::start(buildStamp());
+    // [SP-188] AC11: every GUI-thread core call that took time, touched a file or waited for the project's lock.
+    ScriviBridge::guiCoreCallObserver() = [](const ScriviBridge::GuiCoreCall& c) {
+        if (c.ms >= 1 || c.fileOps > 0 || c.lockWaitMs > 0) {
+            DiagnosticLog::note(QStringLiteral("core: %1 %2 ms, %3 file ops, lock wait %4 ms")
+                                    .arg(c.endpoint).arg(c.ms).arg(c.fileOps).arg(c.lockWaitMs));
+        }
+    };
 
     // ⚠️ [SP-146] T-0558 — Linux's FIRST app-level state owner.
     //

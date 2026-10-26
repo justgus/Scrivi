@@ -137,46 +137,6 @@ acceptance criteria written (user: *"Ok, lets complete the planning for EP-047."
 
 ---
 
-## EP-052: `[ScriviCore]` **Background Writes** — one ordered write queue per project, in the core
-
-**Status:** 🔵 **Draft** — created 2026-10-15 (user: *"A new Epic."*, ruling Q5 of the design). No Sprint assigned.
-**Design:** [`../Scrivi_Background_Writes_Design_v0_1.md`](../Scrivi_Background_Writes_Design_v0_1.md) — ✅ Q1–Q5 ruled
-2026-10-15. **Builds on:** `Scrivi_Core_Concurrency_Design_v0_1.md` (SP-173's per-project lock).
-**Codebase:** `[ScriviCore]` is home (the queue, the endpoints, the ordering rule). Apple and Linux adopt it in the SAME
-Sprint (`feedback_linux_adopts_apple_shape`), each AC verifiable on its own platform.
-⚠️ `Epic-GUIDELINES.md` prefers one Epic per platform; the user ruled ONE Epic (Q5), so the two adoptions are separate ACs.
-
-**Goal:** no write to a project, including undo, redo, Replace All, structural operations and the typing autosave, runs on
-the GUI thread. Every write to one project lands in the order it was made, by ONE rule in ScriviCore, and the editor never
-locks to wait for a save.
-
-**Why:** undoing a large Replace All writes every scene on the GUI thread (SP-181's finding); every typing autosave is a
-network write on the GUI thread over the share; and the two platforms each keep their own rule to stop an older write landing
-over a newer one, which have already drifted once ([I-0304] against [I-0259]).
-
-**Acceptance Criteria:**
-- [ ] **AC1 — `[ScriviCore]` The queue (W1, W3):** one writer thread per open project, first-in-first-out, coalescing a scene
-  queued again before its write starts; every synchronous endpoint that reads or writes scene files first waits for the
-  jobs queued before it; `scrivi_close_project` drains it.
-- [ ] **AC2 — `[ScriviCore]` The endpoints (W2, W4, W7):** queue scene saves and structural operations with a ticket; the
-  history log's appends (undo, redo, capture) join the same queue; the core tells history the persisted bytes itself;
-  `scrivi_wait_for_writes` reports every outcome, a failure included.
-- [ ] **AC3 — `[ScriviCore]` Tests:** boundary tests through `scrivi_*` (order, coalescing, read-after-queue, failure, close
-  drains) and a ThreadSanitizer stress run on macOS and Linux.
-- [ ] **AC4 — `[Apple]` Adoption:** autosave, Replace All, undo and redo writes, and structural operations go through the
-  queue; no project write on the main thread; the manuscript does not lock for a save (Q3); a failed write leaves its scene
-  dirty; close and quit wait ([I-0305]'s dialog). W6's platform-side ordering code is removed.
-- [ ] **AC5 — `[Linux]` Adoption:** the same, in the same Sprint as AC4.
-- [ ] **AC6 — Rig:** undoing a Replace All on dumas over the share does not freeze the window, and typing never waits on a save.
-- [ ] **AC7 — `[Linux]` Replace All shows its progress** (moved from [SP-185] AC5, user 2026-10-22: *"Move AC5 to EP-052"*):
-  [SP-185] Q3 as ruled 2026-10-17 — a real count (*"Replacing 312 of 2,048"*), and the view follows a few times a second,
-  showing replacements land. To be designed against the queue (it changes Replace All's locked-editor shape).
-**Rough span:** 2 Sprints: S1 ScriviCore (AC1–AC3), S2 Apple + Linux (AC4–AC7). Sequenced after [SP-181] closes.
-**Out of scope:** world writes (concurrency design D6), two processes on one project, the speed of the structural
-operations themselves.
-
----
-
 ## EP-051: `[Docs]` **Design Documentation Consolidation** — one living design document
 
 **Status:** 🔵 **Draft** — created 2026-10-10 (user, during [SP-173]: *"One living design document. Lets create folders for
@@ -960,6 +920,8 @@ project; sharing/binding across projects; repair for a world whose package moved
 *Last Updated: 2026-10-24 (alpha rulings (user): Debug; no Linux feedback channel; I-0308 stays in the backlog; version `1.0.<build>` → T-0622; EP-054 Q2 open (each paragraph a `<p>`); EP-055 Q5 TestFlight ready; EP-056 Q1 24.04 + 26.04.)*
 
 *Last Updated: 2026-10-24 (**EP-054** `[ScriviCore]` Import & Export, **EP-055** `[Apple]` iPad and iPhone, **EP-056** `[Linux]` Install on Ubuntu created in 🔵 Draft for the alpha release (user).)*
+
+*Last Updated: 2026-10-26 (**EP-052 → `Epic-active.md`** (user, 2026-10-26: *"close SP-188 and activate EP-052."*).)*
 
 *Last Updated: 2026-10-22 (**EP-052** gains AC7, Replace All's visible progress, moved from [SP-185] AC5 (user).)*
 

@@ -1,4 +1,5 @@
 import Foundation
+import Synchronization
 
 // ScriviDiag — PHASE TIMING for the open path (I-0196).
 //
@@ -135,5 +136,92 @@ enum ScriviDiag {
         order.removeAll()
         loopStarts.removeAll()
         runStart = nil
+    }
+}
+
+// MARK: — [SP-188] AC11: spans and the main-thread watchdog
+//
+// The Mac's half of Linux's `DiagnosticLog` (platforms/linux/src/DiagnosticLog.hpp): a span logs one `[SCRIVI-SPAN]` line
+// when it took ≥ 50 ms (or a begin and an end line when `always`), and the watchdog logs `[SCRIVI-STALL]` when the main
+// thread has not answered for 250 ms, with the main-thread spans running then. Same switch as the timing above.
+// ⛔ Never the writer's text: names and counts only.
+extension ScriviDiag {
+    static let slowSpanMs = 50.0
+    static let stallMs = 250.0
+
+    private struct Watch {
+        var running: [(name: String, since: Date)] = []   // the main thread's open spans, outermost first
+        var pingSent: Date?
+        var stallReported = false
+    }
+    private static let watch = Mutex(Watch())
+
+    /// Times `body` on whatever thread it runs; on the main thread it is also what a stall reports as running.
+    @discardableResult
+    static func span<T>(_ name: String, always: Bool = false, _ body: () throws -> T) rethrows -> T {
+        let token = begin(name, always: always)
+        defer { end(token) }
+        return try body()
+    }
+
+    struct SpanToken { let name: String; let since: Date; let onMain: Bool; let always: Bool }
+
+    /// `let span = ScriviDiag.begin("…"); defer { ScriviDiag.end(span) }` — a span over a whole function.
+    static func begin(_ name: String, always: Bool = false) -> SpanToken? {
+        guard timingEnabled else { return nil }
+        let token = SpanToken(name: name, since: Date(), onMain: Thread.isMainThread, always: always)
+        if always { note("\(name) started") }
+        if token.onMain { watch.withLock { $0.running.append((name, token.since)) } }
+        return token
+    }
+
+    static func end(_ token: SpanToken?) {
+        guard let token else { return }
+        if token.onMain { watch.withLock { _ = $0.running.popLast() } }
+        let ms = Date().timeIntervalSince(token.since) * 1000
+        if token.always || ms >= slowSpanMs { note(String(format: "%@ took %.0f ms", token.name, ms)) }
+    }
+
+    /// One line, from any thread.
+    static func note(_ text: String) {
+        guard timingEnabled else { return }
+        NSLog("[SCRIVI-SPAN] [%@] %@", Thread.isMainThread ? "main" : "worker", text)
+    }
+
+    /// Starts the watchdog thread (once, at launch).
+    static func startWatchdog() {
+        guard timingEnabled else { return }
+        let thread = Thread {
+            while true {
+                Thread.sleep(forTimeInterval: 0.1)
+                let now = Date()
+                let stalled: String? = watch.withLock { w in
+                    guard let sent = w.pingSent else {
+                        w.pingSent = now
+                        DispatchQueue.main.async { answered() }
+                        return nil
+                    }
+                    let ms = now.timeIntervalSince(sent) * 1000
+                    guard ms >= stallMs, !w.stallReported else { return nil }
+                    w.stallReported = true
+                    let running = w.running.map { String(format: "%@ (%.0f ms)", $0.name, now.timeIntervalSince($0.since) * 1000) }
+                    return String(format: "⚠ the window is not answering (%.0f ms so far); running: %@", ms,
+                                  running.isEmpty ? "nothing named" : running.joined(separator: " > "))
+                }
+                if let stalled { NSLog("[SCRIVI-STALL] %@", stalled) }
+            }
+        }
+        thread.name = "ScriviDiag watchdog"
+        thread.start()
+    }
+
+    private static func answered() {
+        let now = Date()
+        let after: Double? = watch.withLock { w in
+            defer { w.pingSent = nil; w.stallReported = false }
+            guard w.stallReported, let sent = w.pingSent else { return nil }
+            return now.timeIntervalSince(sent) * 1000
+        }
+        if let after { NSLog("[SCRIVI-STALL] the window is answering again, after %.0f ms", after) }
     }
 }

@@ -1,20 +1,20 @@
 ---
 sprint: SP-188
 epic: EP-053
-status: Active
+status: Closed
 platform: Cross
 created: 2026-10-20
 ---
 
 # SP-188 — `[Apple]` + `[Linux]` [EP-053] **S3**: structural cut, Backspace / Delete over scenes, and their undo
 
-**Status:** 🟡 **ACTIVE** 2026-10-22 (user: *"activate and implement SP-188"*) — created 2026-10-20 (user: *"complete planning for EP-053"*); code re-read 2026-10-22 after
+**Status:** ✅ **CLOSED** 2026-10-26 (user, 2026-10-26: *"close SP-188 and activate EP-052."*), with AC11's Mac pass over a share carried to [SP-190] — activated 2026-10-22 (user: *"activate and implement SP-188"*) — created 2026-10-20 (user: *"complete planning for EP-053"*); code re-read 2026-10-22 after
 [SP-191]. ✅ Q1–Q6 ruled 2026-10-22 (user: *"Q1–Q6 agreed as recommended"*).
-**Carries:** [T-0616] (🟠 Implemented - Not Verified) → [`../Tasks/Task-unverified.md`](../Tasks/Task-unverified.md). · [I-0319] (🟠 Resolved - Not Verified), [I-0320] and [I-0321] (✅ Verified), added 2026-10-24 → [`../Issues/Issue-active.md`](../Issues/Issue-active.md).
-**Epic:** [EP-053] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md).
+**Carries:** [T-0616] (🟠 Implemented - Not Verified) → [`../Tasks/Task-unverified.md`](../../Tasks/Task-unverified.md). · [I-0319], [I-0320] and [I-0321] (✅ Verified, archived), added 2026-10-24 → [`../Issues/Issue-active.md`](../../Issues/Issue-active.md).
+**Epic:** [EP-053] → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md).
 **Builds on:** [SP-186] (S1, `scrivi_range_cut`) · [SP-187] + [SP-191] (S2a + S2b: the scene list as the model of record, the delta applied,
 `rangePaste` / `rangeCut` history, the one off-main path).
-**Authority:** [`../Scrivi_Structured_CutCopyPaste_Design_v0_4.md`](../Scrivi_Structured_CutCopyPaste_Design_v0_4.md) (v0.4, 2026-10-22, this Sprint's
+**Authority:** [`../Scrivi_Structured_CutCopyPaste_Design_v0_4.md`](../../Scrivi_Structured_CutCopyPaste_Design_v0_4.md) (v0.4, 2026-10-22, this Sprint's
 Q1–Q6 in §1c; supersedes v0.3) — R4, §4.3, §4.5, Q2, Q4. ⛔ R4 **reverses** the 2026-10-02 ruling ([I-0270]: a cross-scene cut deletes text and keeps scenes).
 **Ruling that shaped it (user, 2026-10-20):** ✅ each operation ships with its undo; ✅ the `rangeCut` history op name is
 approved, backward-compatible.
@@ -140,7 +140,8 @@ no reload. Undo is a range paste; redo is the cut again.
 - [x] AC9 — Tests on both, mutation-checked; ctest (Mac and Linux), interop and Linux smokes green; zero main-thread core
       calls of the cut's own
 - [x] AC10 — The design doc is at v0.4 with Q1–Q6
-- [ ] AC11 — ✅ **Live passes (user):** Mac and rig, over the share, each operation timed
+- [ ] AC11 — ✅ **Live passes (user):** Mac and rig, over the share, each operation timed — ✅ rig over the share
+      (2026-10-23), ✅ Mac on a local disk (2026-10-24); ➡️ **the Mac over a share carried to [SP-190]** (EP-053 S5) at the close
 
 ## Progress log
 
@@ -258,3 +259,62 @@ no reload. Undo is a range paste; redo is the cut again.
 ### 🟡 2026-10-24 — [I-0321] verified (user)
 - User: *"I-0321 passes, mark it verified"* → archived (`Issues/Verified/Issue-verified-0321-0330.md`). Open here:
   [I-0319]'s Linux half and AC11 (rig).
+
+### 🟡 2026-10-25 — [I-0319] Linux half ✅ (user, rig, 1.0.297)
+- User: *"Steps 1 - 8 passed. We can mark T-622 and I-0319 verified."* → [I-0319] ✅ Verified (Mac and rig) and archived
+  (`Issues/Verified/Issue-verified-0311-0320.md`).
+- ⏳ Open here: AC11's **Mac pass over a share** (the 2026-10-24 Mac pass ran on a local disk; the rig half passed
+  2026-10-23). User's proposal: the rig re-shares `/mnt/scrivi-other` and `/mnt/scrivi-worlds` back to the Mac, so the
+  Mac's own drive comes back through two network hops.
+
+### 🟡 2026-10-26 — AC11 Mac over the share: the loop set up
+- The rig's Samba re-shares `/mnt/scrivi-other` and `/mnt/scrivi-worlds` (`ScriviOtherLoop`, `ScriviWorldsLoop`,
+  oplocks off); the Mac mounts both. Probe from the Mac: write + rename through both hops 719 ms; a 58-entry listing
+  1,062 ms; a write on either side is seen on the other (one hop alone: ~8 ms RTT).
+- Fixture: `dumas-loop-test.scrivi`, a local copy of `dumas-prose-timelines.scrivi` on the drive (identical by `diff -rq`).
+
+### 🟡 2026-10-26 — AC11 Mac over the loop: steps 1–4 ✅ but minutes each; step 5 ❌; timing added
+- User: *"almost every operation took minutes to complete. Each step from 1 to 4 did what was expected."* The connection
+  was lost twice and Scrivi reported the project unavailable (log: 09:22:32 → reachable 09:24:12; 09:46:49 → 09:47:08;
+  a write failed *"could not open temp file for writing"* each time). Step 5 (⌫ across scenes) three times: *"a flashed
+  screen"* only (a beep, by the screen-flash setting). Clicking into the manuscript and scrolling beachballed; the pass
+  stopped after step 5.
+- From the Mac's unified log (`[SCRIVI-…]`, captured 08:42–10:17):
+  - ⚠️ **The open spent 352.7 s in `donateSpotlight`**, on the main actor (`ProjectSession.load`, `@MainActor`): the
+    window was frozen ~6 min before the first edit. On the local drive the same phase took 0.29 s.
+  - ⚠️ **Every switch away from Scrivi writes on the main thread** (`onAppResign` → `saveAllDirtyBlocking` →
+    `stampWritingSurfaceBlocking`): 3.5 s per switch typically, once 3 min 18 s (09:55:48 → 09:59:06).
+  - A caret move into another scene saved the scene blocking (`saveSceneBlocking`, ~4.5 s); one keystroke's
+    `didChangeText` took 622 ms, all of it outside Scrivi's measured parts.
+  - ⛔ The structural edits themselves left no timing (the Mac logged none), and a failed one only `print`ed its error:
+    step 5's cause is not in the log.
+- ✅ Timing added (user: *"add the timing logging"*), the Mac's half of Linux's `DiagnosticLog`, under the same
+  `SCRIVI_DIAG_TIMING` switch: `ScriviDiag.span` / `begin`–`end` (`[SCRIVI-SPAN]`, logged when ≥ 50 ms) and a main-thread
+  watchdog (`[SCRIVI-STALL]`: not answering for 250 ms, with the spans running, and when it answers again). Spans: each
+  structural edit (started, unsaved scenes written, core call, applied, landed / FAILED with the total), undo, redo,
+  caret moved, scrolled, viewport scene changed, save scene, save all dirty, stamp the writing surface. A failed
+  structural edit now logs its error (`[SCRIVI-DIAG] structural edit failed`). Watchdog checked in a harness (a 600 ms
+  block: reported at 310 ms with both spans named; *answering again, after 602 ms*). Build clean, no warnings; interop
+  316 passed, 1 skipped (the on-demand typography cost), 0 failed.
+
+### 🟡 2026-10-26 — the re-run held; the inventory and EP-052 v0.2 instead (user)
+- User: *"I'm not doing the re-run yet. I think we are being naive with regard to operations that must be performed on
+  the main thread."* Then: *"do the inventory and draft v0.2"*, with two lock mechanisms (memory and disk) and the
+  question whether Spotlight can leave the main thread (✅ yes: Apple's `CSSearchableIndex` sets only a one-thread-at-a-time
+  rule).
+- ✅ Measurement added: every project envelope carries `trace` (`endpoint`, `ms` after the lock, `fileOps` on its thread;
+  `ProjectLock.cpp`, `AtomicWrite.cpp`, `scrivi_c_api.cpp`; boundary test `[SP-188] every project envelope names its
+  endpoint…`). The Mac logs and records main-thread calls (`decodeCWithRevision`), Linux GUI-thread calls
+  (`ScriviBridge::guiCoreCallObserver`, logged by `main.cpp`). Probes: Mac `MainThreadInventoryTests`, Linux
+  `structural_baseline_smoke` with `SCRIVI_INVENTORY=1`. Results and design: `docs/Scrivi_Background_Writes_Design_v0_2.md`
+  (DRAFT, Q1–Q7). AC11's Mac pass waits on that work.
+
+### ✅ 2026-10-26 — CLOSED (user, 2026-10-26: *"close SP-188 and activate EP-052."*)
+- AC1–AC10 met. AC11: the rig pass over the share ✅ (2026-10-23, all 9 steps) and the Mac pass on a local disk ✅
+  (2026-10-24); the Mac pass over a share is ➡️ **carried to [SP-190]** (EP-053 S5: Mac and rig live passes over the share,
+  timed), after [EP-052]'s work makes it bearable. Its first attempt (the two-hop loop, 2026-10-26) took minutes per
+  step and stopped at step 5; that is the evidence EP-052 v0.2 is built on.
+- [T-0616] stays 🟠 Implemented - Not Verified: its last check is that Mac pass ([SP-190]).
+- [I-0319], [I-0320], [I-0321] ✅ Verified and archived. Found here and in the backlog: [I-0317], [I-0318].
+- The measurement added at the end (the envelope `trace`, the main-thread recorders, the two inventory probes) is
+  [EP-052]'s (activated the same day).

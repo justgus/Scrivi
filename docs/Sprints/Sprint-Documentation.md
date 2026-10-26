@@ -455,12 +455,13 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-185** | `[Linux]` **[EP-026]** — responsive after load: [I-0308], [I-0307], [I-0297], [I-0309]; the diagnostic log (T-0612) | EP-026 | 2026-10-17 | 2026-10-22 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-185.md) |
 | **SP-186** | `[ScriviCore]` **[EP-053] S1** — the Range and the range operations: read, paste ([I-0311]), structural cut; the delta; 4 reads + 4 writes (T-0614) | EP-053 | 2026-10-17 | 2026-10-20 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-186.md) |
 | **SP-187** | `[Cross]` **[EP-053] S2a** — the scene list as the model of record, no visible change; the range bindings and delta types (T-0615) | EP-053 | 2026-10-20 | 2026-10-21 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-187.md) |
-| **SP-188** | `[Cross]` **[EP-053] S3** — structural cut, Backspace / Delete over scenes, and their undo (T-0616) | EP-053 | 2026-10-22 | — | 🟡 **ACTIVE** → [`Sprint-SP-188.md`](Sprint-SP-188.md) |
+| **SP-188** | `[Cross]` **[EP-053] S3** — structural cut, Backspace / Delete over scenes, and their undo (T-0616) | EP-053 | 2026-10-22 | 2026-10-26 | ✅ **CLOSED** (user-approved; AC11's Mac pass over a share → SP-190) → [record](Closed/Sprint-SP-188.md) |
 | **SP-189** | `[Cross]` **[EP-053] S4** — the background sync verification: disk wins, silently (T-0617) | EP-053 | — | — | 🔵 **PLANNING** → [`Sprint-SP-189.md`](Sprint-SP-189.md) |
 | **SP-190** | `[Cross]` **[EP-053] S5** — Mac and rig live passes over the share, timed (T-0618) | EP-053 | — | — | 🔵 **PLANNING** → [`Sprint-SP-190.md`](Sprint-SP-190.md) |
 | **SP-191** | `[Cross]` **[EP-053] S2b** — copy, paste and its undo, split and merge: as deltas, off the main thread, no reload (T-0619) | EP-053 | 2026-10-21 | 2026-10-22 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-191.md) |
 | **SP-192** | `[Apple]` the branch-point marker: where ⇧⌘Z will ask which branch (T-0620) | — | 2026-10-24 | 2026-10-24 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-192.md) |
-| **SP-193** | `[Cross]` **[EP-054] S0** — fix before the alpha (I-0306, I-0313, I-0202) and one version on every platform (T-0622) | EP-054 | 2026-10-24 | — | 🟡 **ACTIVE** → [`Sprint-SP-193.md`](Sprint-SP-193.md) |
+| **SP-193** | `[Cross]` **[EP-054] S0** — fix before the alpha (I-0306, I-0313, I-0202) and one version on every platform (T-0622) | EP-054 | 2026-10-24 | 2026-10-25 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-193.md) |
+| **SP-194** | `[ScriviCore]` **[EP-052] S1** — two locks per project and the write queue (T-0623, T-0624) | EP-052 | 2026-10-26 | — | 🟡 **ACTIVE** → [`Sprint-SP-194.md`](Sprint-SP-194.md) |
 | **SP-160** | `[Linux]` **[EP-049] S1** — Linux writes Apple's manuscript format: escaping, paste/copy, pair deletion, Return/⌫, shared corpus (T-0586); + I-0276 | EP-049 | 2026-10-04 | 2026-10-04 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-160.md) |
 
 ## Statistics
@@ -502,6 +503,14 @@ by status, read the table.**
 ---
 
 *Last Updated: 2026-10-22 (**SP-185 → ✅ CLOSED** (user: *"SP-185 can be closed (authorized)."*); I-0309, I-0310, T-0612 verified and archived; AC5 → EP-052.)*
+
+*Last Updated: 2026-10-26 (**SP-194 → 🟡 ACTIVE** (user: *"(a) agreed, activate SP-194"*); Q1 ruled (a); T-0623, T-0624 → active.)*
+
+*Last Updated: 2026-10-26 (**SP-194 created** in 🔵 Planning as EP-052 S1 (user: *"Q1–Q7 agreed as recommended"*).)*
+
+*Last Updated: 2026-10-26 (**SP-188 → ✅ CLOSED** (user, 2026-10-26: *"close SP-188 and activate EP-052."*); AC11's Mac pass over a share carried to SP-190; T-0616 stays unverified.)*
+
+*Last Updated: 2026-10-25 (**SP-193 → ✅ CLOSED** (user, 2026-10-25: *"I approve closing SP-193."*); T-0622, I-0306, I-0313 verified and archived.)*
 
 *Last Updated: 2026-10-24 (**SP-193 → 🟡 ACTIVE** as EP-054 S0 (user: *"activate SP-193"*); T-0622 → active; EP-054 → active.)*
 

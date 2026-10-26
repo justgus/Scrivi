@@ -38,6 +38,26 @@ ScriviBridge::LockWaitStats ScriviBridge::lockWaitStats()
 }
 
 static std::atomic<qint64> gGuiThreadCalls{0};   // EP-053 S2a baseline
+static bool onGuiThread()
+{
+    return QCoreApplication::instance() != nullptr && QThread::currentThread() == QCoreApplication::instance()->thread();
+}
+std::function<void(const ScriviBridge::GuiCoreCall&)>& ScriviBridge::guiCoreCallObserver()
+{
+    static std::function<void(const GuiCoreCall&)> observer;
+    return observer;
+}
+
+// [SP-188] AC11: hands a GUI-thread project call's `trace` (and its lock wait) to the observer. Both envelope readers call it.
+static void reportGuiCoreCall(const QJsonObject& root)
+{
+    if (!onGuiThread() || !root.contains(QStringLiteral("trace")) || !ScriviBridge::guiCoreCallObserver()) { return; }
+    const QJsonObject t = root.value(QStringLiteral("trace")).toObject();
+    ScriviBridge::guiCoreCallObserver()({t.value(QStringLiteral("endpoint")).toString(),
+                                         static_cast<qint64>(t.value(QStringLiteral("ms")).toDouble()),
+                                         static_cast<qint64>(t.value(QStringLiteral("fileOps")).toDouble()),
+                                         static_cast<qint64>(root.value(QStringLiteral("lockWaitMs")).toDouble())});
+}
 qint64 ScriviBridge::guiThreadCallCount() { return gGuiThreadCalls.load(); }
 
 // RAII guard for the heap-allocated JSON strings ScriviCore returns. Every
@@ -1947,7 +1967,7 @@ QVariantMap ScriviBridge::parseEnvelope(const QString& json)
     // an empty result map alone cannot carry this.
     tlsLastCallFailed = false;
     tlsLastRevision = -1;
-    if (QCoreApplication::instance() != nullptr && QThread::currentThread() == QCoreApplication::instance()->thread()) {
+    if (onGuiThread()) {
         ++gGuiThreadCalls;   // EP-053 S2a baseline
     }
 
@@ -1967,6 +1987,7 @@ QVariantMap ScriviBridge::parseEnvelope(const QString& json)
     if (root.contains(QStringLiteral("revision"))) {
         tlsLastRevision = static_cast<qint64>(root.value(QStringLiteral("revision")).toDouble());
     }
+    reportGuiCoreCall(root);
     if (root.contains(QStringLiteral("lockWaitMs"))) {
         const qint64 waited = static_cast<qint64>(root.value(QStringLiteral("lockWaitMs")).toDouble());
         gLockWaitTotalMs += waited;
@@ -2056,6 +2077,7 @@ QVariantMap historyEnvelope(const char* endpoint, const char* json)
     const QString text = envelope.toQString();
     tlsLastCallFailed = false;
     const QJsonObject root = QJsonDocument::fromJson(text.toUtf8()).object();
+    reportGuiCoreCall(root);
     if (!root.value(QStringLiteral("ok")).toBool()) {
         tlsLastCallFailed = true;
         qWarning("[EP-026] %s failed: %s", endpoint,

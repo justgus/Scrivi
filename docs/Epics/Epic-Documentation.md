@@ -90,7 +90,7 @@ user-approved), ⛔ not from either copy.\*\* ⚠️ **The table is now ONE unbr
 | EP-049 | `[Linux]` **Manuscript Storage Format on Linux** — ⚠️ **the escape layer's WRITE half: Linux writes the same `.md` Apple does** (escaping, paste/copy, pair deletion, Return/Backspace)                                                                  | ✅ **CLOSED 2026-10-05** (user-approved) — all ACs met; SP-160 → [record][18]                                                                                                                                                                                                                     | 2026-10-04 | 2026-10-05 |
 | EP-050 | `[Apple]` **Manuscript Accessibility** — VoiceOver reads the page at rest (one presented⇄storage translation layer across every AX member) + a Headings rotor; Linux measured ([I-0277])                                                                 | 🟡 **ACTIVE** 2026-10-08 — rulings A1–A3, AC1–AC6; S1 = [SP-171] (🟡 active)                                                                                                                                                                                                                     | 2026-10-08 | —          |
 | EP-051 | `[Docs]` **Design Documentation Consolidation** — one living design document; `docs/studies`, `docs/runbooks`, `docs/archives`; CLAUDE.md points at the design document | 🔵 **Draft** (backlog) 2026-10-10 | — | — |
-| EP-052 | `[ScriviCore]` **Background Writes** — one ordered write queue per project in the core: undo, redo, Replace All, structural operations and the autosave off the GUI thread; Apple and Linux adopt it together | 🔵 **Draft** (backlog) 2026-10-15 | — | — |
+| EP-052 | `[ScriviCore]` **Background Writes** — one ordered write queue per project in the core: undo, redo, Replace All, structural operations and the autosave off the GUI thread; Apple and Linux adopt it together | 🟡 **ACTIVE** 2026-10-26 — v0.2 ruled; S1 = SP-194 (🟡 Active) | 2026-10-26 | — |
 | EP-053 | `[Cross]` **Range-Based Structural Editing** — cut, copy, paste and undo as one Range and one core call, applied in memory with no reload; the same on the Mac and Linux | 🟡 **ACTIVE** 2026-10-17 | [SP-186]–[SP-191] | — |
 | EP-054 | `[ScriviCore]` **Import & Export** — project archives (with history), worlds, manuscript export (formatted HTML for fanfic, Markdown, .docx, PDF, ePub) and import (Markdown, .docx, Scrivener); for the alpha | 🟡 **ACTIVE** 2026-10-24 | [SP-193] (S0) |
 | EP-055 | `[Apple]` **iPad and iPhone** — the full app on iPad, a phone surface (incl. the iPhone Duo), TestFlight; for the alpha | 🔵 **Draft** (backlog) 2026-10-24 | — |
@@ -135,6 +135,12 @@ ruling **R-23(②)**. **To count Epics by status, read the table.**
 *Last Updated: 2026-10-15 (**EP-048**: S4b and S5a–S5c planned as [SP-181]–[SP-184] (🔵 Planning); the S5 split awaits [SP-182] Q2. The index row's stale *"SP-166 (S2) active"* replaced by a pointer.)*
 
 *Last Updated: 2026-10-15 (**EP-026**: [SP-179] (S5) CLOSED (user-approved); [I-0287] VERIFIED; the index row's stale *"S1 next"* replaced by a pointer.)*
+
+*Last Updated: 2026-10-26 (**EP-052**: design v0.2 Q1–Q7 ruled (user: *"Q1–Q7 agreed as recommended"*); ACs AC0, AC8–AC10 added; S1 = SP-194 (🔵 Planning).)*
+
+*Last Updated: 2026-10-26 (**EP-052 → 🟡 ACTIVE** (user, 2026-10-26: *"close SP-188 and activate EP-052."*); design v0.2 drafted, Q1–Q7 to rule. **EP-053**: S3 [SP-188] ✅ closed.)*
+
+*Last Updated: 2026-10-25 (**EP-054**: S0 [SP-193] ✅ closed; the Epic stays 🟡 Active, its Q1–Q6 to rule before S1.)*
 
 *Last Updated: 2026-10-24 (**EP-054 → 🟡 ACTIVE** with [SP-193] (S0).)*
 

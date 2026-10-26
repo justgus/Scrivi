@@ -75,6 +75,7 @@ std::string errnoDetail(int err) {
 } // namespace
 
 Result<bool> LocalFileSystem::exists(const AbsolutePath& path) {
+    util::countFileOperation();
     std::error_code ec;
     bool result = fs::exists(path, ec);
     if (ec) { return Result<bool>::failure({.code=ErrorCode::ioError, .message=ec.message(), .path=path});
@@ -83,6 +84,7 @@ Result<bool> LocalFileSystem::exists(const AbsolutePath& path) {
 }
 
 Result<std::uint64_t> LocalFileSystem::deviceID(const AbsolutePath& path) {
+    util::countFileOperation();
     // T-0498 (SP-124), for [I-0181]. See Services.hpp for what this proves and,
     // more importantly, what it does NOT.
     //
@@ -116,6 +118,7 @@ Result<std::uint64_t> LocalFileSystem::deviceID(const AbsolutePath& path) {
 }
 
 Result<bool> LocalFileSystem::isDirectory(const AbsolutePath& path) {
+    util::countFileOperation();
     std::error_code ec;
     bool result = fs::is_directory(path, ec);
     if (ec) { return Result<bool>::failure({.code=ErrorCode::ioError, .message=ec.message(), .path=path});
@@ -124,6 +127,7 @@ Result<bool> LocalFileSystem::isDirectory(const AbsolutePath& path) {
 }
 
 Result<void> LocalFileSystem::createDirectories(const AbsolutePath& path) {
+    util::countFileOperation();
     // I-0191 / AC2: ScriviCore must NEVER create a directory whose name holds
     // unprintable characters. Enforced HERE rather than at the call sites --
     // this is the single virtual chokepoint every core directory write passes
@@ -150,6 +154,7 @@ Result<void> LocalFileSystem::createDirectories(const AbsolutePath& path) {
 }
 
 Result<Utf8Text> LocalFileSystem::readTextFile(const AbsolutePath& path) {
+    util::countFileOperation();
     // T-0478: errno is captured BEFORE anything else can clobber it.
     //
     // ⚠️ `std::ifstream` discards the reason a file could not be opened -- every
@@ -188,6 +193,7 @@ Result<void> LocalFileSystem::atomicWriteTextFile(const AbsolutePath& path, std:
 
 Result<void> LocalFileSystem::createFileExclusive(const AbsolutePath& path,
                                                    std::string_view utf8Text) {
+    util::countFileOperation();
     // O_CREAT|O_EXCL is atomic at the OS level: exactly one caller can create
     // the file, and everyone else gets EEXIST. An exists()-then-write sequence
     // would race — both callers could see "absent" before either wrote.
@@ -232,6 +238,7 @@ Result<void> LocalFileSystem::createFileExclusive(const AbsolutePath& path,
 }
 
 Result<void> LocalFileSystem::appendTextFile(const AbsolutePath& path, std::string_view utf8Text) {
+    util::countFileOperation();
     std::ofstream out(path, std::ios::binary | std::ios::app);
     if (!out) {
         return Result<void>::failure({.code=ErrorCode::ioError, .message="could not open file for append", .path=path});
@@ -263,6 +270,7 @@ Result<void> LocalFileSystem::appendTextFile(const AbsolutePath& path, std::stri
 // today; if one appears, give it a separate explicitly-named method rather than
 // removing this filter.
 Result<std::vector<AbsolutePath>> LocalFileSystem::listDirectory(const AbsolutePath& path) {
+    util::countFileOperation();
     std::error_code ec;
     std::vector<AbsolutePath> entries;
     for (const auto& entry : fs::directory_iterator(path, ec)) {
@@ -279,6 +287,7 @@ Result<std::vector<AbsolutePath>> LocalFileSystem::listDirectory(const AbsoluteP
 }
 
 Result<void> LocalFileSystem::removeFile(const AbsolutePath& path) {
+    util::countFileOperation();
     std::error_code ec;
     fs::remove(path, ec);
     if (ec) { return Result<void>::failure({.code=ErrorCode::ioError, .message=ec.message(), .path=path});
@@ -287,6 +296,7 @@ Result<void> LocalFileSystem::removeFile(const AbsolutePath& path) {
 }
 
 Result<void> LocalFileSystem::renamePath(const AbsolutePath& from, const AbsolutePath& to) {
+    util::countFileOperation();
     std::error_code ec;
 
     // `from` must exist — renaming a missing path is a caller error, not I/O noise.
@@ -327,6 +337,7 @@ Result<void> LocalFileSystem::copyFileInBlocks(
     std::size_t blockSize,
     const std::function<Result<void>()>& onBlock)
 {
+    util::countFileOperation();
     if (blockSize == 0) { blockSize = 1u << 20; }   // 1 MiB default
 
     std::ifstream in(from, std::ios::binary);

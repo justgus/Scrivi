@@ -1,8 +1,63 @@
 # Active Epics
 
+## EP-052: `[ScriviCore]` **Background Writes** — one ordered write queue per project, in the core
+
+**Status:** 🟡 **ACTIVE 2026-10-26** (user, 2026-10-26: *"close SP-188 and activate EP-052."*) — created 2026-10-15 (user: *"A new Epic."*, ruling Q5 of the design). S1 = [SP-194] (🟡 Active 2026-10-26).
+**Design:** [`../Scrivi_Background_Writes_Design_v0_1.md`](../Scrivi_Background_Writes_Design_v0_1.md) — ✅ Q1–Q5 ruled
+2026-10-15. **Builds on:** `Scrivi_Core_Concurrency_Design_v0_1.md` (SP-173's per-project lock).
+✅ **v0.2 RULED 2026-10-26** (user: *"Q1–Q7 agreed as recommended"*): [`../Scrivi_Background_Writes_Design_v0_2.md`](../Scrivi_Background_Writes_Design_v0_2.md) —
+the main thread is for the screen: the main-thread inventory (Mac + Linux), two locks per project (memory and disk),
+reads off the main thread, Spotlight in the background. Q4 (objects cached in memory) and Q6 (level 5) are not now.
+**Codebase:** `[ScriviCore]` is home (the queue, the endpoints, the ordering rule). Apple and Linux adopt it in the SAME
+Sprint (`feedback_linux_adopts_apple_shape`), each AC verifiable on its own platform.
+⚠️ `Epic-GUIDELINES.md` prefers one Epic per platform; the user ruled ONE Epic (Q5), so the two adoptions are separate ACs.
+
+**Goal:** no write to a project, including undo, redo, Replace All, structural operations and the typing autosave, runs on
+the GUI thread. Every write to one project lands in the order it was made, by ONE rule in ScriviCore, and the editor never
+locks to wait for a save.
+
+**Why:** undoing a large Replace All writes every scene on the GUI thread (SP-181's finding); every typing autosave is a
+network write on the GUI thread over the share; and the two platforms each keep their own rule to stop an older write landing
+over a newer one, which have already drifted once ([I-0304] against [I-0259]).
+
+**Acceptance Criteria:**
+- [ ] **AC0 — `[ScriviCore]` Two locks per project (v0.2 Q1):** a memory lock (M) and a disk lock (D) replace SP-173's
+  single exclusive lock; D before M, never M before D; an endpoint that touches no file takes M only.
+- [ ] **AC1 — `[ScriviCore]` The queue (W1, W3):** one writer thread per open project, first-in-first-out, coalescing a scene
+  queued again before its write starts; every synchronous endpoint that reads or writes scene files first waits for the
+  jobs queued before it; `scrivi_close_project` drains it.
+- [ ] **AC2 — `[ScriviCore]` The endpoints (W2, W4, W7):** queue scene saves and structural operations with a ticket; the
+  history log's appends (undo, redo, capture) join the same queue; the core tells history the persisted bytes itself;
+  `scrivi_wait_for_writes` reports every outcome, a failure included.
+- [ ] **AC3 — `[ScriviCore]` Tests:** boundary tests through `scrivi_*` (order, coalescing, read-after-queue, failure, close
+  drains) and a ThreadSanitizer stress run on macOS and Linux.
+- [ ] **AC4 — `[Apple]` Adoption:** autosave, Replace All, undo and redo writes, and structural operations go through the
+  queue; no project write on the main thread; the manuscript does not lock for a save (Q3); a failed write leaves its scene
+  dirty; close and quit wait ([I-0305]'s dialog). W6's platform-side ordering code is removed.
+- [ ] **AC5 — `[Linux]` Adoption:** the same, in the same Sprint as AC4.
+- [ ] **AC6 — Rig:** undoing a Replace All on dumas over the share does not freeze the window, and typing never waits on a save.
+- [ ] **AC7 — `[Linux]` Replace All shows its progress** (moved from [SP-185] AC5, user 2026-10-22: *"Move AC5 to EP-052"*):
+  [SP-185] Q3 as ruled 2026-10-17 — a real count (*"Replacing 312 of 2,048"*), and the view follows a few times a second,
+  showing replacements land. To be designed against the queue (it changes Replace All's locked-editor shape).
+- [ ] **AC8 — `[Apple]` + `[Linux]` Reads off the main thread (v0.2 Q2, R3):** the Inspector and the timeline load as
+  one read job each; a result whose revision moved is dropped; a click, select or scroll makes no file operation on the
+  main thread (the inventory probes read 0).
+- [ ] **AC9 — `[Apple]` Spotlight in the background (v0.2 Q3):** one serial queue, per-scene re-index, behind the saves;
+  no Spotlight work on the main thread at open or on app switch.
+- [ ] **AC10 — Gesture cues (v0.2 Q5):** every queued gesture shows a cue at once; a repeat is ignored while one is
+  pending; ⌘Z waits its turn and never cancels a write.
+**Rough span (v0.2 Q7):** 3 Sprints: S1 ScriviCore (AC0–AC3), S2 Apple + Linux writes queued (AC4–AC7, AC10),
+S3 Apple + Linux reads off the main thread + Spotlight (AC8, AC9). Each ends with a live pass over the loop share.
+**Out of scope:** world writes (concurrency design D6), two processes on one project, the speed of the structural
+operations themselves.
+
+---
+
+---
+
 ## EP-054: `[ScriviCore]` **Import & Export** — projects, worlds and manuscripts in and out
 
-**Status:** 🟡 **ACTIVE** 2026-10-24 with [SP-193] (S0) — created 2026-10-24 (user: *"Lets start planning these features."*). ⚠️ The Epic's own Q1–Q6 are still to rule before S1.
+**Status:** 🟡 **ACTIVE** 2026-10-24 — S0 ([SP-193]) ✅ closed 2026-10-25; no Sprint active — created 2026-10-24 (user: *"Lets start planning these features."*). ⚠️ The Epic's own Q1–Q6 are still to rule before S1.
 **Codebase:** `[ScriviCore]` is home: the archive, the format writers and readers, behind `scrivi_*` endpoints. Each
 platform's File menu / share sheet is its own AC (the [EP-052] precedent; see Q1).
 **Goal:** a writer can **bring existing work in**, **take the manuscript out** in the formats they publish in (including
@@ -47,7 +102,7 @@ and `scrivi_import_from_inbox`. A scene's text is Markdown (`.md`), so Markdown 
 | **Q5** | **Order for the alpha.** | Archive + worlds first (testers move work and send you projects); then **HTML** and Markdown; then `.docx`; then PDF and ePub; **Scrivener import last** (the most complex format). |
 | **Q6** | **Where each format is produced.** | In the core: Markdown, HTML, `.docx` and ePub (text and zipped XML). **PDF on each platform** from the HTML (PDFKit / Qt's PDF writer): page layout is a platform strength. |
 
-**Provisional Sprints:** **S0 = [SP-193]** (🔵 Planning, 2026-10-24): fix before the alpha ([I-0306], [I-0313], [I-0202]) and one version everywhere ([T-0622]) · S1 archive + worlds (core) · S2 archive surfaces (Mac, Linux, iPad) · S3 Markdown + HTML export ·
+**Provisional Sprints:** **S0 = [SP-193]** (✅ Closed 2026-10-25): fix before the alpha ([I-0306], [I-0313], [I-0202]) and one version everywhere ([T-0622]) · S1 archive + worlds (core) · S2 archive surfaces (Mac, Linux, iPad) · S3 Markdown + HTML export ·
 S4 `.docx` export · S5 PDF + ePub · S6 Markdown/text + `.docx` import · S7 Scrivener import. Each with live passes.
 **Depends on:** nothing open. ⚠️ [EP-055] needs S1–S2 on iPad to move projects onto it, unless iCloud Drive does (see
 EP-055 Q2).
@@ -57,7 +112,7 @@ EP-055 Q2).
 ## EP-053: `[Cross]` **Range-Based Structural Editing** — cut, copy, paste and undo as one Range, one core call, no reload
 
 **Status:** 🟡 **ACTIVE 2026-10-17** — created and started the same day (user: *"draft EP-053, start the first sprint and publish
-the design doc for my perusal"*). S1 = [SP-186], ✅ closed 2026-10-20. S2a = [SP-187], ✅ closed 2026-10-21.
+the design doc for my perusal"*). S1 = [SP-186], ✅ closed 2026-10-20. S2a = [SP-187], ✅ closed 2026-10-21. S3 = [SP-188], ✅ closed 2026-10-26; no Sprint active.
 **Design:** [`../Scrivi_Structured_CutCopyPaste_Design_v0_3.md`](../Scrivi_Structured_CutCopyPaste_Design_v0_3.md) (v0.3, [SP-191]; supersedes v0.2) — ✅ ruled
 2026-10-17 (R1–R7, Q1–Q5). Supersedes v0.1 (EP-029) where they differ.
 **Codebase:** `[ScriviCore]` first, then `[Apple]` and `[Linux]` together — the same shape and the same threads on both (R5).
@@ -81,7 +136,7 @@ thread, one core call per scene); a cut no longer removed structure, so paste an
 | **[SP-186]** | **S1** — `[ScriviCore]` the Range (`scrivi.range.v1`) and the range operations: read, paste ([I-0311] fixed), structural cut, each returning the delta; the index patched in place; a two-scene paste = 3 reads + 5 writes (re-ruled 2026-10-20) | ✅ **CLOSED 2026-10-20** (user-approved) → [`../Sprints/Closed/Sprint-SP-186.md`](../Sprints/Closed/Sprint-SP-186.md) · [T-0614] verified |
 | **[SP-187]** | **S2a** — `[Apple]` + `[Linux]` the scene list as the model of record (design §4.2a), no visible change: the range endpoints bound on both, the delta types, Linux's list holding the text, Apple's partial re-render; baseline counts | ✅ **CLOSED 2026-10-21** (user-approved) → [`../Sprints/Closed/Sprint-SP-187.md`](../Sprints/Closed/Sprint-SP-187.md) · ✅ Q1–Q4 ruled |
 | **[SP-191]** | **S2b** — `[Apple]` + `[Linux]` copy builds the Range from memory; paste and its undo (a range cut); split, chapter split, merge and chapter merge as range calls (undoable, sidecars restored, no barriers); the delta applied, no reload, off the main thread on both; old history nodes converted; [I-0314] · ➡️ takes [SP-185] AC4 | ✅ **CLOSED 2026-10-22** (user-approved) → [`../Sprints/Closed/Sprint-SP-191.md`](../Sprints/Closed/Sprint-SP-191.md) · [T-0619] verified |
-| **[SP-188]** | **S3** — `[Apple]` + `[Linux]` structural cut; Backspace / Delete over scenes = Cut minus the clipboard (Q4); cut's undo (a range paste); old `structuredCut` nodes still undo | 🟡 **ACTIVE 2026-10-22** → [`../Sprints/Sprint-SP-188.md`](../Sprints/Sprint-SP-188.md) · ✅ Q1–Q6 ruled · ⏳ live passes |
+| **[SP-188]** | **S3** — `[Apple]` + `[Linux]` structural cut; Backspace / Delete over scenes = Cut minus the clipboard (Q4); cut's undo (a range paste); old `structuredCut` nodes still undo | ✅ **CLOSED 2026-10-26** (user-approved) → [`../Sprints/Closed/Sprint-SP-188.md`](../Sprints/Closed/Sprint-SP-188.md) · AC11's Mac pass over a share → [SP-190] |
 | **[SP-189]** | **S4** — `[Cross]` the background sync verification (disk wins, silently — Q3) | 🔵 **PLANNING 2026-10-20** → [`../Sprints/Sprint-SP-189.md`](../Sprints/Sprint-SP-189.md) · ⏳ Q1–Q2 |
 | **[SP-190]** | **S5** — Mac and rig live passes over the share, timed by the diagnostic logs | 🔵 **PLANNING 2026-10-20** → [`../Sprints/Sprint-SP-190.md`](../Sprints/Sprint-SP-190.md) · ⏳ Q1 |
 
@@ -90,7 +145,7 @@ S3; verification moves to S4, history no longer a Sprint of its own) · ✅ spli
 in S2 · ✅ (later the same day) S2 split into S2a [SP-187] and S2b [SP-191]; the list stays an ordered array (Q4) · ✅ new history op names `rangePaste` / `rangeCut` in `scrivi.history.v1`, backward-compatible (old
 `structuredPaste` / `structuredCut` nodes keep undoing).
 
-**Tasks:** ✅ [T-0614] (SP-186 — VERIFIED, archived) · ✅ [T-0615] (SP-187 — VERIFIED 2026-10-21, archived) · ✅ [T-0619] (SP-191 — VERIFIED 2026-10-22, archived) · 🟠 [T-0616] (SP-188 — Implemented - Not Verified, ⏳ live passes) · 🔵 [T-0617] (SP-189) · 🔵 [T-0618] (SP-190).
+**Tasks:** ✅ [T-0614] (SP-186 — VERIFIED, archived) · ✅ [T-0615] (SP-187 — VERIFIED 2026-10-21, archived) · ✅ [T-0619] (SP-191 — VERIFIED 2026-10-22, archived) · 🟠 [T-0616] (SP-188 ✅ closed — Implemented - Not Verified, ⏳ the Mac pass over a share in SP-190) · 🔵 [T-0617] (SP-189) · 🔵 [T-0618] (SP-190).
 **Issues:** ✅ [I-0311] · ✅ [I-0297] · ✅ [I-0314] (all VERIFIED 2026-10-22, archived, with [SP-191]).
 
 ---

@@ -141,6 +141,14 @@ struct Envelope<T: Decodable>: Decodable {
     let revision: Int64?
     /// SP-173 (Q1): present when the call waited 1 ms or more for its project's lock.
     let lockWaitMs: Int64?
+    /// [SP-188] AC11 / EP-052 inventory: which endpoint, how long it ran after the lock, and its file operations.
+    let trace: CoreCallTrace?
+}
+
+struct CoreCallTrace: Decodable, Sendable {
+    let endpoint: String
+    let ms: Int64
+    let fileOps: Int64
 }
 
 struct ErrorPayload: Decodable {

@@ -8,55 +8,11 @@ Issues awaiting **user verification**. An Issue leaves this file only when the u
 
 | ID | Title | Severity | Sprint | Status |
 | -- | ----- | -------- | ------ | ------ |
-| **I-0319** | `[ScriviCore]` `[Apple]` `[Linux]` ⚠️ **Undoing a change made in THIS session showed "Undoing changes from a previous session", after the undo, with only an OK button.** Found by the user 2026-10-24 ([SP-188] Mac live pass, step 1). → [details](#i-0319) | **Medium** | [SP-188] | 🟠 **Resolved - Not Verified** (Mac ✅ user 2026-10-24; ⏳ Linux) |
 | **I-0242** | `[Linux]` ⛔ **THE WRITER'S CARD STACK IS IGNORED — Linux ENUMERATES KINDS instead of honouring the chosen stack, and DROPS any card that is empty.** ⚠️ **FOUND BY THE USER on the real rig, 2026-09-21**, during [SP-142]'s live pass on `the-stairs-of-tintagael` — ⛔ **not by any test.** ✅ **USER RULING (2026-09-21), and it is the whole specification:** ⚠️ ***"The writer chooses which Card elements to display and in what order they appear. Therefore, if the writer chooses to display an empty card in the stack, then it should be displayed with an appropriate 'No Objects to Display' message. Apple already does this. Linux must as well."*** ⚠️ **REPORTED AS 'Factions is missing'; ⛔ THAT IS THE SYMPTOM, NOT THE DEFECT.** ✅ **Linux CAN render factions** — it derives kinds from `ObjectKindScope`/`kAllStorableKinds` and hardcodes nothing (the standing rule WAS followed). ⛔ **THE DEFECT IS THAT IT NEVER ASKS WHAT THE WRITER CHOSE.** ✅ **`SceneInspector.cpp:551` lists the CORE's kinds and `:577` skips any with no entries in this scene** (*"a kind with nothing in this scene is simply not a row"*) — ⚠️ **so the stack is DERIVED FROM DATA, while Apple's is DECLARED BY THE WRITER.** ⚠️ **APPLE IS THE REFERENCE AND IT IS EXPLICIT:** `ObjectCard.swift:450` renders *"No <kind> in this scene yet."* with the comment ⚠️ ***"§2: empty is a normal state, not an error."*** ⛔ **THE ROOT CAUSE IS A DANGLING READ.** ✅ **`inspector-layout.json` HOLDS the answer — `defaultStacks` and per-scene `scenes` — and [T-0537] just proved Linux ROUND-TRIPS both LOSSLESSLY.** ⚠️ **But `InspectorLayoutStore` exposes ONLY `selectedTab`: ⛔ ZERO reads of `defaultStacks` or `scenes` anywhere in `platforms/linux/`.** ✅ **So Linux has been faithfully PRESERVING a document it does not consult** — ⚠️ **`project_capability_without_surface` in its exact form: a dangling read with no reader.** ⚠️ **CONSEQUENCE BEYOND THE MISSING CARD: ORDER IS ALSO WRONG.** ⛔ **Linux emits kinds in the CORE's order; the writer's chosen order is in `defaultStacks` and is ignored** — ✅ **the user's ruling names order explicitly.** ⚠️ **AND IT BLOCKS THE STACK PICKER ([EP-036] AC4b): a '+' menu that adds a card to a stack nothing reads would change nothing on screen.** ⛔ **That picker had NO Task number; ⚠️ an earlier draft of this row cited `T-0543`, which is now [SP-134]'s — ✅ corrected 2026-09-22.** | **Medium** | ⛔ **UNASSIGNED** — ⚠️ **candidate for [EP-036]; ✅ it is the PREREQUISITE for T-0543, so they should sequence together** | 🔵 **Open** |
 |  **I-0244** | `[Linux]` ⚠️ **THE LINUX APP HAS NONE OF [EP-040]'s EDITOR SHELL, AND NOTHING TRACKS THE GAP.** ⚠️ **RAISED 2026-09-22 from the user's own observation during [SP-135]'s live pass:** ⚠️ ***"I did not toggle the panels on Linux or any of the more recent UI changes because many of them have not been made on Linux yet."*** ✅ **MEASURED THE SAME DAY, not asserted:** ⛔ **Linux has ZERO `QToolBar`/`addToolBar` in `platforms/linux/src/`** · ⛔ **ZERO navigator-visibility state** · ⚠️ **Apple now has a `.toolbar` with 3 `ControlGroup`s and SIX `safeAreaBar`s.** ⚠️ **THIS IS NOT A DEFECT IN EITHER PLATFORM.** ✅ **[EP-040] is scoped `[Apple]` DELIBERATELY** — ⛔ **but four Sprints of shell work ([SP-134] toolbar · [SP-135] bars · [SP-136] inspector column · [SP-137] detail sheet) have no Linux counterpart, and NO Epic, Sprint or Issue records that.** ⚠️ **`feedback_linux_adopts_apple_shape` is the standing rule: *Apple is the reference for architecture; a shape change on Apple must be made the same way on Linux in the SAME work.*** ⛔ **That has not happened, and the divergence is now FOUR SPRINTS DEEP AND GROWING.** ✅ **WHAT THE APPLE WORK ALREADY PROVED, and Linux will re-earn without it:** ⚠️ **[I-0203]'s root cause was that bars were STACK SIBLINGS** — ✅ **Linux's `EditorShell` uses the same layout idiom** — ⚠️ **and the Navigator was unrecoverable because NOTHING OWNED ITS VISIBILITY STATE.** ⛔ **Linux's pane visibility is SESSION-SCOPED ONLY (SP-078/T-0320), which is the same class of gap.** ⚠️ **IT IS NOT [EP-043]'s EITHER:** ✅ **that Epic is the SESSION (multi-window, restore, geometry)** — ⛔ **this is the SHELL (toolbar, bars, panes).** ✅ **They are adjacent and both wait on the same `EditorShell` rework, which is an argument for SEQUENCING them together, not for merging them.** ⚠️ **NOT URGENT AND NOT A REGRESSION** — ✅ **Linux works as it did** — ⛔ **but an untracked divergence is how a port silently falls behind, which is exactly what the Porting Outline exists to prevent.** ---- ⚠️ **A PERFORMANCE EXPECTATION IS INHERITED FROM [I-0213]** (⚠️ *`[Apple]` chapter create froze the app ~2.7 s on a 1,174-scene manuscript; now `~305–400 ms` of work*) **AND IS RECORDED HERE SO LINUX DOES NOT RE-DISCOVER IT AS A DEFECT.** ✅ **[I-0213] was VERIFIED on Apple 2026-09-24 with `createChapter WORK=396.7 ms` on 1,179 scenes, ⚠️ measured DELIBERATELY from a USB mount as a WORST-CASE FLOOR.** ⚠️ **The user named what follows:** *"On Linux it will be even worse because it has to also come through this computer's operating system."* ✅ **SO A LINUX FIGURE WORSE THAN `396.7 ms` ON THE SAME FIXTURE IS ANTICIPATED — ⛔ NOT a regression against [I-0213], and NOT a new Issue on its own.** ⛔ **NOTHING HAS BEEN MEASURED ON LINUX YET; ✅ this is an EXPECTATION TO TEST AGAINST, not a claim about the rig.** ⚠️ **When the Linux editor shell is built, the structural ops MUST be timed with the SAME `[SCRIVI-STRUCT]`-style instrumentation** — ✅ **[I-0213] proved the cost was UNATTRIBUTABLE until each op reported its own number, and that three code-read diagnoses were wrong before it did.** | **Low** | ⛔ **UNASSIGNED — awaiting its OWN Epic.** ✅ **SCOPE RULED 2026-09-26 ([EP-043] [R-Q5], user-approved): it becomes its OWN `[Linux]` Epic, SEQUENCED AFTER [EP-043]** — ⛔ **NOT ACs inside it.** ⚠️ **THIS ROW PREVIOUSLY SAID *"sequenced WITH or after"*; ✅ it is AFTER, and [EP-043]'s record now says the same** — ⛔ **the two records disagreed and no longer do.** ✅ **WHY NOT FOLDED IN: this Issue is FOUR Apple Sprints deep ([SP-134]–[SP-137]), and folding it into a SESSION Epic would repeat the [EP-035] AC1 collapse [I-0178] cites.** ✅ **THE COLLISION IS ALREADY HANDLED: [SP-145] carries a NAMED CARVE-OUT** — ⚠️ **its extraction takes `inspectorVisible_` + `timelineVisible_` onto the session object** (⛔ **per-project state, not per-widget**), ✅ **so this Epic will NOT have to re-open `EditorShell` for pane state.** ⚠️ **Of this Issue's THREE measured gaps, ONLY pane-visibility overlapped, and that is the carve-out** | 🔵 **Open**  |
 
 
-## I-0319
-
-**Title:** The previous-session warning fires for this session's change, after the undo, with no Cancel
-**Status:** 🟠 **Resolved - Not Verified** (2026-10-24) — ✅ Mac passed (user, 2026-10-24: *"Both steps pass."*, the
-three-session border check); ⏳ the Linux half needs a rig pass (the rig is not available)
-**Platform:** `[ScriviCore]` `[Apple]` `[Linux]`
-**Component:** `HistoryService::undo` (`ScriviCore/src/history/HistoryService.cpp`); Apple `performUndo`
-(`Scrivi/Views/ManuscriptTextView.swift:387`); Linux `EditorShell::undo` (`platforms/linux/src/EditorShell.cpp`)
-**Severity:** Medium. The warning tells the writer something false (that today's change is yesterday's), and gives no way
-to back out of an undo that really would change yesterday's text.
-**Sprint:** [SP-188]
-**Date Identified:** 2026-10-24, user, [SP-188] Mac live pass step 1 (⌘X across scenes, then ⌘Z)
-
-**What happened (user):** *"If I make a change, and then undo it, I should not get a dialog telling me about last sessions
-changes! … no dialog should appear unless I try and undo a change made from yesterday. Then I should see the dialog. Oh,
-and the dialog only offers an OK button. I have no way to Cancel yesterday's undo I am about to make today."*
-
-**Cause:** the core flagged `crossedSessionBoundary` when an undo LANDED on an earlier session's node. Undoing this
-session's first change lands on the previous session's last one, so it warned, and only after the undo had run. ✅ The
-undo design v0.1 ("Sessions") already said *"about to undo"* and *"proceeds only on confirmation"*. The code didn't.
-
-**✅ Ruling (user, 2026-10-24):** a dialog only for an undo that would undo an earlier session's change, shown BEFORE that
-undo, with Cancel. *"Ownership of an issue does not absolve a work product from the need to fix it."* It was fixed in
-[SP-188], which surfaced it.
-
-**Resolution (2026-10-24):**
-- **Core:** the crossing is the undo of a change from a different session than the undos are in (`undoSession_`: this
-  session after a new change or an open; else the session of the last change undone or redone), never the node landed
-  on. `undoEntersEarlierSession()` puts `undoCrossesSessionAt` (that change's time) in every `scrivi_capture_*` envelope
-  when the next undo crosses a border; never while an edit is pending (the undo takes that edit first). `scrivi.h`
-  documents it; no new endpoint.
-- **Apple / Linux:** before undoing, ask the core afresh. If it reports a crossing: *"Undo a change from a previous
-  session?"*, **Undo** / **Cancel**. Cancel undoes nothing. The after-the-undo notice is gone from both.
-- **Tests:** core `[I-0319]` (C ABI, three sessions: asked at each border going back and never inside a session; a redo
-  forward and an undo back re-asks at the border); interop
-  `earlierSessionUndoIsAskedFirst` (replaces [I-0298]'s `structuralUndoAcrossSessionsWarns`: this session's paste
-  undone without a question, then yesterday's asked, Cancel undoes nothing, Undo undoes it); Linux `undo_smoke` (this
-  session's typing undone without a question).
-- ✅ **Ruling (user, 2026-10-24, after the first fix):** *"I do not want it to ask every time; until you reach the border
-  of a previous session again."* Asked at EVERY border going back (session 3 → 2, then 2 → 1, … to the project's
-  start), and again on re-crossing one. ⛔ The first fix asked once per session per run, so the user's second ⌘Z of
-  step 1 (into the next session) asked nothing. Replaced.
-
----
+*Last Updated: 2026-10-25 — **I-0319** → ✅ Verified (Mac 2026-10-24, rig 2026-10-25) and archived.*
 
 *Last Updated: 2026-10-25 — **I-0306** and **I-0313** → ✅ Verified (user's Mac live pass, [SP-193]) and archived.*
 

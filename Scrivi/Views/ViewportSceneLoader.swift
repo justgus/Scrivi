@@ -130,6 +130,7 @@ struct SceneSegment: Identifiable {
     // Called by the Coordinator when the visible scene changes (scroll or cursor movement).
     // This is the only path that updates the Navigator highlight.
     func setViewportScene(_ sceneID: String?) {
+        let span = ScriviDiag.begin("viewport scene changed"); defer { ScriviDiag.end(span) }
         if viewportSceneID != sceneID {
             NSLog("[SCRIVI-DIAG] setViewportScene: \(viewportSceneID ?? "nil") -> \(sceneID ?? "nil")")
         }
@@ -385,6 +386,7 @@ struct SceneSegment: Identifiable {
     // lets `applicationWillTerminate` flush safely (I-0104/I-0108); that callback does
     // not wait for async work, so a Task would be cut off mid-write.
     func saveSceneBlocking(at index: Int, engine: ScriviEngine, ref: AuthorshipRef) {
+        let span = ScriviDiag.begin("save scene (main thread)"); defer { ScriviDiag.end(span) }
         guard segments.indices.contains(index), segments[index].isDirty else { return }
         let seg = segments[index]
         guard !inFlight.contains(seg.sceneID) else {
@@ -570,6 +572,8 @@ struct SceneSegment: Identifiable {
                                               landed: @escaping @MainActor (Result<T, Error>) -> Void) -> Bool {
         structuralInFlight = true
         structuralGeneration += 1
+        let began = Date()
+        ScriviDiag.note("structural: \(label) started")
         let generation = structuralGeneration
         Task { @MainActor [weak self] in
             try? await Task.sleep(for: .milliseconds(400))
@@ -581,16 +585,19 @@ struct SceneSegment: Identifiable {
         let group = offMainWrites
         whenScenesLand { [weak self] in
             guard let self else { return }
+            ScriviDiag.note(String(format: "structural: %@ unsaved scenes written, after %.0f ms", label, Date().timeIntervalSince(began) * 1000))
             group.enter()   // the quit path waits on this group (`saveAllDirtyBlocking`)
             // ⚠️ Re-marked: this closure can run later, from a save's landing, outside the caller's task.
             StructuralCallAccounting.$sink.withValue(self.structuralCalls) { Task { @MainActor [weak self] in
                 let outcome: Result<T, Error> = await Task.detached(priority: .userInitiated) {
                     defer { group.leave() }
-                    return Result { try call(engine) }
+                    return ScriviDiag.span("structural: \(label) core call", always: true) { Result { try call(engine) } }
                 }.value
                 guard let self else { return }
                 self.structuralInFlight = false
-                landed(outcome)
+                ScriviDiag.span("structural: \(label) applied", always: true) { landed(outcome) }
+                ScriviDiag.note(String(format: "structural: %@ %@ after %.0f ms in all", label,
+                                       (try? outcome.get()) == nil ? "FAILED" : "landed", Date().timeIntervalSince(began) * 1000))
                 // ✅ [SP-188] Q6: an edit that starts another as it lands (a paste over a cut selection) keeps the row.
                 if !self.structuralInFlight { self.structuralProgress = nil }
                 let waiters = self.structuralWaiters
@@ -652,6 +659,7 @@ struct SceneSegment: Identifiable {
 
     // Synchronous counterpart for the quit path (I-0104/I-0108).
     func saveAllDirtyBlocking(engine: ScriviEngine, ref: AuthorshipRef) {
+        let span = ScriviDiag.begin("save all dirty scenes (main thread)"); defer { ScriviDiag.end(span) }
         // ✅ [I-0303]: let an off-main write finish first — its main-actor hop will never run during quit, so its scenes
         // (still dirty) are written again below, with their newest text. ✅ [SP-191]: a structural edit's core call too — it
         // is in the same group, and a quit must not cut it off half-written.
@@ -681,6 +689,7 @@ struct SceneSegment: Identifiable {
     }
 
     func stampWritingSurfaceBlocking(engine: ScriviEngine, ref: AuthorshipRef) {
+        let span = ScriviDiag.begin("stamp the writing surface (main thread)"); defer { ScriviDiag.end(span) }
         guard let vpID = viewportSceneID,
               let seg = segments.first(where: { $0.sceneID == vpID }) else { return }
 

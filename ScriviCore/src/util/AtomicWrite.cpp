@@ -10,7 +10,12 @@ namespace scrivi::util {
 
 namespace fs = std::filesystem;
 
+namespace { thread_local std::int64_t tlsFileOps = 0; }
+void countFileOperation() { ++tlsFileOps; }
+std::int64_t fileOperationsOnThisThread() { return tlsFileOps; }
+
 Result<void> atomicWriteTextFile(const AbsolutePath& path, std::string_view utf8Text) {
+    countFileOperation();
     auto target  = fs::path(path);
     auto tmpPath = target;
     tmpPath += ".tmp";

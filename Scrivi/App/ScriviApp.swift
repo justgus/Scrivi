@@ -92,6 +92,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         AppDelegate.installUncaughtExceptionHandler()
+        ScriviDiag.startWatchdog()   // [SP-188] AC11: logs when the window stops answering
 
         // ⚠️⚰️ TOMBSTONE — `LayoutConvergenceGuard.install()`, REMOVED 2026-09-23 by
         // user ruling. ⛔ DO NOT REINSTATE without re-reading this.

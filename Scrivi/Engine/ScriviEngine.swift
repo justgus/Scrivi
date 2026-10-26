@@ -20,6 +20,10 @@ let coreLockWaits = Mutex(LockWaitStats())
 struct CoreCallStats: Sendable, Equatable { var mainThreadCalls = 0; var openProjectCalls = 0 }
 let coreCallCounts = Mutex(CoreCallStats())
 
+/// [SP-188] AC11 / EP-052 inventory — every main-thread core call, while a probe holds the recorder open (nil = off).
+struct MainThreadCoreCall: Sendable { let endpoint: String; let ms: Int64; let fileOps: Int64; let lockWaitMs: Int64 }
+let mainThreadCoreCalls = Mutex<[MainThreadCoreCall]?>(nil)
+
 /// [SP-191] The main-thread core calls ONE editor's structural edits make — their own work (`own`) and the history's caret
 /// bookkeeping when they place the caret (`caret`). Counted only inside that editor's edit tasks (a task-local), so other
 /// editors, or tests running beside it, cannot inflate them. Read by tests only.
@@ -1770,6 +1774,13 @@ func decodeCWithRevision<T: Decodable>(_ ptr: UnsafePointer<CChar>?) throws -> (
     let envelope = try JSONDecoder().decode(Envelope<T>.self, from: data)
     if let waited = envelope.lockWaitMs {
         coreLockWaits.withLock { $0.totalMs += waited; $0.count += 1; $0.maxMs = max($0.maxMs, waited) }
+    }
+    if Thread.isMainThread, let t = envelope.trace {   // [SP-188] AC11: what the main thread waited on the core for
+        let call = MainThreadCoreCall(endpoint: t.endpoint, ms: t.ms, fileOps: t.fileOps, lockWaitMs: envelope.lockWaitMs ?? 0)
+        mainThreadCoreCalls.withLock { $0?.append(call) }
+        if t.ms >= 1 || t.fileOps > 0 || call.lockWaitMs > 0 {
+            ScriviDiag.note("core: \(t.endpoint) \(t.ms) ms, \(t.fileOps) file ops, lock wait \(call.lockWaitMs) ms")
+        }
     }
     if !envelope.ok {
         let e = envelope.error

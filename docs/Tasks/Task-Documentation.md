@@ -769,10 +769,15 @@ archive files reconstructed after the fact from secondary sources.
 | T-0613 | `[Linux]` Find bar: search after a 500 ms pause; the searchable text built ahead, never on a keystroke | ✅ **SP-185** | **EP-026** | ✅ **Verified 2026-10-21** | [`Task-verified-0613.md`](Verified/Task-verified-0613.md) |
 | T-0614 | `[ScriviCore]` EP-053 S1: the Range (`scrivi.range.v1`) and the aggregate range operations | ✅ **SP-186** | **EP-053** | ✅ **Verified 2026-10-20** | [`Task-verified-0614.md`](Verified/Task-verified-0614.md) |
 | T-0615 | `[Cross]` EP-053 S2a: the scene list as the model of record — no visible change | ✅ **SP-187** | **EP-053** | ✅ **Verified 2026-10-21** | [`Task-verified-0615.md`](Verified/Task-verified-0615.md) |
-| T-0616 | `[Cross]` EP-053 S3: structural cut, Backspace / Delete over scenes, and their undo | 🟡 **SP-188** | **EP-053** | 🟠 **Implemented - Not Verified** | [`Task-unverified.md`](Task-unverified.md) |
+| T-0616 | `[Cross]` EP-053 S3: structural cut, Backspace / Delete over scenes, and their undo | ✅ **SP-188** (closed; last check → SP-190) | **EP-053** | 🟠 **Implemented - Not Verified** | [`Task-unverified.md`](Task-unverified.md) |
 | T-0617 | `[Cross]` EP-053 S4: the background sync verification | 🔵 **SP-189** | **EP-053** | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
 | T-0618 | `[Cross]` EP-053 S5: Mac and rig live passes over the share, timed | 🔵 **SP-190** | **EP-053** | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
 | T-0619 | `[Cross]` EP-053 S2b: copy, paste and its undo, split and merge — as deltas, off the main thread, no reload | ✅ **SP-191** | **EP-053** | ✅ **Verified 2026-10-22** | [`Task-verified-0619.md`](Verified/Task-verified-0619.md) |
+| T-0620 | `[Apple]` A marker where ⇧⌘Z will ask which branch | ✅ **SP-192** | — | ✅ **Verified 2026-10-24** | [`Task-verified-0620.md`](Verified/Task-verified-0620.md) |
+| T-0621 | `[Cross]` Explore a whole-manuscript history view | — | — | 🔵 Backlog — exploration | [`Task-backlog.md`](Task-backlog.md) |
+| T-0622 | `[Cross]` One version on every platform: `1.0.<commits>`, with the commit hash | ✅ **SP-193** | **EP-054** | ✅ **Verified 2026-10-25** | [`Task-verified-0622.md`](Verified/Task-verified-0622.md) |
+| T-0623 | `[ScriviCore]` Two locks per project (memory and disk) | 🟡 **SP-194** | **EP-052** | 🟡 Active | [`Task-active.md`](Task-active.md) |
+| T-0624 | `[ScriviCore]` The per-project write queue and its endpoints | 🟡 **SP-194** | **EP-052** | 🟡 Active | [`Task-active.md`](Task-active.md) |
 | T-0592 | `[Apple]` E2-S3: formatting commands + lists + Option-Return | 🟡 **SP-163** | **EP-046** | ✅ **Verified 2026-10-06** | [`Task-verified-0592.md`](Verified/Task-verified-0592.md) |
 | T-0591 | `[Apple]` Balance emphasis across SCENE boundaries (cross-scene cut/copy/paste) | 🟡 **SP-163** | **EP-046** | ✅ **Verified 2026-10-06** | [`Task-verified-0591.md`](Verified/Task-verified-0591.md) |
 | T-0590 | `[Apple]` E2-S2: bold and italic + span reveal + the split rule | ✅ **SP-162** | **EP-046** | ✅ **Verified 2026-10-05** | [`Task-verified-0590.md`](Verified/Task-verified-0590.md) |
@@ -810,6 +815,12 @@ archive files reconstructed after the fact from secondary sources.
 ⚠️ **This index ended at `T-0485 (next available)` until 2026-09-10 — ✅ that was STALE.** ⚠️ **T-0485–T-0498 had all been taken**, and T-0485–T-0490/T-0492–T-0496 are archived as Verified. ⚠️ **Rows for T-0486–T-0497 are NOT reconstructed here** — ✅ **their Sprints' closed records are authoritative** (`feedback_archive_on_close`).
 
 ---
+
+*Last Updated: 2026-10-26 (**T-0623, T-0624 → active** with SP-194.)*
+
+*Last Updated: 2026-10-26 (**T-0623, T-0624 filed** with SP-194 (🔵 Planning), EP-052 S1.)*
+
+*Last Updated: 2026-10-25 (**T-0622 → ✅ Verified** (user) and archived, with [SP-193]'s close; index rows added for T-0620–T-0622.)*
 
 *Last Updated: 2026-10-22 (**T-0612 → ✅ Verified** (user) and archived, with [SP-185]'s close.)*
 

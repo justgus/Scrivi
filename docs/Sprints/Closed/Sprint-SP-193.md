@@ -1,18 +1,18 @@
 ---
 sprint: SP-193
 epic: EP-054
-status: Active
+status: Closed
 platform: Cross
 created: 2026-10-24
 ---
 
 # SP-193 — `[Cross]` [EP-054] **S0**: fix before the alpha, and one version on every platform
 
-**Status:** 🟡 **ACTIVE** 2026-10-24 — ✅ AC1–AC5 met; ⏳ AC6 live passes — (user: *"keep them in the backlog. I don't think they pose a major threat to data. Then activate SP-193"*) — created 2026-10-24 (user: *"file those three as fix-before-alpha.
-Let's put it in a sprint in EP-054."*). ⏳ Q1–Q2 to rule.
-**Carries:** [I-0306], [I-0313], [I-0202] (→ [`../Issues/Issue-active.md`](../Issues/Issue-active.md)) · [T-0622]
-(✅ approved 2026-10-24; 🟢 active → [`../Tasks/Task-active.md`](../Tasks/Task-active.md)).
-**Epic:** [EP-054] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md) (🟡 Active with this Sprint). ⚠️ This Sprint is EP-054's S0: the
+**Status:** ✅ **CLOSED** 2026-10-25 (user, 2026-10-25: *"I approve closing SP-193."*) — activated 2026-10-24 (user: *"keep them in the backlog. I don't think they pose a major threat to data. Then activate SP-193"*) — created 2026-10-24 (user: *"file those three as fix-before-alpha.
+Let's put it in a sprint in EP-054."*). ✅ Q1–Q2 ruled 2026-10-24.
+**Carries:** [I-0306], [I-0313], [I-0202] (→ [`../Issues/Issue-active.md`](../../Issues/Issue-active.md)) · [T-0622]
+(✅ approved 2026-10-24; 🟢 active → [`../Tasks/Task-active.md`](../../Tasks/Task-active.md)).
+**Epic:** [EP-054] → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md) (🟡 Active; this was its S0). ⚠️ This Sprint is EP-054's S0: the
 alpha's prerequisites, ahead of S1 (the archive).
 **Size:** S–M.
 
@@ -64,7 +64,7 @@ are fixed. Every platform also reports one version, `1.0.<commits on main>`, wit
 - [x] AC4 — [T-0622]: Mac and Linux show `1.0.<count> (<hash>)`, the same for the same commit; Apple's build number is
       the count; the Linux counter is gone
 - [x] AC5 — Tests, mutation-checked; ctest, interop and Linux smokes green
-- [ ] AC6 — Live passes (user): Mac and rig
+- [x] AC6 — Live passes (user): Mac and rig
 
 ## Progress log
 
@@ -126,3 +126,10 @@ are fixed. Every platform also reports one version, `1.0.<commits on main>`, wit
   project, with the old copies removed).
 - [I-0306] and [I-0313] → ✅ **Verified** (steps 1–2) and archived. [T-0622]: the Mac half passed; ⏳ it stays
   Implemented - Not Verified until the rig pass (step 5), which is all AC6 now waits on.
+
+### ✅ 2026-10-25 — Rig pass ✅; CLOSED (user, 2026-10-25: *"I approve closing SP-193."*)
+- `rig-build.sh` from the pushed commit: *"✅ the binary reports that commit"*, `Scrivi (Linux) 1.0.297 (269342d)`.
+- User: *"Steps 1 - 8 passed. We can mark T-622 and I-0319 verified."* (About on the rig, and [SP-188]'s [I-0319] Linux
+  half in the same session.) AC6 met.
+- ✅ [T-0622] Verified and archived (`Tasks/Verified/Task-verified-0622.md`). [I-0306], [I-0313] Verified and archived
+  2026-10-25; [I-0202] closed (not reachable) 2026-10-24. Found here, filed to the backlog: [I-0322], [I-0323].

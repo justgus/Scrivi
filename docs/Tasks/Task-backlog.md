@@ -731,4 +731,3 @@ the same flag in a different file; ✅ leaving it on `env` would give two toggle
   ⛔ **runs on project close** — ✅ **confirm the panel closes cleanly when the last project goes.**
 - ⚠️ **Persistence is NOT in scope.** ⛔ **The flag is in-memory today and stays in-memory** — ✅ **if it
   should survive a quit, that is [I-0255]'s ruling and [T-0556]'s question, not this Task's.**
-

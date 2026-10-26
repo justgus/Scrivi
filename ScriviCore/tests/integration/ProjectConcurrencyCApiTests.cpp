@@ -5,6 +5,7 @@
 
 #include "scrivi/scrivi.h"
 #include "public_api/ProjectLock.hpp"
+#include "util/AtomicWrite.hpp"
 #include "util/Json.hpp"
 
 #include <algorithm>
@@ -94,6 +95,21 @@ TEST_CASE("D2: every project envelope carries the revision; a write bumps it, a 
     JsonDoc bad = envelope(scrivi_put_project_settings(f.root(), "not json"));
     REQUIRE_FALSE(bad.getBool("ok"));
     CHECK(bad.contains("revision"));
+}
+
+TEST_CASE("[SP-188] every project envelope names its endpoint and counts its file operations (the EP-052 inventory)",
+          "[concurrency][capi]") {
+    ConcurrencyFixture f;
+    JsonDoc w = writeSettings(f.root(), "traced");
+    REQUIRE(w.getBool("ok"));
+    const JsonDoc trace = w.getSubDoc("trace");
+    CHECK(trace.getString("endpoint") == "scrivi_put_project_settings");
+    CHECK(trace.getInt64("fileOps", -1) >= 1);                    // the settings file is written
+    CHECK(trace.getInt64("ms", -1) >= 0);
+
+    JsonDoc bad = envelope(scrivi_put_project_settings(f.root(), "not json"));   // refused before any file is touched
+    REQUIRE_FALSE(bad.getBool("ok"));
+    CHECK(bad.getSubDoc("trace").getInt64("fileOps", -1) == 0);
 }
 
 TEST_CASE("D1: two spellings of one project root share ONE lock and ONE revision", "[concurrency][capi]") {
@@ -268,6 +284,48 @@ TEST_CASE("D4: scrivi_get_project_revision reports the current revision without 
     REQUIRE(writeSettings(f.root(), "x").getBool("ok"));
     CHECK(envelope(scrivi_get_project_revision(f.root())).getInt64("revision") == base + 1);
     CHECK_FALSE(envelope(scrivi_get_project_revision(nullptr)).getBool("ok"));
+}
+
+TEST_CASE("EP-052 T-0623: a memory call does NOT wait while a file call holds the disk lock", "[concurrency][capi]") {
+    ConcurrencyFixture f;
+    constexpr auto kHold = std::chrono::milliseconds(300);
+    std::atomic<bool> locked{false};
+    std::thread holder([&] {
+        scrivi::abi::ProjectCallGuard guard(f.root(), scrivi::abi::ProjectCallGuard::Kind::write);   // the disk lock
+        locked = true;
+        std::this_thread::sleep_for(kHold);
+    });
+    while (!locked) { std::this_thread::yield(); }
+
+    const auto t0 = std::chrono::steady_clock::now();
+    JsonDoc memory = envelopeNoAssert(scrivi_get_project_revision(f.root()));
+    const auto memoryElapsed = std::chrono::steady_clock::now() - t0;
+    JsonDoc file = readSettings(f.root());
+    holder.join();
+
+    REQUIRE(memory.getBool("ok"));
+    CHECK(memoryElapsed < kHold / 3);
+    CHECK_FALSE(memory.contains("lockWaitMs"));
+    // The holder's write bumped the revision before the memory call read it: the revision lives under M, not D.
+    CHECK(memory.getInt64("revision") == file.getInt64("revision"));
+    REQUIRE(file.getBool("ok"));
+    REQUIRE(file.contains("lockWaitMs"));   // a file call still waits for the disk lock
+}
+
+TEST_CASE("EP-052 T-0623: a memory call that makes a file operation is reported", "[concurrency][capi]") {
+    ConcurrencyFixture f;
+    const int64_t before = scrivi::abi::memoryCallFileOpViolations();
+    scrivi::abi::setMemoryCallViolationsFatal(false);
+    {
+        scrivi::abi::ProjectCallGuard guard(f.root(), scrivi::abi::ProjectCallGuard::Kind::memoryRead);
+        scrivi::util::countFileOperation();
+    }
+    {
+        scrivi::abi::ProjectCallGuard guard(f.root(), scrivi::abi::ProjectCallGuard::Kind::read);   // a file call may
+        scrivi::util::countFileOperation();
+    }
+    scrivi::abi::setMemoryCallViolationsFatal(true);
+    CHECK(scrivi::abi::memoryCallFileOpViolations() == before + 1);
 }
 
 namespace {

@@ -1,6 +1,11 @@
 #include "public_api/ProjectLock.hpp"
 
+#include "util/AtomicWrite.hpp"
+
+#include <atomic>
 #include <chrono>
+#include <cstdio>
+#include <cstdlib>
 #include <filesystem>
 #include <memory>
 #include <string>
@@ -28,6 +33,9 @@ std::string lockKey(const char* root) {
 
 thread_local const ProjectCallContext* tlsCall = nullptr;
 
+std::atomic<int64_t> violations{0};
+std::atomic<bool> violationsFatal{false};
+
 }  // namespace
 
 ProjectLockEntry& projectLockEntry(const char* root) {
@@ -40,21 +48,41 @@ ProjectLockEntry& projectLockEntry(const char* root) {
 
 const ProjectCallContext* currentProjectCall() { return tlsCall; }
 
-ProjectCallGuard::ProjectCallGuard(const char* root, Kind kind) {
+ProjectCallGuard::ProjectCallGuard(const char* root, Kind kind, const char* endpoint) {
     if (root == nullptr || *root == '\0') { return; }
     entry_ = &projectLockEntry(root);
+    memoryKind_ = kind == Kind::memoryRead || kind == Kind::memoryWrite;
+    const bool bumps = kind == Kind::write || kind == Kind::memoryWrite;
     const auto t0 = std::chrono::steady_clock::now();
-    lock_ = std::unique_lock<std::mutex>(entry_->mutex);
+    lock_ = std::unique_lock<std::mutex>(memoryKind_ ? entry_->memory : entry_->disk);
     context_.lockWaitMs = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::steady_clock::now() - t0).count();
-    if (kind == Kind::write) { ++entry_->revision; }
-    context_.revision = entry_->revision;
+    if (memoryKind_) {
+        if (bumps) { ++entry_->revision; }
+        context_.revision = entry_->revision;
+    } else {
+        std::lock_guard<std::mutex> m(entry_->memory);   // D before M
+        if (bumps) { ++entry_->revision; }
+        context_.revision = entry_->revision;
+    }
+    context_.endpoint = endpoint;
+    context_.started = std::chrono::steady_clock::now();
+    context_.fileOpsAtStart = scrivi::util::fileOperationsOnThisThread();
     previous_ = tlsCall;
     tlsCall = &context_;
 }
 
 ProjectCallGuard::~ProjectCallGuard() {
-    if (entry_ != nullptr) { tlsCall = previous_; }
+    if (entry_ == nullptr) { return; }
+    tlsCall = previous_;
+    if (memoryKind_ && scrivi::util::fileOperationsOnThisThread() != context_.fileOpsAtStart) {
+        violations.fetch_add(1);
+        std::fprintf(stderr, "[SCRIVI-LOCK] %s is a memory call but made a file operation\n", context_.endpoint);
+        if (violationsFatal.load()) { std::abort(); }
+    }
 }
+
+int64_t memoryCallFileOpViolations() { return violations.load(); }
+void setMemoryCallViolationsFatal(bool fatal) { violationsFatal.store(fatal); }
 
 }  // namespace scrivi::abi

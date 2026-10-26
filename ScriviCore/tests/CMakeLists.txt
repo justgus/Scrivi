@@ -9,6 +9,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(Catch2)
 
 add_executable(ScriviCoreTests
+    StrictMemoryCallsListener.cpp
     unit/ResultTests.cpp
     unit/IDTests.cpp
     unit/PathUtilsTests.cpp

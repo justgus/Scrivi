@@ -21,6 +21,7 @@
 #include <QClipboard>
 #include <QEventLoop>
 #include <QMessageBox>
+#include <QScrollBar>
 #include <QTest>
 #include <QTextBlock>
 #include <QTextLayout>
@@ -28,6 +29,7 @@
 #include <QTextDocument>
 #include <QTimer>
 
+#include <array>
 #include <cstdio>
 #include <functional>
 #include <memory>
@@ -581,6 +583,65 @@ int main(int argc, char* argv[])
 
     r.shell->flushHistory();
     r.shell->saveDirtyScenes();
+    // ── [SP-188] AC11 / EP-052 v0.2: the main-thread inventory (on demand) ────────────────────────────────────────────────
+    // ⚠️ A MEASUREMENT, not a gate: every GUI-thread core call each writer gesture makes, with its file operations (the cost
+    // over a share, one network round trip each). The Mac's twin is `MainThreadInventoryTests`. Run with SCRIVI_INVENTORY=1.
+    if (qEnvironmentVariableIsSet("SCRIVI_INVENTORY")) {
+        QList<ScriviBridge::GuiCoreCall> calls;
+        ScriviBridge::guiCoreCallObserver() = [&](const ScriviBridge::GuiCoreCall& c) { calls.append(c); };
+        const auto measure = [&](const char* gesture, const std::function<void()>& act) {
+            QTest::qWait(300);                 // the previous gesture's follow-ups land first
+            calls.clear();
+            act();
+            QTest::qWait(300);                 // this gesture's debounced ones
+            QStringList order;
+            QHash<QString, std::array<qint64, 3>> by;   // calls, file ops, ms
+            qint64 ops = 0;
+            for (const auto& c : calls) {
+                if (!by.contains(c.endpoint)) { order.append(c.endpoint); }
+                auto& e = by[c.endpoint];
+                e[0] += 1; e[1] += c.fileOps; e[2] += c.ms;
+                ops += c.fileOps;
+            }
+            QStringList detail;
+            for (const QString& k : order) {
+                detail.append(QStringLiteral("%1×%2 (%3 ops, %4 ms)").arg(k).arg(by[k][0]).arg(by[k][1]).arg(by[k][2]));
+            }
+            std::printf("[INVENTORY] %s | calls %lld | file ops %lld | %s\n", gesture, qlonglong(calls.size()), qlonglong(ops), detail.isEmpty() ? "—" : qUtf8Printable(detail.join(QStringLiteral(", "))));
+        };
+        const auto at = [&](int scene, int offset) {
+            QTextCursor c = r.editor->textCursor();
+            c.setPosition(r.shell->sceneDocument().segments().at(scene).bodyStart + offset);
+            r.editor->setTextCursor(c);
+            QApplication::processEvents();
+        };
+        measure("click in the same scene", [&] { at(0, 1); at(0, 3); });
+        measure("click into another scene (the Inspector follows)", [&] { at(2, 1); });
+        measure("drag-select across scenes", [&] {
+            QTextCursor c = r.editor->textCursor();
+            c.setPosition(r.shell->sceneDocument().segments().at(0).bodyStart + 1);
+            c.setPosition(r.shell->sceneDocument().segments().at(1).bodyStart + 1, QTextCursor::KeepAnchor);
+            r.editor->setTextCursor(c);
+            QApplication::processEvents();
+        });
+        measure("scroll", [&] { r.editor->verticalScrollBar()->setValue(r.editor->verticalScrollBar()->maximum()); });
+        at(2, 1);
+        measure("type a word", [&] { QTest::keyClicks(r.editor, QStringLiteral("quick ")); });
+        measure("end a sentence", [&] { QTest::keyClicks(r.editor, QStringLiteral("Done. ")); });
+        measure("autosave (the save timer)", [&] { r.shell->saveDirtyScenes(); });
+        QTest::keyClicks(r.editor, QStringLiteral("again. "));
+        measure("Ctrl+Z (typing)", [&] { r.shell->undo(); });
+        measure("Ctrl+Shift+Z (typing)", [&] { r.shell->redo(); });
+        measure("Ctrl+X across scenes (the GUI thread's part)", [&] {
+            QTextCursor c = r.editor->textCursor();
+            c.setPosition(r.shell->sceneDocument().segments().at(0).bodyStart + 1);
+            c.setPosition(r.shell->sceneDocument().segments().at(1).bodyStart + 1, QTextCursor::KeepAnchor);
+            r.editor->setTextCursor(c);
+            r.landing([&] { r.control(Qt::Key_X); });
+        });
+        measure("Ctrl+Z of that cut (the GUI thread's part)", [&] { r.landing([&] { r.control(Qt::Key_Z); }); });
+        ScriviBridge::guiCoreCallObserver() = nullptr;
+    }
     r.shell->releaseProject();
     r.shell->hide();
     r.shell.reset();

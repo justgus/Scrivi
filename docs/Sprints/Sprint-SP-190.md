@@ -58,3 +58,8 @@ the window, and leaves the manuscript reading as a flat edit would.
 ### 🔵 2026-10-20 — Sprint CREATED in Planning
 - User: *"complete planning for EP-053."* Issued with [SP-187]–[SP-189] via `next-id.py`; [T-0618] filed.
 - Q1 awaits a ruling.
+
+### 🔵 2026-10-26 — carried in from [SP-188] (closed)
+- [SP-188] AC11's **Mac pass over a share** ([T-0616]'s last check). Its first attempt over the two-hop loop (the rig
+  re-sharing the Mac's drive) took minutes per step and stopped at step 5 ([SP-188] log, 2026-10-26); run it after
+  [EP-052]'s levels 1–3 land.

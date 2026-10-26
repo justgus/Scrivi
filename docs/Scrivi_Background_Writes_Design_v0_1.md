@@ -1,7 +1,7 @@
 # Scrivi — Background Writes Design v0.1
 
 ✅ **RULED 2026-10-15** (§7): Q1 (a), Q2 (c) + autosave, Q3 (a), Q4 (a), Q5 (a) → [EP-052]. Written 2026-10-15, from [SP-181]'s ruling 1.
-⚠️ **W7 REVISED 2026-10-20, DRAFT for ruling** (W7-Q1, W7-Q2): structural jobs return [EP-053]'s delta; no reload.
+✅ **W7 REVISED 2026-10-20; W7-Q1 ruled (a) 2026-10-26** ([SP-194], user: *"(a) agreed"*): structural jobs return [EP-053]'s delta inside their outcome; no reload. W7-Q2 needed no ruling: EP-053 S2 landed first, as (a) recommended.
 **Request (user, 2026-10-15):** *"Perhaps we should consider doing all undos in a background thread (at least the ScriviCore
 part). Perhaps we can create the beginnings of a persistent thread pool (if the OS doesn't already do that) or we can
 instantiate a dedicated thread for performing undo/history update operations."* Then: *"write the design note ruling."*
@@ -188,7 +188,7 @@ ruling: W7-Q1 and W7-Q2 below.
 
 #### W7 questions for ruling
 
-- **W7-Q1 — How the delta reaches the platform.** (a) ✅ recommended: inside the job's outcome in `scrivi_wait_for_writes`,
+- **W7-Q1 — How the delta reaches the platform.** ✅ **RULED (a) 2026-10-26.** (a) ✅ recommended: inside the job's outcome in `scrivi_wait_for_writes`,
   one call, the same pull model as W4. (b) A separate `scrivi_structural_result(ticket)`: outcome and delta fetched apart,
   a second call per operation, and a result the core must keep until it is fetched.
 - **W7-Q2 — Order of the two Epics.** EP-053 S2 (no reload, the structural call off the main thread on both platforms)

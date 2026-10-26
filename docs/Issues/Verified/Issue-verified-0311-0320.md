@@ -9,6 +9,7 @@ Issues the user has VERIFIED, archived out of `Issue-active.md`.
 | **I-0313** | `[Apple]` ⚠️ **Typing into an empty scene that sits right before another empty scene is credited to the NEXT scene: the page shows the letter in the first, the scene list puts a newline in the second, and the caret jumps two characters.** Found 2026-10-20 by [SP-187]'s run-render test; reproduced after a full render too, so not caused by it. ⚠️ Not yet seen in the app. → [details](#i-0313) | **Medium** | [SP-193] | ✅ **VERIFIED 2026-10-25** (user, Mac live pass 2026-10-24: step 1 *"passes"*, step 2 *"passes"*) |
 | **I-0314** | `[Apple]` ⛔ **A chapter split on the Mac puts the scenes out of order ON DISK: the new chapter is appended at the manuscript END, and the scenes after the split stay in the old chapter.** The editor shows the right order until the project is reopened. Linux had the same defect and fixed it in July ([I-0074]: create in place, then move the following scenes). Found 2026-10-21 planning [SP-191] (an interop probe). → [details](#i-0314) | **High** | [SP-191] | ✅ **VERIFIED 2026-10-22** (user, 2026-10-22: *"Yes, mark them verified and close SP-191"* — after the rig re-pass on build 79: *"all items pass"*; the Mac pass 2026-10-21) |
 | **I-0315** | `[Linux]` ⚠️ **Every move of the caret into another scene WRITES the previous scene's outline and to-do list, changed or not — two sidecar writes on the GUI thread per scene switch.** Found 2026-10-21 tracing [SP-191]'s GUI-thread core calls (`structural_baseline_smoke`). → [details](#i-0315) | Medium | [SP-191] | ✅ **VERIFIED 2026-10-22** (user, 2026-10-22: *"I-0315 is verified"*) |
+| **I-0319** | `[ScriviCore]` `[Apple]` `[Linux]` ⚠️ **Undoing a change made in THIS session showed "Undoing changes from a previous session", after the undo, with only an OK button.** Found by the user 2026-10-24 ([SP-188] Mac live pass, step 1). → [details](#i-0319) | **Medium** | [SP-188] | ✅ **VERIFIED 2026-10-25** (Mac and rig) |
 | **I-0320** | `[ScriviCore]` `[Apple]` ⚠️ **The branch chooser (a history choice point) pops up as an UNDO lands on a fork; choosing in it redoes, which is never what a writer wants right after an undo.** Reported by the user 2026-10-24 ([SP-188] Mac live pass). → [details](#i-0320) | **Medium** | [SP-188] | ✅ **VERIFIED 2026-10-24** |
 
 ---
@@ -151,6 +152,52 @@ write only on an explicit add / toggle / remove), adopted on Linux:
 - Measured (`structural_baseline_smoke`): a split's GUI-thread core calls 6 → **2**, now guarded (`<= 2`); mutation-checked
   (each compare removed → caught).
 
+
+---
+
+## I-0319
+
+**Title:** The previous-session warning fires for this session's change, after the undo, with no Cancel
+**Status:** ✅ **VERIFIED 2026-10-25** — Mac (user, 2026-10-24: *"Both steps pass."*) and Linux on the rig, build 1.0.297 (user, 2026-10-25: *"Steps 1 - 8 passed. We can mark T-622 and I-0319 verified. I approve closing SP-193."*). Was 🟠 Resolved - Not Verified (2026-10-24).
+**Platform:** `[ScriviCore]` `[Apple]` `[Linux]`
+**Component:** `HistoryService::undo` (`ScriviCore/src/history/HistoryService.cpp`); Apple `performUndo`
+(`Scrivi/Views/ManuscriptTextView.swift:387`); Linux `EditorShell::undo` (`platforms/linux/src/EditorShell.cpp`)
+**Severity:** Medium. The warning tells the writer something false (that today's change is yesterday's), and gives no way
+to back out of an undo that really would change yesterday's text.
+**Sprint:** [SP-188]
+**Date Identified:** 2026-10-24, user, [SP-188] Mac live pass step 1 (⌘X across scenes, then ⌘Z)
+
+**What happened (user):** *"If I make a change, and then undo it, I should not get a dialog telling me about last sessions
+changes! … no dialog should appear unless I try and undo a change made from yesterday. Then I should see the dialog. Oh,
+and the dialog only offers an OK button. I have no way to Cancel yesterday's undo I am about to make today."*
+
+**Cause:** the core flagged `crossedSessionBoundary` when an undo LANDED on an earlier session's node. Undoing this
+session's first change lands on the previous session's last one, so it warned, and only after the undo had run. ✅ The
+undo design v0.1 ("Sessions") already said *"about to undo"* and *"proceeds only on confirmation"*. The code didn't.
+
+**✅ Ruling (user, 2026-10-24):** a dialog only for an undo that would undo an earlier session's change, shown BEFORE that
+undo, with Cancel. *"Ownership of an issue does not absolve a work product from the need to fix it."* It was fixed in
+[SP-188], which surfaced it.
+
+**Resolution (2026-10-24):**
+- **Core:** the crossing is the undo of a change from a different session than the undos are in (`undoSession_`: this
+  session after a new change or an open; else the session of the last change undone or redone), never the node landed
+  on. `undoEntersEarlierSession()` puts `undoCrossesSessionAt` (that change's time) in every `scrivi_capture_*` envelope
+  when the next undo crosses a border; never while an edit is pending (the undo takes that edit first). `scrivi.h`
+  documents it; no new endpoint.
+- **Apple / Linux:** before undoing, ask the core afresh. If it reports a crossing: *"Undo a change from a previous
+  session?"*, **Undo** / **Cancel**. Cancel undoes nothing. The after-the-undo notice is gone from both.
+- **Tests:** core `[I-0319]` (C ABI, three sessions: asked at each border going back and never inside a session; a redo
+  forward and an undo back re-asks at the border); interop
+  `earlierSessionUndoIsAskedFirst` (replaces [I-0298]'s `structuralUndoAcrossSessionsWarns`: this session's paste
+  undone without a question, then yesterday's asked, Cancel undoes nothing, Undo undoes it); Linux `undo_smoke` (this
+  session's typing undone without a question).
+- ✅ **Ruling (user, 2026-10-24, after the first fix):** *"I do not want it to ask every time; until you reach the border
+  of a previous session again."* Asked at EVERY border going back (session 3 → 2, then 2 → 1, … to the project's
+  start), and again on re-crossing one. ⛔ The first fix asked once per session per run, so the user's second ⌘Z of
+  step 1 (into the next session) asked nothing. Replaced.
+
+---
 
 ---
 

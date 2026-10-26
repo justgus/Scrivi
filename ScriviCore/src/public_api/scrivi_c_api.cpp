@@ -208,6 +208,14 @@ static void addProjectCallFields(scrivi::util::JsonDoc& root) {
     root.setInt64("revision", call->revision);
     // Q1 (exclusive lock): the wait is MEASURED, not assumed. Only a wait of 1 ms or more is reported.
     if (call->lockWaitMs > 0) { root.setInt64("lockWaitMs", call->lockWaitMs); }
+    // [SP-188] AC11 / EP-052 inventory: what this call was, how long it ran (from the lock to the envelope) and how many
+    // file operations it made on its own thread. Names and counts only.
+    scrivi::util::JsonDoc trace;
+    trace.setString("endpoint", call->endpoint);
+    trace.setInt64("ms", std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now() - call->started).count());
+    trace.setInt64("fileOps", scrivi::util::fileOperationsOnThisThread() - call->fileOpsAtStart);
+    root.setSubDoc("trace", std::move(trace));
 }
 
 // ---------------------------------------------------------------------------
@@ -324,8 +332,11 @@ static const char* guarded(Fn&& fn) {
 // network share the cost is per-file latency, so a few readers divide it; measured on the rig with 8.
 static constexpr std::size_t kParallelReaders = 8;
 
-#define SCRIVI_PROJECT_READ(root)  scrivi::abi::ProjectCallGuard scriviProjectGuard_((root), scrivi::abi::ProjectCallGuard::Kind::read)
-#define SCRIVI_PROJECT_WRITE(root) scrivi::abi::ProjectCallGuard scriviProjectGuard_((root), scrivi::abi::ProjectCallGuard::Kind::write)
+#define SCRIVI_PROJECT_READ(root)  scrivi::abi::ProjectCallGuard scriviProjectGuard_((root), scrivi::abi::ProjectCallGuard::Kind::read, __func__)
+#define SCRIVI_PROJECT_WRITE(root) scrivi::abi::ProjectCallGuard scriviProjectGuard_((root), scrivi::abi::ProjectCallGuard::Kind::write, __func__)
+// EP-052 (T-0623): an endpoint that touches no file takes only the memory lock, so it never waits for one that does.
+#define SCRIVI_PROJECT_MEMORY_READ(root)  scrivi::abi::ProjectCallGuard scriviProjectGuard_((root), scrivi::abi::ProjectCallGuard::Kind::memoryRead, __func__)
+#define SCRIVI_PROJECT_MEMORY_WRITE(root) scrivi::abi::ProjectCallGuard scriviProjectGuard_((root), scrivi::abi::ProjectCallGuard::Kind::memoryWrite, __func__)
 
 // ---------------------------------------------------------------------------
 // Undo/Redo history registry (EP-019 SP-052 — T-0202)
@@ -3375,7 +3386,7 @@ const char* scrivi_list_imported_timelines(const char* projectRootPath) {
 // SP-173 / I-0285, D4 — the project's current revision, and nothing else: no file is touched. A platform asks this on the
 // main thread just before applying a result read in the background, and applies it only if the revisions match.
 const char* scrivi_get_project_revision(const char* projectRootPath) {
-    SCRIVI_PROJECT_READ(projectRootPath);
+    SCRIVI_PROJECT_MEMORY_READ(projectRootPath);
     return guarded([&]() -> const char* {
         SCRIVI_REQUIRE_PATH(projectRootPath, "projectRootPath");
         return heap(okEnvelope(scrivi::util::JsonDoc{}));
@@ -3854,7 +3865,7 @@ const char* scrivi_history_select_branch(const char* projectRootPath,
 }
 
 const char* scrivi_history_get_tree(const char* projectRootPath, const char* paramsJSON) {
-    SCRIVI_PROJECT_READ(projectRootPath);
+    SCRIVI_PROJECT_MEMORY_READ(projectRootPath);
     const std::string root = S(projectRootPath);
     auto& reg = historyRegistry();
     std::lock_guard<std::mutex> lock(reg.mutex);
@@ -3911,7 +3922,7 @@ const char* scrivi_history_get_tree(const char* projectRootPath, const char* par
 }
 
 const char* scrivi_history_list_stale_branches(const char* projectRootPath) {
-    SCRIVI_PROJECT_READ(projectRootPath);
+    SCRIVI_PROJECT_MEMORY_READ(projectRootPath);
     const std::string root = S(projectRootPath);
     auto& reg = historyRegistry();
     std::lock_guard<std::mutex> lock(reg.mutex);
@@ -4005,7 +4016,7 @@ const char* scrivi_history_note_scene_persisted(const char* projectRootPath,
 }
 
 const char* scrivi_history_get_settings(const char* projectRootPath) {
-    SCRIVI_PROJECT_READ(projectRootPath);
+    SCRIVI_PROJECT_MEMORY_READ(projectRootPath);
     const std::string root = S(projectRootPath);
     auto& reg = historyRegistry();
     std::lock_guard<std::mutex> lock(reg.mutex);
@@ -4196,7 +4207,7 @@ const char* scrivi_capture_redo(const char* projectRootPath) {
 }
 
 const char* scrivi_capture_note_applied(const char* projectRootPath, const char* sceneID, const char* sceneTextUtf8) {
-    SCRIVI_PROJECT_WRITE(projectRootPath);
+    SCRIVI_PROJECT_MEMORY_WRITE(projectRootPath);
   return guarded([&]() -> const char* {
     return withCapture(projectRootPath, [&](auto& c, auto&, auto&) {
         c.noteApplied(S(sceneID), S(sceneTextUtf8));
@@ -4206,7 +4217,7 @@ const char* scrivi_capture_note_applied(const char* projectRootPath, const char*
 }
 
 const char* scrivi_capture_state(const char* projectRootPath) {
-    SCRIVI_PROJECT_READ(projectRootPath);
+    SCRIVI_PROJECT_MEMORY_READ(projectRootPath);
   return guarded([&]() -> const char* {
     return withCapture(projectRootPath, [&](auto& c, auto&, auto&) { return captureStateDoc(c, false); });
   });
