@@ -369,6 +369,7 @@ private:
     QString             appSupportRoot_;
     LandingWindow*      landing_ = nullptr;   // NOT owned — main() owns it
     bool                quitting_ = false;   // ⚠️ [I-0257] — teardown in progress
+    bool                quitFlushed_ = false;   // EP-052: `finishQuit` flushes on its first pass only
     QPointer<QProgressDialog> quitWaitDialog_;   // [I-0305]: Quit waiting for background work
     OpenProjectRegistry openProjects_;
     ProjectWindowManager windows_;

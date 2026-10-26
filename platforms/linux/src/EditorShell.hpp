@@ -196,8 +196,16 @@ public:
     // ✅ [I-0305] (user, 2026-10-15: a close "must WAIT until the background process is completed"): true while a worker
     // is writing this project — the off-main scene saves, a Replace All, a structural step. `whenBackgroundWorkDone` runs
     // `then` on the GUI thread once none is left (at once when none is running).
+    // EP-052 ([SP-195]): queued saves count while any is pending, but NOT while the queue is HELD ([SP-195] Q1 (a)) — those
+    // cannot land until the drive is back, so a close or quit asks instead ([I-0322], `confirmDiscardingHeld`).
     [[nodiscard]] bool backgroundWorkInProgress() const { return backgroundWork_ > 0; }
     void whenBackgroundWorkDone(std::function<void()> then);
+    // EP-052 [SP-195] Q1 (a): a save could not reach the disk; the core keeps it and retries it every 5 s.
+    [[nodiscard]] bool writesHeld() const { return writesHeld_; }
+    // [I-0322] (Apple: [T-0570]): before a close or quit, when any of `shells` holds writes that cannot land, asks the
+    // writer — Cancel is the default. True to go on. Tests answer through `confirmHook`.
+    static bool confirmDiscardingHeld(QWidget* parent, const QList<EditorShell*>& shells, const QString& action);
+    static inline std::function<bool(int unsaved, const QString& action)> confirmHook;
     // ── EP-048 S5a ([SP-182]): the project's settings — its type and Markup Hints ──
     // This project's preferences (nullptr until a load); Project ▸ Project Settings… edits them.
     [[nodiscard]] ProjectPreferences* preferences() const { return prefs_; }
@@ -497,9 +505,16 @@ private:
     // Select the navigator row for `sceneID` (highlight only; no scroll, no caret).
     // Used both by a click and by the scroll-driven active-scene follow.
     void selectNavigatorScene(const QString& sceneID);
-    // Save one scene's current body via the bridge; returns true on success. Clears
-    // the scene from dirtyScenes_ whether or not it was present.
+    // EP-052 ([SP-195]): QUEUES one scene's save; the scene stays in dirtyScenes_ until its outcome says it was written
+    // with the text it still holds. Returns true when queued.
     bool saveScene(int segmentIndex);
+    // One `scrivi_enqueue_save_scenes` call: {segment index, caret anchor, caret focus, scroll} per scene.
+    struct QueuedSaveEntry { int index; long long anchor; long long focus; double scroll; };
+    bool enqueueSaves(const QList<QueuedSaveEntry>& entries);
+    // One waiter at a time, on a worker: `scrivi_wait_for_writes`, its outcomes applied on the GUI thread.
+    void startWaiting();
+    void applyWriteOutcomes(const QVariantMap& wait);
+    void setQueueCounted(bool counted);   // the queue as ONE piece of background work, for a close or quit
     // (Re)populate the navigator tree from the current SceneDocument segments.
     void rebuildNavigator();
 
@@ -831,8 +846,6 @@ private:
     bool placeCaret(const QString& sceneID, qint64 byteOffset);
     // Replace segment `index`'s body with `text`, under `isApplying`; returns the document position of `caretUtf16`.
     int replaceSceneBody(int index, const QString& text, int caretUtf16);
-    // The save path wrote `text` for `sceneID` ([I-0104]); ⛔ only after a write that SUCCEEDED ([I-0259]).
-    void notePersisted(const QString& sceneID, const QString& text);
     // A structural barrier (§4.5), Apple's kinds and notes. ⚠️ AFTER the op: `sceneTexts` is what it left in each
     // scene it rewrote or created ([I-0287]).
     void recordBarrier(const QString& kind, const QString& note, const QHash<QString, QString>& sceneTexts = {});
@@ -843,9 +856,8 @@ private:
     // ONLY those holding a match — written off it too. The editor is read-only, with the progress row, throughout.
     // `done(replaced)` runs on the GUI thread at the end (0 when nothing was replaced).
     void replaceAll(const QVector<MarkdownRange>& matches, const QString& typed, std::function<void(int)> done);
-    // Writes the dirty scenes at `indices` OFF the GUI thread (Apple: `ViewportSceneLoader.saveScenesOffMain`, [I-0303]),
-    // then runs `landed` on it. A scene the writer changed meanwhile stays dirty.
-    void saveScenesOffMain(const QList<int>& indices, std::function<void()> landed);
+    // Queues the dirty scenes at `indices` (Apple: `ViewportSceneLoader.saveScenesOffMain`): body-only saves (0/0/0.0).
+    void saveScenesOffMain(const QList<int>& indices);
     // Replace `before` (segment `index`'s body) by `after`, raw, editing only the span that differs.
     void replaceSceneSpan(int index, const QString& before, const QString& after);
     // ONE edit across several scenes ([I-0270]) — the parts in between are collected and reported together.
@@ -863,4 +875,9 @@ private:
     void endBackgroundWork();
     int                                backgroundWork_ = 0;
     QList<std::function<void()>>       backgroundWaiters_;
+    // EP-052: the scene and text each queued ticket carries; a ticket leaves when it lands, is replaced, or is refused.
+    QHash<qint64, QPair<QString, QString>> queued_;
+    bool                               waiting_ = false;
+    bool                               writesHeld_ = false;
+    bool                               queueCounted_ = false;
 };

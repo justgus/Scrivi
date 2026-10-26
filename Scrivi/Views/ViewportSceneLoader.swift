@@ -47,22 +47,22 @@ struct SceneSegment: Identifiable {
     // (the project's drive gone) and warn the writer. Wiring, not view state.
     @ObservationIgnored var onSaveFailed: (() -> Void)?
 
-    // ✅ [I-0303]: how many scenes a bulk save is writing OFF the main actor right now. Above zero, the manuscript is locked
-    // and the editor shows progress (Replace All).
+    // ✅ EP-052 ([SP-195]): how many scenes have a queued save not yet landed. Shown as "Saving N scenes…"; never locks
+    // the manuscript.
     private(set) var scenesWritingOffMain = 0
-    /// [I-0305] — run once no off-main write is left (`whenOffMainWritesLand`).
+    /// [I-0305] — run once no queued save is left, or the queue is HELD (`whenOffMainWritesLand`).
     @ObservationIgnored private var offMainWaiters: [@MainActor () -> Void] = []
 
     // Tests ([I-0303]): told of every scene write that succeeded — its sceneID and whether it ran on the main thread.
     @ObservationIgnored var onSceneWritten: (@Sendable (_ sceneID: String, _ onMainThread: Bool) -> Void)?
 
-    // [I-0303]: the scenes an off-main write holds, and those a main-actor save found in flight. ⚠️ A main save of a scene in
-    // flight is DEFERRED until the flight lands, so an older write can never land over a newer one.
-    @ObservationIgnored private var inFlight: Set<String> = []
-    @ObservationIgnored private var saveAfterFlight: Set<String> = []
-    // Left when an off-main write's last file is written (on the worker, not after the main-actor hop), so the quit path
-    // can wait for it without needing the main thread.
-    @ObservationIgnored private let offMainWrites = DispatchGroup()
+    // EP-052: the scene and text each queued ticket carries. A ticket leaves when it lands, is replaced by a newer save of
+    // its scene, or is refused. ONE queue in the core orders every write ([SP-195], W6 retired here).
+    @ObservationIgnored private var queued: [Int64: (sceneID: String, text: String)] = [:]
+    @ObservationIgnored private var waiting = false
+    /// [SP-195] Q1 (a): a save could not reach the disk; the core keeps it and retries. A close or quit then asks ([T-0570])
+    /// instead of waiting.
+    private(set) var writesHeld = false
 
     // Full ordered scene list. Used by SceneNavigatorView to build the sidebar.
     private(set) var allScenes: [SceneInfo]
@@ -381,65 +381,13 @@ struct SceneSegment: Identifiable {
         saveSceneBlocking(at: index, engine: engine, ref: ref)
     }
 
-    // The actual write. Synchronous because every engine call it makes is a synchronous
-    // C ABI call — there is nothing to await. Having it callable without `await` is what
-    // lets `applicationWillTerminate` flush safely (I-0104/I-0108); that callback does
-    // not wait for async work, so a Task would be cut off mid-write.
+    // ✅ EP-052 ([SP-195]): QUEUES the save; the core writes it off the main thread, in order with every other write of
+    // this project, and the scene is marked clean when its outcome lands (`apply(_ wait:)`). ⛔ [I-0259]: a failed write
+    // leaves it dirty. Still callable without `await`, which `applicationWillTerminate` needs (I-0104/I-0108).
     func saveSceneBlocking(at index: Int, engine: ScriviEngine, ref: AuthorshipRef) {
-        let span = ScriviDiag.begin("save scene (main thread)"); defer { ScriviDiag.end(span) }
         guard segments.indices.contains(index), segments[index].isDirty else { return }
-        let seg = segments[index]
-        guard !inFlight.contains(seg.sceneID) else {
-            saveAfterFlight.insert(seg.sceneID)   // [I-0303]: written once the off-main write of it lands
-            return
-        }
         let isCurrent = index == currentIndex
-        // ⛔ [I-0259] — A FAILED WRITE MUST LEAVE THE SCENE DIRTY.
-        //
-        // This was `_ = try? engine.saveScene(…)` followed UNCONDITIONALLY by
-        // `isDirty = false`, a "WROTE" log line and `noteScenePersisted`. ⚠️ Found
-        // 2026-09-30 with the project's own drive pulled: every save failed
-        // ("Operation not permitted"), yet each scene was marked clean and history
-        // was told its bytes were on disk — so NOTHING retried when the drive came
-        // back, and the edits lived only in memory until quit discarded them.
-        // ✅ Now: on failure the scene stays dirty (the next save cadence retries
-        // it), the failure is logged as a failure, and history is NOT told.
-        do {
-            _ = try engine.saveScene(
-                projectID: projectID,
-                projectRootPath: projectRootPath,
-                appSupportRoot: appSupportRoot,
-                sceneID: seg.sceneID,
-                sceneMetadataPath: seg.metadataPath,
-                sceneContentPath: seg.contentPath,
-                markdown: seg.text,
-                selectionAnchor: isCurrent ? currentSceneCursorOffset : 0,
-                selectionFocus: isCurrent ? currentSceneCursorOffset : 0,
-                scroll: isCurrent ? scrollFraction : 0,
-                authorshipRef: ref
-            )
-        } catch {
-            NSLog("[SCRIVI-DIAG] saveSceneBlocking FAILED scene=\(seg.sceneID) — kept DIRTY: \(error)")
-            onSaveFailed?()
-            return
-        }
-        NSLog("[SCRIVI-DIAG] saveSceneBlocking WROTE scene=\(seg.sceneID) isCurrent=\(isCurrent)")
-        onSceneWritten?(seg.sceneID, pthread_main_np() != 0)
-        segments[index].isDirty = false
-
-        // I-0104: tell history the bytes we just wrote. The head hash persisted at
-        // close must describe the FILE, not the replayed history head — otherwise
-        // the next open compares two different artifacts and raises a spurious
-        // `externalChange` barrier for a scene edited only inside Scrivi.
-        //
-        // ⚠️ This is the ONLY correct place for this call: right after a successful
-        // write, with the exact bytes written. Calling it anywhere that merely *has*
-        // scene text (e.g. HistoryCapture.close with its pending latch) records a hash
-        // for text that may never have reached disk — tried 2026-08-10, and it made
-        // the barrier count worse rather than better.
-        if let historyCapture {
-            historyCapture.noteScenePersisted(sceneID: seg.sceneID, diskText: seg.text)
-        }
+        enqueueSaves([(index, isCurrent ? currentSceneCursorOffset : 0, isCurrent ? scrollFraction : 0)], ref: ref)
     }
 
     // Save the current segment (used by debounce auto-save and app resign).
@@ -454,81 +402,109 @@ struct SceneSegment: Identifiable {
         saveAllDirtyBlocking(engine: engine, ref: ref)
     }
 
-    /// One scene's write, taken on the main actor and done off it ([I-0303]).
-    private struct OffMainWrite: Sendable {
-        let sceneID, metadataPath, contentPath, text: String
-        let cursor: Int
-        let scroll: Double
+    /// Queues the dirty scenes at `indices` (a Replace All's: only the scenes holding a match). Returns false when nothing
+    /// was dirty.
+    @discardableResult
+    func saveScenesOffMain(_ indices: some Sequence<Int>, engine: ScriviEngine, ref: AuthorshipRef) -> Bool {
+        let entries = Set(indices).sorted().filter { segments.indices.contains($0) && segments[$0].isDirty }.map { i in
+            (i, i == currentIndex ? currentSceneCursorOffset : 0, i == currentIndex ? scrollFraction : 0)
+        }
+        return enqueueSaves(entries, ref: ref)
     }
 
-    // ✅ [I-0303] — writes the dirty scenes at `indices` OFF the main actor (a Replace All's: only the scenes holding a
-    // match). Their texts are taken now; each written scene is marked clean and its bytes told to history when the writes
-    // land, unless the writer changed it meanwhile (then it is saved again). ⛔ [I-0259]: a failed write leaves it dirty.
-    // `whenLanded` runs on the main actor in the same step that brings `scenesWritingOffMain` back down, so a lock it lifts
-    // never outlives the count. Returns false (and never calls it) when nothing was dirty.
+    /// One `scrivi_enqueue_save_scenes` call: each entry is a scene index, its caret and its scroll. A memory call: it
+    /// returns at once.
     @discardableResult
-    func saveScenesOffMain(_ indices: some Sequence<Int>, engine: ScriviEngine, ref: AuthorshipRef,
-                           whenLanded: @escaping @MainActor () -> Void = {}) -> Bool {
-        let jobs: [OffMainWrite] = Set(indices).sorted().compactMap { i in
-            guard segments.indices.contains(i), segments[i].isDirty, !inFlight.contains(segments[i].sceneID) else { return nil }
-            let seg = segments[i]
-            let isCurrent = i == currentIndex
-            return OffMainWrite(sceneID: seg.sceneID, metadataPath: seg.metadataPath, contentPath: seg.contentPath, text: seg.text,
-                       cursor: isCurrent ? currentSceneCursorOffset : 0, scroll: isCurrent ? scrollFraction : 0)
+    private func enqueueSaves(_ entries: [(index: Int, cursor: Int, scroll: Double)], ref: AuthorshipRef) -> Bool {
+        let saves = entries.filter { segments.indices.contains($0.index) }.map { e in
+            let seg = segments[e.index]
+            return QueuedSave(sceneID: seg.sceneID, metadataPath: seg.metadataPath, contentPath: seg.contentPath,
+                              markdown: seg.text, selectionAnchor: e.cursor, selectionFocus: e.cursor, scroll: e.scroll)
         }
-        guard !jobs.isEmpty else { return false }
-        inFlight.formUnion(jobs.map(\.sceneID))
-        scenesWritingOffMain += jobs.count
-        let projectID = projectID, root = projectRootPath, support = appSupportRoot
-        let observe = onSceneWritten
-        let group = offMainWrites
-        group.enter()
-        Task { @MainActor in
-            let written: [Bool] = await Task.detached(priority: .userInitiated) {
-                defer { group.leave() }
-                return jobs.map { job in
-                    do {
-                        _ = try engine.saveScene(projectID: projectID, projectRootPath: root, appSupportRoot: support,
-                                                 sceneID: job.sceneID, sceneMetadataPath: job.metadataPath,
-                                                 sceneContentPath: job.contentPath, markdown: job.text,
-                                                 selectionAnchor: job.cursor, selectionFocus: job.cursor, scroll: job.scroll,
-                                                 authorshipRef: ref)
-                    } catch {
-                        NSLog("[SCRIVI-DIAG] saveScenesOffMain FAILED scene=\(job.sceneID) — kept DIRTY: \(error)")
-                        return false
-                    }
-                    observe?(job.sceneID, pthread_main_np() != 0)
-                    return true
-                }
-            }.value
-            // ---- main actor from here down ----
-            inFlight.subtract(jobs.map(\.sceneID))
-            scenesWritingOffMain -= jobs.count
-            whenLanded()
-            var again: [Int] = []
-            for (job, ok) in zip(jobs, written) {
-                guard let i = segments.firstIndex(where: { $0.sceneID == job.sceneID }) else { continue }
-                if ok {
-                    NSLog("[SCRIVI-DIAG] saveScenesOffMain WROTE scene=\(job.sceneID)")
-                    historyCapture?.noteScenePersisted(sceneID: job.sceneID, diskText: job.text)
-                    if segments[i].text == job.text { segments[i].isDirty = false }
-                }
-                if saveAfterFlight.remove(job.sceneID) != nil || (ok && segments[i].isDirty) { again.append(i) }
-            }
-            if written.contains(false) { onSaveFailed?() }
-            for i in again { saveSceneBlocking(at: i, engine: engine, ref: ref) }
-            if scenesWritingOffMain == 0 {
-                let waiters = offMainWaiters
-                offMainWaiters = []
-                for w in waiters { w() }
-            }
+        guard !saves.isEmpty else { return false }
+        let tickets: [String: Int64]
+        do {
+            tickets = try engine.enqueueSaveScenes(projectID: projectID, projectRootPath: projectRootPath,
+                                                   appSupportRoot: appSupportRoot, scenes: saves, authorshipRef: ref)
+        } catch {
+            NSLog("[SCRIVI-DIAG] enqueue save FAILED — kept DIRTY: \(error)")
+            onSaveFailed?()
+            return false
         }
+        for save in saves { if let t = tickets[save.sceneID] { queued[t] = (save.sceneID, save.markdown) } }
+        countQueued()
+        startWaiting()
         return true
     }
 
-    // ✅ [I-0305] — runs `then` on the main actor once every off-main write has landed (at once when none is running). A
-    // close or quit waits on it (user, 2026-10-15: the close "must WAIT until the background process is completed").
-    // ✅ [SP-191]: a structural edit in flight is an off-main write too.
+    private func countQueued() {
+        let n = Set(queued.values.map(\.sceneID)).count
+        if scenesWritingOffMain != n { scenesWritingOffMain = n }
+    }
+
+    /// One background waiter at a time: it hands every outcome to the main actor until nothing queued is left.
+    private func startWaiting() {
+        guard !waiting else { return }
+        waiting = true
+        let engine = engine, root = projectRootPath
+        Task.detached(priority: .utility) { [weak self] in
+            while true {
+                let wait = try? engine.waitForWrites(projectRootPath: root, timeoutMs: 1000)
+                guard let self, await self.apply(wait) else { return }
+                // A held queue answers at once; the core retries every 5 s, so asking more often learns nothing.
+                if wait?.held ?? true { try? await Task.sleep(for: .seconds(1)) }
+            }
+        }
+    }
+
+    /// Main actor: applies one wait's outcomes. Returns whether to keep waiting.
+    private func apply(_ wait: WriteQueueWait?) -> Bool {
+        var failed = false
+        for o in wait?.outcomes ?? [] where o.kind == "save" {
+            guard let sent = queued[o.ticket] else { continue }
+            if o.supersededBy != nil { queued[o.ticket] = nil; continue }   // the newer save's outcome decides
+            if o.ok {
+                queued[o.ticket] = nil
+                NSLog("[SCRIVI-DIAG] queued save WROTE scene=\(sent.sceneID)")
+                onSceneWritten?(sent.sceneID, false)
+                if let i = segments.firstIndex(where: { $0.sceneID == sent.sceneID }), segments[i].text == sent.text {
+                    segments[i].isDirty = false   // unless the writer changed it since
+                }
+            } else {
+                NSLog("[SCRIVI-DIAG] queued save FAILED scene=\(sent.sceneID) held=\(o.held == true) — kept DIRTY")
+                if o.held != true { queued[o.ticket] = nil }   // refused: it will not be retried
+                failed = true
+            }
+        }
+        guard let wait else {   // the wait itself failed: stop, the scenes stay dirty for the next save
+            queued.removeAll()
+            countQueued()
+            return finishWaiting()
+        }
+        if writesHeld != wait.held { writesHeld = wait.held }
+        countQueued()
+        if failed { onSaveFailed?() }
+        if queued.isEmpty { return finishWaiting() }
+        if wait.held { runWaiters() }   // a close or quit asks now instead of waiting ([T-0570])
+        return true
+    }
+
+    private func finishWaiting() -> Bool {
+        waiting = false
+        if writesHeld { writesHeld = false }
+        runWaiters()
+        return false
+    }
+
+    private func runWaiters() {
+        let waiters = offMainWaiters
+        offMainWaiters = []
+        for w in waiters { w() }
+    }
+
+    // ✅ [I-0305] — runs `then` on the main actor once every queued save has landed, or the queue is held (at once when
+    // neither). A close or quit waits on it (user, 2026-10-15: the close "must WAIT until the background process is
+    // completed"). ✅ [SP-191]: a structural edit in flight is an off-main write too.
     func whenOffMainWritesLand(_ then: @escaping @MainActor () -> Void) {
         whenScenesLand { [weak self] in
             guard let self else { return then() }
@@ -536,9 +512,8 @@ struct SceneSegment: Identifiable {
         }
     }
 
-    /// The scene saves alone (not a structural edit): what a structural edit itself waits for before its core call.
     private func whenScenesLand(_ then: @escaping @MainActor () -> Void) {
-        if scenesWritingOffMain == 0 { then() } else { offMainWaiters.append(then) }
+        if scenesWritingOffMain == 0 || writesHeld { then() } else { offMainWaiters.append(then) }
     }
 
     // MARK: — [SP-191] Structural edits: one range call off the main actor, the delta applied
@@ -580,30 +555,24 @@ struct SceneSegment: Identifiable {
             guard let self, self.structuralInFlight, self.structuralGeneration == generation else { return }
             self.structuralProgress = label
         }
+        // EP-052: the unsaved scenes are queued first; the core call waits for them itself (W3), and fails at once if the
+        // queue is held ([SP-195] Q1 (a)), so the edit is refused rather than run over a lost save.
         _ = saveScenesOffMain(segments.indices, engine: engine, ref: ref)
         let engine = engine
-        let group = offMainWrites
-        whenScenesLand { [weak self] in
+        Task { @MainActor [weak self] in   // inherits the caller's StructuralCallAccounting sink
+            let outcome: Result<T, Error> = await Task.detached(priority: .userInitiated) {
+                ScriviDiag.span("structural: \(label) core call", always: true) { Result { try call(engine) } }
+            }.value
             guard let self else { return }
-            ScriviDiag.note(String(format: "structural: %@ unsaved scenes written, after %.0f ms", label, Date().timeIntervalSince(began) * 1000))
-            group.enter()   // the quit path waits on this group (`saveAllDirtyBlocking`)
-            // ⚠️ Re-marked: this closure can run later, from a save's landing, outside the caller's task.
-            StructuralCallAccounting.$sink.withValue(self.structuralCalls) { Task { @MainActor [weak self] in
-                let outcome: Result<T, Error> = await Task.detached(priority: .userInitiated) {
-                    defer { group.leave() }
-                    return ScriviDiag.span("structural: \(label) core call", always: true) { Result { try call(engine) } }
-                }.value
-                guard let self else { return }
-                self.structuralInFlight = false
-                ScriviDiag.span("structural: \(label) applied", always: true) { landed(outcome) }
-                ScriviDiag.note(String(format: "structural: %@ %@ after %.0f ms in all", label,
-                                       (try? outcome.get()) == nil ? "FAILED" : "landed", Date().timeIntervalSince(began) * 1000))
-                // ✅ [SP-188] Q6: an edit that starts another as it lands (a paste over a cut selection) keeps the row.
-                if !self.structuralInFlight { self.structuralProgress = nil }
-                let waiters = self.structuralWaiters
-                self.structuralWaiters = []
-                for w in waiters { w() }
-            } }
+            self.structuralInFlight = false
+            ScriviDiag.span("structural: \(label) applied", always: true) { landed(outcome) }
+            ScriviDiag.note(String(format: "structural: %@ %@ after %.0f ms in all", label,
+                                   (try? outcome.get()) == nil ? "FAILED" : "landed", Date().timeIntervalSince(began) * 1000))
+            // ✅ [SP-188] Q6: an edit that starts another as it lands (a paste over a cut selection) keeps the row.
+            if !self.structuralInFlight { self.structuralProgress = nil }
+            let waiters = self.structuralWaiters
+            self.structuralWaiters = []
+            for w in waiters { w() }
         }
         return true
     }
@@ -659,15 +628,7 @@ struct SceneSegment: Identifiable {
 
     // Synchronous counterpart for the quit path (I-0104/I-0108).
     func saveAllDirtyBlocking(engine: ScriviEngine, ref: AuthorshipRef) {
-        let span = ScriviDiag.begin("save all dirty scenes (main thread)"); defer { ScriviDiag.end(span) }
-        // ✅ [I-0303]: let an off-main write finish first — its main-actor hop will never run during quit, so its scenes
-        // (still dirty) are written again below, with their newest text. ✅ [SP-191]: a structural edit's core call too — it
-        // is in the same group, and a quit must not cut it off half-written.
-        if !inFlight.isEmpty || structuralInFlight {
-            _ = offMainWrites.wait(timeout: .now() + 30)
-            inFlight.removeAll()
-            saveAfterFlight.removeAll()
-        }
+        // EP-052: queued, in this order, behind every write already queued; the caller waits for them at quit.
         NSLog("[SCRIVI-DIAG] quit: currentIndex=\(currentIndex) cursorScene=\(cursorSceneID ?? "nil") viewportScene=\(viewportSceneID ?? "nil") dirty=\(segments.filter{$0.isDirty}.count) cursorOffset=\(currentSceneCursorOffset) scroll=\(scrollFraction)")
         for i in segments.indices where segments[i].isDirty && i != currentIndex {
             saveSceneBlocking(at: i, engine: engine, ref: ref)
@@ -689,7 +650,6 @@ struct SceneSegment: Identifiable {
     }
 
     func stampWritingSurfaceBlocking(engine: ScriviEngine, ref: AuthorshipRef) {
-        let span = ScriviDiag.begin("stamp the writing surface (main thread)"); defer { ScriviDiag.end(span) }
         guard let vpID = viewportSceneID,
               let seg = segments.first(where: { $0.sceneID == vpID }) else { return }
 
@@ -719,30 +679,11 @@ struct SceneSegment: Identifiable {
         // and place the cursor safely).
         let offset = cursorIsHere ? currentSceneCursorOffset : 0
 
-        // ⛔ [I-0259] — only a write that SUCCEEDED may be reported to history.
-        do {
-            _ = try engine.saveScene(
-                projectID: projectID,
-                projectRootPath: projectRootPath,
-                appSupportRoot: appSupportRoot,
-                sceneID: seg.sceneID,
-                sceneMetadataPath: seg.metadataPath,
-                sceneContentPath: seg.contentPath,
-                markdown: seg.text,
-                selectionAnchor: offset,
-                selectionFocus: offset,
-                scroll: scrollFraction,
-                authorshipRef: ref
-            )
-        } catch {
-            NSLog("[SCRIVI-DIAG] stampWritingSurface FAILED scene=\(seg.sceneID): \(error)")
-            return
-        }
-        NSLog("[SCRIVI-DIAG] stampWritingSurface WROTE scene=\(seg.sceneID) cursorIsHere=\(cursorIsHere) offset=\(offset)")
-        // I-0104: this path writes the scene file too, so it must report the bytes it
-        // wrote — otherwise a scene stamped here keeps a stale baseline and re-flags as
-        // externally changed on the next open.
-        historyCapture?.noteScenePersisted(sceneID: seg.sceneID, diskText: seg.text)
+        // EP-052: queued like any save, even when the scene is clean; its outcome marks nothing dirty or clean that the
+        // text does not match.
+        guard let index = segments.firstIndex(where: { $0.sceneID == seg.sceneID }) else { return }
+        enqueueSaves([(index, offset, scrollFraction)], ref: ref)
+        NSLog("[SCRIVI-DIAG] stampWritingSurface QUEUED scene=\(seg.sceneID) cursorIsHere=\(cursorIsHere) offset=\(offset)")
     }
 
     // Called by ManuscriptTextView.Coordinator.textViewDidChangeSelection.

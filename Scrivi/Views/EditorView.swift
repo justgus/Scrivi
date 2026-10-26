@@ -362,7 +362,8 @@ private struct ManuscriptEditorView: View {
                     ProjectUnavailableBanner(unsavedScenes: session.unsavedSceneCount)
                 }
             }
-            // ✅ [I-0303] — a Replace All's scenes being written off the main actor; the manuscript is locked until they land.
+            // ✅ [I-0303] / EP-052 — scenes still being written by the queue (a Replace All's); the manuscript stays editable.
+            // ⚠️ Shown from TWO scenes: the typing autosave queues one each second, and a row for it would flicker.
             // An overlay for the same reason as the two above ([I-0263]).
             // ✅ [SP-191] Q5 — a structural edit that has run 400 ms says what it is doing (the editor is read-only meanwhile).
             .overlay(alignment: .topTrailing) {
@@ -375,11 +376,10 @@ private struct ManuscriptEditorView: View {
                     .padding(.vertical, 6)
                     .background(.regularMaterial, in: Capsule())
                     .padding(8)
-                } else if loader.scenesWritingOffMain > 0 {
+                } else if loader.scenesWritingOffMain > 1 {
                     HStack(spacing: 6) {
                         ProgressView().controlSize(.small)
-                        Text(loader.scenesWritingOffMain == 1 ? "Saving 1 scene…"
-                                                               : "Saving \(loader.scenesWritingOffMain) scenes…")
+                        Text("Saving \(loader.scenesWritingOffMain) scenes…")
                             .font(.callout)
                     }
                     .padding(.horizontal, 10)

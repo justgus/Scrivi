@@ -369,6 +369,31 @@ QVariantMap ScriviBridge::saveScene(const QString& projectID,
     return parseEnvelope(envelope.toQString());
 }
 
+QVariantMap ScriviBridge::enqueueSaveScenes(const QString& projectID, const QString& projectRootPath,
+                                            const QString& appSupportRoot, const QVariantList& scenes)
+{
+    if (!ready_) {
+        tlsLastCallFailed = true;
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const QJsonObject request{{QStringLiteral("projectID"), projectID},
+                              {QStringLiteral("appSupportRoot"), appSupportRoot},
+                              {QStringLiteral("identityID"), identityID_},
+                              {QStringLiteral("personaID"), personaID_},
+                              {QStringLiteral("displayName"), displayName_},
+                              {QStringLiteral("scenes"), QJsonArray::fromVariantList(scenes)}};
+    const ScriviString envelope(scrivi_enqueue_save_scenes(
+        projectRootPath.toUtf8().constData(), QJsonDocument(request).toJson(QJsonDocument::Compact).constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::waitForWrites(const QString& projectRootPath, qint64 ticket, qint64 timeoutMs)
+{
+    const ScriviString envelope(scrivi_wait_for_writes(projectRootPath.toUtf8().constData(), ticket, timeoutMs));
+    return parseEnvelope(envelope.toQString());
+}
+
 QVariantMap ScriviBridge::createScene(const QString& projectRootPath,
                                       const QString& appSupportRoot,
                                       const QString& projectID,

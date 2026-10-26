@@ -570,7 +570,7 @@ import UniformTypeIdentifiers
         var unsaved = 0
         for s in sessions {
             s.refreshProjectAvailability()
-            if s.projectUnavailable { unsaved += s.unsavedSceneCount }
+            if s.projectUnavailable || s.writesHeld { unsaved += s.unsavedSceneCount }   // [SP-195] Q3
         }
         guard unsaved > 0 else { return true }
         if let hook = onConfirmDiscardingUnsavable { return hook(unsaved, action) }

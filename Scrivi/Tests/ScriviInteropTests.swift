@@ -7701,10 +7701,10 @@ struct UndoAfterStructuralOpTests {
     }
 
     /// [I-0303] — Replace All wrote every changed scene ON THE MAIN THREAD, one after another (`saveScene` is `async` in name
-    /// only), so a large Replace All froze the window. ✅ The writes run off the main actor with the manuscript locked, and
-    /// ONLY the scenes holding a match are written ([SP-181] Q3: *"if replace all would only replace one or two occurences,
-    /// then it must only write to those"*).
-    @Test("Replace All writes only the matched scenes, none on the main thread, with the manuscript locked until they land")
+    /// only), so a large Replace All froze the window. ✅ EP-052 ([SP-195]): the writes are queued and run off the main
+    /// thread, the manuscript stays editable, and ONLY the scenes holding a match are written ([SP-181] Q3: *"if replace
+    /// all would only replace one or two occurences, then it must only write to those"*).
+    @Test("Replace All writes only the matched scenes, none on the main thread, and never locks the manuscript")
     func replaceAllWritesOffTheMainThread() async throws {
         let h = try await harness(["Alpha cat", "Bravo", "Charlie cat and cat", "Delta", "Echo"])
         h.typeBeforeTheOp(scene: 3)                                 // "Delta Pre": unsaved, and holds no match
@@ -7726,11 +7726,10 @@ struct UndoAfterStructuralOpTests {
 
         h.c.replaceAll(edits)
         #expect(h.loader.segments.map(\.text) == ["Alpha dog", "Bravo", "Charlie dog and dog", "Delta Pre", "Echo"])
-        #expect(!h.tv.isEditable, "the manuscript is locked while the writes run")
+        #expect(h.tv.isEditable, "the manuscript stays editable while the writes run")
         #expect(h.loader.scenesWritingOffMain == 2, "two scenes are being written")
         for _ in 0..<500 where h.loader.scenesWritingOffMain > 0 { try await Task.sleep(for: .milliseconds(10)) }
         #expect(h.loader.scenesWritingOffMain == 0)
-        #expect(h.tv.isEditable, "unlocked once they land")
 
         let log = writes.withLock { $0 }
         #expect(log.map(\.sceneID).sorted() == [ids[0], ids[2]].sorted(), "only the matched scenes were written: \(log)")
@@ -7742,6 +7741,43 @@ struct UndoAfterStructuralOpTests {
 
         h.c.performUndo()                                           // ONE step ([SP-164] Q2)
         #expect(h.loader.segments.map(\.text) == ["Alpha cat", "Bravo", "Charlie cat and cat", "Delta Pre", "Echo"])
+        // EP-052 AC4: the undo's writes are queued too — none on the main thread, the manuscript never locked.
+        #expect(h.tv.isEditable)
+        // The undo's saves are queued from its own main-actor task, a turn later.
+        for _ in 0..<500 where try h.onDisk(ids[0]) != "Alpha cat" || h.loader.scenesWritingOffMain > 0 {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        #expect(try h.onDisk(ids[0]) == "Alpha cat")
+        #expect(try h.onDisk(ids[2]) == "Charlie cat and cat")
+        #expect(writes.withLock { $0 }.allSatisfy { !$0.onMain }, "none on the main thread")
+    }
+
+    /// EP-052 [SP-195] Q1 (a) — a save that cannot reach the disk (its folder gone, as when the drive is pulled) keeps its
+    /// scene DIRTY ([I-0259]); the core holds it and retries it, a close asks instead of waiting, and the save lands with
+    /// nothing done by the app once the folder is back.
+    @Test("a held save keeps its scene dirty, a close does not wait on it, and it lands when the folder is back")
+    func heldSaveLandsWhenTheFolderIsBack() async throws {
+        let h = try await harness(["Alpha", "Bravo"])
+        let seg = h.loader.segments[0]
+        let folder = URL(fileURLWithPath: h.root.path).appending(path: seg.contentPath).deletingLastPathComponent()
+        let away = folder.deletingLastPathComponent().appending(path: "away-\(UUID().uuidString)")
+        try FileManager.default.moveItem(at: folder, to: away)
+
+        h.caret(scene: 0, at: 5)
+        h.tv.insertText(" kept", replacementRange: h.tv.selectedRange())
+        guard let ref = h.env.authorshipRef else { Issue.record("no authorship"); return }
+        h.loader.saveSceneBlocking(at: 0, engine: h.env.engine, ref: ref)
+        for _ in 0..<500 where !h.loader.writesHeld { try await Task.sleep(for: .milliseconds(10)) }
+        #expect(h.loader.writesHeld, "the core holds the save")
+        #expect(h.loader.segments[0].isDirty, "kept dirty")
+        #expect(!h.session.isWritingInBackground, "a close does not wait for a held queue: it asks ([T-0570])")
+        #expect(h.tv.isEditable)
+
+        try FileManager.default.moveItem(at: away, to: folder)
+        for _ in 0..<1000 where h.loader.segments[0].isDirty { try await Task.sleep(for: .milliseconds(10)) }   // the core retries every 5 s
+        #expect(!h.loader.segments[0].isDirty, "clean once it landed")
+        #expect(!h.loader.writesHeld)
+        #expect(try h.onDisk(seg.sceneID) == "Alpha kept")
     }
 
     /// [I-0305] — a close or quit while scenes are being written in the background WAITS for them, behind *"Please wait —

@@ -9,6 +9,11 @@
 // - History writes are data: the log's appends join the job at the tail when it is a not-yet-started append to the same
 //   log, and the writer writes them under the disk lock. An append that fails is kept and written ahead of the next
 //   ([I-0268]), as `HistoryStore::appendLine` did.
+// - A save or structural job that fails because the project cannot be written (an I/O or permission error: the drive is
+//   pulled, the share drops) HOLDS the queue ([SP-195] Q1 (a)): it stays at the head, every later job waits, and the
+//   writer retries it every `retryInterval`. Its first failure is reported; its success, when it comes, is reported too.
+//   While held, a wait returns at once, so nothing hangs behind it; a close leaves the held jobs to land when the project
+//   is back. Any other failure (a refused range) is reported and the queue goes on.
 // - A save queued again before its write starts replaces the earlier one, at the tail (W1); never across a structural
 //   job (W7e). The replaced ticket's outcome says `supersededBy`.
 //
@@ -47,7 +52,11 @@ public:
     int64_t lastTicket();
     // Blocks until every job with a ticket <= `ticket` has landed (ticket <= 0: every job queued so far), or the time runs
     // out. True when landed. A negative timeout waits for as long as it takes.
+    // A held queue returns at once, false.
     bool waitFor(int64_t ticket, std::chrono::milliseconds timeout);
+    struct State { bool held = false; std::string reason; int64_t pending = 0; };
+    State state();
+    void setRetryInterval(std::chrono::milliseconds interval);   // tests
     // Every save and structural outcome, and every failed history write, since the last call.
     std::vector<util::JsonDoc> takeOutcomes();
 
@@ -79,6 +88,10 @@ private:
     int64_t nextTicket_ = 1;
     int64_t running_ = 0;   // the ticket being written, 0 when idle
     bool stopping_ = false;
+    bool held_ = false;              // the head job failed to reach the disk and is retried
+    std::string heldReason_;
+    int64_t reportedFailure_ = 0;    // the held ticket whose failure is already in outcomes_
+    std::chrono::milliseconds retryInterval_{5000};
     std::thread thread_;
     std::vector<util::JsonDoc> outcomes_;
     std::map<std::string, std::string> unwritten_;   // writer thread only: log appends that failed, by log path

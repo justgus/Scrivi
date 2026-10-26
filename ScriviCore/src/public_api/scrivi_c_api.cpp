@@ -332,8 +332,17 @@ static const char* guarded(Fn&& fn) {
 // network share the cost is per-file latency, so a few readers divide it; measured on the rig with 8.
 static constexpr std::size_t kParallelReaders = 8;
 
-#define SCRIVI_PROJECT_READ(root)  scrivi::abi::ProjectCallGuard scriviProjectGuard_((root), scrivi::abi::ProjectCallGuard::Kind::read, __func__)
-#define SCRIVI_PROJECT_WRITE(root) scrivi::abi::ProjectCallGuard scriviProjectGuard_((root), scrivi::abi::ProjectCallGuard::Kind::write, __func__)
+// EP-052 [SP-195] Q1 (a): a file endpoint behind a held write queue fails at once, rather than hang the window.
+static const char* heldQueueEnvelope(const char* root) {
+    const auto state = scrivi::abi::projectLockEntry(root).queue.state();
+    return heap(errorEnvelope(scrivi::Error{scrivi::ErrorCode::ioError,
+        "the project's earlier writes have not landed yet: " + state.reason, "", "writeQueueHeld"}));
+}
+
+#define SCRIVI_PROJECT_READ(root)  scrivi::abi::ProjectCallGuard scriviProjectGuard_((root), scrivi::abi::ProjectCallGuard::Kind::read, __func__); \
+    if (scriviProjectGuard_.refusedBehindHeldQueue()) return heldQueueEnvelope(root)
+#define SCRIVI_PROJECT_WRITE(root) scrivi::abi::ProjectCallGuard scriviProjectGuard_((root), scrivi::abi::ProjectCallGuard::Kind::write, __func__); \
+    if (scriviProjectGuard_.refusedBehindHeldQueue()) return heldQueueEnvelope(root)
 // EP-052 (T-0623): an endpoint that touches no file takes only the memory lock, so it never waits for one that does.
 #define SCRIVI_PROJECT_MEMORY_READ(root)  scrivi::abi::ProjectCallGuard scriviProjectGuard_((root), scrivi::abi::ProjectCallGuard::Kind::memoryRead, __func__)
 #define SCRIVI_PROJECT_MEMORY_WRITE(root) scrivi::abi::ProjectCallGuard scriviProjectGuard_((root), scrivi::abi::ProjectCallGuard::Kind::memoryWrite, __func__)
@@ -1022,7 +1031,16 @@ const char* scrivi_open_project(
 }
 
 const char* scrivi_close_project(const char* projectRootPath) {
-    SCRIVI_PROJECT_WRITE(projectRootPath);
+    SCRIVI_PROJECT_UNLOCKED(projectRootPath);
+    // EP-052: the queued writes land first. A HELD queue does not stop the close: its jobs stay queued, retried, and land
+    // when the project is back ([SP-195] Q1 (a)); asking the writer first is the platform's ([T-0570]).
+    // The disk lock is still taken, as the WRITE guard did, so no file call runs while the index is removed.
+    std::unique_lock<std::mutex> disk;
+    if (*S(projectRootPath) != '\0') {
+        auto& entry = scrivi::abi::projectLockEntry(projectRootPath);
+        entry.queue.waitFor(0, std::chrono::milliseconds(-1));
+        disk = std::unique_lock<std::mutex>(entry.disk);
+    }
     // EP-039 AC1-AC3 (SP-131 T-0512). ⚠️ WITHOUT THIS THE REGISTRY LEAKS: an
     // index is built per project root and nothing else ever removes it, so a
     // session that opens two projects holds two indexes for the life of the
@@ -5250,6 +5268,10 @@ const char* scrivi_wait_for_writes(const char* projectRootPath, long long ticket
     auto& queue = scrivi::abi::projectLockEntry(projectRootPath).queue;
     scrivi::util::JsonDoc doc;
     doc.setBool("landed", queue.waitFor(ticket, std::chrono::milliseconds(timeoutMs)));
+    const auto state = queue.state();
+    doc.setBool("held", state.held);
+    if (state.held) { doc.setString("heldReason", state.reason); }
+    doc.setInt64("pending", state.pending);
     for (auto& o : queue.takeOutcomes()) { doc.appendToArray("outcomes", std::move(o)); }
     return heap(okEnvelope(std::move(doc)));
   });

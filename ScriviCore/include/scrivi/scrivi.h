@@ -1118,8 +1118,15 @@ const char* scrivi_enqueue_range_op(const char* projectRootPath, const char* opJ
 
 /* Waits until every job up to `ticket` has landed (ticket <= 0: every job queued so far), at most `timeoutMs` (negative:
  * as long as it takes; 0: just look). Holds no lock while it waits. Returns every outcome since the last call:
- * result: { landed, outcomes: [ { ticket, kind: "save" | "structural" | "history", sceneID?, ok, result?, error?,
- *                                 message?, supersededBy?, file? } ] }
+ * result: { landed, held, heldReason?, pending,
+ *           outcomes: [ { ticket, kind: "save" | "structural" | "history", sceneID?, ok, result?, error?,
+ *                         message?, supersededBy?, file?, held? } ] }
+ * HELD: a save or structural write failed with an I/O or permission error (the drive is pulled, the share drops). It
+ * stays first, every later job waits behind it, and the core retries it every 5 s; its first failure is an outcome (with
+ * held: true), and so is its success when it lands. While held, this call returns at once (landed false), and every synchronous endpoint
+ * that would wait behind the queue fails at once with error.detail "writeQueueHeld". scrivi_close_project does not wait
+ * for a held queue: its jobs stay queued and land when the project is back. Any other failed write is reported and the
+ * queue goes on.
  * A save's outcome with supersededBy was replaced by that later ticket's save. A history outcome is reported only when
  * it FAILED (one per file); its records are written ahead of the next ([I-0268]).
  * WARNING: "outcomes" is OMITTED when there are none. */

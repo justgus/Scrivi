@@ -11,6 +11,13 @@ namespace scrivi::abi {
 namespace {
 thread_local bool tlsWriter = false;
 
+// The project's files cannot be reached or written: worth holding for and retrying. Anything else will fail again.
+bool unreachable(const util::JsonDoc& outcome) {
+    if (outcome.getBool("ok") || !outcome.contains("error")) { return false; }
+    const int code = outcome.getSubDoc("error").getInt("code");
+    return code == static_cast<int>(ErrorCode::ioError) || code == static_cast<int>(ErrorCode::permissionDenied);
+}
+
 const char* kindName(int k) {
     static const char* names[] = {"save", "structural", "history", "history"};
     return names[k];
@@ -29,6 +36,7 @@ void WriteQueue::resetInForkedChild() {
     outcomes_.clear();
     unwritten_.clear();
     running_ = 0;
+    held_ = false;
 }
 
 WriteQueue::~WriteQueue() {
@@ -124,12 +132,23 @@ bool WriteQueue::landedLocked(int64_t ticket) const {
 bool WriteQueue::waitFor(int64_t ticket, std::chrono::milliseconds timeout) {
     std::unique_lock<std::mutex> lock(mutex_);
     if (ticket <= 0) { ticket = nextTicket_ - 1; }
-    const auto landed = [&] { return landedLocked(ticket); };
+    const auto landed = [&] { return held_ || landedLocked(ticket); };
     if (timeout.count() < 0) {
         changed_.wait(lock, landed);
-        return true;
+    } else {
+        changed_.wait_for(lock, timeout, landed);
     }
-    return changed_.wait_for(lock, timeout, landed);
+    return landedLocked(ticket);
+}
+
+WriteQueue::State WriteQueue::state() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return {held_, heldReason_, static_cast<int64_t>(pending_.size()) + (running_ != 0 ? 1 : 0)};
+}
+
+void WriteQueue::setRetryInterval(std::chrono::milliseconds interval) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    retryInterval_ = interval;
 }
 
 std::vector<util::JsonDoc> WriteQueue::takeOutcomes() {
@@ -166,6 +185,10 @@ void WriteQueue::loop() {
     for (;;) {
         changed_.wait(lock, [&] { return stopping_ || !pending_.empty(); });
         if (pending_.empty()) { return; }   // stopping, and nothing left
+        if (held_) {
+            changed_.wait_for(lock, retryInterval_, [&] { return stopping_ || !held_; });
+            if (stopping_) { return; }   // a held write cannot land: never block the process's exit on it
+        }
         Job job = std::move(pending_.front());
         pending_.pop_front();
         running_ = job.ticket;
@@ -183,6 +206,23 @@ void WriteQueue::loop() {
 
         lock.lock();
         running_ = 0;
+        if (!history && unreachable(outcome)) {
+            const std::string reason = outcome.getSubDoc("error").getString("message");
+            if (job.ticket != reportedFailure_) {   // a retry's repeated failure says nothing new
+                reportedFailure_ = job.ticket;
+                outcome.setInt64("ticket", job.ticket);
+                outcome.setString("kind", kindName(static_cast<int>(job.kind)));
+                if (job.kind == Kind::save) { outcome.setString("sceneID", job.key); }
+                outcome.setBool("held", true);   // kept and retried: its success will follow
+                outcomes_.push_back(std::move(outcome));
+            }
+            held_ = true;
+            heldReason_ = reason;
+            pending_.push_front(std::move(job));
+            changed_.notify_all();
+            continue;
+        }
+        if (!history) { held_ = false; }
         if (!history || !outcome.getBool("ok")) {
             outcome.setInt64("ticket", job.ticket);
             outcome.setString("kind", kindName(static_cast<int>(job.kind)));

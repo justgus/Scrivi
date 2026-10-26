@@ -237,15 +237,27 @@ void AppEnvironment::quitApplication()
     if (quitting_) {
         return;
     }
+    // ✅ [I-0322] (Apple: [T-0570]) — warn before quitting with edits the pulled drive cannot receive.
+    QList<EditorShell*> shells;
+    for (ScriviWindow* window : windows_.allWindows()) {
+        if (window != nullptr) { shells.append(window->editorShell()); }
+    }
+    if (!EditorShell::confirmDiscardingHeld(nullptr, shells, QObject::tr("Quit"))) {
+        return;
+    }
     quitting_ = true;
     finishQuit();
 }
 
 void AppEnvironment::finishQuit()
 {
-    // ✅ R7 FIRST, AND UNCONDITIONALLY. ⚠️ Flushing before any window dies means a
-    // teardown that goes wrong still cannot lose edits.
-    flushAllWindows();
+    // ✅ R7 FIRST. ⚠️ Flushing before any window dies means a teardown that goes wrong still cannot lose edits.
+    // ⚠️ EP-052 ([SP-195]): ONCE — a flush always queues the resume stamp, which is background work, so flushing on every
+    // pass would wait for it forever. Each window's own close flushes again (`ScriviWindow::closeEvent`).
+    if (!quitFlushed_) {
+        quitFlushed_ = true;
+        flushAllWindows();
+    }
 
     // ✅ [I-0305] (user, 2026-10-15) — QUIT WAITS FOR BACKGROUND WORK, behind ONE "Please wait — saving updates…"
     // dialog. ⚠️ Each window would also wait on its own close; waiting here, before any closes, keeps one dialog and keeps

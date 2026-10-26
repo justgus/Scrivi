@@ -455,6 +455,9 @@ import os
         guard let loader = viewportLoader, let ref = authorshipRef else { return }
         historyCapture?.flush(trigger: "flush")
         loader.saveAllDirtyBlocking(engine: engine, ref: ref)
+        // EP-052: the process is going away, so the queued saves land before it does. A held queue answers at once: the
+        // writer was asked first ([T-0570]).
+        if let path = projectRootPath { _ = try? engine.waitForWrites(projectRootPath: path, timeoutMs: -1) }
     }
 
     // Closes the history on the quit path (I-0104). `scrivi_history_close` writes the
@@ -476,11 +479,14 @@ import os
     /// the writer-facing message, and the quit / close-window guards.
     private(set) var projectUnavailable = false
 
-    /// Scenes holding edits that have not reached disk.
-    /// [I-0305] — true while scenes are being written off the main actor (a Replace All's). A close waits for them.
+    /// [I-0305] — true while queued saves are being written. A close waits for them. ⚠️ Not while the queue is HELD
+    /// ([SP-195] Q1 (a)): those cannot land until the drive is back, so the close asks instead ([T-0570]).
     var isWritingInBackground: Bool {
-        (viewportLoader?.scenesWritingOffMain ?? 0) > 0 || viewportLoader?.structuralInFlight == true   // [SP-191]
+        ((viewportLoader?.scenesWritingOffMain ?? 0) > 0 && !writesHeld) || viewportLoader?.structuralInFlight == true   // [SP-191]
     }
+
+    /// [SP-195] Q1 (a): a save could not reach the disk; the core keeps it and retries it.
+    var writesHeld: Bool { viewportLoader?.writesHeld ?? false }
 
     /// [I-0305] — runs `then` once those writes have landed (at once when none is running).
     func whenBackgroundWritesLand(_ then: @escaping @MainActor () -> Void) {

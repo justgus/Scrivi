@@ -796,6 +796,9 @@ void EditorShell::applyLoadedProject(const QString& projectPath,
     // in build() don't churn dirty flags / the offset map through onContentsChange.
     loading_ = true;
     dirtyScenes_.clear();
+    queued_.clear();       // EP-052: an earlier project's queued saves still land in the core; their outcomes are not ours
+    writesHeld_ = false;
+    setQueueCounted(false);
     // EP-048 (SP-166): detach the presenter while the text and the scene map are rebuilt — it would
     // highlight 1.8 MB against a stale map, then again — and re-attach once both are current.
     if (presenter_ == nullptr) {
@@ -1618,21 +1621,154 @@ bool EditorShell::saveScene(int segmentIndex)
         }
     }
 
-    const QString body = sceneDoc_.bodyText(segmentIndex);
-    const QVariantMap r = bridge_->saveScene(
-        projectID_, projectPath_, appSupportRoot_,
-        seg.sceneID, seg.metadataPath, seg.contentPath,
-        body,
-        selectionAnchor, selectionFocus, scroll);
-    const bool saved = !r.isEmpty() && r.value(QStringLiteral("saved")).toBool();
-    if (saved) {
-        notePersisted(seg.sceneID, body);   // EP-026 S2: [I-0104] / [I-0259]
-        dirtyScenes_.remove(seg.sceneID);
+    // ⛔ [I-0304] — A FAILED WRITE LEAVES THE SCENE DIRTY (Apple: [I-0259]): it leaves dirtyScenes_ only when its queued
+    // outcome says it was written ([SP-195], `applyWriteOutcomes`).
+    return enqueueSaves({{segmentIndex, selectionAnchor, selectionFocus, scroll}});
+}
+
+bool EditorShell::enqueueSaves(const QList<QueuedSaveEntry>& entries)
+{
+    if (bridge_ == nullptr || projectPath_.isEmpty()) {
+        return false;
     }
-    // ⛔ [I-0304] — A FAILED WRITE LEAVES THE SCENE DIRTY (Apple: [I-0259]). It was dropped "whatever the outcome", so
-    // nothing retried it and a close never wrote it: the edit lived only on screen. The bridge has already surfaced
-    // errorOccurred; the next save (the debounce after an edit, a scene change, a close) retries it.
-    return saved;
+    QVariantList scenes;
+    QHash<QString, QString> texts;
+    for (const QueuedSaveEntry& e : entries) {
+        if (e.index < 0 || e.index >= sceneDoc_.segments().size()) {
+            continue;
+        }
+        const SceneSegment& seg = sceneDoc_.segments().at(e.index);
+        const QString body = sceneDoc_.bodyText(e.index);
+        texts.insert(seg.sceneID, body);
+        scenes.append(QVariantMap{{QStringLiteral("sceneID"), seg.sceneID},
+                                  {QStringLiteral("metadataPath"), seg.metadataPath},
+                                  {QStringLiteral("contentPath"), seg.contentPath},
+                                  {QStringLiteral("markdown"), body},
+                                  {QStringLiteral("selectionAnchor"), e.anchor},
+                                  {QStringLiteral("selectionFocus"), e.focus},
+                                  {QStringLiteral("scroll"), e.scroll}});
+    }
+    if (scenes.isEmpty()) {
+        return false;
+    }
+    const QVariantMap r = bridge_->enqueueSaveScenes(projectID_, projectPath_, appSupportRoot_, scenes);
+    if (bridge_->lastCallFailed()) {
+        return false;   // kept dirty; the bridge has surfaced errorOccurred
+    }
+    for (const QVariant& v : r.value(QStringLiteral("tickets")).toList()) {
+        const QVariantMap t = v.toMap();
+        const QString id = t.value(QStringLiteral("sceneID")).toString();
+        queued_.insert(t.value(QStringLiteral("ticket")).toLongLong(), {id, texts.value(id)});
+    }
+    setQueueCounted(!writesHeld_);
+    startWaiting();
+    return true;
+}
+
+void EditorShell::startWaiting()
+{
+    if (waiting_ || queued_.isEmpty() || projectPath_.isEmpty()) {
+        return;
+    }
+    waiting_ = true;
+    const WorkerBridge::Handle bridgeHandle = WorkerBridge::handleFor(bridge_);   // ✅ [I-0309]: never `bridge_` itself
+    const QString path = projectPath_;
+    AsyncCall::run<QVariantMap>(
+        this,
+        [bridgeHandle, path]() {
+            WorkerBridge bridge(bridgeHandle);
+            QVariantMap w = bridge->waitForWrites(path, 0, 1000);
+            if (bridge->lastCallFailed()) { w.clear(); }
+            return w;
+        },
+        [this](const QVariantMap& w) { applyWriteOutcomes(w); },
+        [this] { applyWriteOutcomes({}); },   // the wait itself hung: as a failed wait
+        30000);
+}
+
+void EditorShell::applyWriteOutcomes(const QVariantMap& wait)
+{
+    waiting_ = false;
+    for (const QVariant& v : wait.value(QStringLiteral("outcomes")).toList()) {
+        const QVariantMap o = v.toMap();
+        if (o.value(QStringLiteral("kind")).toString() != QStringLiteral("save")) {
+            continue;
+        }
+        const qint64 ticket = o.value(QStringLiteral("ticket")).toLongLong();
+        const auto it = queued_.constFind(ticket);
+        if (it == queued_.constEnd()) {
+            continue;
+        }
+        const auto [sceneID, text] = *it;
+        if (o.contains(QStringLiteral("supersededBy"))) {
+            queued_.remove(ticket);   // the newer save's outcome decides
+        } else if (o.value(QStringLiteral("ok")).toBool()) {
+            queued_.remove(ticket);
+            const int idx = sceneDoc_.sceneIndexForScene(sceneID);
+            if (idx >= 0 && sceneDoc_.bodyText(idx) == text) {
+                dirtyScenes_.remove(sceneID);   // unless the writer changed it since
+            }
+        } else {
+            DiagnosticLog::note(QStringLiteral("queued save FAILED scene=%1 held=%2 — kept dirty")
+                                    .arg(sceneID).arg(o.value(QStringLiteral("held")).toBool()));
+            if (!o.value(QStringLiteral("held")).toBool()) {
+                queued_.remove(ticket);   // refused: it will not be retried
+            }
+        }
+    }
+    if (wait.isEmpty()) {
+        queued_.clear();   // the wait failed: the scenes stay dirty for the next save
+    }
+    writesHeld_ = !queued_.isEmpty() && wait.value(QStringLiteral("held")).toBool();
+    // [I-0322] (Apple: [T-0570]'s banner): while the queue is held, the writer is told, with what is waiting.
+    if (writesHeld_) {
+        errorLabel_->setText(tr("Project File Not Available. This project's drive isn't connected. Your changes are "
+                                "being kept, but they can't be saved until you reconnect it. %n scene(s) waiting to be saved.",
+                                nullptr, int(dirtyScenes_.size())));
+        errorLabel_->show();
+    } else if (errorLabel_->text().startsWith(QStringLiteral("Project File Not Available"))) {
+        errorLabel_->hide();
+        errorLabel_->clear();
+    }
+    setQueueCounted(!queued_.isEmpty() && !writesHeld_);
+    if (!queued_.isEmpty()) {
+        // A held queue answers at once; the core retries every 5 s, so asking more often learns nothing.
+        QTimer::singleShot(writesHeld_ ? 1000 : 0, this, [this] { startWaiting(); });
+    }
+}
+
+void EditorShell::setQueueCounted(bool counted)
+{
+    if (counted == queueCounted_) {
+        return;
+    }
+    queueCounted_ = counted;
+    if (counted) { beginBackgroundWork(); } else { endBackgroundWork(); }
+}
+
+bool EditorShell::confirmDiscardingHeld(QWidget* parent, const QList<EditorShell*>& shells, const QString& action)
+{
+    int unsaved = 0;
+    for (const EditorShell* shell : shells) {
+        if (shell != nullptr && shell->writesHeld()) {
+            unsaved += shell->dirtySceneCount();
+        }
+    }
+    if (unsaved == 0) {
+        return true;
+    }
+    if (confirmHook) {
+        return confirmHook(unsaved, action);
+    }
+    QMessageBox box(QMessageBox::Critical, tr("Some changes can't be saved"),
+                    tr("%n scene(s) have changes that can't be saved because the project's drive isn't connected. "
+                       "Reconnect the drive first, or %1 and lose those changes.", nullptr, unsaved).arg(action.toLower()),
+                    QMessageBox::NoButton, parent);
+    QPushButton* cancel = box.addButton(QMessageBox::Cancel);   // ✅ the DEFAULT — nothing lost
+    QPushButton* proceed = box.addButton(tr("%1 Anyway").arg(action), QMessageBox::DestructiveRole);
+    box.setDefaultButton(cancel);
+    box.exec();
+    return box.clickedButton() == proceed;
 }
 
 QList<int> EditorShell::paneSizes() const
@@ -1762,16 +1898,8 @@ void EditorShell::stampWritingSurface()
     // stamps `lastWritingSurface` on every `saveScene`, and there is no
     // surface-only endpoint. ✅ Idempotent for unchanged bytes, and this is one
     // write on the teardown path, not one per scene on load.
-    const QString body = sceneDoc_.bodyText(activeSegment_);
-    const QVariantMap r = bridge_->saveScene(
-        projectID_, projectPath_, appSupportRoot_,
-        seg.sceneID, seg.metadataPath, seg.contentPath,
-        body,
-        selectionAnchor, selectionFocus, scroll);
-    if (!r.isEmpty() && r.value(QStringLiteral("saved")).toBool()) {
-        notePersisted(seg.sceneID, body);   // EP-026 S2: [I-0104] / [I-0259]
-        dirtyScenes_.remove(seg.sceneID);   // on disk now; ⛔ [I-0304]: a failed write stays dirty
-    }
+    // EP-052: queued like any save ([SP-195]); a failed write stays dirty ([I-0304]).
+    enqueueSaves({{activeSegment_, selectionAnchor, selectionFocus, scroll}});
 }
 
 void EditorShell::saveDirtyScenes()
@@ -1899,20 +2027,17 @@ bool EditorShell::runRangeEdit(const QString& label, RangeCall call, RangeNode n
         return false;   // ✅ Q5: a repeat (or anything else) while an edit is in flight is IGNORED, not queued
     }
     viewport_->removePendingPair();   // SP-175: a structural edit drops the pending pair
-    // Every unsaved scene, written on the worker FIRST (the core refuses a caret scene that is not what is on disk) — and
-    // what each scene holds now, for the node's `sceneTextsBefore` ([I-0293]).
-    struct Job { QString sceneID; QString metadataPath; QString contentPath; QString text; };
-    QVector<Job> jobs;
+    // Every unsaved scene QUEUED first ([SP-195]): the range call waits for them itself (W3) — the core refuses a caret
+    // scene that is not what is on disk — and fails at once behind a held queue, so the edit is refused rather than run
+    // over a lost save. And what each scene holds now, for the node's `sceneTextsBefore` ([I-0293]).
     QHash<QString, QString> before;
+    QList<int> unsaved;
     for (int i = 0; i < sceneDoc_.segments().size(); ++i) {
         const SceneSegment& seg = sceneDoc_.segments().at(i);
-        const QString text = sceneDoc_.bodyText(i);
-        before.insert(seg.sceneID, text);
-        if (dirtyScenes_.remove(seg.sceneID)) {
-            jobs.append({seg.sceneID, seg.metadataPath, seg.contentPath, text});
-        }
+        before.insert(seg.sceneID, sceneDoc_.bodyText(i));
+        if (dirtyScenes_.contains(seg.sceneID)) { unsaved.append(i); }
     }
-    saveTimer_->stop();
+    saveScenesOffMain(unsaved);
     const QString historyRoot = node && history_ != nullptr && history_->isOpen() ? history_->projectRootPath() : QString();
     lockForWork(label);      // ✅ Q5: the cue — read-only at once, in the key press's own turn; the progress row after 400 ms
     beginBackgroundWork();   // [I-0305]: a close waits for it
@@ -1920,17 +2045,17 @@ bool EditorShell::runRangeEdit(const QString& label, RangeCall call, RangeNode n
     QElapsedTimer clock;
     clock.start();
     struct Outcome {
-        QVariantMap result; bool failed = false; QVector<bool> saved; QVariantMap history;
+        QVariantMap result; bool failed = false; QVariantMap history;
         bool storyTimesRead = false; QHash<QString, TimelineData::StoryTime> storyTimes;
         QString phases;   // each phase's time, for the log
     };
     const WorkerBridge::Handle bridgeHandle = WorkerBridge::handleFor(bridge_);   // ✅ [I-0309]: never `bridge_` itself
-    const QString projectID = projectID_, path = projectPath_, support = appSupportRoot_;
+    const QString path = projectPath_;
     AsyncCall::run<Outcome>(
         this,
         // ⚠️ The WORKER: the C ABI only, on copies. The saves, the pending typing committed, the ONE range call, its history
         // node and the timeline's read — so the GUI thread makes no core call for the edit.
-        [jobs, before, historyRoot, call = std::move(call), node = std::move(node), bridgeHandle, projectID, path, support]() {
+        [before, historyRoot, call = std::move(call), node = std::move(node), bridgeHandle, path]() {
             WorkerBridge bridge(bridgeHandle);
             Outcome o;
             QElapsedTimer phase;
@@ -1938,16 +2063,10 @@ bool EditorShell::runRangeEdit(const QString& label, RangeCall call, RangeNode n
             const auto lap = [&](const char* name) {
                 o.phases += QStringLiteral(" %1 %2 ms").arg(QString::fromUtf8(name)).arg(phase.restart());
             };
-            for (const Job& j : jobs) {
-                const QVariantMap r = bridge->saveScene(projectID, path, support, j.sceneID, j.metadataPath, j.contentPath,
-                                                        j.text, 0, 0, 0.0);
-                o.saved.append(!r.isEmpty() && r.value(QStringLiteral("saved")).toBool());
-            }
-            lap("saves");
             if (!historyRoot.isEmpty()) {
                 ScriviBridge::captureFlush(historyRoot, QStringLiteral("flush"), QStringLiteral("typing"));
             }
-            lap("· flush");
+            lap("flush");
             o.result = call(*bridge);
             o.failed = bridge->lastCallFailed();
             lap("· range call");
@@ -1976,17 +2095,10 @@ bool EditorShell::runRangeEdit(const QString& label, RangeCall call, RangeNode n
             lap("· story times");
             return o;
         },
-        [this, jobs, caret = std::move(caret), failed, then = std::move(then), label, clock](const Outcome& o) {
+        [this, caret = std::move(caret), failed, then = std::move(then), label, clock](const Outcome& o) {
             DiagnosticLog::note(QStringLiteral("structural \"%1\": worker finished in %2 ms%3 —%4")
                                     .arg(label).arg(clock.elapsed()).arg(o.failed ? QStringLiteral(" (FAILED)") : QString(),
                                                                          o.phases));
-            for (qsizetype k = 0; k < jobs.size(); ++k) {
-                if (o.saved.value(k)) {
-                    notePersisted(jobs.at(k).sceneID, jobs.at(k).text);   // [I-0104] / [I-0259]: only after it succeeded
-                } else if (sceneDoc_.sceneIndexForScene(jobs.at(k).sceneID) >= 0) {
-                    dirtyScenes_.insert(jobs.at(k).sceneID);   // ⛔ [I-0304]: a failed write stays dirty
-                }
-            }
             if (o.failed) {
                 unlockAfterWork();
                 QApplication::beep();
@@ -2373,13 +2485,6 @@ void EditorShell::flushHistory()
 {
     if (history_ != nullptr) {
         history_->flush(QStringLiteral("flush"));
-    }
-}
-
-void EditorShell::notePersisted(const QString& sceneID, const QString& text)
-{
-    if (history_ != nullptr) {
-        history_->noteScenePersisted(sceneID, text);
     }
 }
 
@@ -2838,28 +2943,57 @@ void EditorShell::replaceAll(const QVector<MarkdownRange>& matches, const QStrin
         },
         [this, scenes, done, replaceClock](const QVector<QString>& after) {
             DiagnosticLog::note(QStringLiteral("replace all: worker finished in %1 ms").arg(replaceClock.elapsed()));
-            // The GUI thread: the finished texts go in as the writer's own edit — reconciled, dirtied, ONE step.
-            loading_ = false;
+            // The GUI thread: the finished texts go in as the writer's own edit — reconciled, dirtied, ONE step — in
+            // slices of ~50 ms, so the count moves and the view follows a few times a second (EP-052 AC7, [SP-185] Q3:
+            // "Replacing 312 of 2,048"). Each slice's scenes are queued at once; nothing waits for their writes ([SP-195]).
+            int total = 0;
+            for (const SceneEdits& sc : scenes) { total += int(sc.ranges.size()); }
+            struct Progress { qsizetype next = 0; int replaced = 0; QList<int> touched; QTextCursor home; };
+            auto state = std::make_shared<Progress>();
+            state->home = viewport_->textCursor();   // moves with the edits; the caret goes back to it at the end
             beginGroupedEdit();
-            QList<int> touched;
-            int replaced = 0;
-            for (qsizetype k = 0; k < scenes.size(); ++k) {
-                const int idx = sceneDoc_.sceneIndexForScene(scenes.at(k).sceneID);
-                if (idx < 0 || after.at(k) == scenes.at(k).before || sceneDoc_.bodyText(idx) != scenes.at(k).before) {
-                    continue;
+            auto slice = std::make_shared<std::function<void()>>();
+            *slice = [this, scenes, after, done, total, state, slice] {
+                QElapsedTimer budget;
+                budget.start();
+                loading_ = false;
+                QList<int> now;
+                while (state->next < scenes.size() && budget.elapsed() < 50) {
+                    const qsizetype k = state->next++;
+                    const int idx = sceneDoc_.sceneIndexForScene(scenes.at(k).sceneID);
+                    if (idx < 0 || after.at(k) == scenes.at(k).before || sceneDoc_.bodyText(idx) != scenes.at(k).before) {
+                        continue;
+                    }
+                    replaceSceneSpan(idx, scenes.at(k).before, after.at(k));
+                    now.append(idx);
+                    state->replaced += int(scenes.at(k).ranges.size());
                 }
-                replaceSceneSpan(idx, scenes.at(k).before, after.at(k));
-                touched.append(idx);
-                replaced += int(scenes.at(k).ranges.size());
-            }
-            endGroupedEdit(QStringLiteral("replace"));
-            loading_ = true;
-            qInfo("[SCRIVI-FIND] replaceAll %d edits / %lld scenes", replaced, qlonglong(touched.size()));
-            saveScenesOffMain(touched, [this, done, replaced] {
+                loading_ = true;
+                state->touched += now;
+                saveScenesOffMain(now);
+                if (!now.isEmpty()) {   // the view follows the replacements
+                    QTextCursor c(sceneDoc_.document());
+                    c.setPosition(sceneDoc_.segments().at(now.last()).bodyStart);
+                    viewport_->setTextCursor(c);
+                    viewport_->ensureCursorVisible();
+                }
+                if (progressLabel_ != nullptr) {
+                    progressLabel_->setText(tr("Replacing %L1 of %L2").arg(state->replaced).arg(total));
+                }
+                if (state->next < scenes.size()) {
+                    QTimer::singleShot(0, this, *slice);
+                    return;
+                }
+                loading_ = false;
+                endGroupedEdit(QStringLiteral("replace"));
+                viewport_->setTextCursor(state->home);
+                qInfo("[SCRIVI-FIND] replaceAll %d edits / %lld scenes", state->replaced, qlonglong(state->touched.size()));
                 unlockAfterWork();
-                done(replaced);
+                done(state->replaced);
                 endBackgroundWork();
-            });
+                *slice = nullptr;   // breaks the self-reference
+            };
+            (*slice)();
         },
         [this, done] {
             unlockAfterWork();
@@ -2893,90 +3027,21 @@ void EditorShell::replaceSceneSpan(int index, const QString& before, const QStri
     c.endEditBlock();
 }
 
-void EditorShell::saveScenesOffMain(const QList<int>& indices, std::function<void()> landed)
+void EditorShell::saveScenesOffMain(const QList<int>& indices)
 {
-    struct Job { QString sceneID; QString metadataPath; QString contentPath; QString text; };
-    QVector<Job> jobs;
+    QList<QueuedSaveEntry> entries;
     for (const int idx : indices) {
-        const SceneSegment& seg = sceneDoc_.segments().at(idx);
-        if (!dirtyScenes_.contains(seg.sceneID)) {
-            continue;
+        if (idx >= 0 && idx < sceneDoc_.segments().size() && dirtyScenes_.contains(sceneDoc_.segments().at(idx).sceneID)) {
+            entries.append({idx, 0, 0, 0.0});   // body-only: the writing surface is the caret scene's ordinary save
         }
-        jobs.append({seg.sceneID, seg.metadataPath, seg.contentPath, sceneDoc_.bodyText(idx)});
-        dirtyScenes_.remove(seg.sceneID);   // ⛔ never also written by the autosave on the GUI thread
     }
-    if (dirtyScenes_.isEmpty()) {
-        saveTimer_->stop();
-    }
-    if (jobs.isEmpty()) {
-        landed();
+    if (entries.isEmpty()) {
         return;
     }
     if (history_ != nullptr) {
         history_->beforeSave();   // an autosave never seals the session unless the writer is idle (T-0396)
     }
-    beginBackgroundWork();
-    DiagnosticLog::note(QStringLiteral("save off main: %1 scene(s), worker started").arg(jobs.size()));
-    QElapsedTimer saveClock;
-    saveClock.start();
-    if (progressLabel_ != nullptr) {
-        progressLabel_->setText(jobs.size() == 1 ? tr("Saving 1 scene…") : tr("Saving %1 scenes…").arg(jobs.size()));
-    }
-    const WorkerBridge::Handle bridgeHandle = WorkerBridge::handleFor(bridge_);   // ✅ [I-0309]: never `bridge_` itself
-    const QString projectID = projectID_;
-    const QString path = projectPath_;
-    const QString support = appSupportRoot_;
-    AsyncCall::run<QVector<bool>>(
-        this,
-        // ⚠️ The WORKER: the C ABI only. Body-only saves (0/0/0.0): the writing surface is the caret scene's, kept by
-        // the next ordinary save.
-        [jobs, bridgeHandle, projectID, path, support]() {
-            WorkerBridge bridge(bridgeHandle);
-            QVector<bool> ok;
-            ok.reserve(jobs.size());
-            for (const Job& j : jobs) {
-                const QVariantMap r = bridge->saveScene(projectID, path, support, j.sceneID, j.metadataPath, j.contentPath,
-                                                        j.text, 0, 0, 0.0);
-                ok.append(!r.isEmpty() && r.value(QStringLiteral("saved")).toBool());
-            }
-            return ok;
-        },
-        [this, jobs, landed, saveClock](const QVector<bool>& ok) {
-            DiagnosticLog::note(QStringLiteral("save off main: %1 scene(s) landed in %2 ms (%3 failed)")
-                                    .arg(jobs.size()).arg(saveClock.elapsed()).arg(ok.count(false)));
-            for (qsizetype k = 0; k < jobs.size(); ++k) {
-                const Job& j = jobs.at(k);
-                const int idx = sceneDoc_.sceneIndexForScene(j.sceneID);
-                if (!ok.at(k)) {
-                    if (idx >= 0) {
-                        dirtyScenes_.insert(j.sceneID);   // ⛔ [I-0304]: a failed write stays dirty; the next save retries
-                    }
-                    continue;
-                }
-                notePersisted(j.sceneID, j.text);   // [I-0104] / [I-0259]: only after a write that succeeded
-                if (idx >= 0 && sceneDoc_.bodyText(idx) != j.text) {
-                    dirtyScenes_.insert(j.sceneID);     // changed meanwhile: the next save writes it
-                    saveTimer_->start();
-                }
-            }
-            landed();
-            endBackgroundWork();
-        },
-        [this, jobs, landed] {
-            DiagnosticLog::note(QStringLiteral("save off main: TIMED OUT (%1 scene(s))").arg(jobs.size()));
-            // ⛔ [I-0304]: the writes did not report back, so as far as anyone knows they failed — kept dirty.
-            for (const Job& j : jobs) {
-                if (sceneDoc_.sceneIndexForScene(j.sceneID) >= 0) {
-                    dirtyScenes_.insert(j.sceneID);
-                }
-            }
-            errorLabel_->setText(tr("Saving is taking longer than expected — the project may be on a disconnected or "
-                                    "unreachable volume. Reopen it before editing further."));
-            errorLabel_->show();
-            landed();
-            endBackgroundWork();
-        },
-        kProjectOpenTimeoutMs);
+    enqueueSaves(entries);
 }
 
 bool EditorShell::placeCaret(const QString& sceneID, qint64 byteOffset)

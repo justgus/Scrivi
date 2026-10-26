@@ -8,8 +8,8 @@
 
 ## ✅ T-0623 — `[ScriviCore]` EP-052 S1: two locks per project (memory and disk)
 
-**Epic:** [EP-052] (AC0) · **Status:** ✅ **Verified 2026-10-26** (user, 2026-10-26: *"passes for Linux.  passes for macos."*) · **Sprint:** [SP-194] (🟡 Active) →
-[`../Sprints/Sprint-SP-194.md`](../../Sprints/Sprint-SP-194.md) · **Date Requested:** 2026-10-26 (user: *"Q1–Q7 agreed as recommended"*)
+**Epic:** [EP-052] (AC0) · **Status:** ✅ **Verified 2026-10-26** (user, 2026-10-26: *"passes for Linux.  passes for macos."*) · **Sprint:** [SP-194] (✅ Closed) →
+[`Closed/Sprint-SP-194.md`](../../Sprints/Closed/Sprint-SP-194.md) · **Date Requested:** 2026-10-26 (user: *"Q1–Q7 agreed as recommended"*)
 
 **What:** replace SP-173's single exclusive project lock (`ScriviCore/src/public_api/ProjectLock.hpp`) with a memory lock (M)
 and a disk lock (D), per v0.2 §3: D before M, never M before D; the revision moves under M. Each of the 126 guarded

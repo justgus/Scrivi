@@ -1302,6 +1302,38 @@ public final class ScriviEngine: @unchecked Sendable {
         return try decodeC(raw)
     }
 
+    // MARK: — EP-052 write queue ([SP-194], [SP-195])
+    // A queued save returns at once with a ticket; `waitForWrites` (off the main thread) reports what landed. The core tells
+    // history the bytes it wrote, so a queued save's caller does not call `noteScenePersisted`.
+
+    /// Returns each scene's ticket, by sceneID.
+    public func enqueueSaveScenes(projectID: String, projectRootPath: String, appSupportRoot: String,
+                                  scenes: [QueuedSave], authorshipRef: AuthorshipRef) throws -> [String: Int64] {
+        struct Request: Encodable {
+            let projectID, appSupportRoot, identityID, personaID, displayName: String
+            let scenes: [QueuedSave]
+        }
+        struct Ticket: Decodable { let sceneID: String; let ticket: Int64 }
+        struct R: Decodable {
+            let tickets: [Ticket]
+            init(from d: Decoder) throws {
+                tickets = try d.container(keyedBy: K.self).decodeIfPresent([Ticket].self, forKey: .tickets) ?? []
+            }
+            enum K: String, CodingKey { case tickets }
+        }
+        guard !scenes.isEmpty else { return [:] }
+        let json = String(decoding: try JSONEncoder().encode(Request(
+            projectID: projectID, appSupportRoot: appSupportRoot, identityID: authorshipRef.identityID,
+            personaID: authorshipRef.personaID, displayName: authorshipRef.displayName, scenes: scenes)), as: UTF8.self)
+        let r: R = try decodeC(projectRootPath.withCString { prp in json.withCString { scrivi_enqueue_save_scenes(prp, $0) } })
+        return Dictionary(r.tickets.map { ($0.sceneID, $0.ticket) }, uniquingKeysWith: { _, newer in newer })
+    }
+
+    /// `ticket` 0: every job queued so far. `timeoutMs` negative: as long as it takes. A HELD queue returns at once.
+    public func waitForWrites(projectRootPath: String, ticket: Int64 = 0, timeoutMs: Int64) throws -> WriteQueueWait {
+        try decodeC(projectRootPath.withCString { scrivi_wait_for_writes($0, ticket, timeoutMs) })
+    }
+
     // MARK: — Undo capture rules (SP-177 / T-0604, EP-026 S1)
     // WHEN an undo step ends is ScriviCore's (`scrivi_capture_*`): pure decode wrappers. Carets are UTF-16 units of the
     // scene text; `nowMs` is any monotonic millisecond clock the caller keeps (SP-177 Q1, Q2).
@@ -3438,6 +3470,43 @@ public struct HistoryPurgeResult: Decodable, Sendable {
 
 public struct HistoryCloseResult: Decodable, Sendable {
     public let closed: Bool
+}
+
+/// EP-052: one scene's entry for `scrivi_enqueue_save_scenes`.
+public struct QueuedSave: Encodable, Sendable {
+    public let sceneID, metadataPath, contentPath, markdown: String
+    public let selectionAnchor, selectionFocus: Int
+    public let scroll: Double
+}
+
+/// EP-052: what `scrivi_wait_for_writes` reports. `held`: a write could not reach the disk; it is retried by the core
+/// ([SP-195] Q1 (a)).
+public struct WriteQueueWait: Decodable, Sendable {
+    public let landed: Bool
+    public let held: Bool
+    public let heldReason: String?
+    public let pending: Int64
+    public let outcomes: [WriteOutcome]
+
+    public struct WriteOutcome: Decodable, Sendable {
+        public let ticket: Int64
+        public let kind: String
+        public let sceneID: String?
+        public let ok: Bool
+        public let supersededBy: Int64?
+        /// A failure the core keeps and retries; its success follows. A failure without it was refused.
+        public let held: Bool?
+    }
+
+    public init(from d: Decoder) throws {
+        let c = try d.container(keyedBy: K.self)
+        landed = try c.decode(Bool.self, forKey: .landed)
+        held = try c.decode(Bool.self, forKey: .held)
+        heldReason = try c.decodeIfPresent(String.self, forKey: .heldReason)
+        pending = try c.decode(Int64.self, forKey: .pending)
+        outcomes = try c.decodeIfPresent([WriteOutcome].self, forKey: .outcomes) ?? []   // OMITTED when none
+    }
+    enum K: String, CodingKey { case landed, held, heldReason, pending, outcomes }
 }
 
 /// SP-177: what every `scrivi_capture_*` call reports.

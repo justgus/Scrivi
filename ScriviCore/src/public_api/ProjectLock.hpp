@@ -62,6 +62,8 @@ public:
     // A null or empty root takes no lock: the endpoint's own validation reports it.
     ProjectCallGuard(const char* root, Kind kind, const char* endpoint = "");
     ~ProjectCallGuard();
+    // A file endpoint behind a held write queue ([SP-195] Q1 (a)): it took no lock and must fail at once.
+    [[nodiscard]] bool refusedBehindHeldQueue() const { return refused_; }
     ProjectCallGuard(const ProjectCallGuard&) = delete;
     ProjectCallGuard& operator=(const ProjectCallGuard&) = delete;
 
@@ -69,6 +71,7 @@ private:
     ProjectLockEntry* entry_ = nullptr;
     std::unique_lock<std::mutex> lock_;   // D for read/write, M for the memory kinds
     bool memoryKind_ = false;
+    bool refused_ = false;
     ProjectCallContext context_;
     const ProjectCallContext* previous_ = nullptr;
 };

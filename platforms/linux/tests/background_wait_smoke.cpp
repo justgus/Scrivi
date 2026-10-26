@@ -4,9 +4,10 @@
 // REAL project windows opened through `AppEnvironment` (as the app opens them); Replace All driven through the real find
 // bar; every claim about text read back FROM DISK.
 //
-// ✅ What it proves (SP-181 AC7–AC8):
-//   • a scene whose save FAILS stays dirty, so the next save writes it — the ordinary autosave and Replace All's off-main
-//     save alike ([I-0304]);
+// ✅ What it proves (SP-181 AC7–AC8; EP-052 [SP-195]):
+//   • a scene whose save FAILS stays dirty, and the core's held queue writes it once the folder is writable again — the
+//     ordinary autosave and Replace All's saves alike ([I-0304], [SP-195] Q1 (a)); the editor is never locked for them;
+//   • closing a window while the queue is held ASKS ([I-0322]): Cancel keeps it open, "Close Anyway" closes it;
 //   • closing a window while Replace All's writes run leaves it open behind the wait dialog, and it closes by itself, with
 //     the writes on disk, when they land ([I-0305]);
 //   • Quit does the same for every window, behind ONE dialog.
@@ -95,9 +96,12 @@ ScriviWindow* openWindow(AppEnvironment& env, const Project& p)
 
 ManuscriptEditor* editorOf(ScriviWindow* w) { return w->editorShell()->findChild<ManuscriptEditor*>(); }
 
-QString disk(ScriviBridge& bridge, const Project& p, int i)
+// Read from the FILE: a core read behind a held queue is refused ([SP-195] Q1 (a)), which is not what this asks.
+QString disk(ScriviBridge&, const Project& p, int i)
 {
-    return bridge.readSceneTexts(p.dir, {p.sceneIDs.at(i)}).value(p.sceneIDs.at(i));
+    const QFileInfo fi(p.contentPaths.at(i));
+    QFile f(fi.isAbsolute() ? fi.filePath() : p.dir + QLatin1Char('/') + p.contentPaths.at(i));
+    return f.open(QIODevice::ReadOnly) ? QString::fromUtf8(f.readAll()) : QString();
 }
 
 // The directory holding scene `i`'s file: made read-only, every write into it fails.
@@ -186,27 +190,51 @@ int main(int argc, char** argv)
     wa->raiseToFront();
     ManuscriptEditor* ea = editorOf(wa);
 
-    // ── §1 [I-0304] A failed autosave stays dirty; the next save writes it ─────────────────────────────────────────────
+    // ── §1 [I-0304] A failed autosave stays dirty; the held queue writes it when it can ([SP-195] Q1 (a)) ───────────────
+    // The core retries a held write every 5 s, so each "lands" wait allows 15 s.
     typeAtEnd(ea, QStringLiteral("Bravo"), QStringLiteral(" typed"));
     setWritable(sceneDir(A, 1), false);
     wa->editorShell()->saveDirtyScenes();
+    check(waitFor([&] { return wa->editorShell()->writesHeld(); }), QStringLiteral("§1 the failed save holds the queue"));
     check(disk(bridge, A, 1) == QStringLiteral("Bravo"), QStringLiteral("§1 precondition: the save failed (%1)").arg(disk(bridge, A, 1)));
-    setWritable(sceneDir(A, 1), true);
-    wa->editorShell()->saveDirtyScenes();
-    check(disk(bridge, A, 1) == QStringLiteral("Bravo typed"),
-          QStringLiteral("§1 the scene stayed dirty, so the next save wrote it (%1)").arg(disk(bridge, A, 1)));
+    check(wa->editorShell()->dirtySceneCount() == 1, QStringLiteral("§1 … the scene stays dirty"));
+    check(!wa->editorShell()->backgroundWorkInProgress(), QStringLiteral("§1 … a close would not wait on a held queue"));
+    check(!ea->isReadOnly(), QStringLiteral("§1 … the editor is not locked"));
 
-    // ── §2 [I-0304] Replace All's off-main save: a failed write stays dirty too ────────────────────────────────────────
+    // ── §1b [I-0322] Closing while the queue is held ASKS — Cancel keeps the window ──────────────────────────────────
+    int asked = 0;
+    EditorShell::confirmHook = [&](int unsaved, const QString& action) {
+        ++asked;
+        check(unsaved == 1 && action == QStringLiteral("Close"), QStringLiteral("§1b asked about 1 scene, to Close (%1, %2)")
+                                                                     .arg(unsaved).arg(action));
+        return false;   // Cancel
+    };
+    wa->close();
+    QApplication::processEvents();
+    check(asked == 1 && wa != nullptr && wa->isVisible(), QStringLiteral("§1b Cancel kept the window open"));
+    EditorShell::confirmHook = nullptr;
+
+    setWritable(sceneDir(A, 1), true);
+    check(waitFor([&] { return disk(bridge, A, 1) == QStringLiteral("Bravo typed"); }, 15000),
+          QStringLiteral("§1 the held save landed once the folder was writable (%1)").arg(disk(bridge, A, 1)));
+    check(waitFor([&] { return wa->editorShell()->dirtySceneCount() == 0 && !wa->editorShell()->writesHeld(); }),
+          QStringLiteral("§1 … and the scene is clean"));
+
+    // ── §2 [I-0304] Replace All's saves: a failed write stays dirty too, and lands when it can ───────────────────────
     setWritable(sceneDir(A, 0), false);
     FindBar* bar = startReplaceAll(wa, QStringLiteral("cat"), QStringLiteral("cow"));
     check(waitFor([&] { return bar->countText() == QStringLiteral("2 replaced"); }),
           QStringLiteral("§2 Replace All landed (%1)").arg(bar->countText()));
+    check(!ea->isReadOnly(), QStringLiteral("§2 … and the editor is unlocked without waiting for its writes"));
+    check(waitFor([&] { return wa->editorShell()->writesHeld(); }), QStringLiteral("§2 its failed write holds the queue"));
     check(disk(bridge, A, 0) == QStringLiteral("cat one"), QStringLiteral("§2 precondition: its writes failed (%1)").arg(disk(bridge, A, 0)));
     setWritable(sceneDir(A, 0), true);
-    wa->editorShell()->saveDirtyScenes();
-    check(disk(bridge, A, 0) == QStringLiteral("cow one") && disk(bridge, A, 2) == QStringLiteral("cow three"),
-          QStringLiteral("§2 the failed scenes stayed dirty, so the next save wrote them (%1 / %2)")
+    check(waitFor([&] { return disk(bridge, A, 0) == QStringLiteral("cow one") && disk(bridge, A, 2) == QStringLiteral("cow three"); },
+                  15000),
+          QStringLiteral("§2 the held writes landed once the folder was writable (%1 / %2)")
               .arg(disk(bridge, A, 0), disk(bridge, A, 2)));
+    check(waitFor([&] { return !wa->editorShell()->writesHeld() && !wa->editorShell()->backgroundWorkInProgress(); }),
+          QStringLiteral("§2 … and the queue is empty"));
 
     // ── §3 [I-0305] Closing the window while Replace All's writes run WAITS, then closes ───────────────────────────────
     startReplaceAll(wa, QStringLiteral("cow"), QStringLiteral("dog"));

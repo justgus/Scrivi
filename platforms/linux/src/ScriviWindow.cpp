@@ -696,6 +696,12 @@ void ScriviWindow::closeEvent(QCloseEvent* event)
         event->ignore();
         return;
     }
+    // ✅ [I-0322] (Apple: [T-0570]) — a close loses the edits a held write queue cannot land (the drive is gone), so the
+    // writer is asked first. A quit asks once, at its start (`AppEnvironment::quitApplication`).
+    if ((env_ == nullptr || !env_->isQuitting()) && !EditorShell::confirmDiscardingHeld(this, {editor_}, tr("Close"))) {
+        event->ignore();
+        return;
+    }
 
     flushEditor();   // don't lose edits when the window (and app) closes
 

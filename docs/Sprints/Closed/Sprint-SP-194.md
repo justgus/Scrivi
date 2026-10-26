@@ -1,18 +1,18 @@
 ---
 sprint: SP-194
 epic: EP-052
-status: Active
+status: Closed
 platform: ScriviCore
 created: 2026-10-26
 ---
 
 # SP-194 — `[ScriviCore]` [EP-052] **S1**: two locks per project and the write queue
 
-**Status:** 🟡 **ACTIVE 2026-10-26** (user: *"(a) agreed, activate SP-194"*) — created 2026-10-26 (user: *"Q1–Q7 agreed as recommended"*; v0.2 Q7 makes this S1). ✅ Q1 ruled (a).
-**Carries:** [T-0623], [T-0624] (✅ Verified 2026-10-26) → `../Tasks/Verified/Task-verified-0623.md`, `Task-verified-0624.md`.
-**Epic:** [EP-052] (AC0–AC3) → [`../Epics/Epic-active.md`](../Epics/Epic-active.md).
-**Authority:** [`../Scrivi_Background_Writes_Design_v0_2.md`](../Scrivi_Background_Writes_Design_v0_2.md) §3 (✅ ruled
-2026-10-26) · [`../Scrivi_Background_Writes_Design_v0_1.md`](../Scrivi_Background_Writes_Design_v0_1.md) W1–W7 (✅ ruled
+**Status:** ✅ **CLOSED 2026-10-26** (user, 2026-10-26: *"approve the close.  plan S2."*) — activated 2026-10-26 (user: *"(a) agreed, activate SP-194"*) — created 2026-10-26 (user: *"Q1–Q7 agreed as recommended"*; v0.2 Q7 makes this S1). ✅ Q1 ruled (a).
+**Carries:** [T-0623], [T-0624] (✅ Verified 2026-10-26) → [`Task-verified-0623.md`](../../Tasks/Verified/Task-verified-0623.md), [`Task-verified-0624.md`](../../Tasks/Verified/Task-verified-0624.md).
+**Epic:** [EP-052] (AC0–AC3) → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md).
+**Authority:** [`../Scrivi_Background_Writes_Design_v0_2.md`](../../Scrivi_Background_Writes_Design_v0_2.md) §3 (✅ ruled
+2026-10-26) · [`../Scrivi_Background_Writes_Design_v0_1.md`](../../Scrivi_Background_Writes_Design_v0_1.md) W1–W7 (✅ ruled
 2026-10-15; W7 revised 2026-10-20; W7-Q1 ruled (a) here, 2026-10-26).
 **Size:** L — every guarded endpoint changes lock; the queue is new. No platform code changes (S2 adopts the queue).
 
@@ -102,4 +102,15 @@ recommended.
 
 ### ✅ 2026-10-26 — AC5 met: the Mac and rig smoke pass (user, 2026-10-26: *"passes for Linux.  passes for macos."*)
 - T-0623 and T-0624 → ✅ Verified and archived. All five ACs met; ⏳ the close awaits the user's approval.
+
+### ✅ 2026-10-26 — Sprint CLOSED (user, 2026-10-26: *"approve the close.  plan S2."*)
+
+**Retrospective.**
+- ✅ Measuring each endpoint's file operations before classifying it made the lock split a reading job, not a guess, and the
+  strict listener keeps it honest for every later endpoint.
+- ✅ Queued jobs call the existing synchronous endpoints, so no write logic was duplicated and the structural delta came back
+  for free.
+- ⚠️ The first W3 test passed with W3 removed. Mutation caught it; ordering tests must check a job the writer cannot reach first.
+- ⚠️ Forking tests and a background thread do not mix (a child has no writer); found only by the suite hanging.
+- ➡️ S2 adopts the queue on both platforms.
 

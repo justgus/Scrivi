@@ -180,6 +180,15 @@ public:
     // later open can restore the surface (used in full by SP-064); pass 0/0/0.0 when
     // not tracking them yet. On failure emits errorOccurred and returns {}. Requires
     // bootstrap() to have succeeded first.
+    // EP-052 ([SP-195]): queues scene saves — each `scenes` entry {sceneID, metadataPath, contentPath, markdown,
+    // selectionAnchor, selectionFocus, scroll}. A memory call: it returns at once with {tickets: [{sceneID, ticket}],
+    // ticket}. The core tells history the bytes it wrote.
+    QVariantMap enqueueSaveScenes(const QString& projectID, const QString& projectRootPath, const QString& appSupportRoot,
+                                  const QVariantList& scenes);
+    // EP-052: waits (OFF the GUI thread) for the queued writes: {landed, held, heldReason?, pending, outcomes?}. A HELD
+    // queue ([SP-195] Q1 (a)) answers at once.
+    QVariantMap waitForWrites(const QString& projectRootPath, qint64 ticket, qint64 timeoutMs);
+
     Q_INVOKABLE QVariantMap saveScene(const QString& projectID,
                                       const QString& projectRootPath,
                                       const QString& appSupportRoot,

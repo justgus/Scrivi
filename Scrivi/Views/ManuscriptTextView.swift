@@ -379,16 +379,15 @@ struct ManuscriptTextView: NSViewRepresentable {
         /// ✅ [I-0302]: Edit ▸ Undo is available at a barrier too — the undo then shows the barrier's notice ("This scene was
         /// changed outside Scrivi; undo stops here"). ⛔ Disabled on `canUndo` alone, ⌘Z only flashed and never said why.
         var undoAvailable: Bool { canUndo || (parent.session.historyCapture?.atBarrierNow ?? false) }
-        var canRedo: Bool { !isWritingOffMain && (parent.session.historyCapture?.canRedoNow ?? false) }
-        /// [I-0303]: a Replace All's scenes are being written off the main actor — the manuscript is locked.
-        var isWritingOffMain: Bool { parent.loader.scenesWritingOffMain > 0 }
+        // EP-052 ([SP-195]): undo and redo are NOT held off while saves are queued — their own writes queue behind them.
+        var canRedo: Bool { parent.session.historyCapture?.canRedoNow ?? false }
 
         // Performs an undo: asks HistoryService for the prior state, applies the
         // returned full scene text into that scene's storage range, restores the
         // cursor, and saves immediately.
         func performUndo() {
             let span = ScriviDiag.begin("undo"); defer { ScriviDiag.end(span) }
-            guard !isWritingOffMain, !parent.loader.structuralInFlight, let capture = parent.session.historyCapture else { return }
+            guard !parent.loader.structuralInFlight, let capture = parent.session.historyCapture else { return }
             // ✅ [I-0319] (user, 2026-10-24): asked BEFORE an undo of an earlier session's change, with Cancel — never for
             // this session's.
             if let when = capture.undoEntersEarlierSession(), !confirmEarlierSessionUndo(when) { return }
@@ -397,7 +396,7 @@ struct ManuscriptTextView: NSViewRepresentable {
 
         func performRedo() {
             let span = ScriviDiag.begin("redo"); defer { ScriviDiag.end(span) }
-            guard !isWritingOffMain, !parent.loader.structuralInFlight, let capture = parent.session.historyCapture else { return }
+            guard !parent.loader.structuralInFlight, let capture = parent.session.historyCapture else { return }
             // ✅ [I-0320] (user, 2026-10-24): the branch chooser is a REDO question — shown here, never as an undo lands.
             if let fork = capture.redoFork(), let tv = textView {
                 // ✅ [SP-192] (user, 2026-10-24): at the branch's mark, as a click on it — the one nearest the caret; the
@@ -2429,12 +2428,10 @@ struct ManuscriptTextView: NSViewRepresentable {
             }
             capture.recordGroupedEdit(grouped, kind: "replace")
             let tRecorded = Date()
-            // ✅ [I-0303]: the touched scenes — ONLY those holding a match — are written OFF the main actor, with the
-            // manuscript locked (and Undo / Redo off) until they land; the editor shows progress meanwhile.
-            if let ref = parent.env.authorshipRef,
-               loader.saveScenesOffMain(touched, engine: parent.env.engine, ref: ref,
-                                        whenLanded: { [weak tv] in tv?.isEditable = true }) {
-                tv.isEditable = false
+            // ✅ EP-052 ([SP-195]): the touched scenes — ONLY those holding a match — are queued, written off the main
+            // thread; the manuscript stays editable (v0.1 Q3 (a)) and the editor shows progress meanwhile.
+            if let ref = parent.env.authorshipRef {
+                loader.saveScenesOffMain(touched, engine: parent.env.engine, ref: ref)
             }
             parent.session.timelineModel?.updateDotTitles(liveTitles: loader.liveTitles, allScenes: loader.allScenes)
             NSLog(String(format: "[SCRIVI-FIND] replaceAll %d edits / %d scenes: apply=%.0f ms  history=%.0f ms",
@@ -3107,7 +3104,7 @@ final class ManuscriptNSTextView: NSTextView {
 
     override func validateUserInterfaceItem(_ item: any NSValidatedUserInterfaceItem) -> Bool {
         switch item.action {
-        case #selector(undo(_:)): return !(coordinator?.isWritingOffMain ?? false) && (coordinator?.undoAvailable ?? false)
+        case #selector(undo(_:)): return coordinator?.undoAvailable ?? false
         case #selector(redo(_:)): return coordinator?.canRedo ?? false
         case #selector(toggleAutomaticQuoteSubstitution(_:)): return false   // [I-0283]: never on in the manuscript
         default:                  return super.validateUserInterfaceItem(item)

@@ -38,6 +38,8 @@ status changes on its own layer.
 | T-0617 | `[Cross]` EP-053 S4: the background sync verification | EP-053 ([SP-189], 🔵 Planning) | 🔵 Backlog |
 | T-0618 | `[Cross]` EP-053 S5: Mac and rig live passes over the share, timed | EP-053 ([SP-190], 🔵 Planning) | 🔵 Backlog |
 | T-0621 | `[Cross]` Explore a whole-manuscript history view (a tree, or a branching timeline) | ⚠️ None yet | 🔵 Backlog — exploration |
+| T-0627 | `[Cross]` EP-052 S2b: structural edits through the queue, and the gesture cues | EP-052 ([SP-196], 🔵 Planning) | 🔵 Backlog |
+| T-0628 | `[Cross]` EP-052: keep a held queue on local disk and push it when the project returns | EP-052 (unscheduled) | 🔵 Backlog |
 
 > ✅ **T-0477 – T-0479 LEFT this file 2026-08-31 when SP-124 was ACTIVATED**, per the standing rule that
 > active Tasks never sit in the backlog. ✅ **They are now VERIFIED (2026-09-10) and ARCHIVED** →
@@ -731,3 +733,33 @@ the same flag in a different file; ✅ leaving it on `env` would give two toggle
   ⛔ **runs on project close** — ✅ **confirm the panel closes cleanly when the last project goes.**
 - ⚠️ **Persistence is NOT in scope.** ⛔ **The flag is in-memory today and stays in-memory** — ✅ **if it
   should survive a quit, that is [I-0255]'s ruling and [T-0556]'s question, not this Task's.**
+
+---
+
+## 🔵 T-0627 — `[Cross]` EP-052 S2b: structural edits through the queue, and the gesture cues
+
+**Epic:** [EP-052] (AC4, AC5, AC10) · **Status:** 🔵 Backlog · **Sprint:** [SP-196] (🔵 Planning) →
+[`../Sprints/Sprint-SP-196.md`](../Sprints/Sprint-SP-196.md) · **Date Requested:** 2026-10-26 (user: *"approve the close.  plan S2."*)
+
+**What:** on both platforms a structural edit is `scrivi_enqueue_range_op` behind the queued saves; the delta comes back in
+its outcome and is applied on the main thread; its history node is recorded from it. Each platform's structural worker is
+removed (W7h). The v0.2 Q5 gesture cues.
+
+---
+
+## 🔵 T-0628 — `[Cross]` EP-052: keep a held queue on local disk, push it when the project returns
+
+**Epic:** [EP-052] · **Status:** 🔵 Backlog (unscheduled; after [SP-195]) · **Date Requested:** 2026-10-26 (user: *"perhaps,
+in addition to Q1 holding the queue, we also allow the user to "save" the queue to a local persistent store so that, when
+the project becomes available again, the queued writes get pushed"*; *"File it as a backlog Task, but under EP-052."*)
+
+**What:** when the queue is held ([SP-195] Q1 (a)) because the project's location is gone, the writer can keep the held
+jobs in a per-project local store (keyed by project ID, in the app's own data folder) and quit. When the project is
+reachable again (at its next open, or when the drive returns while the app runs), the core pushes the kept jobs in order.
+- **Reopens v0.1 Q4** (*"no journal"*): that ruling was about crashes; this one is about an unreachable project. Gives
+  [T-0570]'s "can't be saved" question a third answer: keep them on this machine.
+- **No merge (user: a future version).** Each kept write records a fingerprint of the file it replaces; if the file no
+  longer matches at push time, the push stops and the writer is told, rather than overwriting an outside change.
+- **Order:** scene saves and history appends first; structural jobs ([SP-196]) when they are queued too. A structural job
+  in the held queue cannot be skipped, since the jobs behind it depend on it.
+- ⚠️ The local store holds manuscript text outside the project package.

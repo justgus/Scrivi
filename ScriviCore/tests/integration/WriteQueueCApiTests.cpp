@@ -10,6 +10,7 @@
 #include "public_api/ProjectLock.hpp"
 #include "util/Json.hpp"
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <cstdint>
@@ -264,25 +265,152 @@ TEST_CASE("EP-052 queue: a memory call returns at once while the writer waits fo
     CHECK(p.historyLog().find("\"rec\":\"event\"") != std::string::npos);   // the step's append landed, after the save
 }
 
-TEST_CASE("EP-052 queue: a failed save is reported, and history is not told it was written (W2, W4)",
+namespace {
+// SP-195 Q1 (a): a scene whose folder is gone, as when the drive is pulled; `restore()` brings the folder back.
+struct Unreachable {
+    Scene scene;
+    fs::path folder;
+    Unreachable(const QueueProject& p, const Scene& s) : scene(s) {
+        scene.contentPath = "gone/" + s.contentPath;
+        folder = (p.root / scene.contentPath).parent_path();
+        scrivi::abi::projectLockEntry(p.r()).queue.setRetryInterval(std::chrono::milliseconds(20));
+    }
+    void restore() const { fs::create_directories(folder); }
+};
+
+// A held queue's wait returns at once, so a test waits for the retry by asking again; the outcomes go to `into`.
+JsonDoc waitUntilLanded(const QueueProject& p, std::vector<JsonDoc>& into) {
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
+    for (;;) {
+        JsonDoc waited = ok(scrivi_wait_for_writes(p.r(), 0, 100));
+        for (auto& o : outcomesOf(waited)) { into.push_back(std::move(o)); }
+        if (waited.getBool("landed") || std::chrono::steady_clock::now() > deadline) { return waited; }
+    }
+}
+
+int64_t count(const std::vector<JsonDoc>& outcomes, int64_t ticket, bool okValue) {
+    return std::count_if(outcomes.begin(), outcomes.end(), [&](const JsonDoc& o) {
+        return o.getInt64("ticket") == ticket && o.getBool("ok") == okValue && !o.contains("supersededBy");
+    });
+}
+}  // namespace
+
+TEST_CASE("EP-052 queue: a save that cannot reach the disk HOLDS the queue, is retried, and lands when it can "
+          "(SP-195 Q1 (a))", "[write-queue][capi]") {
+    QueueProject p(2);
+    ok(scrivi_history_open(p.r()));
+    const Unreachable gone(p, p.scenes[0]);
+    const Scene& later = p.scenes[1];
+    const int64_t held = p.enqueue(gone.scene, "Kept until the drive is back.");
+    const int64_t behind = p.enqueue(later, "Queued behind it.");
+
+    // A wait returns at once: nothing hangs behind a held queue.
+    const auto t0 = std::chrono::steady_clock::now();
+    JsonDoc waited = ok(scrivi_wait_for_writes(p.r(), 0, -1));
+    CHECK(std::chrono::steady_clock::now() - t0 < std::chrono::seconds(2));
+    CHECK_FALSE(waited.getBool("landed"));
+    CHECK(waited.getBool("held"));
+    CHECK_FALSE(waited.getString("heldReason").empty());
+    CHECK(waited.getInt64("pending") >= 2);
+    std::vector<JsonDoc> outcomes = outcomesOf(waited);
+
+    // A synchronous file call fails at once instead of waiting behind it.
+    const JsonDoc refused = envelope(scrivi_read_scene_texts(p.r(), ("[\"" + later.id + "\"]").c_str()));
+    CHECK_FALSE(refused.getBool("ok"));
+    CHECK(refused.getSubDoc("error").getString("detail") == "writeQueueHeld");
+
+    // Retried several times, but its failure is reported once; the job behind it has not run.
+    std::this_thread::sleep_for(std::chrono::milliseconds(150));
+    for (auto& o : outcomesOf(ok(scrivi_wait_for_writes(p.r(), 0, 0)))) { outcomes.push_back(std::move(o)); }
+    CHECK(count(outcomes, held, false) == 1);
+    CHECK(std::any_of(outcomes.begin(), outcomes.end(),
+                      [&](const JsonDoc& o) { return o.getInt64("ticket") == held && o.getBool("held"); }));
+    CHECK(count(outcomes, behind, true) == 0);
+    CHECK(p.onDisk(later) == "Text of " + later.id + ".");
+    CHECK(p.historyLog().find("\"sceneID\":\"" + gone.scene.id + "\",\"sha256\"") == std::string::npos);   // W2
+
+    gone.restore();
+    waited = waitUntilLanded(p, outcomes);
+    CHECK(waited.getBool("landed"));
+    CHECK_FALSE(waited.getBool("held"));
+    CHECK(count(outcomes, held, true) == 1);
+    CHECK(count(outcomes, behind, true) == 1);
+    CHECK(p.onDisk(gone.scene) == "Kept until the drive is back.");
+    CHECK(p.onDisk(later) == "Queued behind it.");
+    ok(scrivi_history_close(p.r()));
+    CHECK(p.historyLog().find("\"rec\":\"persisted\",\"sceneID\":\"" + gone.scene.id) != std::string::npos);
+}
+
+TEST_CASE("EP-052 queue: a structural operation never runs over a held save (SP-195 Q1 (a))", "[write-queue][capi]") {
+    QueueProject p(2);
+    const Scene& a = p.scenes[0];
+    const Scene& b = p.scenes[1];
+    const auto aLen = static_cast<long long>(p.onDisk(a).size());
+    JsonDoc op;
+    op.setString("op", "cut");
+    op.setSubDoc("range", ok(scrivi_range_read(p.r(), a.id.c_str(), aLen, b.id.c_str(), 0)).getSubDoc("range"));
+    op.setString("identityID", "identity-001");
+    op.setString("personaID", "persona-001");
+    op.setString("displayName", "T");
+    const Unreachable gone(p, b);
+    const int64_t save = p.enqueue(gone.scene, "Lost if the merge ran first.");
+    const int64_t merge = ok(scrivi_enqueue_range_op(p.r(), op.dump(-1).c_str())).getInt64("ticket");
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    CHECK(p.onDisk(a) == "Text of " + a.id + ".");   // the merge waits
+
+    gone.restore();
+    std::vector<JsonDoc> outcomes;
+    waitUntilLanded(p, outcomes);
+    // The save landed first, then the merge (the stand-in folder is not b's, so the merged text is b's own).
+    const auto at = [&](int64_t t) { return std::find_if(outcomes.begin(), outcomes.end(), [&](const JsonDoc& o) {
+        return o.getInt64("ticket") == t && o.getBool("ok"); }); };
+    REQUIRE(at(save) != outcomes.end());
+    REQUIRE(at(merge) != outcomes.end());
+    CHECK(at(save) < at(merge));
+    CHECK(p.onDisk(a) == "Text of " + a.id + ".Text of " + b.id + ".");
+}
+
+TEST_CASE("EP-052 queue: a write that fails for any other reason is reported, and the queue goes on (W2, W4)",
           "[write-queue][capi]") {
     QueueProject p(2);
     ok(scrivi_history_open(p.r()));
     const Scene good = p.scenes[0];
-    Scene bad = p.scenes[1];
-    bad.contentPath = "no-such-folder/deeper/" + bad.contentPath;   // a write that cannot land
-    p.enqueue(good, "Written.");
-    const int64_t failed = p.enqueue(bad, "Never written.");
-    const auto outcomes = outcomesOf(ok(scrivi_wait_for_writes(p.r(), failed, -1)));
+    const Scene bad = p.scenes[1];
+    auto parsedReq = parseJson(p.saves({{&bad, "Never written."}}));
+    JsonDoc req = std::move(parsedReq.value());
+    req.setString("appSupportRoot", "");   // refused (invalidArgument): never worth retrying
+    const int64_t failed = ok(scrivi_enqueue_save_scenes(p.r(), req.dump(-1).c_str())).getInt64("ticket");
+    const int64_t after = p.enqueue(good, "Written.");
+    const JsonDoc waited = ok(scrivi_wait_for_writes(p.r(), after, -1));
+    CHECK(waited.getBool("landed"));
+    CHECK_FALSE(waited.getBool("held"));
+    const auto outcomes = outcomesOf(waited);
     REQUIRE(outcomes.size() == 2);
-    CHECK(outcomes[0].getBool("ok"));
-    CHECK_FALSE(outcomes[1].getBool("ok"));
-    CHECK(outcomes[1].getString("sceneID") == bad.id);
-    CHECK(outcomes[1].contains("error"));
+    CHECK(outcomes[0].getInt64("ticket") == failed);
+    CHECK_FALSE(outcomes[0].getBool("ok"));
+    CHECK(outcomes[0].contains("error"));
+    CHECK_FALSE(outcomes[0].getBool("held"));
+    CHECK(outcomes[1].getBool("ok"));
     ok(scrivi_history_close(p.r()));
     const std::string log = p.historyLog();
     CHECK(log.find("\"rec\":\"persisted\",\"sceneID\":\"" + good.id) != std::string::npos);
     CHECK(log.find("\"sceneID\":\"" + bad.id + "\",\"sha256\"") == std::string::npos);
+}
+
+TEST_CASE("EP-052 queue: closing with a held queue returns, and its writes land when the project is back "
+          "(SP-195 Q1 (a))", "[write-queue][capi]") {
+    QueueProject p(1);
+    const Unreachable gone(p, p.scenes[0]);
+    p.enqueue(gone.scene, "Written after the close.");
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    const auto t0 = std::chrono::steady_clock::now();
+    ok(scrivi_history_close(p.r()));
+    ok(scrivi_close_project(p.r()));
+    CHECK(std::chrono::steady_clock::now() - t0 < std::chrono::seconds(2));
+    gone.restore();
+    std::vector<JsonDoc> outcomes;
+    CHECK(waitUntilLanded(p, outcomes).getBool("landed"));
+    CHECK(p.onDisk(gone.scene) == "Written after the close.");
 }
 
 TEST_CASE("EP-052 queue: a queued structural operation's outcome carries its delta (W7-Q1 (a))", "[write-queue][capi]") {

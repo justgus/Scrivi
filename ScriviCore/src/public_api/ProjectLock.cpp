@@ -82,8 +82,11 @@ ProjectCallGuard::ProjectCallGuard(const char* root, Kind kind, const char* endp
     const bool bumps = (kind == Kind::write || kind == Kind::memoryWrite) && !WriteQueue::onWriterThread();
     const auto t0 = std::chrono::steady_clock::now();
     if (kind == Kind::read || kind == Kind::write) {
-        if (tlsCall == nullptr && !WriteQueue::onWriterThread()) {   // W3
-            entry_->queue.waitFor(0, std::chrono::milliseconds(-1));
+        if (tlsCall == nullptr && !WriteQueue::onWriterThread() &&   // W3
+            !entry_->queue.waitFor(0, std::chrono::milliseconds(-1))) {
+            refused_ = true;
+            entry_ = nullptr;
+            return;
         }
         lock_ = std::unique_lock<std::mutex>(entry_->disk);
     } else if (memoryKind_) {

@@ -2,7 +2,7 @@
 
 ## EP-052: `[ScriviCore]` **Background Writes** — one ordered write queue per project, in the core
 
-**Status:** 🟡 **ACTIVE 2026-10-26** (user, 2026-10-26: *"close SP-188 and activate EP-052."*) — created 2026-10-15 (user: *"A new Epic."*, ruling Q5 of the design). S1 = [SP-194] (🟡 Active 2026-10-26).
+**Status:** 🟡 **ACTIVE 2026-10-26** (user, 2026-10-26: *"close SP-188 and activate EP-052."*) — created 2026-10-15 (user: *"A new Epic."*, ruling Q5 of the design). S1 [SP-194] ✅ closed 2026-10-26 (AC0–AC3). S2a [SP-195] 🟡 active 2026-10-26; S2b [SP-196] 🔵 Planning.
 **Design:** [`../Scrivi_Background_Writes_Design_v0_1.md`](../Scrivi_Background_Writes_Design_v0_1.md) — ✅ Q1–Q5 ruled
 2026-10-15. **Builds on:** `Scrivi_Core_Concurrency_Design_v0_1.md` (SP-173's per-project lock).
 ✅ **v0.2 RULED 2026-10-26** (user: *"Q1–Q7 agreed as recommended"*): [`../Scrivi_Background_Writes_Design_v0_2.md`](../Scrivi_Background_Writes_Design_v0_2.md) —
@@ -21,15 +21,15 @@ network write on the GUI thread over the share; and the two platforms each keep 
 over a newer one, which have already drifted once ([I-0304] against [I-0259]).
 
 **Acceptance Criteria:**
-- [ ] **AC0 — `[ScriviCore]` Two locks per project (v0.2 Q1):** a memory lock (M) and a disk lock (D) replace SP-173's
+- [x] **AC0 — `[ScriviCore]` Two locks per project (v0.2 Q1):** a memory lock (M) and a disk lock (D) replace SP-173's
   single exclusive lock; D before M, never M before D; an endpoint that touches no file takes M only.
-- [ ] **AC1 — `[ScriviCore]` The queue (W1, W3):** one writer thread per open project, first-in-first-out, coalescing a scene
+- [x] **AC1 — `[ScriviCore]` The queue (W1, W3):** one writer thread per open project, first-in-first-out, coalescing a scene
   queued again before its write starts; every synchronous endpoint that reads or writes scene files first waits for the
   jobs queued before it; `scrivi_close_project` drains it.
-- [ ] **AC2 — `[ScriviCore]` The endpoints (W2, W4, W7):** queue scene saves and structural operations with a ticket; the
+- [x] **AC2 — `[ScriviCore]` The endpoints (W2, W4, W7):** queue scene saves and structural operations with a ticket; the
   history log's appends (undo, redo, capture) join the same queue; the core tells history the persisted bytes itself;
   `scrivi_wait_for_writes` reports every outcome, a failure included.
-- [ ] **AC3 — `[ScriviCore]` Tests:** boundary tests through `scrivi_*` (order, coalescing, read-after-queue, failure, close
+- [x] **AC3 — `[ScriviCore]` Tests:** boundary tests through `scrivi_*` (order, coalescing, read-after-queue, failure, close
   drains) and a ThreadSanitizer stress run on macOS and Linux.
 - [ ] **AC4 — `[Apple]` Adoption:** autosave, Replace All, undo and redo writes, and structural operations go through the
   queue; no project write on the main thread; the manuscript does not lock for a save (Q3); a failed write leaves its scene
@@ -46,8 +46,9 @@ over a newer one, which have already drifted once ([I-0304] against [I-0259]).
   no Spotlight work on the main thread at open or on app switch.
 - [ ] **AC10 — Gesture cues (v0.2 Q5):** every queued gesture shows a cue at once; a repeat is ignored while one is
   pending; ⌘Z waits its turn and never cancels a write.
-**Rough span (v0.2 Q7):** 3 Sprints: S1 ScriviCore (AC0–AC3), S2 Apple + Linux writes queued (AC4–AC7, AC10),
+**Rough span (v0.2 Q7):** 4 Sprints (S2 split in two, ruled 2026-10-26, [SP-195] Q2): S1 ScriviCore (AC0–AC3), S2a every save queued (AC4–AC7), S2b structural edits queued + cues (AC4, AC5, AC10),
 S3 Apple + Linux reads off the main thread + Spotlight (AC8, AC9). Each ends with a live pass over the loop share.
+**Backlog, not yet an AC:** [T-0628] keep a held queue on local disk and push it when the project returns (user, 2026-10-26).
 **Out of scope:** world writes (concurrency design D6), two processes on one project, the speed of the structural
 operations themselves.
 

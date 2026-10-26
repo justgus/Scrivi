@@ -8,8 +8,8 @@
 
 ## ✅ T-0624 — `[ScriviCore]` EP-052 S1: the per-project write queue and its endpoints
 
-**Epic:** [EP-052] (AC1–AC3) · **Status:** ✅ **Verified 2026-10-26** (user, 2026-10-26: *"passes for Linux.  passes for macos."*) · **Sprint:** [SP-194] (🟡 Active) →
-[`../Sprints/Sprint-SP-194.md`](../../Sprints/Sprint-SP-194.md) · **Date Requested:** 2026-10-26 (user: *"Q1–Q7 agreed as recommended"*)
+**Epic:** [EP-052] (AC1–AC3) · **Status:** ✅ **Verified 2026-10-26** (user, 2026-10-26: *"passes for Linux.  passes for macos."*) · **Sprint:** [SP-194] (✅ Closed) →
+[`Closed/Sprint-SP-194.md`](../../Sprints/Closed/Sprint-SP-194.md) · **Date Requested:** 2026-10-26 (user: *"Q1–Q7 agreed as recommended"*)
 
 **What:** v0.1 W1–W4 and W7 under D: one writer thread per open project, FIFO, coalescing; enqueue endpoints for scene saves
 and structural operations with a ticket; history appends in the same queue; `scrivi_wait_for_writes` reports every
