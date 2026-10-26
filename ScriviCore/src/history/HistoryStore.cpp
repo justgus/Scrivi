@@ -50,6 +50,14 @@ AbsolutePath HistoryStore::statePath() const {
 
 void HistoryStore::appendLine(const std::string& jsonLine) {
     if (!fs_) return;
+    if (writer_) {
+        writer_(logPath(), jsonLine + '\n', true);
+        if (++recordsSinceCheckpoint_ >= 200) {
+            checkpoint();
+            recordsSinceCheckpoint_ = 0;
+        }
+        return;
+    }
     // I-0268: a failed append used to be DISCARDED while the node stayed in memory, so
     // the next record to land named a parent the log never got — and every later open
     // failed. Reported when the writer's USB drive dropped off the bus for ~70s with
@@ -457,7 +465,7 @@ void HistoryStore::persistPurge(const std::string& branchRootEventID) {
 void HistoryStore::checkpoint() {
     if (!fs_ || !service_) return;
     // Last chance for records an outage held back (I-0268) — checkpoint runs at close.
-    if (!unwrittenLines_.empty() && fs_->appendTextFile(logPath(), unwrittenLines_).ok()) {
+    if (!writer_ && !unwrittenLines_.empty() && fs_->appendTextFile(logPath(), unwrittenLines_).ok()) {
         unwrittenLines_.clear();
     }
     util::JsonDoc d;
@@ -529,7 +537,11 @@ void HistoryStore::checkpoint() {
     }
     d.setSubDoc("sceneHeads", std::move(heads));
 
-    fs_->atomicWriteTextFile(statePath(), d.dump(2));
+    if (writer_) {
+        writer_(statePath(), d.dump(2), false);
+    } else {
+        fs_->atomicWriteTextFile(statePath(), d.dump(2));
+    }
 }
 
 void HistoryStore::noteScenePersisted(const std::string& sceneID, const std::string& diskText) {

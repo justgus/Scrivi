@@ -21,6 +21,7 @@
 #include "scrivi/Types.hpp"
 
 #include <cstdint>
+#include <functional>
 #include <map>
 #include <memory>
 #include <string>
@@ -98,6 +99,12 @@ public:
     // after the last recorded event, making `externalChange` fire on every open.
     void noteScenePersisted(const std::string& sceneID, const std::string& diskText);
 
+    // EP-052 (T-0624): when set, the log's appends and the state.json checkpoint are handed to `writer` (the project's
+    // write queue), which writes them in order off the caller's thread, instead of being written here. `append` false is
+    // a whole-file replacement. The held-back appends of [I-0268] are then the writer's to keep.
+    using Writer = std::function<void(const AbsolutePath& path, const std::string& text, bool append)>;
+    void setWriter(Writer writer) { writer_ = std::move(writer); }
+
     const HistorySettings& settings() const { return settings_; }
     void setSettings(const HistorySettings& s) { settings_ = s; }
 
@@ -119,6 +126,7 @@ private:
     int recordsSinceCheckpoint_ = 0;
     // Records whose append failed (volume gone), written ahead of the next (I-0268).
     std::string unwrittenLines_;
+    Writer writer_;
 
     // sceneID → head-text sha256 persisted at last close (state.json sceneHeads).
     // Loaded at open for §6.b validation; empty for a fresh history.

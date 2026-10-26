@@ -10,6 +10,47 @@ in the backlog carrying a 🟠 status.
 
 ---
 
+## 🟠 T-0623 — `[ScriviCore]` EP-052 S1: two locks per project (memory and disk)
+
+**Epic:** [EP-052] (AC0) · **Status:** 🟠 **Implemented - Not Verified** (2026-10-26) — ⏳ [SP-194] AC5, the Mac and rig smoke pass · **Sprint:** [SP-194] (🟡 Active) →
+[`../Sprints/Sprint-SP-194.md`](../Sprints/Sprint-SP-194.md) · **Date Requested:** 2026-10-26 (user: *"Q1–Q7 agreed as recommended"*)
+
+**What:** replace SP-173's single exclusive project lock (`ScriviCore/src/public_api/ProjectLock.hpp`) with a memory lock (M)
+and a disk lock (D), per v0.2 §3: D before M, never M before D; the revision moves under M. Each of the 126 guarded
+endpoints names its kind, and `scripts/check-abi-project-guards.sh` enforces it. A memory-only endpoint that makes a file
+operation fails a test. SP-173's concurrency tests move to the new form.
+
+**Done (2026-10-26):** `ProjectLockEntry` holds a disk lock and a memory lock (`ScriviCore/src/public_api/ProjectLock.hpp`,
+`.cpp`). `SCRIVI_PROJECT_READ` / `WRITE` hold the disk lock for the call and the memory lock only to read or bump the
+revision; `SCRIVI_PROJECT_MEMORY_READ` / `MEMORY_WRITE` hold the memory lock only (26 endpoints, chosen by measuring each
+endpoint's file operations across the suite, then reading it); `SCRIVI_PROJECT_UNLOCKED` for the two that wait on the queue.
+A memory call that makes a file operation is reported, and aborts the test run (`ScriviCore/tests/StrictMemoryCallsListener.cpp`).
+`check-abi-project-guards.sh` accepts the new forms. ctest 778 (Mac) / 782 (Linux); mutation (a file-touching endpoint
+marked memory) caught.
+
+---
+
+## 🟠 T-0624 — `[ScriviCore]` EP-052 S1: the per-project write queue and its endpoints
+
+**Epic:** [EP-052] (AC1–AC3) · **Status:** 🟠 **Implemented - Not Verified** (2026-10-26) — ⏳ [SP-194] AC5, the Mac and rig smoke pass · **Sprint:** [SP-194] (🟡 Active) →
+[`../Sprints/Sprint-SP-194.md`](../Sprints/Sprint-SP-194.md) · **Date Requested:** 2026-10-26 (user: *"Q1–Q7 agreed as recommended"*)
+
+**What:** v0.1 W1–W4 and W7 under D: one writer thread per open project, FIFO, coalescing; enqueue endpoints for scene saves
+and structural operations with a ticket; history appends in the same queue; `scrivi_wait_for_writes` reports every
+outcome; synchronous file endpoints wait for earlier jobs (W3); `scrivi_close_project` drains. Boundary tests through
+`scrivi_*` and a ThreadSanitizer stress run on macOS and Linux. A structural job's delta comes back inside its outcome in `scrivi_wait_for_writes` ([SP-194] Q1 (a), ruled 2026-10-26).
+
+**Done (2026-10-26):** `WriteQueue` (`ScriviCore/src/public_api/WriteQueue.hpp`, `.cpp`), one per project, owned by its
+`ProjectLockEntry`. New endpoints `scrivi_enqueue_save_scenes`, `scrivi_enqueue_range_op` (paste, cut, relabel; the delta in
+the outcome) and `scrivi_wait_for_writes` (`scrivi.h`). A queued save calls `scrivi_save_scene`, then tells history itself.
+Every file call waits for earlier jobs first (W3, in `ProjectCallGuard`). `HistoryStore::setWriter` hands the log's appends
+and checkpoints to the queue, so 20 history / capture endpoints became memory-only; `scrivi_history_close` waits for its
+final records; a forked child gets fresh queues. Boundary tests `WriteQueueCApiTests.cpp` (9); the I-0268 and I-0299
+tests wait for writes where they need them. ThreadSanitizer clean on macOS and Linux; mutations 5 of 5 caught (no W3, no
+coalescing, coalescing across a structural job, history not told, close not waiting); interop 318; Linux smokes 38.
+
+---
+
 ## 🟠 T-0616 — `[Cross]` EP-053 S3: structural cut, Backspace / Delete over scenes, and their undo
 
 **Epic:** [EP-053] (S3) · **Status:** 🟠 **Implemented - Not Verified** (2026-10-22) — ✅ rig over the share, ✅ Mac on a local disk; ⏳ the Mac over a share → [SP-190] · **Sprint:** [SP-188] (✅ Closed 2026-10-26) →

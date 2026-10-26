@@ -8,8 +8,13 @@
 #include <cstdlib>
 #include <filesystem>
 #include <memory>
+#include <new>
 #include <string>
 #include <unordered_map>
+
+#if !defined(_WIN32)
+#include <pthread.h>
+#endif
 
 namespace scrivi::abi {
 
@@ -20,8 +25,29 @@ struct ProjectLockRegistry {
     std::unordered_map<std::string, std::unique_ptr<ProjectLockEntry>> byRoot;
 };
 
+ProjectLockRegistry& registry();
+
+#if !defined(_WIN32)
+// EP-052 (T-0624): a forked child (the [I-0299] tests end a session that way) gets fresh locks and queues with no writer
+// thread; the next job starts one. Only the forking thread survives, and it holds none of these locks.
+void resetAfterForkInChild() {
+    auto& reg = registry();
+    new (&reg.mutex) std::mutex();
+    for (auto& [root, entry] : reg.byRoot) {
+        new (&entry->disk) std::mutex();
+        new (&entry->memory) std::mutex();
+        entry->queue.resetInForkedChild();
+    }
+}
+#endif
+
 ProjectLockRegistry& registry() {
-    static ProjectLockRegistry r;
+    static ProjectLockRegistry r = [] {
+#if !defined(_WIN32)
+        ::pthread_atfork(nullptr, nullptr, resetAfterForkInChild);
+#endif
+        return ProjectLockRegistry{};
+    }();
     return r;
 }
 
@@ -52,16 +78,24 @@ ProjectCallGuard::ProjectCallGuard(const char* root, Kind kind, const char* endp
     if (root == nullptr || *root == '\0') { return; }
     entry_ = &projectLockEntry(root);
     memoryKind_ = kind == Kind::memoryRead || kind == Kind::memoryWrite;
-    const bool bumps = kind == Kind::write || kind == Kind::memoryWrite;
+    // The writer thread lands what an earlier call already counted: the revision moves when memory changes (v0.2 §3).
+    const bool bumps = (kind == Kind::write || kind == Kind::memoryWrite) && !WriteQueue::onWriterThread();
     const auto t0 = std::chrono::steady_clock::now();
-    lock_ = std::unique_lock<std::mutex>(memoryKind_ ? entry_->memory : entry_->disk);
+    if (kind == Kind::read || kind == Kind::write) {
+        if (tlsCall == nullptr && !WriteQueue::onWriterThread()) {   // W3
+            entry_->queue.waitFor(0, std::chrono::milliseconds(-1));
+        }
+        lock_ = std::unique_lock<std::mutex>(entry_->disk);
+    } else if (memoryKind_) {
+        lock_ = std::unique_lock<std::mutex>(entry_->memory);
+    }
     context_.lockWaitMs = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::steady_clock::now() - t0).count();
     if (memoryKind_) {
         if (bumps) { ++entry_->revision; }
         context_.revision = entry_->revision;
     } else {
-        std::lock_guard<std::mutex> m(entry_->memory);   // D before M
+        std::lock_guard<std::mutex> m(entry_->memory);   // D before M (or no lock at all)
         if (bumps) { ++entry_->revision; }
         context_.revision = entry_->revision;
     }

@@ -9,7 +9,7 @@ created: 2026-10-26
 # SP-194 — `[ScriviCore]` [EP-052] **S1**: two locks per project and the write queue
 
 **Status:** 🟡 **ACTIVE 2026-10-26** (user: *"(a) agreed, activate SP-194"*) — created 2026-10-26 (user: *"Q1–Q7 agreed as recommended"*; v0.2 Q7 makes this S1). ✅ Q1 ruled (a).
-**Carries:** [T-0623], [T-0624] → [`../Tasks/Task-active.md`](../Tasks/Task-active.md).
+**Carries:** [T-0623], [T-0624] (🟠 Implemented - Not Verified) → [`../Tasks/Task-unverified.md`](../Tasks/Task-unverified.md).
 **Epic:** [EP-052] (AC0–AC3) → [`../Epics/Epic-active.md`](../Epics/Epic-active.md).
 **Authority:** [`../Scrivi_Background_Writes_Design_v0_2.md`](../Scrivi_Background_Writes_Design_v0_2.md) §3 (✅ ruled
 2026-10-26) · [`../Scrivi_Background_Writes_Design_v0_1.md`](../Scrivi_Background_Writes_Design_v0_1.md) W1–W7 (✅ ruled
@@ -60,12 +60,12 @@ recommended.
 
 ## Acceptance Criteria
 
-- [ ] AC1 — Every project endpoint names its lock kind; the guard check refuses one that does not; a memory-only endpoint
+- [x] AC1 — Every project endpoint names its lock kind; the guard check refuses one that does not; a memory-only endpoint
   making a file operation fails a test
-- [ ] AC2 — Two locks (EP-052 AC0): a memory call returns while D is held; D before M everywhere; SP-173's tests pass in
+- [x] AC2 — Two locks (EP-052 AC0): a memory call returns while D is held; D before M everywhere; SP-173's tests pass in
   their new form
-- [ ] AC3 — The queue and its endpoints (EP-052 AC1, AC2); a structural job's delta inside its outcome (Q1 (a))
-- [ ] AC4 — Boundary tests through `scrivi_*` and a ThreadSanitizer stress run, macOS and Linux (EP-052 AC3)
+- [x] AC3 — The queue and its endpoints (EP-052 AC1, AC2); a structural job's delta inside its outcome (Q1 (a))
+- [x] AC4 — Boundary tests through `scrivi_*` and a ThreadSanitizer stress run, macOS and Linux (EP-052 AC3)
 - [ ] AC5 — ✅ **Mac and rig smoke pass (user):** nothing a writer does has changed
 
 ## Progress log
@@ -77,3 +77,26 @@ recommended.
 ### 🟡 2026-10-26 — Sprint ACTIVATED
 - User: *"(a) agreed, activate SP-194."* Q1 ruled (a): the delta comes back inside the job's outcome in
   `scrivi_wait_for_writes`. T-0623 and T-0624 → active.
+
+### 🟠 2026-10-26 — AC1–AC4 met; ⏳ AC5, the smoke pass (user)
+- **Classification by measurement, then reading.** An instrumented copy of the repo logged each endpoint's file operations
+  across the whole suite: 7 made none. Reading them kept 6 (`capture_before_save` can commit a pending edit, a history
+  append). Once history's writes went through the queue (T-0624), a second measurement found 20 more history and capture
+  endpoints with none on the caller's thread; read, and moved to the memory lock. 26 memory-only endpoints in all.
+  `scrivi_close_project` stays a file call on purpose: its W3 wait is what makes a close mean "everything landed".
+- **Two endpoints hold no lock** (`SCRIVI_PROJECT_UNLOCKED`): `scrivi_wait_for_writes`, and `scrivi_history_close`, which
+  waits for its final records. Holding D while waiting would stop the writer; holding M, every memory call.
+- **Found on the way:** the [I-0299] tests fork, and a forked child has no writer thread: the first file call hung. A forked
+  child now gets fresh locks and queues (`pthread_atfork`); the child waits for its writes before `_exit` (a crash loses only
+  what is still queued: v0.1 Q4). ThreadSanitizer cannot start threads after such a fork, so those two run under TSan with
+  `die_after_fork=0`.
+- **Found by mutation:** the first W3 test passed with W3 removed (the writer usually won the disk lock). It now reads the
+  SECOND queued save: 20/20 with W3, 0/5 without.
+- **Evidence:** ctest Mac 778/778, Linux 782/782 (container, non-root); ThreadSanitizer: Mac and Linux, whole suite, no
+  report (Linux binary confirmed linked to `libtsan`); queue tests repeated 30×; mutations 6, all caught (a file endpoint
+  marked memory; no W3; no coalescing; coalescing across a structural job; history not told; history close not waiting);
+  interop 318 tests in 43 suites; Linux smokes 38/38.
+- **What the apps already get (no platform code changed):** the Mac inventory re-run, main-thread file operations —
+  ending a sentence 1 → 0, ⌘Z 8 → 5, ⇧⌘Z 7 → 5, autosave 6 → 5; the remaining 5 are `scrivi_save_scene` (S2), the
+  Inspector's reads and Spotlight (S3).
+

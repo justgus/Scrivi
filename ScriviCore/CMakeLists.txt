@@ -37,6 +37,7 @@ target_sources(ScriviCore
         src/public_api/ScriviCore.cpp
         src/public_api/scrivi_c_api.cpp
         src/public_api/ProjectLock.cpp
+        src/public_api/WriteQueue.cpp
         src/identity/IdentityService.cpp
         src/platform/SystemUUIDProvider.cpp
         src/project_package/ProjectCreator.cpp

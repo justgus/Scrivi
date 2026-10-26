@@ -559,6 +559,7 @@ TEST_CASE("capture ABI: a session that ends WITHOUT closing keeps the bytes it s
         scrivi_free(scrivi_history_open(r.c()));
         scrivi_free(scrivi_capture_note_edit(r.c(), "S", "Alpha. Beta.", 12, "Alpha.", 1000));
         scrivi_free(scrivi_history_note_scene_persisted(r.c(), "S", "Alpha. Beta."));
+        scrivi_free(scrivi_wait_for_writes(r.c(), 0, -1));   // EP-052: what was queued landed — then the process dies
         _exit(0);
     }
     int status = 0;
@@ -575,6 +576,7 @@ TEST_CASE("capture ABI: a session that ends WITHOUT closing keeps the bytes it s
     if (again == 0) {
         scrivi_free(scrivi_history_open(r.c()));
         scrivi_free(scrivi_history_validate_scene(r.c(), "S", "Changed again outside."));   // a repair, recorded
+        scrivi_free(scrivi_wait_for_writes(r.c(), 0, -1));
         _exit(0);
     }
     REQUIRE(waitpid(again, &status, 0) == again);
@@ -597,6 +599,7 @@ TEST_CASE("capture ABI: typing pending when a session dies is recovered as an un
             scrivi_free(scrivi_capture_note_edit(r.c(), "S", "Alpha. Beta", 11, "Alpha.", 2000));   // no sentence end
             scrivi_free(scrivi_history_note_scene_persisted(r.c(), "S", "Alpha. Beta"));            // the autosave
             if (clean) { scrivi_free(scrivi_history_close(r.c())); }
+            scrivi_free(scrivi_wait_for_writes(r.c(), 0, -1));
             _exit(0);
         }
         int status = 0;

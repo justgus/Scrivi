@@ -1089,6 +1089,42 @@ const char* scrivi_range_relabel(const char* projectRootPath,
                                  const char* personaID,
                                  const char* displayName);
 
+/* ---- The write queue (EP-052 SP-194 — T-0624) --------------------------- */
+
+/*
+ * One write queue per project, in the core (docs/Scrivi_Background_Writes_Design_v0_1.md W1–W7, v0.2 §3): ONE writer
+ * thread takes the project's writes first-in-first-out, so they land in the order they were made. An enqueue returns at
+ * once with a TICKET (increasing per project). Every synchronous endpoint that may touch the project's files first waits
+ * for the jobs queued before it, so it sees every earlier write (W3). The history log's appends and checkpoints go through
+ * the same queue. scrivi_history_close returns once its final records have landed.
+ */
+
+/* Queues scene saves — each one, when it runs, is scrivi_save_scene, and on success tells history the bytes it wrote
+ * (scrivi_history_note_scene_persisted is then not the platform's to call). A scene queued again before its write starts
+ * keeps one save, the newer, at the end of the queue — never moved past a queued structural operation.
+ * scenesJson: { projectID, appSupportRoot, identityID, personaID, displayName,
+ *               scenes: [ { sceneID, metadataPath, contentPath, markdown, selectionAnchor, selectionFocus, scroll } ] }
+ * result: { tickets: [ { sceneID, ticket } ], ticket }   (ticket = the last; absent for an empty list) */
+const char* scrivi_enqueue_save_scenes(const char* projectRootPath, const char* scenesJson);
+
+/* Queues one structural operation — when it runs, scrivi_range_paste, scrivi_range_cut or scrivi_range_relabel with these
+ * arguments, checked against the manuscript as it is THEN (W7c). Its outcome carries that endpoint's result, the delta
+ * included (W7-Q1 (a)).
+ * opJson: { op: "paste" | "cut" | "relabel", range, identityID, personaID, displayName,
+ *           caretSceneID, caretByteOffset, caretSceneText   (paste)
+ *           targetChapterID                                 (relabel) }
+ * result: { ticket } */
+const char* scrivi_enqueue_range_op(const char* projectRootPath, const char* opJson);
+
+/* Waits until every job up to `ticket` has landed (ticket <= 0: every job queued so far), at most `timeoutMs` (negative:
+ * as long as it takes; 0: just look). Holds no lock while it waits. Returns every outcome since the last call:
+ * result: { landed, outcomes: [ { ticket, kind: "save" | "structural" | "history", sceneID?, ok, result?, error?,
+ *                                 message?, supersededBy?, file? } ] }
+ * A save's outcome with supersededBy was replaced by that later ticket's save. A history outcome is reported only when
+ * it FAILED (one per file); its records are written ahead of the next ([I-0268]).
+ * WARNING: "outcomes" is OMITTED when there are none. */
+const char* scrivi_wait_for_writes(const char* projectRootPath, long long ticket, long long timeoutMs);
+
 /* ---- Copy buffers (EP-019 SP-056 — T-0213) ------------------------------ */
 
 /*

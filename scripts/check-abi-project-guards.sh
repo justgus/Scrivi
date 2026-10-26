@@ -8,6 +8,7 @@
 # with a guard on that same parameter.
 #
 # EP-052 (T-0623): the MEMORY_ forms take the memory lock only; ProjectLock.hpp reports one that touches a file.
+# EP-052 (T-0624): UNLOCKED holds no lock, for an endpoint that waits for the write queue.
 #
 # Run: scripts/check-abi-project-guards.sh     (exit 1 on an unguarded project endpoint). Registered in ctest.
 set -uo pipefail
@@ -22,7 +23,7 @@ for m in re.finditer(r'^const char\* (scrivi_\w+)\(([^)]*)\)\s*\{\s*\n\s*([^\n]*
     if not pm:
         continue
     n += 1
-    if not re.fullmatch(r'SCRIVI_PROJECT_(MEMORY_)?(READ|WRITE)\(' + pm.group(1) + r'\);', first.strip()):
+    if not re.fullmatch(r'SCRIVI_PROJECT_((MEMORY_)?(READ|WRITE)|UNLOCKED)\(' + pm.group(1) + r'\);', first.strip()):
         bad.append(f'{name}: first statement is `{first.strip()}`')
 if bad:
     print('⛔ Project endpoints without SCRIVI_PROJECT_[MEMORY_]READ/WRITE as their first statement (SP-173 D1, EP-052 T-0623):')

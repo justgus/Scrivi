@@ -337,6 +337,8 @@ static constexpr std::size_t kParallelReaders = 8;
 // EP-052 (T-0623): an endpoint that touches no file takes only the memory lock, so it never waits for one that does.
 #define SCRIVI_PROJECT_MEMORY_READ(root)  scrivi::abi::ProjectCallGuard scriviProjectGuard_((root), scrivi::abi::ProjectCallGuard::Kind::memoryRead, __func__)
 #define SCRIVI_PROJECT_MEMORY_WRITE(root) scrivi::abi::ProjectCallGuard scriviProjectGuard_((root), scrivi::abi::ProjectCallGuard::Kind::memoryWrite, __func__)
+// EP-052 (T-0624): an endpoint that WAITS for the project's write queue holds no lock while it waits.
+#define SCRIVI_PROJECT_UNLOCKED(root) scrivi::abi::ProjectCallGuard scriviProjectGuard_((root), scrivi::abi::ProjectCallGuard::Kind::unlocked, __func__)
 
 // ---------------------------------------------------------------------------
 // Undo/Redo history registry (EP-019 SP-052 — T-0202)
@@ -3695,6 +3697,16 @@ const char* scrivi_history_open(const char* projectRootPath) {
     // suspenders firewall so any residual throw becomes an error envelope instead of
     // terminating the process (I-0065). History is best-effort on the Swift side.
     store->openOrCreate(mintHistoryID("ses"), nowTimestamp(), loaded);
+    // EP-052 (T-0624): from here the log's appends and checkpoints are written by the project's write queue, in order,
+    // so a capture call never waits on the disk.
+    {
+        auto* queue = &scrivi::abi::projectLockEntry(projectRootPath).queue;
+        scrivi::FileSystem* fs = &s.fileSystem;
+        store->setWriter([queue, fs](const scrivi::AbsolutePath& path, const std::string& text, bool append) {
+            if (append) { queue->enqueueHistoryAppend(fs, path, text); }
+            else { queue->enqueueHistoryState(fs, path, text); }
+        });
+    }
 
     auto& svc = store->service();
     svc.setCapacity(store->settings().capacityEvents);
@@ -3720,7 +3732,7 @@ const char* scrivi_history_open(const char* projectRootPath) {
 const char* scrivi_history_seed_scene(const char* projectRootPath,
                                       const char* sceneID,
                                       const char* sceneTextUtf8) {
-    SCRIVI_PROJECT_WRITE(projectRootPath);
+    SCRIVI_PROJECT_MEMORY_WRITE(projectRootPath);
     const std::string root = S(projectRootPath);
     auto& reg = historyRegistry();
     std::lock_guard<std::mutex> lock(reg.mutex);
@@ -3741,7 +3753,7 @@ const char* scrivi_history_record_event(const char* projectRootPath,
                                          const char* sceneID,
                                          const char* newSceneTextUtf8,
                                          const char* paramsJSON) {
-    SCRIVI_PROJECT_WRITE(projectRootPath);
+    SCRIVI_PROJECT_MEMORY_WRITE(projectRootPath);
     const std::string root = S(projectRootPath);
     auto& reg = historyRegistry();
     std::lock_guard<std::mutex> lock(reg.mutex);
@@ -3785,7 +3797,7 @@ const char* scrivi_history_record_event(const char* projectRootPath,
 
 const char* scrivi_history_record_barrier(const char* projectRootPath,
                                            const char* paramsJSON) {
-    SCRIVI_PROJECT_WRITE(projectRootPath);
+    SCRIVI_PROJECT_MEMORY_WRITE(projectRootPath);
     const std::string root = S(projectRootPath);
     auto& reg = historyRegistry();
     std::lock_guard<std::mutex> lock(reg.mutex);
@@ -3803,7 +3815,7 @@ const char* scrivi_history_record_barrier(const char* projectRootPath,
 }
 
 const char* scrivi_history_undo(const char* projectRootPath) {
-    SCRIVI_PROJECT_WRITE(projectRootPath);
+    SCRIVI_PROJECT_MEMORY_WRITE(projectRootPath);
   return guarded([&]() -> const char* {
     const std::string root = S(projectRootPath);
     auto& reg = historyRegistry();
@@ -3821,7 +3833,7 @@ const char* scrivi_history_undo(const char* projectRootPath) {
 }
 
 const char* scrivi_history_redo(const char* projectRootPath) {
-    SCRIVI_PROJECT_WRITE(projectRootPath);
+    SCRIVI_PROJECT_MEMORY_WRITE(projectRootPath);
   return guarded([&]() -> const char* {
     const std::string root = S(projectRootPath);
     auto& reg = historyRegistry();
@@ -3841,7 +3853,7 @@ const char* scrivi_history_redo(const char* projectRootPath) {
 const char* scrivi_history_select_branch(const char* projectRootPath,
                                          const char* forkNodeID,
                                          const char* childEventID) {
-    SCRIVI_PROJECT_WRITE(projectRootPath);
+    SCRIVI_PROJECT_MEMORY_WRITE(projectRootPath);
     const std::string root = S(projectRootPath);
     auto& reg = historyRegistry();
     std::lock_guard<std::mutex> lock(reg.mutex);
@@ -3952,7 +3964,7 @@ const char* scrivi_history_list_stale_branches(const char* projectRootPath) {
 
 const char* scrivi_history_purge_branch(const char* projectRootPath,
                                         const char* branchRootEventID) {
-    SCRIVI_PROJECT_WRITE(projectRootPath);
+    SCRIVI_PROJECT_MEMORY_WRITE(projectRootPath);
     const std::string root = S(projectRootPath);
     auto& reg = historyRegistry();
     std::lock_guard<std::mutex> lock(reg.mutex);
@@ -3979,7 +3991,7 @@ const char* scrivi_history_purge_branch(const char* projectRootPath,
 const char* scrivi_history_validate_scene(const char* projectRootPath,
                                           const char* sceneID,
                                           const char* currentDiskTextUtf8) {
-    SCRIVI_PROJECT_WRITE(projectRootPath);
+    SCRIVI_PROJECT_MEMORY_WRITE(projectRootPath);
     const std::string root = S(projectRootPath);
     auto& reg = historyRegistry();
     std::lock_guard<std::mutex> lock(reg.mutex);
@@ -3999,7 +4011,7 @@ const char* scrivi_history_validate_scene(const char* projectRootPath,
 const char* scrivi_history_note_scene_persisted(const char* projectRootPath,
                                                 const char* sceneID,
                                                 const char* diskTextUtf8) {
-    SCRIVI_PROJECT_WRITE(projectRootPath);
+    SCRIVI_PROJECT_MEMORY_WRITE(projectRootPath);
     const std::string root = S(projectRootPath);
     auto& reg = historyRegistry();
     std::lock_guard<std::mutex> lock(reg.mutex);
@@ -4034,7 +4046,7 @@ const char* scrivi_history_get_settings(const char* projectRootPath) {
 
 const char* scrivi_history_set_settings(const char* projectRootPath,
                                         const char* settingsJSON) {
-    SCRIVI_PROJECT_WRITE(projectRootPath);
+    SCRIVI_PROJECT_MEMORY_WRITE(projectRootPath);
     const std::string root = S(projectRootPath);
     auto& reg = historyRegistry();
     std::lock_guard<std::mutex> lock(reg.mutex);
@@ -4059,8 +4071,18 @@ const char* scrivi_history_set_settings(const char* projectRootPath,
 }
 
 const char* scrivi_history_close(const char* projectRootPath) {
-    SCRIVI_PROJECT_WRITE(projectRootPath);
+    SCRIVI_PROJECT_UNLOCKED(projectRootPath);
     const std::string root = S(projectRootPath);
+    if (root.empty()) {   // nothing was open under no root: a no-op, as before
+        scrivi::util::JsonDoc doc;
+        doc.setBool("closed", false);
+        return heap(okEnvelope(std::move(doc)));
+    }
+    // EP-052 (T-0624): the final records and checkpoint go through the write queue; close returns once they have landed.
+    struct WaitForWrites {
+        const char* root;
+        ~WaitForWrites() { scrivi::abi::projectLockEntry(root).queue.waitFor(0, std::chrono::milliseconds(-1)); }
+    } waitForWrites{projectRootPath};
     auto& reg = historyRegistry();
     std::lock_guard<std::mutex> lock(reg.mutex);
 
@@ -4089,7 +4111,7 @@ const char* scrivi_history_close(const char* projectRootPath) {
 
 const char* scrivi_capture_note_edit(const char* projectRootPath, const char* sceneID, const char* sceneTextUtf8,
                                      int caretUtf16, const char* textBeforeUtf8, long long nowMs) {
-    SCRIVI_PROJECT_WRITE(projectRootPath);
+    SCRIVI_PROJECT_MEMORY_WRITE(projectRootPath);
   return guarded([&]() -> const char* {
     return withCapture(projectRootPath, [&](auto& c, auto& sink, auto&) {
         const bool committed = c.noteEdit(sink, S(sceneID), S(sceneTextUtf8), caretUtf16, S(textBeforeUtf8), nowMs);
@@ -4099,7 +4121,7 @@ const char* scrivi_capture_note_edit(const char* projectRootPath, const char* sc
 }
 
 const char* scrivi_capture_caret_moved(const char* projectRootPath, const char* sceneID, int editInFlight, int applying) {
-    SCRIVI_PROJECT_WRITE(projectRootPath);
+    SCRIVI_PROJECT_MEMORY_WRITE(projectRootPath);
   return guarded([&]() -> const char* {
     return withCapture(projectRootPath, [&](auto& c, auto& sink, auto&) {
         return captureStateDoc(c, c.caretMoved(sink, S(sceneID), editInFlight != 0, applying != 0));
@@ -4108,7 +4130,7 @@ const char* scrivi_capture_caret_moved(const char* projectRootPath, const char* 
 }
 
 const char* scrivi_capture_begin(const char* projectRootPath, const char* kind, const char* bufferID) {
-    SCRIVI_PROJECT_WRITE(projectRootPath);
+    SCRIVI_PROJECT_MEMORY_WRITE(projectRootPath);
   return guarded([&]() -> const char* {
     return withCapture(projectRootPath, [&](auto& c, auto& sink, auto&) {
         c.begin(sink, S(kind), S(bufferID));
@@ -4118,7 +4140,7 @@ const char* scrivi_capture_begin(const char* projectRootPath, const char* kind, 
 }
 
 const char* scrivi_capture_flush(const char* projectRootPath, const char* trigger, const char* kind) {
-    SCRIVI_PROJECT_WRITE(projectRootPath);
+    SCRIVI_PROJECT_MEMORY_WRITE(projectRootPath);
   return guarded([&]() -> const char* {
     return withCapture(projectRootPath, [&](auto& c, auto& sink, auto&) {
         const std::string k = S(kind);
@@ -4128,7 +4150,7 @@ const char* scrivi_capture_flush(const char* projectRootPath, const char* trigge
 }
 
 const char* scrivi_capture_before_save(const char* projectRootPath, long long nowMs) {
-    SCRIVI_PROJECT_WRITE(projectRootPath);
+    SCRIVI_PROJECT_MEMORY_WRITE(projectRootPath);
   return guarded([&]() -> const char* {
     return withCapture(projectRootPath, [&](auto& c, auto& sink, auto&) {
         return captureStateDoc(c, c.beforeSave(sink, nowMs));
@@ -4137,7 +4159,7 @@ const char* scrivi_capture_before_save(const char* projectRootPath, long long no
 }
 
 const char* scrivi_capture_idle(const char* projectRootPath, long long nowMs) {
-    SCRIVI_PROJECT_WRITE(projectRootPath);
+    SCRIVI_PROJECT_MEMORY_WRITE(projectRootPath);
   return guarded([&]() -> const char* {
     return withCapture(projectRootPath, [&](auto& c, auto& sink, auto&) {
         return captureStateDoc(c, c.idle(sink, nowMs));
@@ -4146,7 +4168,7 @@ const char* scrivi_capture_idle(const char* projectRootPath, long long nowMs) {
 }
 
 const char* scrivi_capture_grouped_edit(const char* projectRootPath, const char* editsJSON, const char* kind) {
-    SCRIVI_PROJECT_WRITE(projectRootPath);
+    SCRIVI_PROJECT_MEMORY_WRITE(projectRootPath);
   return guarded([&]() -> const char* {
     auto parsed = scrivi::util::parseJson(std::string("{\"edits\":") + S(editsJSON) + "}");
     if (!parsed.ok())
@@ -4166,7 +4188,7 @@ const char* scrivi_capture_grouped_edit(const char* projectRootPath, const char*
 }
 
 const char* scrivi_capture_record_barrier(const char* projectRootPath, const char* paramsJSON) {
-    SCRIVI_PROJECT_WRITE(projectRootPath);
+    SCRIVI_PROJECT_MEMORY_WRITE(projectRootPath);
   return guarded([&]() -> const char* {
     return withCapture(projectRootPath, [&](auto& c, auto& sink, auto& store) {
         scrivi::history::BarrierParams p = barrierParamsFrom(S(paramsJSON));
@@ -4182,7 +4204,7 @@ const char* scrivi_capture_record_barrier(const char* projectRootPath, const cha
 }
 
 const char* scrivi_capture_undo(const char* projectRootPath) {
-    SCRIVI_PROJECT_WRITE(projectRootPath);
+    SCRIVI_PROJECT_MEMORY_WRITE(projectRootPath);
   return guarded([&]() -> const char* {
     return withCapture(projectRootPath, [&](auto& c, auto& sink, auto& store) {
         c.flush(sink, "flush");   // the newest keystrokes become an event before we walk back
@@ -4195,7 +4217,7 @@ const char* scrivi_capture_undo(const char* projectRootPath) {
 }
 
 const char* scrivi_capture_redo(const char* projectRootPath) {
-    SCRIVI_PROJECT_WRITE(projectRootPath);
+    SCRIVI_PROJECT_MEMORY_WRITE(projectRootPath);
   return guarded([&]() -> const char* {
     return withCapture(projectRootPath, [&](auto& c, auto&, auto& store) {
         scrivi::util::JsonDoc doc = redoOn(store);   // Apple's redo never flushed — kept
@@ -5105,6 +5127,130 @@ const char* scrivi_analyze_markdown(const char* blockUtf8) {
         i = j;
     }
     for (const auto& sp : a.spans) doc.appendToArray("spans", byteRangeDoc(sp));
+    return heap(okEnvelope(std::move(doc)));
+  });
+}
+
+// ---------------------------------------------------------------------------
+// The write queue (EP-052 SP-194, T-0624) — docs/Scrivi_Background_Writes_Design_v0_1.md W1–W7, v0.2 §3
+// ---------------------------------------------------------------------------
+// ⚠️ Inside the file's `extern "C"` span: the helper is wrapped in `extern "C++"` (the file's rule).
+extern "C++" {
+namespace {
+
+// A queued job's outcome: the synchronous endpoint's own envelope, parsed.
+scrivi::util::JsonDoc envelopeOutcome(const char* raw) {
+    scrivi::util::JsonDoc out;
+    auto parsed = scrivi::util::parseJson(raw != nullptr ? raw : "");
+    scrivi_free(raw);
+    if (!parsed.ok()) {
+        out.setBool("ok", false);
+        out.setString("message", "the endpoint's envelope did not parse");
+        return out;
+    }
+    const auto& env = parsed.value();
+    out.setBool("ok", env.getBool("ok"));
+    if (env.contains("result")) { out.setSubDoc("result", env.getSubDoc("result")); }
+    if (env.contains("error")) { out.setSubDoc("error", env.getSubDoc("error")); }
+    return out;
+}
+
+}  // namespace
+}  // extern "C++"
+
+const char* scrivi_enqueue_save_scenes(const char* projectRootPath, const char* scenesJson) {
+    SCRIVI_PROJECT_MEMORY_WRITE(projectRootPath);
+  return guarded([&]() -> const char* {
+    const std::string root = S(projectRootPath);
+    if (root.empty())
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "projectRootPath is required"));
+    auto parsed = scrivi::util::parseJson(S(scenesJson));
+    if (!parsed.ok() || !parsed.value().isObject())
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "scenesJson is not a JSON object"));
+    const auto& req = parsed.value();
+    const std::string projectID   = req.getString("projectID");
+    const std::string appSupport  = req.getString("appSupportRoot");
+    const std::string identityID  = req.getString("identityID");
+    const std::string personaID   = req.getString("personaID");
+    const std::string displayName = req.getString("displayName");
+    auto& queue = scrivi::abi::projectLockEntry(projectRootPath).queue;
+    scrivi::util::JsonDoc doc;
+    for (std::size_t i = 0; i < req.arraySize("scenes"); ++i) {
+        const auto sc = req.arrayItem("scenes", i);
+        const std::string sceneID = sc.getString("sceneID");
+        if (sceneID.empty())
+            return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "every scene needs a sceneID"));
+        const int64_t ticket = queue.enqueueSave(sceneID,
+            [=, metadataPath = sc.getString("metadataPath"), contentPath = sc.getString("contentPath"),
+             markdown = sc.getString("markdown"), anchor = sc.getInt64("selectionAnchor"),
+             focus = sc.getInt64("selectionFocus"), scroll = sc.getDouble("scroll")]() {
+                auto out = envelopeOutcome(scrivi_save_scene(projectID.c_str(), root.c_str(), appSupport.c_str(),
+                    sceneID.c_str(), metadataPath.c_str(), contentPath.c_str(), markdown.c_str(), anchor, focus, scroll,
+                    identityID.c_str(), personaID.c_str(), displayName.c_str()));
+                // W2: the core wrote the bytes, so it tells history itself ([I-0104]); a failed write tells it nothing.
+                if (out.getBool("ok")) {
+                    scrivi_free(scrivi_history_note_scene_persisted(root.c_str(), sceneID.c_str(), markdown.c_str()));
+                }
+                return out;
+            });
+        doc.appendToArray("tickets", [&] { scrivi::util::JsonDoc t; t.setString("sceneID", sceneID);
+                                           t.setInt64("ticket", ticket); return t; }());
+        doc.setInt64("ticket", ticket);
+    }
+    return heap(okEnvelope(std::move(doc)));
+  });
+}
+
+const char* scrivi_enqueue_range_op(const char* projectRootPath, const char* opJson) {
+    SCRIVI_PROJECT_MEMORY_WRITE(projectRootPath);
+  return guarded([&]() -> const char* {
+    const std::string root = S(projectRootPath);
+    if (root.empty())
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "projectRootPath is required"));
+    auto parsed = scrivi::util::parseJson(S(opJson));
+    if (!parsed.ok() || !parsed.value().isObject())
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "opJson is not a JSON object"));
+    const auto& req = parsed.value();
+    const std::string op          = req.getString("op");
+    const std::string range       = req.getSubDoc("range").dump(-1);
+    const std::string identityID  = req.getString("identityID");
+    const std::string personaID   = req.getString("personaID");
+    const std::string displayName = req.getString("displayName");
+    std::function<scrivi::util::JsonDoc()> run;
+    if (op == "paste") {
+        run = [=, caretSceneID = req.getString("caretSceneID"), caretByte = req.getInt64("caretByteOffset"),
+               caretText = req.getString("caretSceneText")]() {
+            return envelopeOutcome(scrivi_range_paste(root.c_str(), range.c_str(), caretSceneID.c_str(), caretByte,
+                caretText.c_str(), identityID.c_str(), personaID.c_str(), displayName.c_str()));
+        };
+    } else if (op == "cut") {
+        run = [=]() {
+            return envelopeOutcome(scrivi_range_cut(root.c_str(), range.c_str(), identityID.c_str(), personaID.c_str(),
+                displayName.c_str()));
+        };
+    } else if (op == "relabel") {
+        run = [=, target = req.getString("targetChapterID")]() {
+            return envelopeOutcome(scrivi_range_relabel(root.c_str(), range.c_str(), target.c_str(),
+                identityID.c_str(), personaID.c_str(), displayName.c_str()));
+        };
+    } else {
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "op must be paste, cut or relabel"));
+    }
+    scrivi::util::JsonDoc doc;
+    doc.setInt64("ticket", scrivi::abi::projectLockEntry(projectRootPath).queue.enqueueStructural(std::move(run)));
+    return heap(okEnvelope(std::move(doc)));
+  });
+}
+
+const char* scrivi_wait_for_writes(const char* projectRootPath, long long ticket, long long timeoutMs) {
+    SCRIVI_PROJECT_UNLOCKED(projectRootPath);
+  return guarded([&]() -> const char* {
+    if (*S(projectRootPath) == '\0')
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "projectRootPath is required"));
+    auto& queue = scrivi::abi::projectLockEntry(projectRootPath).queue;
+    scrivi::util::JsonDoc doc;
+    doc.setBool("landed", queue.waitFor(ticket, std::chrono::milliseconds(timeoutMs)));
+    for (auto& o : queue.takeOutcomes()) { doc.appendToArray("outcomes", std::move(o)); }
     return heap(okEnvelope(std::move(doc)));
   });
 }

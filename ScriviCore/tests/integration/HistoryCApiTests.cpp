@@ -1321,6 +1321,7 @@ TEST_CASE("C ABI: an event recorded while the log is unwritable is written once 
     scrivi_free(scrivi_history_seed_scene(ROOT, "scene_a", ""));
     scrivi_free(scrivi_history_record_event(
         ROOT, "scene_a", "one", recordParams("typing", 0, 3).c_str()));
+    scrivi_free(scrivi_wait_for_writes(ROOT, 0, -1));   // EP-052: appends are queued — land this one before the outage
 
     // "Unmount": the log cannot be opened for append.
     fs::permissions(log, fs::perms::owner_read, fs::perm_options::replace);
@@ -1335,6 +1336,12 @@ TEST_CASE("C ABI: an event recorded while the log is unwritable is written once 
         auto r = okResult(scrivi_history_record_event(
             ROOT, "scene_a", "one two", recordParams("typing", 3, 7).c_str()));
         outageID = r.getString("eventID");
+    }
+    {   // EP-052: the queued append was TRIED, failed, and says so
+        auto w = okResult(scrivi_wait_for_writes(ROOT, 0, -1));
+        REQUIRE(w.arraySize("outcomes") == 1);
+        CHECK(w.arrayItem("outcomes", 0).getString("kind") == "history");
+        CHECK_FALSE(w.arrayItem("outcomes", 0).getBool("ok"));
     }
     REQUIRE(readHistoryLog(ROOT_.path).find(outageID) == std::string::npos);   // not on disk
 

@@ -6,6 +6,8 @@
 //
 // - The DISK lock (D): an endpoint that may touch the project's files holds it for the whole call (READ / WRITE). Calls
 //   that touch files never overlap (L1), as before.
+//   Before it takes D, a file call waits for every job already in the project's write queue (W3), so it sees every
+//   earlier queued write. ⛔ Not on the writer thread, and not inside another call, which could hold D.
 // - The MEMORY lock (M): an endpoint that touches no file holds only M (MEMORY_READ / MEMORY_WRITE), so a caret move never
 //   waits for a save. M also guards the revision; a file call takes it only for the instant its revision is read or bumped.
 //
@@ -20,8 +22,11 @@
 // ⚠️ The key is the root LEXICALLY normalised, never canonicalised: `weakly_canonical` stats the path, a network round trip
 // per call on a share. Two spellings of one project through a symlink get two entries (accepted).
 
+#include "public_api/WriteQueue.hpp"
+
 #include <chrono>
 #include <cstdint>
+#include <memory>
 #include <mutex>
 
 namespace scrivi::abi {
@@ -30,6 +35,7 @@ struct ProjectLockEntry {
     std::mutex disk;
     std::mutex memory;
     int64_t revision = 0;   // under `memory`. This process's view; a fresh process starts at 0
+    WriteQueue queue{disk};  // EP-052 (T-0624): the project's writes, in order
 };
 
 // The entry for a project root (created on first use, never erased).
@@ -49,7 +55,9 @@ const ProjectCallContext* currentProjectCall();
 
 class ProjectCallGuard {
 public:
-    enum class Kind { read, write, memoryRead, memoryWrite };
+    // `unlocked`: holds NO lock for the call, because it WAITS for the write queue (`scrivi_wait_for_writes`,
+    // `scrivi_history_close`): holding D would stop the writer, holding M every memory call.
+    enum class Kind { read, write, memoryRead, memoryWrite, unlocked };
 
     // A null or empty root takes no lock: the endpoint's own validation reports it.
     ProjectCallGuard(const char* root, Kind kind, const char* endpoint = "");
