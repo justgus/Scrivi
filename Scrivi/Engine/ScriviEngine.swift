@@ -1329,6 +1329,44 @@ public final class ScriviEngine: @unchecked Sendable {
         return Dictionary(r.tickets.map { ($0.sceneID, $0.ticket) }, uniquingKeysWith: { _, newer in newer })
     }
 
+    /// [SP-196] W7a: queues `scrivi_range_paste` with these arguments — run, and checked, when it reaches the head of the
+    /// queue (W7c). Returns its ticket; its result arrives in its outcome (`WriteOutcome.range`).
+    public func enqueueRangePaste(projectRootPath: String, range: ScriviRange, caretSceneID: String, caretByteOffset: Int,
+                                  caretSceneText: String, authorshipRef: AuthorshipRef) throws -> Int64 {
+        try enqueueRangeOp(projectRootPath, RangeOp(op: "paste", range: range, ref: authorshipRef, caretSceneID: caretSceneID,
+                                                    caretByteOffset: caretByteOffset, caretSceneText: caretSceneText))
+    }
+
+    public func enqueueRangeCut(projectRootPath: String, range: ScriviRange, authorshipRef: AuthorshipRef) throws -> Int64 {
+        try enqueueRangeOp(projectRootPath, RangeOp(op: "cut", range: range, ref: authorshipRef))
+    }
+
+    public func enqueueRangeRelabel(projectRootPath: String, range: ScriviRange, targetChapterID: String,
+                                    authorshipRef: AuthorshipRef) throws -> Int64 {
+        try enqueueRangeOp(projectRootPath, RangeOp(op: "relabel", range: range, ref: authorshipRef,
+                                                    targetChapterID: targetChapterID))
+    }
+
+    private struct RangeOp {
+        let op: String, range: ScriviRange, ref: AuthorshipRef
+        var caretSceneID: String? = nil, caretByteOffset: Int? = nil, caretSceneText: String? = nil
+        var targetChapterID: String? = nil
+    }
+
+    private func enqueueRangeOp(_ projectRootPath: String, _ o: RangeOp) throws -> Int64 {
+        var op: [String: Any] = ["op": o.op, "identityID": o.ref.identityID, "personaID": o.ref.personaID,
+                                 "displayName": o.ref.displayName,
+                                 "range": try JSONSerialization.jsonObject(with: Data(o.range.toJSON().utf8))]
+        if let v = o.caretSceneID { op["caretSceneID"] = v }
+        if let v = o.caretByteOffset { op["caretByteOffset"] = v }
+        if let v = o.caretSceneText { op["caretSceneText"] = v }
+        if let v = o.targetChapterID { op["targetChapterID"] = v }
+        let json = String(decoding: try JSONSerialization.data(withJSONObject: op), as: UTF8.self)
+        struct R: Decodable { let ticket: Int64 }
+        let r: R = try decodeC(projectRootPath.withCString { prp in json.withCString { scrivi_enqueue_range_op(prp, $0) } })
+        return r.ticket
+    }
+
     /// `ticket` 0: every job queued so far. `timeoutMs` negative: as long as it takes. A HELD queue returns at once.
     public func waitForWrites(projectRootPath: String, ticket: Int64 = 0, timeoutMs: Int64) throws -> WriteQueueWait {
         try decodeC(projectRootPath.withCString { scrivi_wait_for_writes($0, ticket, timeoutMs) })
@@ -3496,6 +3534,26 @@ public struct WriteQueueWait: Decodable, Sendable {
         public let supersededBy: Int64?
         /// A failure the core keeps and retries; its success follows. A failure without it was refused.
         public let held: Bool?
+        /// [SP-196] A structural job's result, the delta included (W7-Q1 (a)); nil for any other kind, or when it failed.
+        public let range: RangeOperationResult?
+        /// Why it failed, when it did.
+        public let error: ScriviError?
+
+        public init(from d: Decoder) throws {
+            let c = try d.container(keyedBy: K.self)
+            ticket = try c.decode(Int64.self, forKey: .ticket)
+            kind = try c.decode(String.self, forKey: .kind)
+            sceneID = try c.decodeIfPresent(String.self, forKey: .sceneID)
+            ok = try c.decode(Bool.self, forKey: .ok)
+            supersededBy = try c.decodeIfPresent(Int64.self, forKey: .supersededBy)
+            held = try c.decodeIfPresent(Bool.self, forKey: .held)
+            range = ok && kind == "structural" ? try c.decodeIfPresent(RangeOperationResult.self, forKey: .result) : nil
+            let e = try c.decodeIfPresent(ErrorPayload.self, forKey: .error)
+            let message = try c.decodeIfPresent(String.self, forKey: .message)
+            error = e.map { ScriviError(code: $0.code, message: $0.message, detail: $0.detail, path: $0.path) }
+                ?? (ok ? nil : ScriviError(code: -1, message: message ?? "the write failed"))
+        }
+        enum K: String, CodingKey { case ticket, kind, sceneID, ok, supersededBy, held, result, error, message }
     }
 
     public init(from d: Decoder) throws {

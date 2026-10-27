@@ -7,6 +7,7 @@
 #include <QVariantMap>
 #include <QStringList>
 #include <QHash>
+#include <QJsonObject>
 #include <memory>
 #include <optional>
 #include <utility>
@@ -188,6 +189,14 @@ public:
     // EP-052: waits (OFF the GUI thread) for the queued writes: {landed, held, heldReason?, pending, outcomes?}. A HELD
     // queue ([SP-195] Q1 (a)) answers at once.
     QVariantMap waitForWrites(const QString& projectRootPath, qint64 ticket, qint64 timeoutMs);
+    // EP-052 [SP-196] W7a: `rangePaste` / `rangeCut` / `rangeRelabel` QUEUED (`scrivi_enqueue_range_op`) — run, and checked,
+    // when they reach the head of the queue (W7c). A memory call: returns the job's ticket (0 on failure, with
+    // lastCallFailed()); its result, the delta included, comes back in its outcome from `waitForWrites`.
+    qint64 enqueueRangePaste(const QString& projectRootPath, const QString& rangeJson, const QString& caretSceneID,
+                             long long caretByteOffset, const QString& caretSceneText, const QString& displayName);
+    qint64 enqueueRangeCut(const QString& projectRootPath, const QString& rangeJson, const QString& displayName);
+    qint64 enqueueRangeRelabel(const QString& projectRootPath, const QString& rangeJson, const QString& targetChapterID,
+                               const QString& displayName);
 
     Q_INVOKABLE QVariantMap saveScene(const QString& projectID,
                                       const QString& projectRootPath,
@@ -687,6 +696,9 @@ private:
     // Parse a scrivi_* envelope string. On ok, returns the "result" object.
     // On error, emits errorOccurred and returns an empty map.
     QVariantMap parseEnvelope(const QString& json);
+    // [SP-196] `op` + the range, the identity and `displayName` → `scrivi_enqueue_range_op`; the ticket, 0 on failure.
+    qint64 enqueueRangeOp(const QString& projectRootPath, QJsonObject op, const QString& rangeJson,
+                          const QString& displayName);
 
     bool    ready_ = false;
     QString identityID_;

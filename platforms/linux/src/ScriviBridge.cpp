@@ -394,6 +394,47 @@ QVariantMap ScriviBridge::waitForWrites(const QString& projectRootPath, qint64 t
     return parseEnvelope(envelope.toQString());
 }
 
+qint64 ScriviBridge::enqueueRangeOp(const QString& projectRootPath, QJsonObject op, const QString& rangeJson,
+                                    const QString& displayName)
+{
+    if (!ready_) {
+        tlsLastCallFailed = true;   // never reaches parseEnvelope; see fragmentPaste
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return 0;
+    }
+    op.insert(QStringLiteral("range"), QJsonDocument::fromJson(rangeJson.toUtf8()).object());
+    op.insert(QStringLiteral("identityID"), identityID_);
+    op.insert(QStringLiteral("personaID"), personaID_);
+    op.insert(QStringLiteral("displayName"), displayName);
+    const ScriviString envelope(scrivi_enqueue_range_op(projectRootPath.toUtf8().constData(),
+                                                        QJsonDocument(op).toJson(QJsonDocument::Compact).constData()));
+    return parseEnvelope(envelope.toQString()).value(QStringLiteral("ticket")).toLongLong();
+}
+
+qint64 ScriviBridge::enqueueRangePaste(const QString& projectRootPath, const QString& rangeJson, const QString& caretSceneID,
+                                       long long caretByteOffset, const QString& caretSceneText, const QString& displayName)
+{
+    return enqueueRangeOp(projectRootPath,
+                          {{QStringLiteral("op"), QStringLiteral("paste")}, {QStringLiteral("caretSceneID"), caretSceneID},
+                           {QStringLiteral("caretByteOffset"), caretByteOffset},
+                           {QStringLiteral("caretSceneText"), caretSceneText}},
+                          rangeJson, displayName);
+}
+
+qint64 ScriviBridge::enqueueRangeCut(const QString& projectRootPath, const QString& rangeJson, const QString& displayName)
+{
+    return enqueueRangeOp(projectRootPath, {{QStringLiteral("op"), QStringLiteral("cut")}}, rangeJson, displayName);
+}
+
+qint64 ScriviBridge::enqueueRangeRelabel(const QString& projectRootPath, const QString& rangeJson,
+                                         const QString& targetChapterID, const QString& displayName)
+{
+    return enqueueRangeOp(projectRootPath,
+                          {{QStringLiteral("op"), QStringLiteral("relabel")},
+                           {QStringLiteral("targetChapterID"), targetChapterID}},
+                          rangeJson, displayName);
+}
+
 QVariantMap ScriviBridge::createScene(const QString& projectRootPath,
                                       const QString& appSupportRoot,
                                       const QString& projectID,

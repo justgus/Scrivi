@@ -236,6 +236,32 @@ int main(int argc, char** argv)
     check(waitFor([&] { return !wa->editorShell()->writesHeld() && !wa->editorShell()->backgroundWorkInProgress(); }),
           QStringLiteral("§2 … and the queue is empty"));
 
+    // ── §2b [SP-196] A structural edit that cannot reach the disk is HELD: the editor stays read-only (the job will
+    //    run), a close does not wait on it, and it lands and is applied once the folder is writable again ─────────────────
+    {
+        const Project C = makeProject(bridge, appSupport, scratch + QStringLiteral("/c.scrivi"), {QStringLiteral("Alpha one. Alpha two.")});
+        QPointer<ScriviWindow> wc = openWindow(env, C);
+        ManuscriptEditor* ec = editorOf(wc);
+        bool landedOk = false;
+        bool landed = false;
+        QObject::connect(wc->editorShell(), &EditorShell::structuralEditFinished, [&](bool ok) { landedOk = ok; landed = true; });
+        const QTextCursor found = ec->document()->find(QStringLiteral("Alpha one. "));
+        QTextCursor c = ec->textCursor();
+        c.setPosition(found.selectionEnd());
+        ec->setTextCursor(c);
+        setWritable(sceneDir(C, 0), false);
+        wc->editorShell()->splitScene();
+        check(waitFor([&] { return wc->editorShell()->writesHeld(); }), QStringLiteral("§2b the split holds the queue"));
+        check(!landed && ec->isReadOnly(), QStringLiteral("§2b … the editor stays read-only: the split will still run"));
+        check(!wc->editorShell()->backgroundWorkInProgress(), QStringLiteral("§2b … a close would not wait on it"));
+        setWritable(sceneDir(C, 0), true);
+        check(waitFor([&] { return landed; }, 15000) && landedOk, QStringLiteral("§2b the held split landed once the folder was writable"));
+        check(wc->editorShell()->sceneDocument().segments().size() == 2 && !ec->isReadOnly() && !wc->editorShell()->writesHeld(),
+              QStringLiteral("§2b … applied: two scenes, the editor editable, nothing held"));
+        wc->close();
+        check(waitFor([&] { return wc == nullptr || !wc->isVisible(); }), QStringLiteral("§2b … and the window closes"));
+    }
+
     // ── §3 [I-0305] Closing the window while Replace All's writes run WAITS, then closes ───────────────────────────────
     startReplaceAll(wa, QStringLiteral("cow"), QStringLiteral("dog"));
     check(wa->editorShell()->backgroundWorkInProgress(), QStringLiteral("§3 precondition: the Replace All is in flight"));

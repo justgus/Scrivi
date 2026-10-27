@@ -1667,7 +1667,7 @@ bool EditorShell::enqueueSaves(const QList<QueuedSaveEntry>& entries)
 
 void EditorShell::startWaiting()
 {
-    if (waiting_ || queued_.isEmpty() || projectPath_.isEmpty()) {
+    if (waiting_ || (queued_.isEmpty() && !structural_) || projectPath_.isEmpty()) {
         return;
     }
     waiting_ = true;
@@ -1689,9 +1689,15 @@ void EditorShell::startWaiting()
 void EditorShell::applyWriteOutcomes(const QVariantMap& wait)
 {
     waiting_ = false;
+    QVariantMap structuralOutcome;
     for (const QVariant& v : wait.value(QStringLiteral("outcomes")).toList()) {
         const QVariantMap o = v.toMap();
-        if (o.value(QStringLiteral("kind")).toString() != QStringLiteral("save")) {
+        const QString kind = o.value(QStringLiteral("kind")).toString();
+        if (kind == QStringLiteral("structural") && !o.value(QStringLiteral("held")).toBool()) {   // a held one lands later
+            const qint64 ticket = o.value(QStringLiteral("ticket")).toLongLong();
+            if (structural_ && structural_->ticket == ticket) { structuralOutcome = o; } else { unclaimedStructural_.insert(ticket, o); }
+        }
+        if (kind != QStringLiteral("save")) {
             continue;
         }
         const qint64 ticket = o.value(QStringLiteral("ticket")).toLongLong();
@@ -1719,19 +1725,27 @@ void EditorShell::applyWriteOutcomes(const QVariantMap& wait)
     if (wait.isEmpty()) {
         queued_.clear();   // the wait failed: the scenes stay dirty for the next save
     }
-    writesHeld_ = !queued_.isEmpty() && wait.value(QStringLiteral("held")).toBool();
+    if (structural_ && (wait.isEmpty() || !structuralOutcome.isEmpty())) {   // a failed wait: as a failed edit
+        const PendingRangeEdit pending = *std::exchange(structural_, std::nullopt);
+        pending.landed(structuralOutcome);
+    }
+    writesHeld_ = (!queued_.isEmpty() || structural_) && wait.value(QStringLiteral("held")).toBool();
     // [I-0322] (Apple: [T-0570]'s banner): while the queue is held, the writer is told, with what is waiting.
     if (writesHeld_) {
-        errorLabel_->setText(tr("Project File Not Available. This project's drive isn't connected. Your changes are "
-                                "being kept, but they can't be saved until you reconnect it. %n scene(s) waiting to be saved.",
-                                nullptr, int(dirtyScenes_.size())));
+        // [SP-196] a held structural edit alone leaves no scene dirty: no count then.
+        errorLabel_->setText(dirtyScenes_.isEmpty()
+                                 ? tr("Project File Not Available. This project's drive isn't connected. Your changes are "
+                                      "being kept, but they can't be saved until you reconnect it.")
+                                 : tr("Project File Not Available. This project's drive isn't connected. Your changes are "
+                                      "being kept, but they can't be saved until you reconnect it. %n scene(s) waiting to "
+                                      "be saved.", nullptr, int(dirtyScenes_.size())));
         errorLabel_->show();
     } else if (errorLabel_->text().startsWith(QStringLiteral("Project File Not Available"))) {
         errorLabel_->hide();
         errorLabel_->clear();
     }
-    setQueueCounted(!queued_.isEmpty() && !writesHeld_);
-    if (!queued_.isEmpty()) {
+    setQueueCounted((!queued_.isEmpty() || structural_) && !writesHeld_);
+    if (!queued_.isEmpty() || structural_) {
         // A held queue answers at once; the core retries every 5 s, so asking more often learns nothing.
         QTimer::singleShot(writesHeld_ ? 1000 : 0, this, [this] { startWaiting(); });
     }
@@ -2026,10 +2040,13 @@ bool EditorShell::runRangeEdit(const QString& label, RangeCall call, RangeNode n
     if (loading_ || projectPath_.isEmpty()) {
         return false;   // ✅ Q5: a repeat (or anything else) while an edit is in flight is IGNORED, not queued
     }
+    if (writesHeld_) {
+        QApplication::beep();   // [SP-195] Q1 (a): refused behind a held queue — nothing queued, nothing applied
+        return false;
+    }
     viewport_->removePendingPair();   // SP-175: a structural edit drops the pending pair
-    // Every unsaved scene QUEUED first ([SP-195]): the range call waits for them itself (W3) — the core refuses a caret
-    // scene that is not what is on disk — and fails at once behind a held queue, so the edit is refused rather than run
-    // over a lost save. And what each scene holds now, for the node's `sceneTextsBefore` ([I-0293]).
+    // ✅ [SP-196] W7b: every unsaved scene QUEUED first, then the job — first in, first out, so it runs on what they wrote.
+    // And what each scene holds now, for the node's `sceneTextsBefore` ([I-0293]).
     QHash<QString, QString> before;
     QList<int> unsaved;
     for (int i = 0; i < sceneDoc_.segments().size(); ++i) {
@@ -2040,105 +2057,127 @@ bool EditorShell::runRangeEdit(const QString& label, RangeCall call, RangeNode n
     saveScenesOffMain(unsaved);
     const QString historyRoot = node && history_ != nullptr && history_->isOpen() ? history_->projectRootPath() : QString();
     lockForWork(label);      // ✅ Q5: the cue — read-only at once, in the key press's own turn; the progress row after 400 ms
-    beginBackgroundWork();   // [I-0305]: a close waits for it
-    DiagnosticLog::note(QStringLiteral("structural \"%1\": worker started").arg(label));
+    rangeEditInFlight_ = true;
+    beginBackgroundWork();   // [I-0305]: a close waits for it (until it is queued: then the queue counts it)
+    DiagnosticLog::note(QStringLiteral("structural \"%1\": queued").arg(label));
     QElapsedTimer clock;
     clock.start();
-    struct Outcome {
-        QVariantMap result; bool failed = false; QVariantMap history;
-        bool storyTimesRead = false; QHash<QString, TimelineData::StoryTime> storyTimes;
-        QString phases;   // each phase's time, for the log
-    };
     const WorkerBridge::Handle bridgeHandle = WorkerBridge::handleFor(bridge_);   // ✅ [I-0309]: never `bridge_` itself
     const QString path = projectPath_;
-    AsyncCall::run<Outcome>(
+
+    // How it ends, on the GUI thread: not applied (`o` empty), or applied from the job's result and what the second
+    // worker brought back.
+    struct Landing { QVariantMap history; bool storyTimesRead = false; QHash<QString, TimelineData::StoryTime> storyTimes; };
+    const auto fail = [this, failed, label, clock](const QString& why) {
+        DiagnosticLog::note(QStringLiteral("structural \"%1\": FAILED after %2 ms — %3").arg(label).arg(clock.elapsed()).arg(why));
+        rangeEditInFlight_ = false;
+        deferredSteps_.clear();   // the undo pressed for it has nothing of its own to undo
+        unlockAfterWork();
+        QApplication::beep();
+        if (failed) { failed(); }
+        endBackgroundWork();
+        emit structuralEditFinished(false);
+    };
+    const auto apply = [this, caret = std::move(caret), then = std::move(then), label, clock](const QVariantMap& result,
+                                                                                            const Landing& l) {
+        QElapsedTimer applying;
+        applying.start();
+        if (history_ != nullptr && !l.history.isEmpty()) {
+            history_->adopt(l.history);
+        }
+        applyRangeResult(result);
+        if (l.storyTimesRead && timelineData_.fetched) {
+            TimelineData data = timelineData_;
+            data.storyTimes = l.storyTimes;
+            applyTimelineData(data);
+        }
+        rangeEditInFlight_ = false;
+        unlockAfterWork();
+        if (const auto [sceneID, byte] = caret(result); !sceneID.isEmpty()) {
+            placeCaret(sceneID, byte);
+        }
+        DiagnosticLog::note(QStringLiteral("structural \"%1\": applied in %2 ms, %3 ms in all")
+                                .arg(label).arg(applying.elapsed()).arg(clock.elapsed()));
+        endBackgroundWork();
+        emit structuralEditFinished(true);
+        if (then) { then(result); }   // ✅ [SP-188] Q4 / Q6
+        runDeferredSteps();
+    };
+    // The job's outcome → off the GUI thread: its history node (`node`) and the timeline's story times → applied.
+    const auto landed = [this, before, historyRoot, node = std::move(node), bridgeHandle, path, fail, apply](
+                            const QVariantMap& outcome) {
+        if (!outcome.value(QStringLiteral("ok")).toBool()) {
+            const QVariantMap error = outcome.value(QStringLiteral("error")).toMap();
+            return fail(outcome.isEmpty() ? QStringLiteral("the write queue could not be read")
+                                          : error.value(QStringLiteral("message"), outcome.value(QStringLiteral("message"))).toString());
+        }
+        const QVariantMap result = outcome.value(QStringLiteral("result")).toMap();
+        AsyncCall::run<Landing>(
+            this,
+            [before, historyRoot, node, bridgeHandle, path, result]() {
+                WorkerBridge bridge(bridgeHandle);
+                Landing l;
+                if (!historyRoot.isEmpty()) {
+                    const QJsonObject payload = node(result);
+                    const RangeDelta d = RangeDelta::fromVariant(result.value(QStringLiteral("delta")).toMap());
+                    QHash<QString, QString> after;
+                    QHash<QString, QString> was;
+                    for (const RangeDelta::Scene& s : d.scenes) {
+                        if (!s.hasText) { continue; }
+                        after.insert(s.sceneID, s.text);
+                        if (before.contains(s.sceneID)) { was.insert(s.sceneID, before.value(s.sceneID)); }
+                    }
+                    for (const QString& id : d.removedSceneIDs) { was.insert(id, before.value(id)); }
+                    l.history = ScriviBridge::captureRecordBarrier(
+                        historyRoot, HistoryCapture::barrierParams(payload.value(QStringLiteral("op")).toString(),
+                                                                   QString(), after, payload, was));
+                }
+                // ✅ [SP-191] live pass: the story times only — the rest of the timeline does not change with the manuscript.
+                l.storyTimes = EditorShell::storyTimesOf(bridge->listStoryTimes(path));
+                l.storyTimesRead = !bridge->lastCallFailed();
+                return l;
+            },
+            [result, apply](const Landing& l) { apply(result, l); },
+            [fail] { fail(QStringLiteral("the history node or the story times timed out")); }, kProjectOpenTimeoutMs);
+    };
+    struct Queued { qint64 ticket = 0; bool failed = false; };
+    AsyncCall::run<Queued>(
         this,
-        // ⚠️ The WORKER: the C ABI only, on copies. The saves, the pending typing committed, the ONE range call, its history
-        // node and the timeline's read — so the GUI thread makes no core call for the edit.
-        [before, historyRoot, call = std::move(call), node = std::move(node), bridgeHandle, path]() {
+        // ⚠️ The WORKER: the C ABI only, on copies — the pending typing committed, then the job queued (W7a). Memory calls.
+        [historyRoot, call = std::move(call), bridgeHandle]() {
             WorkerBridge bridge(bridgeHandle);
-            Outcome o;
-            QElapsedTimer phase;
-            phase.start();
-            const auto lap = [&](const char* name) {
-                o.phases += QStringLiteral(" %1 %2 ms").arg(QString::fromUtf8(name)).arg(phase.restart());
-            };
             if (!historyRoot.isEmpty()) {
                 ScriviBridge::captureFlush(historyRoot, QStringLiteral("flush"), QStringLiteral("typing"));
             }
-            lap("flush");
-            o.result = call(*bridge);
-            o.failed = bridge->lastCallFailed();
-            lap("· range call");
-            if (o.failed) {
-                return o;
-            }
-            if (!historyRoot.isEmpty()) {
-                const QJsonObject payload = node(o.result);
-                const RangeDelta d = RangeDelta::fromVariant(o.result.value(QStringLiteral("delta")).toMap());
-                QHash<QString, QString> after;
-                QHash<QString, QString> was;
-                for (const RangeDelta::Scene& s : d.scenes) {
-                    if (!s.hasText) { continue; }
-                    after.insert(s.sceneID, s.text);
-                    if (before.contains(s.sceneID)) { was.insert(s.sceneID, before.value(s.sceneID)); }
-                }
-                for (const QString& id : d.removedSceneIDs) { was.insert(id, before.value(id)); }
-                o.history = ScriviBridge::captureRecordBarrier(
-                    historyRoot, HistoryCapture::barrierParams(payload.value(QStringLiteral("op")).toString(), QString(),
-                                                               after, payload, was));
-            }
-            lap("· history node");
-            // ✅ [SP-191] live pass: the story times only — the rest of the timeline does not change with the manuscript.
-            o.storyTimes = EditorShell::storyTimesOf(bridge->listStoryTimes(path));
-            o.storyTimesRead = !bridge->lastCallFailed();
-            lap("· story times");
-            return o;
+            Queued q;
+            q.ticket = call(*bridge);
+            q.failed = bridge->lastCallFailed() || q.ticket <= 0;
+            return q;
         },
-        [this, caret = std::move(caret), failed, then = std::move(then), label, clock](const Outcome& o) {
-            DiagnosticLog::note(QStringLiteral("structural \"%1\": worker finished in %2 ms%3 —%4")
-                                    .arg(label).arg(clock.elapsed()).arg(o.failed ? QStringLiteral(" (FAILED)") : QString(),
-                                                                         o.phases));
-            if (o.failed) {
-                unlockAfterWork();
-                QApplication::beep();
-                if (failed) { failed(); }
-                endBackgroundWork();
-                emit structuralEditFinished(false);
-                return;
+        [this, landed, fail](const Queued& q) {
+            if (q.failed) {
+                return fail(QStringLiteral("it could not be queued"));
             }
-            QElapsedTimer applying;
-            applying.start();
-            if (history_ != nullptr && !o.history.isEmpty()) {
-                history_->adopt(o.history);
+            const auto early = unclaimedStructural_.constFind(q.ticket);
+            if (early != unclaimedStructural_.constEnd()) {
+                const QVariantMap outcome = *early;
+                unclaimedStructural_.erase(early);
+                return landed(outcome);
             }
-            applyRangeResult(o.result);
-            if (o.storyTimesRead && timelineData_.fetched) {
-                TimelineData data = timelineData_;
-                data.storyTimes = o.storyTimes;
-                applyTimelineData(data);
-            }
-            unlockAfterWork();
-            if (const auto [sceneID, byte] = caret(o.result); !sceneID.isEmpty()) {
-                placeCaret(sceneID, byte);
-            }
-            DiagnosticLog::note(QStringLiteral("structural \"%1\": applied in %2 ms").arg(label).arg(applying.elapsed()));
-            endBackgroundWork();
-            emit structuralEditFinished(true);
-            if (then) { then(o.result); }   // ✅ [SP-188] Q4 / Q6
+            structural_ = PendingRangeEdit{q.ticket, landed};
+            setQueueCounted(!writesHeld_);
+            endBackgroundWork();   // the queue counts it now
+            startWaiting();
         },
-        [this, label, failed] {
-            DiagnosticLog::note(QStringLiteral("structural \"%1\": TIMED OUT").arg(label));
-            unlockAfterWork();
-            errorLabel_->setText(tr("This change is taking longer than expected — the project may be on a disconnected or "
-                                    "unreachable volume. Reopen it before editing further."));
-            errorLabel_->show();
-            if (failed) { failed(); }
-            endBackgroundWork();
-            emit structuralEditFinished(false);
-        },
-        kProjectOpenTimeoutMs);
+        [fail] { fail(QStringLiteral("queueing it timed out")); }, kProjectOpenTimeoutMs);
     return true;
+}
+
+void EditorShell::runDeferredSteps()
+{
+    while (!deferredSteps_.isEmpty() && !rangeEditInFlight_) {
+        deferredSteps_.takeFirst()();
+    }
 }
 
 void EditorShell::applyRangeResult(const QVariantMap& result)
@@ -2250,7 +2289,7 @@ void EditorShell::insertBreak(bool newChapter, const QString& label)
     const QString root = projectPath_, name = bridge_->displayName(), caretScene = seg.sceneID;
     runRangeEdit(
         label,
-        [=](ScriviBridge& bridge) { return bridge.rangePaste(root, rangeJson, caretScene, caretByte, text, name); },
+        [=](ScriviBridge& bridge) { return bridge.enqueueRangePaste(root, rangeJson, caretScene, caretByte, text, name); },
         [=](const QVariantMap& r) {
             return QJsonObject{{QStringLiteral("op"), QStringLiteral("rangePaste")},
                                {QStringLiteral("caretSceneID"), caretScene}, {QStringLiteral("caretByte"), caretByte},
@@ -2341,7 +2380,7 @@ bool EditorShell::cutRange(const QString& rangeJson, const QString& label, std::
     const QString root = projectPath_, name = bridge_->displayName();
     return runRangeEdit(
         label,
-        [=](ScriviBridge& bridge) { return bridge.rangeCut(root, rangeJson, name); },
+        [=](ScriviBridge& bridge) { return bridge.enqueueRangeCut(root, rangeJson, name); },
         [](const QVariantMap& r) {
             return QJsonObject{{QStringLiteral("op"), QStringLiteral("rangeCut")},
                                {QStringLiteral("caretSceneID"), r.value(QStringLiteral("undoCaretSceneID")).toString()},
@@ -2403,7 +2442,7 @@ void EditorShell::relabel(const QString& rangeJson, const QString& target, const
     const QString root = projectPath_, name = bridge_->displayName();
     runRangeEdit(
         label,
-        [=](ScriviBridge& bridge) { return bridge.rangeRelabel(root, rangeJson, target, name); },
+        [=](ScriviBridge& bridge) { return bridge.enqueueRangeRelabel(root, rangeJson, target, name); },
         [](const QVariantMap& r) {
             const QVariantList scenes = rangeScenes(r);
             return QJsonObject{{QStringLiteral("op"), QStringLiteral("rangeRelabel")},
@@ -2463,6 +2502,10 @@ bool EditorShell::canRedo() const { return history_ != nullptr && history_->canR
 void EditorShell::undo()
 {
     const Span span("undo");
+    if (rangeEditInFlight_) {
+        deferredSteps_.append([this] { undo(); });   // ✅ [SP-196] v0.2 Q5: waits its turn, never cancels the edit
+        return;
+    }
     if (history_ != nullptr && !loading_) {
         // ✅ [I-0319]: asked before an undo of an earlier session's change, never for this session's.
         const QString when = history_->undoEntersEarlierSession();
@@ -2476,6 +2519,10 @@ void EditorShell::undo()
 void EditorShell::redo()
 {
     const Span span("redo");
+    if (rangeEditInFlight_) {
+        deferredSteps_.append([this] { redo(); });
+        return;
+    }
     if (history_ != nullptr && !loading_) {
         applyHistoryStep(history_->redo(), /*isUndo=*/false);
     }
@@ -2641,7 +2688,7 @@ bool EditorShell::pasteRangeAt(const QString& rangeJson, const QString& caretSce
     const QString root = projectPath_, name = bridge_->displayName();
     return runRangeEdit(
         label,
-        [=](ScriviBridge& bridge) { return bridge.rangePaste(root, rangeJson, caretScene, caretByte, caretText, name); },
+        [=](ScriviBridge& bridge) { return bridge.enqueueRangePaste(root, rangeJson, caretScene, caretByte, caretText, name); },
         records ? RangeNode([=](const QVariantMap& r) {
                       return QJsonObject{{QStringLiteral("op"), QStringLiteral("rangePaste")},
                                          {QStringLiteral("caretSceneID"), caretScene}, {QStringLiteral("caretByte"), caretByte},
@@ -2687,7 +2734,7 @@ void EditorShell::applyStructuralInverse(const QVariantMap& inverse, bool isUndo
     const QString root = projectPath_, name = bridge_->displayName();
     const auto cutInverse = [&](const QString& rangeJson) {
         if (!runRangeEdit(
-                label, [=](ScriviBridge& bridge) { return bridge.rangeCut(root, rangeJson, name); }, RangeNode(),
+                label, [=](ScriviBridge& bridge) { return bridge.enqueueRangeCut(root, rangeJson, name); }, RangeNode(),
                 [](const QVariantMap& r) -> std::pair<QString, qint64> {
                     return {r.value(QStringLiteral("undoCaretSceneID")).toString(),
                             r.value(QStringLiteral("undoCaretByte")).toLongLong()};
@@ -2715,7 +2762,7 @@ void EditorShell::applyStructuralInverse(const QVariantMap& inverse, bool isUndo
         const int caretIdx = sceneDoc_.sceneIndexForCaret(viewport_->textCursor().position());
         const QString keep = caretIdx >= 0 ? sceneDoc_.segments().at(caretIdx).sceneID : QString();
         if (!runRangeEdit(
-                label, [=](ScriviBridge& bridge) { return bridge.rangeRelabel(root, rangeJson, target, name); }, RangeNode(),
+                label, [=](ScriviBridge& bridge) { return bridge.enqueueRangeRelabel(root, rangeJson, target, name); }, RangeNode(),
                 [keep](const QVariantMap&) -> std::pair<QString, qint64> { return {keep, 0}; }, stepBack)) {
             stepBack();
         }

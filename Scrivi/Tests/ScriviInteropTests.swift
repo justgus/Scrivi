@@ -7378,8 +7378,9 @@ struct UndoAfterStructuralOpTests {
         try h.listMatchesDisk("the merge's undo")
     }
 
-    /// ✅ [SP-191] Q5 (user, 2026-10-21): an immediate cue, then read-only; repeats, typing and undo are ignored, not queued.
-    @Test("a structural edit: the cue in the same turn; a repeat and an undo while it is in flight are ignored")
+    /// ✅ [SP-191] Q5 (user, 2026-10-21): an immediate cue, then read-only; a repeat is ignored, not queued.
+    /// ✅ [SP-196] v0.2 Q5: an undo pressed while it is in flight WAITS ITS TURN — it undoes the edit once it has landed.
+    @Test("a structural edit: the cue in the same turn; a repeat is ignored; an undo waits its turn")
     func structuralEditCueAndRepeats() async throws {
         let h = try await harness(["Alpha one. Alpha two."])
         h.caret(scene: 0, at: 11)
@@ -7388,11 +7389,18 @@ struct UndoAfterStructuralOpTests {
         #expect(h.loader.structuralInFlight)
         h.c.handleCreateScene()                                     // the writer presses it again at once
         h.c.performUndo()                                           // and Undo
-        try await h.waitForSceneCount(2)
-        try await Task.sleep(for: .milliseconds(200))
-        #expect(h.loader.segments.count == 2, "ONE new scene: the repeat was ignored, not queued")
+        #expect(h.loader.segments.count == 1, "the undo did not run ahead of the edit")
+        for _ in 0..<500 where h.loader.structuralInFlight || h.loader.segments.count != 1 {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        try await h.landed()
+        #expect(h.loader.segments.count == 1, "the undo ran once the new scene had landed")
         #expect(h.tv.isEditable, "editable again once it landed")
         #expect(h.loader.structuralProgress == nil)
+        try h.listMatchesDisk("the deferred undo")
+        h.c.performRedo()
+        try await h.waitForSceneCount(2)
+        #expect(h.loader.segments.count == 2, "ONE new scene to redo: the repeat was ignored, not queued")
     }
 
     @Test("the progress row appears once a structural edit has run 400 ms, and goes when it lands")
@@ -7401,10 +7409,15 @@ struct UndoAfterStructuralOpTests {
         let ref = try #require(h.env.authorshipRef)
         var landed = false
         let t0 = Date()
-        let started = h.loader.runStructural("Working…", ref: ref, { _ in Thread.sleep(forTimeInterval: 1.5); return 1 },
-                                             landed: { _ in landed = true })
+        let root = h.root.path
+        let empty = ScriviRange(scenes: [])
+        let started = h.loader.runStructural("Working…", ref: ref, enqueue: { engine in
+            Thread.sleep(forTimeInterval: 1.5)
+            return try engine.enqueueRangeCut(projectRootPath: root, range: empty, authorshipRef: ref)
+        }, finish: { _, _ in 1 }, landed: { _ in landed = true })
         #expect(started)
-        let again = h.loader.runStructural("Again", ref: ref, { _ in 2 }, landed: { _ in Issue.record("a second edit ran") })
+        let again = h.loader.runStructural("Again", ref: ref, enqueue: { _ in 2 }, finish: { _, _ in 2 },
+                                           landed: { _ in Issue.record("a second edit ran") })
         #expect(!again, "a second edit while one is in flight is refused, not queued (Q5)")
         #expect(h.loader.structuralProgress == nil, "not at once")
         var shownAfter: TimeInterval?
@@ -7778,6 +7791,64 @@ struct UndoAfterStructuralOpTests {
         #expect(!h.loader.segments[0].isDirty, "clean once it landed")
         #expect(!h.loader.writesHeld)
         #expect(try h.onDisk(seg.sceneID) == "Alpha kept")
+    }
+
+    /// EP-052 [SP-196] — a structural edit behind a HELD queue is refused at once ([SP-195] Q1 (a)): nothing queued,
+    /// nothing applied, the editor still takes input.
+    @Test("a structural edit while the queue is held is refused, and nothing is applied")
+    func structuralEditRefusedBehindAHeldQueue() async throws {
+        let h = try await harness(["Alpha", "Bravo"])
+        let seg = h.loader.segments[0]
+        let folder = URL(fileURLWithPath: h.root.path).appending(path: seg.contentPath).deletingLastPathComponent()
+        let away = folder.deletingLastPathComponent().appending(path: "away-\(UUID().uuidString)")
+        try FileManager.default.moveItem(at: folder, to: away)
+        h.caret(scene: 0, at: 5)
+        h.tv.insertText(" kept", replacementRange: h.tv.selectedRange())
+        guard let ref = h.env.authorshipRef else { Issue.record("no authorship"); return }
+        h.loader.saveSceneBlocking(at: 0, engine: h.env.engine, ref: ref)
+        for _ in 0..<500 where !h.loader.writesHeld { try await Task.sleep(for: .milliseconds(10)) }
+        #expect(h.loader.writesHeld, "the core holds the save")
+
+        h.caret(scene: 1, at: 2)
+        h.c.handleCreateScene()
+        #expect(!h.loader.structuralInFlight, "refused at once")
+        #expect(h.tv.isEditable, "the editor still takes input")
+        #expect(h.loader.segments.count == 2, "nothing applied")
+
+        try FileManager.default.moveItem(at: away, to: folder)
+        for _ in 0..<1000 where h.loader.writesHeld { try await Task.sleep(for: .milliseconds(10)) }
+        try await h.landed()
+        try h.listMatchesDisk("after the held save landed")
+    }
+
+    /// EP-052 [SP-196] — a structural job that itself cannot reach the disk is HELD: the core retries it, the editor stays
+    /// read-only until it lands (the job is still going to run), a close asks rather than waits, and once the folder is
+    /// writable again it lands and its delta is applied.
+    @Test("a held structural edit lands, and is applied, when the folder is writable again")
+    func heldStructuralEditLandsWhenTheFolderIsBack() async throws {
+        let h = try await harness(["Alpha one. Alpha two."])
+        let seg = h.loader.segments[0]
+        let folder = URL(fileURLWithPath: h.root.path).appending(path: seg.contentPath).deletingLastPathComponent()
+        try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: folder.path)
+        defer { try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: folder.path) }
+
+        h.caret(scene: 0, at: 11)
+        h.c.handleCreateScene()
+        for _ in 0..<500 where !h.loader.writesHeld { try await Task.sleep(for: .milliseconds(10)) }
+        #expect(h.loader.writesHeld, "the core holds the structural job")
+        #expect(h.loader.structuralInFlight, "still in flight: it will run")
+        #expect(!h.tv.isEditable, "read-only until it lands")
+        var asked = false
+        h.loader.whenOffMainWritesLand { asked = true }
+        #expect(asked, "a close does not wait on a held structural edit: it asks ([T-0570])")
+
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: folder.path)
+        for _ in 0..<1000 where h.loader.structuralInFlight { try await Task.sleep(for: .milliseconds(10)) }
+        #expect(!h.loader.structuralInFlight)
+        #expect(h.loader.segments.count == 2, "the new scene, applied")
+        #expect(h.tv.isEditable)
+        #expect(!h.loader.writesHeld)
+        try h.listMatchesDisk("after the held structural edit landed")
     }
 
     /// [I-0305] — a close or quit while scenes are being written in the background WAITS for them, behind *"Please wait —

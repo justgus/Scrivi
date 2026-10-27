@@ -463,7 +463,7 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-193** | `[Cross]` **[EP-054] S0** — fix before the alpha (I-0306, I-0313, I-0202) and one version on every platform (T-0622) | EP-054 | 2026-10-24 | 2026-10-25 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-193.md) |
 | **SP-194** | `[ScriviCore]` **[EP-052] S1** — two locks per project and the write queue (T-0623, T-0624) | EP-052 | 2026-10-26 | 2026-10-26 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-194.md) |
 | **SP-195** | `[Cross]` **[EP-052] S2a** — every scene save through the queue, Mac and Linux (T-0625, T-0626) | EP-052 | 2026-10-26 | — | 🟡 **ACTIVE** → [`Sprint-SP-195.md`](Sprint-SP-195.md) |
-| **SP-196** | `[Cross]` **[EP-052] S2b** — structural edits through the queue, and the gesture cues (T-0627) | EP-052 | — | — | 🔵 **PLANNING** → [`Sprint-SP-196.md`](Sprint-SP-196.md) |
+| **SP-196** | `[Cross]` **[EP-052] S2b** — structural edits through the queue, and the gesture cues (T-0627) | EP-052 | 2026-10-27 | — | 🟡 **ACTIVE** → [`Sprint-SP-196.md`](Sprint-SP-196.md) |
 | **SP-160** | `[Linux]` **[EP-049] S1** — Linux writes Apple's manuscript format: escaping, paste/copy, pair deletion, Return/⌫, shared corpus (T-0586); + I-0276 | EP-049 | 2026-10-04 | 2026-10-04 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-160.md) |
 
 ## Statistics
@@ -505,6 +505,8 @@ by status, read the table.**
 ---
 
 *Last Updated: 2026-10-22 (**SP-185 → ✅ CLOSED** (user: *"SP-185 can be closed (authorized)."*); I-0309, I-0310, T-0612 verified and archived; AC5 → EP-052.)*
+
+*Last Updated: 2026-10-27 (**SP-196 → 🟡 ACTIVE** (user: *"Let's proceed with number 2.  SP-196"*), beside SP-195 (its rig pass open); T-0627 → active.)*
 
 *Last Updated: 2026-10-26 (**SP-195 → 🟡 ACTIVE** (user: *"Then start SP-195."*); Q1 (a), Q2 yes, Q3 fold in ruled; T-0625, T-0626 → active.)*
 

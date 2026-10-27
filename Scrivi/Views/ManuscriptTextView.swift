@@ -385,9 +385,18 @@ struct ManuscriptTextView: NSViewRepresentable {
         // Performs an undo: asks HistoryService for the prior state, applies the
         // returned full scene text into that scene's storage range, restores the
         // cursor, and saves immediately.
+        /// ✅ [SP-196] v0.2 Q5: an undo or redo pressed while a structural edit is in flight WAITS ITS TURN — it runs once
+        /// that edit has landed (never cancels it); a failed edit drops the ones pressed for it.
+        private var deferredSteps: [@MainActor () -> Void] = []
+
+        private func runDeferredSteps() {
+            while !deferredSteps.isEmpty, !parent.loader.structuralInFlight { deferredSteps.removeFirst()() }
+        }
+
         func performUndo() {
             let span = ScriviDiag.begin("undo"); defer { ScriviDiag.end(span) }
-            guard !parent.loader.structuralInFlight, let capture = parent.session.historyCapture else { return }
+            if parent.loader.structuralInFlight { return deferredSteps.append { [weak self] in self?.performUndo() } }
+            guard let capture = parent.session.historyCapture else { return }
             // ✅ [I-0319] (user, 2026-10-24): asked BEFORE an undo of an earlier session's change, with Cancel — never for
             // this session's.
             if let when = capture.undoEntersEarlierSession(), !confirmEarlierSessionUndo(when) { return }
@@ -396,7 +405,8 @@ struct ManuscriptTextView: NSViewRepresentable {
 
         func performRedo() {
             let span = ScriviDiag.begin("redo"); defer { ScriviDiag.end(span) }
-            guard !parent.loader.structuralInFlight, let capture = parent.session.historyCapture else { return }
+            if parent.loader.structuralInFlight { return deferredSteps.append { [weak self] in self?.performRedo() } }
+            guard let capture = parent.session.historyCapture else { return }
             // ✅ [I-0320] (user, 2026-10-24): the branch chooser is a REDO question — shown here, never as an undo lands.
             if let fork = capture.redoFork(), let tv = textView {
                 // ✅ [SP-192] (user, 2026-10-24): at the branch's mark, as a click on it — the one nearest the caret; the
@@ -693,12 +703,12 @@ struct ManuscriptTextView: NSViewRepresentable {
                     let target = undo ? p.fromChapterID : p.targetChapterID
                     let keep = caretInScene()?.seg.sceneID ?? range.scenes.first?.sceneID ?? ""
                     inverseEdit({ engine, root, ref in
-                        try engine.rangeRelabel(projectRootPath: root, range: range, targetChapterID: target,
+                        try engine.enqueueRangeRelabel(projectRootPath: root, range: range, targetChapterID: target,
                                                 authorshipRef: ref)
                     }, caret: { _ in (keep, 0) }, failed: stepBack)
                 } else if removes {
                     inverseEdit({ engine, root, ref in
-                        try engine.rangeCut(projectRootPath: root, range: range, authorshipRef: ref)
+                        try engine.enqueueRangeCut(projectRootPath: root, range: range, authorshipRef: ref)
                     }, caret: { r in r.undoCaretSceneID.map { ($0, r.undoCaretByte ?? 0) } }, failed: stepBack)
                 } else {
                     pasteInverse(range, at: p.caretSceneID, byte: p.caretByte, failed: stepBack)
@@ -708,7 +718,7 @@ struct ManuscriptTextView: NSViewRepresentable {
                 guard let inserted = oldPasteRange(p) else { NSSound.beep(); stepBack(); return }
                 if undo {
                     inverseEdit({ engine, root, ref in
-                        try engine.rangeCut(projectRootPath: root, range: inserted, authorshipRef: ref)
+                        try engine.enqueueRangeCut(projectRootPath: root, range: inserted, authorshipRef: ref)
                     }, caret: { r in r.undoCaretSceneID.map { ($0, r.undoCaretByte ?? 0) } }, failed: stepBack)
                 } else {
                     pasteInverse(inserted.normalized(), at: p.caretSceneID, byte: p.caretByte, failed: stepBack)
@@ -725,7 +735,7 @@ struct ManuscriptTextView: NSViewRepresentable {
                 } else {
                     guard let inserted = oldCutRedo.removeValue(forKey: key) else { NSSound.beep(); stepBack(); return }
                     inverseEdit({ engine, root, ref in
-                        try engine.rangeCut(projectRootPath: root, range: inserted, authorshipRef: ref)
+                        try engine.enqueueRangeCut(projectRootPath: root, range: inserted, authorshipRef: ref)
                     }, caret: { r in r.undoCaretSceneID.map { ($0, r.undoCaretByte ?? 0) } }, failed: stepBack)
                 }
             default:
@@ -737,7 +747,7 @@ struct ManuscriptTextView: NSViewRepresentable {
         /// An old `structuredCut`'s redo needs what its undo's paste inserted — kept for this session only (as before).
         private var oldCutRedo: [String: ScriviRange] = [:]
 
-        private func inverseEdit(_ call: @escaping @Sendable (ScriviEngine, String, AuthorshipRef) throws -> RangeOperationResult,
+        private func inverseEdit(_ call: @escaping StructuralCall,
                                  caret: @escaping StructuralCaret, failed: @escaping @MainActor () -> Void) {
             if !runStructuralEdit("Undoing…", call, node: nil, caret: caret, failed: failed) { failed() }
         }
@@ -747,7 +757,7 @@ struct ManuscriptTextView: NSViewRepresentable {
                                   inserted: (@MainActor (RangeOperationResult) -> Void)? = nil) {
             guard let text = parent.loader.segments.first(where: { $0.sceneID == sceneID })?.text else { failed(); return }
             inverseEdit({ engine, root, ref in
-                try engine.rangePaste(projectRootPath: root, range: range, caretSceneID: sceneID, caretByteOffset: byte,
+                try engine.enqueueRangePaste(projectRootPath: root, range: range, caretSceneID: sceneID, caretByteOffset: byte,
                                       caretSceneText: text, authorshipRef: ref)
             }, caret: { r in
                 inserted?(r)
@@ -1342,6 +1352,8 @@ struct ManuscriptTextView: NSViewRepresentable {
             let storyTimes: StoryTimesResult?
         }
 
+        /// Queues a structural edit's range operation and returns its ticket ([SP-196] W7a): `engine.enqueueRange…`.
+        typealias StructuralCall = @Sendable (ScriviEngine, String, AuthorshipRef) throws -> Int64
         /// The history node a structural edit records, built from the core's answer (off the main actor). An undo or redo
         /// passes nil: it crosses a node, it does not add one.
         typealias StructuralNode = @Sendable (RangeOperationResult) -> HistoryStructuralPayload?
@@ -1358,7 +1370,7 @@ struct ManuscriptTextView: NSViewRepresentable {
         /// Returns false, doing nothing, while another is in flight — Q5: ignored, not queued.
         @discardableResult
         func runStructuralEdit(_ label: String,
-                               _ call: @escaping @Sendable (ScriviEngine, String, AuthorshipRef) throws -> RangeOperationResult,
+                               _ call: @escaping StructuralCall,
                                node: StructuralNode?,
                                caret: @escaping StructuralCaret,
                                failed: (@MainActor () -> Void)? = nil,
@@ -1370,9 +1382,10 @@ struct ManuscriptTextView: NSViewRepresentable {
             // What each scene held before — the node needs it for the scenes the edit rewrites or removes ([I-0293]).
             let before = Dictionary(loader.segments.map { ($0.sceneID, $0.text) }, uniquingKeysWith: { a, _ in a })
             tv.isEditable = false                                   // ✅ Q5: the cue — at once, before any core call
-            let started = loader.runStructural(label, ref: ref, { engine -> StructuralLanding in
+            let started = loader.runStructural(label, ref: ref, enqueue: { engine in
                 if let historyRoot { _ = try? engine.captureFlush(projectRootPath: historyRoot, trigger: "flush") }
-                let result = try call(engine, root, ref)
+                return try call(engine, root, ref)
+            }, finish: { engine, result -> StructuralLanding in
                 var history: CaptureState?
                 if let historyRoot, let payload = node?(result) {
                     var after: [String: String] = [:], was: [String: String] = [:]
@@ -1391,7 +1404,10 @@ struct ManuscriptTextView: NSViewRepresentable {
             }, landed: { [weak self] outcome in
                 self?.structuralEditLanded(outcome, caret: caret, failed: failed, then: then)
             })
-            if !started { tv.isEditable = true }
+            if !started {
+                tv.isEditable = true
+                if loader.writesHeld { NSSound.beep() }   // [SP-195] Q1 (a): refused behind a held queue
+            }
             return started
         }
 
@@ -1408,6 +1424,7 @@ struct ManuscriptTextView: NSViewRepresentable {
             case .failure(let error):
                 NSLog("[SCRIVI-DIAG] structural edit failed: %@", String(describing: error))   // [SP-188] AC11: was print, never in the log
                 NSSound.beep()
+                deferredSteps.removeAll()
                 failed?()
                 return
             }
@@ -1436,6 +1453,7 @@ struct ManuscriptTextView: NSViewRepresentable {
                 timeline.updateDotTitles(liveTitles: loader.liveTitles, allScenes: loader.allScenes)
             }
             then?(landing.result)   // ✅ [SP-188] after the caret is placed: a cut's clipboard, a paste over a selection (Q4, Q6)
+            runDeferredSteps()
         }
 
         /// The caret's scene, its index, and the caret's scene-local UTF-8 byte offset — where a range call is anchored.
@@ -1512,7 +1530,7 @@ struct ManuscriptTextView: NSViewRepresentable {
             let range = ScriviRange(scenes: [first, opening])
             let caretSceneID = at.seg.sceneID, caretByte = at.byte, caretText = at.seg.text
             runStructuralEdit(label, { engine, root, ref in
-                try engine.rangePaste(projectRootPath: root, range: range, caretSceneID: caretSceneID,
+                try engine.enqueueRangePaste(projectRootPath: root, range: range, caretSceneID: caretSceneID,
                                       caretByteOffset: caretByte, caretSceneText: caretText, authorshipRef: ref)
             }, node: { r in
                 HistoryStructuralPayload(op: "rangePaste", caretSceneID: caretSceneID, caretByte: caretByte,
@@ -1554,7 +1572,7 @@ struct ManuscriptTextView: NSViewRepresentable {
         private func cut(_ range: ScriviRange, label: String,
                          then: (@MainActor (RangeOperationResult) -> Void)? = nil) -> Bool {
             runStructuralEdit(label, { engine, root, ref in
-                try engine.rangeCut(projectRootPath: root, range: range, authorshipRef: ref)
+                try engine.enqueueRangeCut(projectRootPath: root, range: range, authorshipRef: ref)
             }, node: { r in
                 HistoryStructuralPayload(op: "rangeCut", caretSceneID: r.undoCaretSceneID ?? "",
                                          caretByte: r.undoCaretByte ?? 0, rangeJSON: (try? r.range.toJSON()) ?? "")
@@ -1563,7 +1581,7 @@ struct ManuscriptTextView: NSViewRepresentable {
 
         private func relabel(_ run: ScriviRange, into target: String, keepingCaretIn sceneID: String, label: String) {
             runStructuralEdit(label, { engine, root, ref in
-                try engine.rangeRelabel(projectRootPath: root, range: run, targetChapterID: target, authorshipRef: ref)
+                try engine.enqueueRangeRelabel(projectRootPath: root, range: run, targetChapterID: target, authorshipRef: ref)
             }, node: { r in
                 HistoryStructuralPayload(op: "rangeRelabel", rangeJSON: (try? r.range.toJSON()) ?? "",
                                          fromChapterID: r.fromChapterID ?? "",
@@ -2568,7 +2586,7 @@ struct ManuscriptTextView: NSViewRepresentable {
             let pasted = range
             let caretSceneID = at.seg.sceneID, caretByte = at.byte, caretText = at.seg.text
             runStructuralEdit("Pasting…", { engine, root, ref in
-                try engine.rangePaste(projectRootPath: root, range: pasted, caretSceneID: caretSceneID,
+                try engine.enqueueRangePaste(projectRootPath: root, range: pasted, caretSceneID: caretSceneID,
                                       caretByteOffset: caretByte, caretSceneText: caretText, authorshipRef: ref)
             }, node: { r in
                 HistoryStructuralPayload(op: "rangePaste", caretSceneID: caretSceneID, caretByte: caretByte,

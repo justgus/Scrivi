@@ -1,6 +1,8 @@
 #pragma once
 
 #include <QHash>
+#include <optional>
+#include <functional>
 #include <QList>
 #include <QSet>
 #include <QString>
@@ -805,7 +807,9 @@ private:
     //     project (⛔ `reloadThen` and [I-0297]'s `reloadTexts_` are gone).
     // ✅ [I-0309]: `call` is handed the worker's OWN bridge — it must never capture `bridge_`. `node` runs on the worker.
     // Returns false, doing nothing, while another edit is in flight (Q5: ignored, not queued).
-    using RangeCall  = std::function<QVariantMap(ScriviBridge&)>;
+    // ✅ [SP-196] W7a: `call` QUEUES the range operation (`enqueueRange…`) and returns its ticket; the result comes back in
+    // the job's outcome, through the one waiter (`applyWriteOutcomes`).
+    using RangeCall  = std::function<qint64(ScriviBridge&)>;
     using RangeNode  = std::function<QJsonObject(const QVariantMap&)>;
     using RangeCaret = std::function<std::pair<QString, qint64>(const QVariantMap&)>;
     // `then` runs once it has landed and the caret is placed (✅ [SP-188]: a cut's clipboard, a paste over the selection).
@@ -880,4 +884,13 @@ private:
     bool                               waiting_ = false;
     bool                               writesHeld_ = false;
     bool                               queueCounted_ = false;
+    // [SP-196] The structural job this editor queued and has not seen land: its ticket, and what runs with its outcome
+    // (an empty map: the wait itself failed). A structural outcome the waiter took before its ticket was known here.
+    struct PendingRangeEdit { qint64 ticket = 0; std::function<void(const QVariantMap&)> landed; };
+    std::optional<PendingRangeEdit>    structural_;
+    QHash<qint64, QVariantMap>         unclaimedStructural_;
+    // [SP-196] v0.2 Q5: an undo or redo pressed while a structural edit is in flight waits its turn.
+    bool                               rangeEditInFlight_ = false;
+    QList<std::function<void()>>       deferredSteps_;
+    void runDeferredSteps();
 };

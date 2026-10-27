@@ -4,16 +4,6 @@ Sprints listed here are in 🔵 Planning status — defined and ready to activat
 
 ---
 
-## 🔵 EP-052 — S2b (created 2026-10-26)
-
-| Sprint | Scope | Record | Waits on |
-| ------ | ----- | ------ | -------- |
-| **SP-196** | `[Cross]` **S2b** — structural edits through the queue, and the gesture cues | [`Sprint-SP-196.md`](Sprint-SP-196.md) | SP-195 |
-
-Order: SP-196 after SP-195 (🟡 active), then S3 (reads off the main thread + Spotlight), per v0.2 Q7.
-
----
-
 ## 🔵 EP-053 — S2b–S5 (created 2026-10-20)
 
 | Sprint | Scope | Record | Waits on |

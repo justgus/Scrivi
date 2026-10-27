@@ -780,7 +780,7 @@ archive files reconstructed after the fact from secondary sources.
 | T-0624 | `[ScriviCore]` The per-project write queue and its endpoints | 🟡 **SP-194** | **EP-052** | ✅ **Verified 2026-10-26** | [`Task-verified-0624.md`](Verified/Task-verified-0624.md) |
 | T-0625 | `[ScriviCore]` What a failed queued write does (hold, retry, report) | 🟡 **SP-195** | **EP-052** | ✅ **Verified 2026-10-26** | [`Task-verified-0625.md`](Verified/Task-verified-0625.md) |
 | T-0626 | `[Cross]` Every scene save through the queue, Mac and Linux | 🟡 **SP-195** | **EP-052** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
-| T-0627 | `[Cross]` Structural edits through the queue, and the gesture cues | 🔵 **SP-196** | **EP-052** | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
+| T-0627 | `[Cross]` Structural edits through the queue, and the gesture cues | 🟡 **SP-196** | **EP-052** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
 | T-0628 | `[Cross]` Keep a held queue on local disk, push it when the project returns | — | **EP-052** | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
 | T-0592 | `[Apple]` E2-S3: formatting commands + lists + Option-Return | 🟡 **SP-163** | **EP-046** | ✅ **Verified 2026-10-06** | [`Task-verified-0592.md`](Verified/Task-verified-0592.md) |
 | T-0591 | `[Apple]` Balance emphasis across SCENE boundaries (cross-scene cut/copy/paste) | 🟡 **SP-163** | **EP-046** | ✅ **Verified 2026-10-06** | [`Task-verified-0591.md`](Verified/Task-verified-0591.md) |
@@ -819,6 +819,10 @@ archive files reconstructed after the fact from secondary sources.
 ⚠️ **This index ended at `T-0485 (next available)` until 2026-09-10 — ✅ that was STALE.** ⚠️ **T-0485–T-0498 had all been taken**, and T-0485–T-0490/T-0492–T-0496 are archived as Verified. ⚠️ **Rows for T-0486–T-0497 are NOT reconstructed here** — ✅ **their Sprints' closed records are authoritative** (`feedback_archive_on_close`).
 
 ---
+
+*Last Updated: 2026-10-27 (**T-0627 → 🟠 Implemented - Not Verified**.)*
+
+*Last Updated: 2026-10-27 (**T-0627 → active** with SP-196.)*
 
 *Last Updated: 2026-10-26 (**T-0626 → 🟠 Implemented - Not Verified**.)*
 

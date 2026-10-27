@@ -368,18 +368,26 @@ int main(int argc, char* argv[])
         QTest::qWait(200);
         check(r.chapterCount() == 1 && !r.editor->isReadOnly(), QStringLiteral("Q8: at a chapter's first scene, nothing"));
     }
-    // ── [SP-191] Q5: a repeat while the edit is in flight is ignored, not queued ───────────────────────────────────────
+    // ── [SP-191] Q5: a repeat while the edit is in flight is ignored, not queued. ✅ [SP-196] v0.2 Q5: an Undo pressed
+    //    meanwhile WAITS ITS TURN — it undoes the split once the split has landed ─────────────────────────────────────────
     {
         const int scenes = int(r.shell->sceneDocument().segments().size());
-        check(r.landing([&] {
-            r.caretAt(QStringLiteral("Alpha one. "));
-            r.shell->splitScene();
-            r.shell->splitScene();    // pressed again at once
-            r.control(Qt::Key_Z);     // and Undo
-        }), QStringLiteral("Q5: the split landed"));
+        int landed = 0;
+        const auto counter = QObject::connect(r.shell.get(), &EditorShell::structuralEditFinished, [&](bool ok) { landed += ok; });
+        r.caretAt(QStringLiteral("Alpha one. "));
+        r.shell->splitScene();
+        r.shell->splitScene();    // pressed again at once
+        r.control(Qt::Key_Z);     // and Undo
+        check(int(r.shell->sceneDocument().segments().size()) == scenes, QStringLiteral("Q5: the undo did not run ahead"));
+        for (int i = 0; i < 300 && landed < 2; ++i) { QTest::qWait(50); }
         QTest::qWait(300);
+        QObject::disconnect(counter);
+        check(landed == 2 && int(r.shell->sceneDocument().segments().size()) == scenes,
+              QStringLiteral("Q5: the split, then its undo (%1 landed)").arg(landed));
+        r.listMatchesDisk(QStringLiteral("after Q5's undo"));
+        check(r.landing([&] { r.control(Qt::Key_Z, Qt::ShiftModifier); }), QStringLiteral("(redone)"));
         check(int(r.shell->sceneDocument().segments().size()) == scenes + 1,
-              QStringLiteral("Q5: ONE new scene — the repeat and the undo were ignored"));
+              QStringLiteral("Q5: ONE new scene to redo — the repeat was ignored"));
         check(r.landing([&] { r.control(Qt::Key_Z); }), QStringLiteral("(undone)"));
         r.listMatchesDisk(QStringLiteral("after Q5"));
     }

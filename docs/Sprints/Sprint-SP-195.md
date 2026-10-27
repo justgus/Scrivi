@@ -86,7 +86,7 @@ it cannot land. Both platforms' own ordering code is gone (W6).
 - [x] AC5 — Close and quit wait for the queue on both; a held queue asks (Mac: [T-0570]; Linux: as Q3 rules)
 - [ ] AC6 — ✅ **Rig live pass (user)** over the share: undo of a Replace All on dumas does not freeze; typing never waits; a
   pulled drive keeps its edits and they land when it returns (EP-052 AC6)
-- [ ] AC7 — ✅ **Mac live pass (user)**, the same steps
+- [x] AC7 — ✅ **Mac live pass (user)**, the same steps
 
 ## Progress log
 
@@ -157,4 +157,9 @@ it cannot land. Both platforms' own ordering code is gone (W6).
   the queue, stays dirty, the editor unlocked, a close asks and Cancel keeps the window, the save lands when the folder is
   writable (§1, §1b); Replace All's held writes land the same way (§2). Inventory, GUI-thread file operations: autosave
   6 → 0, Ctrl+Z 8 → 0, Ctrl+Shift+Z 7 → 0 (what is left is the Inspector's reads, S3). ctest Mac 781/781, Linux 784/784.
-- ⏳ AC6, AC7: the live passes (user).
+- ✅ **AC7 Mac live pass: user-reported pass (2026-10-26).**
+- ⏳ **AC6 rig, blocked (2026-10-26):** the drive behind the share was pulled; to bring it back the share had to be
+  remounted, and `umount` refused, *"target is busy"*, with the project open in Scrivi. The held save cannot land until
+  the share is back, and the share cannot come back while Scrivi is open. Neither Scrivi's code nor the core keeps a
+  file open between writes (grep: no watcher, lock file, `chdir` or long-lived stream), so what holds the mount is not yet
+  known: `fuser -vm` / `lsof` on the rig names it.

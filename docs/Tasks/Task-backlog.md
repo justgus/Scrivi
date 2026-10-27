@@ -38,7 +38,6 @@ status changes on its own layer.
 | T-0617 | `[Cross]` EP-053 S4: the background sync verification | EP-053 ([SP-189], 🔵 Planning) | 🔵 Backlog |
 | T-0618 | `[Cross]` EP-053 S5: Mac and rig live passes over the share, timed | EP-053 ([SP-190], 🔵 Planning) | 🔵 Backlog |
 | T-0621 | `[Cross]` Explore a whole-manuscript history view (a tree, or a branching timeline) | ⚠️ None yet | 🔵 Backlog — exploration |
-| T-0627 | `[Cross]` EP-052 S2b: structural edits through the queue, and the gesture cues | EP-052 ([SP-196], 🔵 Planning) | 🔵 Backlog |
 | T-0628 | `[Cross]` EP-052: keep a held queue on local disk and push it when the project returns | EP-052 (unscheduled) | 🔵 Backlog |
 
 > ✅ **T-0477 – T-0479 LEFT this file 2026-08-31 when SP-124 was ACTIVATED**, per the standing rule that
@@ -733,17 +732,6 @@ the same flag in a different file; ✅ leaving it on `env` would give two toggle
   ⛔ **runs on project close** — ✅ **confirm the panel closes cleanly when the last project goes.**
 - ⚠️ **Persistence is NOT in scope.** ⛔ **The flag is in-memory today and stays in-memory** — ✅ **if it
   should survive a quit, that is [I-0255]'s ruling and [T-0556]'s question, not this Task's.**
-
----
-
-## 🔵 T-0627 — `[Cross]` EP-052 S2b: structural edits through the queue, and the gesture cues
-
-**Epic:** [EP-052] (AC4, AC5, AC10) · **Status:** 🔵 Backlog · **Sprint:** [SP-196] (🔵 Planning) →
-[`../Sprints/Sprint-SP-196.md`](../Sprints/Sprint-SP-196.md) · **Date Requested:** 2026-10-26 (user: *"approve the close.  plan S2."*)
-
-**What:** on both platforms a structural edit is `scrivi_enqueue_range_op` behind the queued saves; the delta comes back in
-its outcome and is applied on the main thread; its history node is recorded from it. Each platform's structural worker is
-removed (W7h). The v0.2 Q5 gesture cues.
 
 ---
 

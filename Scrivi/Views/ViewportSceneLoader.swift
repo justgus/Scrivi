@@ -60,6 +60,10 @@ struct SceneSegment: Identifiable {
     // its scene, or is refused. ONE queue in the core orders every write ([SP-195], W6 retired here).
     @ObservationIgnored private var queued: [Int64: (sceneID: String, text: String)] = [:]
     @ObservationIgnored private var waiting = false
+    /// [SP-196] The structural job this editor queued and has not seen land: its ticket, and what runs with its outcome.
+    @ObservationIgnored private var structural: (ticket: Int64, landed: @MainActor (WriteQueueWait.WriteOutcome?) -> Void)?
+    /// A structural outcome the waiter took before its ticket was known here (it is queued off the main actor).
+    @ObservationIgnored private var unclaimedStructural: [Int64: WriteQueueWait.WriteOutcome] = [:]
     /// [SP-195] Q1 (a): a save could not reach the disk; the core keeps it and retries. A close or quit then asks ([T-0570])
     /// instead of waiting.
     private(set) var writesHeld = false
@@ -460,6 +464,10 @@ struct SceneSegment: Identifiable {
     /// Main actor: applies one wait's outcomes. Returns whether to keep waiting.
     private func apply(_ wait: WriteQueueWait?) -> Bool {
         var failed = false
+        var structuralOutcome: WriteQueueWait.WriteOutcome?
+        for o in wait?.outcomes ?? [] where o.kind == "structural" && o.held != true {   // a held one lands later
+            if o.ticket == structural?.ticket { structuralOutcome = o } else { unclaimedStructural[o.ticket] = o }
+        }
         for o in wait?.outcomes ?? [] where o.kind == "save" {
             guard let sent = queued[o.ticket] else { continue }
             if o.supersededBy != nil { queued[o.ticket] = nil; continue }   // the newer save's outcome decides
@@ -476,6 +484,10 @@ struct SceneSegment: Identifiable {
                 failed = true
             }
         }
+        if let s = structural, wait == nil || structuralOutcome != nil {   // a failed wait: as a failed edit
+            structural = nil
+            s.landed(structuralOutcome)
+        }
         guard let wait else {   // the wait itself failed: stop, the scenes stay dirty for the next save
             queued.removeAll()
             countQueued()
@@ -484,7 +496,7 @@ struct SceneSegment: Identifiable {
         if writesHeld != wait.held { writesHeld = wait.held }
         countQueued()
         if failed { onSaveFailed?() }
-        if queued.isEmpty { return finishWaiting() }
+        if queued.isEmpty && structural == nil { return finishWaiting() }
         if wait.held { runWaiters() }   // a close or quit asks now instead of waiting ([T-0570])
         return true
     }
@@ -497,8 +509,10 @@ struct SceneSegment: Identifiable {
     }
 
     private func runWaiters() {
-        let waiters = offMainWaiters
+        // A held structural edit cannot land until the drive is back: a close or quit asks rather than waits for it.
+        let waiters = offMainWaiters + (writesHeld ? structuralWaiters : [])
         offMainWaiters = []
+        if writesHeld { structuralWaiters = [] }
         for w in waiters { w() }
     }
 
@@ -508,7 +522,7 @@ struct SceneSegment: Identifiable {
     func whenOffMainWritesLand(_ then: @escaping @MainActor () -> Void) {
         whenScenesLand { [weak self] in
             guard let self else { return then() }
-            if self.structuralInFlight { self.structuralWaiters.append(then) } else { then() }
+            if self.structuralInFlight && !self.writesHeld { self.structuralWaiters.append(then) } else { then() }
         }
     }
 
@@ -529,21 +543,24 @@ struct SceneSegment: Identifiable {
     /// Tests: the main-thread core calls this editor's structural edits made (AC: none of their own).
     @ObservationIgnored let structuralCalls = StructuralCallSink()
 
-    /// Runs ONE structural edit: every unsaved scene is written first (the core refuses a caret scene that is not what is on
-    /// disk), then `call` runs OFF the main actor, then `landed` runs on it with the outcome. ⛔ Returns false, doing
-    /// nothing, while another structural edit is in flight (Q5: ignored, not queued).
+    /// Runs ONE structural edit through the write queue ([SP-196], W7): every unsaved scene is queued first (W7b), then
+    /// `enqueue` queues the job OFF the main actor and returns its ticket; the job's result comes back in its outcome
+    /// (W7-Q1 (a)), `finish` turns it into `T` off the main actor, and `landed` runs on it. ⛔ Returns false, doing nothing,
+    /// while another structural edit is in flight (Q5: ignored, not queued) or the queue is held ([SP-195] Q1 (a)).
     @discardableResult
     func runStructural<T: Sendable>(_ label: String, ref: AuthorshipRef,
-                                    _ call: @escaping @Sendable (ScriviEngine) throws -> T,
+                                    enqueue: @escaping @Sendable (ScriviEngine) throws -> Int64,
+                                    finish: @escaping @Sendable (ScriviEngine, RangeOperationResult) -> T,
                                     landed: @escaping @MainActor (Result<T, Error>) -> Void) -> Bool {
-        guard !structuralInFlight else { return false }
+        guard !structuralInFlight, !writesHeld else { return false }
         return StructuralCallAccounting.$sink.withValue(structuralCalls) {
-            startStructural(label, ref: ref, call, landed: landed)
+            startStructural(label, ref: ref, enqueue: enqueue, finish: finish, landed: landed)
         }
     }
 
     private func startStructural<T: Sendable>(_ label: String, ref: AuthorshipRef,
-                                              _ call: @escaping @Sendable (ScriviEngine) throws -> T,
+                                              enqueue: @escaping @Sendable (ScriviEngine) throws -> Int64,
+                                              finish: @escaping @Sendable (ScriviEngine, RangeOperationResult) -> T,
                                               landed: @escaping @MainActor (Result<T, Error>) -> Void) -> Bool {
         structuralInFlight = true
         structuralGeneration += 1
@@ -555,17 +572,12 @@ struct SceneSegment: Identifiable {
             guard let self, self.structuralInFlight, self.structuralGeneration == generation else { return }
             self.structuralProgress = label
         }
-        // EP-052: the unsaved scenes are queued first; the core call waits for them itself (W3), and fails at once if the
-        // queue is held ([SP-195] Q1 (a)), so the edit is refused rather than run over a lost save.
-        _ = saveScenesOffMain(segments.indices, engine: engine, ref: ref)
-        let engine = engine
-        Task { @MainActor [weak self] in   // inherits the caller's StructuralCallAccounting sink
-            let outcome: Result<T, Error> = await Task.detached(priority: .userInitiated) {
-                ScriviDiag.span("structural: \(label) core call", always: true) { Result { try call(engine) } }
-            }.value
+        let done: @MainActor (Result<T, Error>) -> Void = { [weak self] outcome in
             guard let self else { return }
             self.structuralInFlight = false
-            ScriviDiag.span("structural: \(label) applied", always: true) { landed(outcome) }
+            StructuralCallAccounting.$sink.withValue(self.structuralCalls) {
+                ScriviDiag.span("structural: \(label) applied", always: true) { landed(outcome) }
+            }
             ScriviDiag.note(String(format: "structural: %@ %@ after %.0f ms in all", label,
                                    (try? outcome.get()) == nil ? "FAILED" : "landed", Date().timeIntervalSince(began) * 1000))
             // ✅ [SP-188] Q6: an edit that starts another as it lands (a paste over a cut selection) keeps the row.
@@ -573,6 +585,27 @@ struct SceneSegment: Identifiable {
             let waiters = self.structuralWaiters
             self.structuralWaiters = []
             for w in waiters { w() }
+        }
+        // W7b: the queue's order replaces "save first" — the job runs on what these saves wrote.
+        _ = saveScenesOffMain(segments.indices, engine: engine, ref: ref)
+        let engine = engine
+        Task { @MainActor [weak self] in
+            let queued = await Task.detached(priority: .userInitiated) { Result { try enqueue(engine) } }.value
+            guard let self else { return }
+            let ticket: Int64
+            do { ticket = try queued.get() } catch { return done(.failure(error)) }
+            ScriviDiag.note("structural: \(label) queued, ticket \(ticket)")
+            let landed: @MainActor (WriteQueueWait.WriteOutcome?) -> Void = { outcome in
+                guard let outcome, let result = outcome.range else {
+                    return done(.failure(outcome?.error ?? ScriviError(code: -1, message: "the write queue could not be read")))
+                }
+                Task { @MainActor in
+                    done(.success(await Task.detached(priority: .userInitiated) { finish(engine, result) }.value))
+                }
+            }
+            if let early = self.unclaimedStructural.removeValue(forKey: ticket) { return landed(early) }
+            self.structural = (ticket, landed)
+            self.startWaiting()
         }
         return true
     }
