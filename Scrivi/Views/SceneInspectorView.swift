@@ -29,6 +29,9 @@ struct SceneInspectorView: View {
     var openObjectDetail: ((String, String, String, String) -> Void)? = nil
     @Bindable var layout: InspectorLayoutStore
 
+    /// SP-197 (EP-052 S3): ONE read per scene for every tab and card, off the main actor.
+    @State private var reader = SceneInspectorReader()
+
     // Pane width is a per-device view preference (unlike the layout itself), so it
     // stays in UserDefaults rather than inspector-layout.json.
     // ⛔ T-0546: `@AppStorage("inspectorPaneWidth")` IS RETIRED. The platform owns the
@@ -88,6 +91,13 @@ struct SceneInspectorView: View {
             selectedTabContent
                 .frame(maxHeight: .infinity)
         }
+        // Re-read on a scene change, a world's availability (I-0128), a Detail Sheet save (I-0155), or the Sources card
+        // joining the Writing stack (it needs the second hop).
+        .task(id: readKey) {
+            guard let sceneID, let projectRootPath else { return }
+            reader.want(engine: engine, projectRootPath: projectRootPath, sceneID: sceneID,
+                        includeCitations: wantsCitations, key: readKey)
+        }
         // ⚠️ T-0545 / [I-0203] — THE TAB BAR IS A `safeAreaBar`, NOT A STACK SIBLING.
         //
         // ⛔ It was the last member of the VStack above, so it competed for vertical space
@@ -104,6 +114,15 @@ struct SceneInspectorView: View {
                 tabBar
             }
         }
+    }
+
+    private var wantsCitations: Bool {
+        guard let sceneID else { return false }
+        return layout.resolvedStack(sceneID: sceneID, stack: .writing).entries.contains { $0.type == SourcesCard.typeID }
+    }
+
+    private var readKey: String {
+        "\(projectRootPath ?? "")#\(sceneID ?? "")#\(worldRevision)#\(objectRevision)#\(wantsCitations)"
     }
 
     // MARK: — Tab content
@@ -124,6 +143,7 @@ struct SceneInspectorView: View {
                                    onObjectChanged: onObjectChanged,
                                    authorshipRef: authorshipRef,
                                    openObjectDetail: openObjectDetail,
+                                   inspector: reader,
                                    layout: layout)
         case .worldbuilding:
             InspectorCardStackView(stack: .worldbuilding,
@@ -138,11 +158,13 @@ struct SceneInspectorView: View {
                                    onObjectChanged: onObjectChanged,
                                    authorshipRef: authorshipRef,
                                    openObjectDetail: openObjectDetail,
+                                   inspector: reader,
                                    layout: layout)
         case .properties:
             ScenePropertiesView(sceneID: sceneID,
                                 projectRootPath: projectRootPath,
-                                engine: engine)
+                                engine: engine,
+                                reader: reader)
         }
     }
 

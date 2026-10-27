@@ -335,8 +335,7 @@ void SceneInspector::setScene(const QString& sceneID)
     flushPendingEdits();
 
     sceneID_ = sceneID;
-    reload();
-    loadSceneNotes();
+    reload();   // ✅ SP-197: the notes come in the same read
 }
 
 void SceneInspector::forgetScene(const QString& sceneID)
@@ -357,13 +356,19 @@ void SceneInspector::forgetScene(const QString& sceneID)
 // ⚠️ This runs on a WORKER THREAD: C ABI calls and locals ONLY. No widgets, no
 // models, no member writes. Everything it learns comes back in this struct and is
 // applied on the UI thread by `applyReload`.
+//
+// ✅ SP-197 (EP-052 S3): ONE call now — `loadSceneInspector`, the notes included, so a click or a scroll into a scene makes
+// no file operation on the UI thread at all (the notes were its last two, Background Writes v0.2 §1b).
 struct SceneInspector::ReloadPayload {
     QVariantMap edgesResult;
     QVariantMap objectsResult;
     QVariantMap worldsResult;
+    QVariantMap notesResult;
     bool edgesFailed   = true;
     bool objectsFailed = true;
     bool worldsFailed  = true;
+    bool notesFailed   = true;
+    qint64 revision    = -1;
 };
 
 void SceneInspector::reload()
@@ -392,31 +397,60 @@ void SceneInspector::reload()
     const QString root   = projectRootPath_;
     const QString scene  = sceneID_;
 
-    // ⚠️ Tell the writer we are working BEFORE the wait, not after. Without this
-    // the panel simply sits there looking broken.
-    setStatusLine(tr("Loading this scene's objects…"), false);
+    // ✅ SP-197 Q2: the last scene's contents stay, dimmed and taking no edits, while the read is out; "Loading…" after
+    // 400 ms. (⚠️ The Writing fields take no edits IN FACT: `loadingNotes_` blocks every commit, so an old scene's notes
+    // can never be written into this one.)
+    const int generation = ++reloadGeneration_;
+    loadingNotes_ = true;
+    setWritingEnabled(false);
+    if (tree_ != nullptr) { tree_->setEnabled(false); }
+    QTimer::singleShot(400, this, [this, generation] {
+        if (generation == reloadGeneration_) { setStatusLine(tr("Loading…"), false); }
+    });
 
     AsyncCall::run<ReloadPayload>(
         this,
         [bridgeHandle, root, scene]() -> ReloadPayload {
             WorkerBridge bridge(bridgeHandle);
             ReloadPayload p;
-            p.edgesResult   = bridge->listEdgesFor(root, scene);
-            p.edgesFailed   = bridge->lastCallFailed();
-            p.objectsResult = bridge->listObjects(root, QString());
-            p.objectsFailed = bridge->lastCallFailed();
-            p.worldsResult  = bridge->listWorlds(root);
-            p.worldsFailed  = bridge->lastCallFailed();
+            const QVariantMap all = bridge->loadSceneInspector(root, scene, false);
+            if (bridge->lastCallFailed()) { return p; }   // every part failed
+            p.revision = bridge->lastRevision();
+            auto part = [&all](const char* key, QVariantMap& out, bool& failed) {
+                failed = all.contains(QLatin1String(key) + QLatin1String("Error"));
+                out = all.value(QLatin1String(key)).toMap();
+            };
+            part("edges",   p.edgesResult,   p.edgesFailed);
+            part("objects", p.objectsResult, p.objectsFailed);
+            part("worlds",  p.worldsResult,  p.worldsFailed);
+            part("notes",   p.notesResult,   p.notesFailed);
             return p;
         },
-        [this, scene](const ReloadPayload& p) {
+        [this, scene, root, generation](const ReloadPayload& p) {
             // ⚠️ The active scene may have changed while we waited. Applying a
             // stale payload would show one scene's objects under another's name.
-            if (scene != sceneID_) { return; }
+            if (scene != sceneID_ || generation != reloadGeneration_) { return; }
+            // D4: the project changed since it was read — read again. shortcut: after 3 lost races the last read is
+            // applied anyway, since autosave can bump the revision faster than a slow share answers.
+            if (p.revision >= 0 && reloadAttempts_ < 2 && bridge_ != nullptr
+                && bridge_->projectRevision(root) != p.revision) {
+                ++reloadAttempts_;
+                reload();
+                return;
+            }
+            reloadAttempts_ = 0;
+            ++reloadGeneration_;   // the "Loading…" cue is moot
+            if (tree_ != nullptr) { tree_->setEnabled(true); }
             applyReload(p);
+            applyNotes(p.notesResult, p.notesFailed);
         },
-        [this, scene]() {
-            if (scene != sceneID_) { return; }
+        [this, scene, generation]() {
+            if (scene != sceneID_ || generation != reloadGeneration_) { return; }
+            ++reloadGeneration_;
+            reloadAttempts_ = 0;
+            if (tree_ != nullptr) { tree_->setEnabled(true); }
+            applyNotes({}, true, tr("This scene's notes are taking longer than expected to read — the project may be "
+                                    "on a disconnected or unreachable volume. Nothing has been lost."));
             // ⚠️ HONEST, and NOT a claim about the data. The world may be
             // perfectly intact on a volume we cannot reach -- saying anything
             // stronger invites the destructive remedies I-0115 warns about.
@@ -853,13 +887,29 @@ void SceneInspector::loadSceneNotes()
         return;
     }
 
-    const QVariantMap notes = bridge_->getSceneNotes(projectRootPath_, sceneID_);
-    if (bridge_->lastCallFailed()) {
+    // ✅ SP-197: a scene's notes arrive with its one read (`reload`), off the UI thread.
+    reload();
+}
+
+void SceneInspector::applyNotes(const QVariantMap& notes, bool failed, const QString& why)
+{
+    loadingNotes_ = true;
+    if (failed) {
         // ⚠️ Distinguish "could not read" from "nothing written yet" — an empty
         // outline and an unreadable scene must never look the same. And DISABLE
         // editing: writing into fields we could not load would overwrite notes
         // we never saw.
-        clearAll(tr("This scene's notes could not be read."));
+        if (tagsEdit_)     { tagsEdit_->clear(); }
+        if (outlineEdit_)  { outlineEdit_->clear(); }
+        if (todoEdit_)     { todoEdit_->clear(); }
+        loadedOutline_.clear();
+        loadedTodo_.clear();
+        for (QLabel* l : {propTitle_, propWords_, propChars_, propCreated_, propModified_}) {
+            if (l) { l->clear(); }
+        }
+        const QString line = why.isEmpty() ? tr("This scene's notes could not be read.") : why;
+        if (writingStatus_) { writingStatus_->setText(line); }
+        if (propStatus_)    { propStatus_->setText(line); }
         setWritingEnabled(false);
         loadingNotes_ = false;
         return;

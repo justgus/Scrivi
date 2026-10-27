@@ -922,13 +922,15 @@ void EditorShell::applyLoadedProject(const QString& projectPath,
 
     // EP-025: build the timeline dots from the backend story-time now that the
     // segments + activeSegment are set. ✅ SP-173 / I-0285 (D4): from the worker's read, if the project has not changed since
-    // (one cheap revision check, no file touched); otherwise read again — one call, on this thread.
+    // (one cheap revision check, no file touched). ✅ SP-197 (EP-052 S3): otherwise it is drawn anyway and read again on a
+    // worker — never on this thread (Apple: `ProjectSession.rereadTimeline`).
     if (payload.timeline.fetched && payload.timeline.revision == bridge_->projectRevision(projectPath_)) {
         applyTimelineData(payload.timeline);
         loadLog("main: timeline applied from the worker's read — applyLoaded done");
     } else {
-        reloadTimeline();
-        loadLog("main: timeline RE-READ (project changed since the worker read it) — applyLoaded done");
+        applyTimelineData(payload.timeline);
+        rereadTimelineOffThread(3);
+        loadLog("main: timeline re-read on a worker (project changed since the worker read it) — applyLoaded done");
     }
     // EP-026 S5 (SP-179): this project's copy buffers (a reload of the same project keeps them).
     // ⚠️ AFTER the timeline check above, never before: `scrivi_buffers_list` takes the core's project WRITE guard, which
@@ -3346,6 +3348,30 @@ void EditorShell::pickStoryStructure()
         setTimelineVisible(true);
     }
     chooseStoryStructure(QCursor::pos());
+}
+
+// SP-197 — the timeline read on a worker and applied if the project has not changed since (D4). shortcut: the last of
+// `attempts` reads is applied anyway, since autosave can bump the revision faster than a slow share answers.
+void EditorShell::rereadTimelineOffThread(int attempts)
+{
+    if (timeline_ == nullptr || bridge_ == nullptr || attempts <= 0) { return; }
+    const WorkerBridge::Handle bridgeHandle = WorkerBridge::handleFor(bridge_);   // ✅ [I-0309]: never `bridge_` itself
+    const QString path = projectPath_;
+    AsyncCall::run<TimelineData>(
+        this,
+        [bridgeHandle, path]() -> TimelineData {
+            WorkerBridge bridge(bridgeHandle);
+            return fetchTimelineData(&*bridge, path);
+        },
+        [this, path, attempts](const TimelineData& d) {
+            if (path != projectPath_ || !d.fetched) { return; }
+            if (attempts > 1 && d.revision != bridge_->projectRevision(path)) {
+                rereadTimelineOffThread(attempts - 1);
+                return;
+            }
+            applyTimelineData(d);
+        },
+        [] {}, AsyncCall::kProjectOpenTimeoutMs);
 }
 
 void EditorShell::reloadTimeline()

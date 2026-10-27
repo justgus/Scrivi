@@ -72,6 +72,17 @@ public extension ScriviEngine {
     /// Rows whose far endpoint sits in an unavailable world come back with
     /// `otherPending == true` plus a cached `otherDisplayName` — named, never a
     /// bare ID, which is what makes pending presentation possible (Doc 2 §7.2).
+    /// SP-197 (v0.2 R3b) — everything the Inspector shows for one scene in ONE crossing, under ONE project lock; `revision`
+    /// is the state it describes. Read-only; safe off the main actor.
+    func loadSceneInspector(projectRootPath: String, sceneID: String,
+                            includeCitations: Bool) throws -> SceneInspectorRead {
+        let raw = projectRootPath.withCString { prp in
+            sceneID.withCString { scrivi_load_scene_inspector(prp, $0, includeCitations ? 1 : 0) }
+        }
+        let (parts, revision): (SceneInspectorParts, Int64) = try decodeCWithRevision(raw)
+        return SceneInspectorRead(sceneID: sceneID, parts: parts, revision: revision)
+    }
+
     func listEdgesFor(projectRootPath: String, endpointID: String) throws -> ListEdgesResult {
         let raw = projectRootPath.withCString { prp in
             endpointID.withCString { eid in
@@ -268,6 +279,54 @@ public extension ScriviEngine {
 //
 // Outside the #if: the visionOS stub shares them, exactly as ScriviEngine.swift's
 // result types do.
+
+/// SP-197 — `scrivi_load_scene_inspector`'s result. Each part is its standalone endpoint's result, or that part's error
+/// (a failing part never fails the others: a card reports its own trouble in place, §7.1).
+public struct SceneInspectorRead: Sendable {
+    public let sceneID: String
+    public let parts: SceneInspectorParts
+    public let revision: Int64
+}
+
+public struct SceneInspectorParts: Decodable, Sendable {
+    public let notes:   Result<SceneNotesResult, ScriviError>
+    public let edges:   Result<ListEdgesResult, ScriviError>
+    public let objects: Result<ListObjectsResult, ScriviError>
+    public let worlds:  Result<ListWorldsResult, ScriviError>
+    /// Each far object's own edges, by objectID; nil when not asked for. A pending object (its world away) is absent.
+    public let citations: Result<[String: [EdgeView]], ScriviError>?
+
+    private struct Citation: Decodable { let objectID: String; let edges: [EdgeView]? }
+    private struct Citations: Decodable { let objects: [Citation]? }
+    private struct AnyKey: CodingKey {
+        let stringValue: String
+        init(_ s: String) { stringValue = s }
+        init?(stringValue: String) { self.stringValue = stringValue }
+        var intValue: Int? { nil }
+        init?(intValue: Int) { nil }
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: AnyKey.self)
+        func part<T: Decodable>(_ key: String) throws -> Result<T, ScriviError> {
+            if let e = try c.decodeIfPresent(ErrorPayload.self, forKey: AnyKey(key + "Error")) {
+                return .failure(ScriviError(code: e.code, message: e.message, detail: e.detail, path: e.path))
+            }
+            return .success(try c.decode(T.self, forKey: AnyKey(key)))
+        }
+        notes   = try part("notes")
+        edges   = try part("edges")
+        objects = try part("objects")
+        worlds  = try part("worlds")
+        if c.contains(AnyKey("citations")) || c.contains(AnyKey("citationsError")) {
+            citations = (try part("citations") as Result<Citations, ScriviError>).map { list in
+                Dictionary((list.objects ?? []).map { ($0.objectID, $0.edges ?? []) }, uniquingKeysWith: { a, _ in a })
+            }
+        } else {
+            citations = nil
+        }
+    }
+}
 
 public struct EdgeResult: Decodable, Sendable {
     public let edgeID:       String

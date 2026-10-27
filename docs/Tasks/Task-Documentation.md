@@ -782,6 +782,9 @@ archive files reconstructed after the fact from secondary sources.
 | T-0626 | `[Cross]` Every scene save through the queue, Mac and Linux | 🟡 **SP-195** | **EP-052** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
 | T-0627 | `[Cross]` Structural edits through the queue, and the gesture cues | 🟡 **SP-196** | **EP-052** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
 | T-0628 | `[Cross]` Keep a held queue on local disk, push it when the project returns | — | **EP-052** | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
+| T-0629 | `[ScriviCore]` One Inspector read per scene, and the per-scene searchable text | SP-197 | **EP-052** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
+| T-0630 | `[Cross]` The Inspector and the timeline read off the main thread, revision-checked | SP-197 | **EP-052** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
+| T-0631 | `[Apple]` Spotlight on one serial background queue, per-scene, behind the saves | SP-197 | **EP-052** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
 | T-0592 | `[Apple]` E2-S3: formatting commands + lists + Option-Return | 🟡 **SP-163** | **EP-046** | ✅ **Verified 2026-10-06** | [`Task-verified-0592.md`](Verified/Task-verified-0592.md) |
 | T-0591 | `[Apple]` Balance emphasis across SCENE boundaries (cross-scene cut/copy/paste) | 🟡 **SP-163** | **EP-046** | ✅ **Verified 2026-10-06** | [`Task-verified-0591.md`](Verified/Task-verified-0591.md) |
 | T-0590 | `[Apple]` E2-S2: bold and italic + span reveal + the split rule | ✅ **SP-162** | **EP-046** | ✅ **Verified 2026-10-05** | [`Task-verified-0590.md`](Verified/Task-verified-0590.md) |
@@ -819,6 +822,12 @@ archive files reconstructed after the fact from secondary sources.
 ⚠️ **This index ended at `T-0485 (next available)` until 2026-09-10 — ✅ that was STALE.** ⚠️ **T-0485–T-0498 had all been taken**, and T-0485–T-0490/T-0492–T-0496 are archived as Verified. ⚠️ **Rows for T-0486–T-0497 are NOT reconstructed here** — ✅ **their Sprints' closed records are authoritative** (`feedback_archive_on_close`).
 
 ---
+
+*Last Updated: 2026-10-27 (**T-0629–T-0631 → 🟠 Implemented - Not Verified**.)*
+
+*Last Updated: 2026-10-27 (**T-0629–T-0631 → active** with SP-197.)*
+
+*Last Updated: 2026-10-27 (**T-0629–T-0631 filed** for SP-197, EP-052 S3, 🔵 Planning.)*
 
 *Last Updated: 2026-10-27 (**T-0627 → 🟠 Implemented - Not Verified**.)*
 

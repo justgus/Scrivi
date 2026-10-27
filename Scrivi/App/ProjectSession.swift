@@ -91,6 +91,8 @@ import os
     // Spotlight domain identifier (projectID) for this project — retained so we can
     // delete-by-domain on close after openProjectResult is cleared.
     private var spotlightDomainIdentifier: String?
+    /// SP-197: this project's pending Spotlight work; `close()` cancels it.
+    private var spotlightJob = SpotlightDonor.Job()
 
     // Security-scoped access currently held for a deep-link-opened project, so we can
     // release it on close. nil when the open project came from the panel.
@@ -319,14 +321,15 @@ import os
         NSLog("[SCRIVI-TIMING] >>> entering: TimelineViewModel.load")
         ScriviDiag.measure("TimelineViewModel.load") {
             // ✅ SP-173 / I-0285 (D4): the worker's read, if the project has not changed since (one revision check, no file
-            // touched); otherwise read it again here — one call.
+            // touched). ✅ SP-197 (EP-052 S3): otherwise it is drawn anyway and read again OFF the main actor, never here.
             if let timelineRead,
                let now = try? engine.projectRevision(projectRootPath: path), now == timelineRead.revision {
                 tlModel.apply(timelineRead, scenes: result.scenes)
                 timelineAppliedFromWorker = true
             } else {
-                tlModel.load(engine: engine, projectRootPath: path, scenes: result.scenes)
+                tlModel.apply(timelineRead, scenes: result.scenes)
                 timelineAppliedFromWorker = false
+                rereadTimeline(tlModel, projectRootPath: path, loader: loader)
             }
         }
         // SP-173 (Q1): what the exclusive project lock has cost this process so far.
@@ -389,8 +392,12 @@ import os
     // Tears down this session's project: deletes Spotlight items by domain, releases any
     // security-scoped access, and clears all per-project state.
     func close() {
-        if let domain = spotlightDomainIdentifier {
-            SpotlightDonor.deleteProject(domainIdentifier: domain)
+        // ✅ SP-197: a pending donation is cancelled; the delete runs behind one already started. The domain is the
+        // projectID (the core's), so it is known even when the open's donation has not landed yet.
+        spotlightJob.cancel()
+        spotlightJob = SpotlightDonor.Job()
+        if let domain = spotlightDomainIdentifier ?? openProjectResult?.projectID {
+            SpotlightDonor.enqueueDelete(domainIdentifier: domain)
         }
         spotlightDomainIdentifier = nil
 
@@ -533,31 +540,51 @@ import os
         // Measured cost of getting this wrong: `scrivi_extract_searchable_text` re-read
         // all 1,159 scene bodies on every `willResignActive` with `dirty=0` — 280 ms of
         // blocking main-thread work per resign, to discover nothing had changed.
-        let hadDirtyBodies = loader.segments.contains { $0.isDirty }
+        let dirtySceneIDs = loader.segments.filter(\.isDirty).map(\.sceneID)
 
         await loader.saveAllDirty(engine: engine, ref: ref)
 
-        // Re-donate ONLY when a scene body actually changed.
-        if hadDirtyBodies, let path = projectRootPath {
-            donateSpotlight(projectRootPath: path)
+        // Re-donate ONLY when a scene body actually changed — ✅ SP-197 (v0.2 S3): only THOSE scenes, off the main actor.
+        if !dirtySceneIDs.isEmpty, let path = projectRootPath {
+            let engine = self.engine
+            SpotlightDonor.enqueue(spotlightJob) {
+                try engine.extractSearchableScenes(projectRootPath: path, sceneIDs: dirtySceneIDs)
+            }
         } else {
             NSLog("[SCRIVI-DIAG] spotlight: SKIPPED re-index (no dirty scene bodies)")
         }
     }
 
+    /// SP-197 — the timeline read again off the main actor, applied if the project has not changed since (D4).
+    /// shortcut: after 3 lost revision races the last read is applied anyway (autosave can outpace a slow share).
+    private func rereadTimeline(_ model: TimelineViewModel, projectRootPath path: String, loader: ViewportSceneLoader) {
+        let engine = self.engine
+        Task { [weak self] in
+            for attempt in 1...3 {
+                guard let read = await Task.detached(priority: .userInitiated, operation: {
+                    try? engine.loadTimeline(projectRootPath: path)
+                }).value else { return }
+                guard let self, self.timelineModel === model else { return }
+                if attempt < 3, let now = try? engine.projectRevision(projectRootPath: path), now != read.revision {
+                    continue
+                }
+                model.apply(read, scenes: loader.allScenes)
+                model.updateDotTitles(liveTitles: loader.liveTitles, allScenes: loader.allScenes)
+                return
+            }
+        }
+    }
+
     // Fetches the project's indexable records via the facade and donates them to
     // Spotlight. Best-effort: indexing failures must never disrupt open/save.
+    // ✅ SP-197 (EP-052 S3): on the Spotlight serial queue, never the main actor; only the domain lands here.
     func donateSpotlight(projectRootPath path: String) {
-        let log = Logger(subsystem: "com.caposoft.scrivi", category: "Spotlight")
-        do {
-            log.notice("extract: requesting searchable content for \(path, privacy: .public)")
-            let content = try engine.extractSearchableText(projectRootPath: path)
-            log.notice("extract OK: \(content.items.count, privacy: .public) records")
-            spotlightDomainIdentifier = content.domainIdentifier
-            SpotlightDonor.donate(content)
-        } catch {
-            log.error("extract FAILED: \(String(describing: error), privacy: .public)")
-        }
+        let engine = self.engine
+        SpotlightDonor.enqueue(spotlightJob, extract: {
+            Logger(subsystem: "com.caposoft.scrivi", category: "Spotlight")
+                .notice("extract: requesting searchable content for \(path, privacy: .public)")
+            return try engine.extractSearchableText(projectRootPath: path)
+        }, landed: { [weak self] domain in self?.spotlightDomainIdentifier = domain })
     }
 }
 

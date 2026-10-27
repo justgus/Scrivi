@@ -531,6 +531,7 @@ private:
     // (no work mid-assembly beyond the final call). Also caches per-scene
     // offsetMs/durationMs into timelineOffsets_/timelineDurations_ for the picker flow.
     void reloadTimeline();
+    void rereadTimelineOffThread(int attempts);   // ✅ SP-197: the load's stale timeline, read again on a worker
 
     // Shared picker flow (SP-080, T-0328): open the Time Delta Picker for `sceneID`
     // seeded with `seedOffsetMs`, then apply the result — write the scene's story-time

@@ -1,5 +1,6 @@
 import Foundation
 import os
+import Synchronization
 
 #if canImport(CoreSpotlight) && os(macOS)
 import CoreSpotlight
@@ -21,6 +22,42 @@ private let spotlightLog = Logger(subsystem: "com.caposoft.scrivi", category: "S
 // All operations are best-effort: failures are logged, never thrown, so indexing
 // can never block or crash the writing flow.
 enum SpotlightDonor {
+
+    /// SP-197 (EP-052 S3, Background Writes v0.2 §5 S1–S4) — EVERY Spotlight call runs here, one at a time, off the
+    /// main thread: Apple's one rule for `CSSearchableIndex` is one thread or task at a time.
+    /// ⛔ The open's extraction ran on the main actor (353 s for dumas over the loop), and the app switch's again.
+    private static let queue = DispatchQueue(label: "com.caposoft.scrivi.spotlight", qos: .utility)
+
+    /// A project's pending Spotlight work; a close cancels it, so a job not yet started never donates.
+    final class Job: Sendable {
+        private let cancelled = Mutex(false)
+        func cancel() { cancelled.withLock { $0 = true } }
+        var isCancelled: Bool { cancelled.withLock { $0 } }
+    }
+
+    /// Extracts (a read job: the core runs it behind the project's queued saves) and donates, on the serial queue.
+    /// `landed` gets the project's domain, on the main actor.
+    static func enqueue(_ job: Job, extract: @escaping @Sendable () throws -> SearchableContentResult,
+                        landed: @escaping @MainActor @Sendable (String) -> Void = { _ in }) {
+        queue.async {
+            guard !job.isCancelled else { return }
+            do {
+                let content = try extract()
+                guard !job.isCancelled else { return }
+                spotlightLog.notice("extract OK: \(content.items.count, privacy: .public) records")
+                donate(content)
+                let domain = content.domainIdentifier
+                Task { @MainActor in landed(domain) }
+            } catch {
+                spotlightLog.error("extract FAILED: \(String(describing: error), privacy: .public)")
+            }
+        }
+    }
+
+    /// A project's close: behind any donation already started, so none lands after it.
+    static func enqueueDelete(domainIdentifier: String) {
+        queue.async { deleteProject(domainIdentifier: domainIdentifier) }
+    }
 
     // Re-donates every searchable item for a project. Indexing the same
     // uniqueIdentifier again updates the existing entry, so this doubles as the
@@ -121,6 +158,10 @@ enum SpotlightDonor {
 
 // Non-macOS / no CoreSpotlight: donations are a no-op so call sites need no guards.
 enum SpotlightDonor {
+    final class Job: Sendable { func cancel() {} }
+    static func enqueue(_ job: Job, extract: @escaping @Sendable () throws -> SearchableContentResult,
+                        landed: @escaping @MainActor @Sendable (String) -> Void = { _ in }) {}
+    static func enqueueDelete(domainIdentifier: String) {}
     static func donate(_ content: SearchableContentResult) {}
     static func deleteProject(domainIdentifier: String) {}
 }

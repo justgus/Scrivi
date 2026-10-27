@@ -46,6 +46,9 @@ struct ProjectCallContext {
     int64_t lockWaitMs = 0;
     // [SP-188] AC11 / EP-052 inventory: which endpoint, since when (after the lock), and the file operations before it.
     const char* endpoint = "";
+    // [SP-197] the root as the caller spelled it (alive for the call), so a test can count one project's calls apart from
+    // others running in the same process.
+    const char* project = "";
     std::chrono::steady_clock::time_point started{};
     int64_t fileOpsAtStart = 0;
 };

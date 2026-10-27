@@ -149,6 +149,8 @@ struct CoreCallTrace: Decodable, Sendable {
     let endpoint: String
     let ms: Int64
     let fileOps: Int64
+    /// [SP-197] the project root as the caller passed it.
+    let project: String?
 }
 
 struct ErrorPayload: Decodable {

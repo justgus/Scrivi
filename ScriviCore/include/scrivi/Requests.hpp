@@ -8,6 +8,7 @@
 
 #include <cstdint>
 #include <optional>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -468,6 +469,10 @@ struct ExportProjectTimelineRequest  { AbsolutePath projectRootPath; };
 
 struct ExtractSearchableTextRequest {
     AbsolutePath projectRootPath;
+    // SP-197: only the scene records whose IDs are listed (no project record, no objects, no worlds) — a re-index of
+    // the scenes typed in.
+    bool scenesOnly = false;
+    std::set<std::string> sceneIDs;
 };
 
 } // namespace scrivi

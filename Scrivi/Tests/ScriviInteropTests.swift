@@ -8477,6 +8477,86 @@ struct StructuralCutTests {
     }
 }
 
+// MARK: - [SP-197] EP-052 AC8 — no file operation on the main thread
+
+/// ✅ A GATE, unlike the inventory below: a click, a selection, a scroll, a navigator click and the Inspector following to a
+/// new scene make NO file operation on the main thread (v0.2 R1, R3). Over a share each one is a network round trip.
+@Suite("Main thread: no file operation for the caret, the scroll or the Inspector (SP-197)")
+@MainActor
+struct MainThreadNoFileOpsTests {
+    @Test("click, select, scroll, navigator and the Inspector following: 0 file operations on the main thread")
+    func gestures() async throws {
+        let bodies = (0..<12).map { "Scene \($0). He wrote at speed, for serial publication." }
+        let h = try await UndoAfterStructuralOpTests().harness(bodies)
+        let engine = h.env.engine, root = h.root.path
+        let scene = h.loader.segments[9].sceneID
+        _ = try engine.setSceneTags(projectRootPath: root, sceneID: scene, tags: ["dawn"])
+        func mainThreadFileOps(_ body: () async throws -> Void) async throws -> (ops: Int64, calls: Int, who: [String]) {
+            try await Task.sleep(for: .milliseconds(300))            // the previous gesture's follow-ups land first
+            mainThreadCoreCalls.withLock { $0 = [] }
+            try await body()
+            try await Task.sleep(for: .milliseconds(300))
+            // Only THIS project's calls: other suites run beside this one, on the same main thread.
+            let calls = mainThreadCoreCalls.withLock { c in defer { c = nil }; return c ?? [] }.filter { $0.project == root }
+            return (calls.reduce(0) { $0 + $1.fileOps }, calls.count, calls.filter { $0.fileOps > 0 }.map(\.endpoint))
+        }
+
+        var r = try await mainThreadFileOps { h.caret(scene: 3, at: 10); h.caret(scene: 3, at: 20) }
+        #expect(r.ops == 0, "click in the same scene: \(r.who)")
+        r = try await mainThreadFileOps { h.caret(scene: 8, at: 5) }
+        #expect(r.ops == 0, "click into another scene: \(r.who)")
+        r = try await mainThreadFileOps {
+            h.c.ensureBoundaries(h.tv)
+            let start = h.c.sceneBoundaries[8].location + 5
+            h.tv.setSelectedRange(NSRange(location: start, length: h.c.sceneBoundaries[10].location + 5 - start))
+        }
+        #expect(r.ops == 0, "drag-select across scenes: \(r.who)")
+        r = try await mainThreadFileOps {
+            h.c.ensureBoundaries(h.tv)
+            h.tv.scrollRangeToVisible(NSRange(location: h.c.sceneBoundaries[11].location, length: 0))
+            h.c.scrollDidChange(Notification(name: NSView.boundsDidChangeNotification, object: h.tv.enclosingScrollView?.contentView))
+        }
+        #expect(r.ops == 0, "scroll to another scene: \(r.who)")
+        r = try await mainThreadFileOps { h.c.navigateToScene(h.loader.segments[6].sceneID, in: h.tv) }
+        #expect(r.ops == 0, "navigator click: \(r.who)")
+
+        let reader = SceneInspectorReader()
+        r = try await mainThreadFileOps {
+            reader.want(engine: engine, projectRootPath: root, sceneID: scene, includeCitations: true, key: "a")
+            for _ in 0..<500 where reader.read == nil && reader.failure == nil { try await Task.sleep(for: .milliseconds(20)) }
+        }
+        #expect(r.ops == 0, "the Inspector following: \(r.who)")
+        #expect(reader.failure == nil, "the read failed: \(String(describing: reader.failure?.error))")
+        #expect(r.calls <= 3, "only the revision checks cross on the main thread (\(r.calls))")
+        let read = try #require(reader.read)
+        #expect(read.sceneID == scene)
+        #expect((try? read.parts.notes.get().tags) == ["dawn"], "the cards are built from what the read found")
+    }
+
+    @Test("a card's own write re-reads the scene, so every card shows what landed")
+    func writeRereads() async throws {
+        let h = try await UndoAfterStructuralOpTests().harness(["One.", "Two."])
+        let engine = h.env.engine, root = h.root.path
+        let scene = h.loader.segments[1].sceneID
+        let reader = SceneInspectorReader()
+        reader.want(engine: engine, projectRootPath: root, sceneID: scene, includeCitations: false, key: "a")
+        func until(_ done: () -> Bool) async throws {   // ≤ 10 s: a read that never lands fails, never hangs the run
+            for _ in 0..<500 where !done() { try await Task.sleep(for: .milliseconds(20)) }
+        }
+        try await until { reader.read != nil || reader.failure != nil }
+        #expect(reader.failure == nil, "the read failed: \(String(describing: reader.failure?.error))")
+        let first = reader.readCount
+        let ctx = CardContext(sceneID: scene, projectRootPath: root, engine: engine, config: CardConfig(), inspector: reader)
+        let model = SceneNotesModel(engine: engine, projectRootPath: root, sceneID: scene,
+                                    notes: try #require(ctx.scenePart(\.notes)), didWrite: { reader.reload() })
+        model.addTag("ink")
+        try await until { reader.readCount != first }
+        #expect((try? reader.read?.parts.notes.get().tags) == ["ink"])
+        let again = CardContext(sceneID: scene, projectRootPath: root, engine: engine, config: CardConfig(), inspector: reader)
+        #expect((try? again.scenePart(\.notes)?.get().tags) == ["ink"])
+    }
+}
+
 // MARK: - [SP-188] AC11 / EP-052 v0.2 — the main-thread inventory
 
 /// ⚠️ A MEASUREMENT, not a gate: every core call each writer gesture makes ON THE MAIN THREAD, with its file operations — the
@@ -8526,13 +8606,11 @@ struct MainThreadInventoryTests {
         }
         try await measure("navigator click") { h.c.navigateToScene(h.loader.segments[30].sceneID, in: h.tv) }
         try await measure("the Inspector follows to a new scene (every card)") {
-            let scene = h.loader.segments[30].sceneID
-            _ = SceneNotesModel(engine: engine, projectRootPath: root, sceneID: scene)
-            SourcesCardModel(engine: engine, projectRootPath: root, sceneID: scene).load()
-            for kind in ObjectCardKind.all {
-                _ = ObjectCardModel(engine: engine, projectRootPath: root, sceneID: scene, cardKind: kind)
-                _ = try? engine.listWorlds(projectRootPath: root)
-            }
+            // ✅ SP-197: the Inspector's one read, as `SceneInspectorView` asks for it (every card is built from it).
+            let reader = SceneInspectorReader()
+            reader.want(engine: engine, projectRootPath: root, sceneID: h.loader.segments[30].sceneID,
+                        includeCitations: true, key: "inventory")
+            for _ in 0..<500 where reader.read == nil && reader.failure == nil { try await Task.sleep(for: .milliseconds(20)) }
         }
         h.caret(scene: 8, at: 5)
         try await measure("type a word") { type("quick ") }

@@ -103,6 +103,7 @@ ProjectCallGuard::ProjectCallGuard(const char* root, Kind kind, const char* endp
         context_.revision = entry_->revision;
     }
     context_.endpoint = endpoint;
+    context_.project = root != nullptr ? root : "";
     context_.started = std::chrono::steady_clock::now();
     context_.fileOpsAtStart = scrivi::util::fileOperationsOnThisThread();
     previous_ = tlsCall;

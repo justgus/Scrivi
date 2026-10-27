@@ -26,6 +26,8 @@ struct InspectorCardStackView: View {
     /// the Detail Sheet (SP-117 T-0438). Optional end to end: a host that does
     /// not offer the sheet passes nothing and no affordance appears.
     var openObjectDetail: ((String, String, String, String) -> Void)? = nil
+    /// SP-197: the shell's one read per scene, handed to every card.
+    var inspector: SceneInspectorReader? = nil
     @Bindable var layout: InspectorLayoutStore
 
     var body: some View {
@@ -139,7 +141,8 @@ struct InspectorCardStackView: View {
                                     // every card rather than each owning its own.
                                     openObjectDetail: openObjectDetail,
                                     sort: layout.sort(for: stack),
-                                    authorshipRef: authorshipRef
+                                    authorshipRef: authorshipRef,
+                                    inspector: inspector
                                 ),
                                 onToggleCollapsed: {
                                     layout.setCollapsed(!entry.collapsed,
@@ -332,9 +335,10 @@ private struct InspectorCardView: View {
 /// wrapper can change that. What isolation *does* mean here, and what AC12 is verified
 /// against:
 ///
-/// 1. **Independent data loads.** Every card fetches its own data in its own `.task`,
-///    so a failing read (`getSceneNotes`, `historyGetTree`) is confined to that card and
-///    surfaces as its inline error. No card's load is a precondition for another's.
+/// 1. **Independent failures.** ✅ SP-197: the cards share ONE read per scene
+///    (`SceneInspectorReader`), but each of its parts carries its own error, so a failing
+///    part (`notes`, `edges`, …) is confined to the cards built from it and surfaces as their
+///    inline error. No card's part is a precondition for another's.
 /// 2. **No shared mutable render state.** Cards receive a value-type `CardContext` and
 ///    hold their own `@State`; there is nothing for a failing card to corrupt.
 /// 3. **A card that renders nothing is visible as such** — this wrapper reserves the

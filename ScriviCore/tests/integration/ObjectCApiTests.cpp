@@ -1117,3 +1117,154 @@ TEST_CASE("a source with no citations is a retained orphan, like any object",
     REQUIRE(orphans.size() == 1);
     REQUIRE(orphans[0] == source);
 }
+
+// ---------------------------------------------------------------------------
+// SP-197 / EP-052 S3 — the Inspector's one read, and the per-scene searchable text, AT THE C ABI.
+// ---------------------------------------------------------------------------
+
+namespace {
+
+// A scene with a character (the default world) and an artifact (Midgard) related to it, a source citing the character, and
+// tags in its notes.
+struct InspectorScene {
+    CApiFixture fix;
+    std::string characterID, artifactID, sourceID;
+    InspectorScene() {
+        characterID = fix.makeObject("character", "Vance");
+        artifactID  = fix.makeWorldObject("artifact", "Sword of Dawn", fix.makeWorld("Midgard"));
+        sourceID    = fix.makeObject("source", "Field Notes");
+        fix.makeObject("character", "Unrelated");   // in the index, but not this scene's: narrowed out
+        const char* scene = fix.firstSceneID.c_str();
+        okResult(scrivi_create_edge(fix.root(), characterID.c_str(), scene, "appears-in", ""));
+        okResult(scrivi_create_edge(fix.root(), artifactID.c_str(), scene, "appears-in", ""));
+        okResult(scrivi_create_edge(fix.root(), sourceID.c_str(), characterID.c_str(), "cites", ""));
+        okResult(scrivi_set_scene_tags(fix.root(), scene, "[\"dawn\"]"));
+    }
+};
+
+int64_t fileOpsOf(const JsonDoc& env) { return env.getSubDoc("trace").getInt64("fileOps", -1); }
+
+} // namespace
+
+TEST_CASE("SP-197: scrivi_load_scene_inspector returns what the standalone endpoints return, in one read",
+          "[integration][capi][SP-197]") {
+    InspectorScene s;
+    const char* root  = s.fix.root();
+    const char* scene = s.fix.firstSceneID.c_str();
+
+    JsonDoc all = envelope(scrivi_load_scene_inspector(root, scene, 1));
+    INFO("envelope: " << all.dump());
+    REQUIRE(all.getBool("ok"));
+    const JsonDoc parts = all.getSubDoc("result");
+
+    JsonDoc notes  = envelope(scrivi_get_scene_notes(root, scene));
+    JsonDoc edges  = envelope(scrivi_list_edges_for(root, scene));
+    JsonDoc worlds = envelope(scrivi_list_worlds(root));
+    JsonDoc objs   = envelope(scrivi_list_objects(root, nullptr));
+    CHECK(parts.getSubDoc("notes").dump()  == notes.getSubDoc("result").dump());
+    CHECK(parts.getSubDoc("edges").dump()  == edges.getSubDoc("result").dump());
+    CHECK(parts.getSubDoc("worlds").dump() == worlds.getSubDoc("result").dump());
+    CHECK(parts.getSubDoc("notes").getStringArray("tags") == std::vector<std::string>{"dawn"});
+    CHECK(edges.getSubDoc("result").arraySize("edges") == 2);
+
+    // Objects: the scene's far endpoints only, each exactly as the full listing has it.
+    const JsonDoc narrowed = parts.getSubDoc("objects");
+    REQUIRE(narrowed.arraySize("objects") == 2);
+    const JsonDoc full = objs.getSubDoc("result");
+    for (std::size_t i = 0; i < narrowed.arraySize("objects"); ++i) {
+        const auto o = narrowed.arrayItem("objects", i);
+        CHECK((o.getString("objectID") == s.characterID || o.getString("objectID") == s.artifactID));
+        bool same = false;
+        for (std::size_t j = 0; j < full.arraySize("objects"); ++j) {
+            same = same || full.arrayItem("objects", j).dump() == o.dump();
+        }
+        CHECK(same);
+    }
+
+    // Citations: one entry per far object, each its own edge listing; the character's names the source.
+    const JsonDoc citations = parts.getSubDoc("citations");
+    REQUIRE(citations.arraySize("objects") == 2);
+    for (std::size_t i = 0; i < 2; ++i) {
+        const auto c = citations.arrayItem("objects", i);
+        JsonDoc own = envelope(scrivi_list_edges_for(root, c.getString("objectID").c_str()));
+        JsonDoc ownEdges;
+        for (std::size_t k = 0; k < own.getSubDoc("result").arraySize("edges"); ++k) {
+            ownEdges.appendToArray("edges", own.getSubDoc("result").arrayItem("edges", k));
+        }
+        CHECK(c.getSubDoc("edges").dump() == ownEdges.getSubDoc("edges").dump());   // getSubDoc: absent → {} on both
+    }
+
+    // Reads: one revision, and no more file operations than one call of each standalone endpoint; the cards made
+    // ten object listings and ten world listings per scene before (v0.2 §1a).
+    CHECK(all.getInt64("revision") == notes.getInt64("revision"));
+    const int64_t oneOfEach = fileOpsOf(notes) + fileOpsOf(edges) + fileOpsOf(worlds) + fileOpsOf(objs);
+    JsonDoc noCitations = envelope(scrivi_load_scene_inspector(root, scene, 0));
+    INFO("composite " << fileOpsOf(noCitations) << ", one of each " << oneOfEach);
+    CHECK(fileOpsOf(noCitations) <= oneOfEach);
+    CHECK(fileOpsOf(noCitations) < fileOpsOf(edges) + 10 * (fileOpsOf(objs) + fileOpsOf(worlds)));
+    CHECK_FALSE(noCitations.getSubDoc("result").contains("citations"));
+}
+
+TEST_CASE("SP-197: with a world away, the Inspector read still lists its pending edges and leaves out their citations",
+          "[integration][capi][SP-197]") {
+    InspectorScene s;
+    s.fix.detachWorld("Midgard");
+
+    const JsonDoc parts = okResult(scrivi_load_scene_inspector(s.fix.root(), s.fix.firstSceneID.c_str(), 1));
+    INFO("parts: " << parts.dump());
+    CHECK_FALSE(parts.contains("edgesError"));
+    CHECK_FALSE(parts.contains("objectsError"));
+    REQUIRE(parts.getSubDoc("edges").arraySize("edges") == 2);
+    std::size_t pending = 0;
+    for (std::size_t i = 0; i < 2; ++i) {
+        const auto e = parts.getSubDoc("edges").arrayItem("edges", i);
+        if (e.getBool("otherPending")) {
+            ++pending;
+            CHECK(e.getString("otherDisplayName") == "Sword of Dawn");
+        }
+    }
+    CHECK(pending == 1);
+    // The away world's object has no citations entry: unreadable is not "cites nothing".
+    const JsonDoc citations = parts.getSubDoc("citations");
+    REQUIRE(citations.arraySize("objects") == 1);
+    CHECK(citations.arrayItem("objects", 0).getString("objectID") == s.characterID);
+}
+
+TEST_CASE("SP-197: a scene with nothing related returns every part as an object, never null", "[integration][capi][SP-197]") {
+    CApiFixture fix;
+    const JsonDoc parts = okResult(scrivi_load_scene_inspector(fix.root(), fix.firstSceneID.c_str(), 1));
+    INFO("parts: " << parts.dump());
+    for (const char* key : {"notes", "edges", "objects", "worlds", "citations"}) {
+        INFO("part: " << key);
+        CHECK(parts.getSubDoc(key).isObject());
+        CHECK(parts.dump().find(std::string("\"") + key + "\": null") == std::string::npos);
+    }
+}
+
+TEST_CASE("SP-197: a missing project root is refused, not answered with empty parts", "[integration][capi][SP-197]") {
+    JsonDoc env = envelope(scrivi_load_scene_inspector(nullptr, "scene", 1));
+    CHECK_FALSE(env.getBool("ok"));
+}
+
+TEST_CASE("SP-197: scrivi_extract_searchable_scenes returns only the named scenes' records",
+          "[integration][capi][SP-197]") {
+    CApiFixture fix;
+    fix.makeObject("source", "Field Notes");
+    const std::string ids = "[\"" + fix.firstSceneID + "\", \"no-such-scene\"]";
+
+    const JsonDoc some = okResult(scrivi_extract_searchable_scenes(fix.root(), ids.c_str()));
+    REQUIRE(some.arraySize("items") == 1);
+    CHECK(some.arrayItem("items", 0).getString("uniqueIdentifier") == "scene:" + fix.firstSceneID);
+
+    // The record is the one the whole-project extraction makes for that scene.
+    const JsonDoc whole = okResult(scrivi_extract_searchable_text(fix.root()));
+    bool same = false;
+    for (std::size_t i = 0; i < whole.arraySize("items"); ++i) {
+        same = same || whole.arrayItem("items", i).dump() == some.arrayItem("items", 0).dump();
+    }
+    CHECK(same);
+    CHECK(some.getString("domainIdentifier") == whole.getString("domainIdentifier"));
+
+    CHECK(okResult(scrivi_extract_searchable_scenes(fix.root(), "[]")).arraySize("items") == 0);
+    errorOf(scrivi_extract_searchable_scenes(fix.root(), "not json"));
+}

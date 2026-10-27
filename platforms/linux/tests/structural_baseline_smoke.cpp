@@ -591,6 +591,43 @@ int main(int argc, char* argv[])
 
     r.shell->flushHistory();
     r.shell->saveDirtyScenes();
+    // ── ✅ [SP-197] EP-052 AC8: a GATE — the caret, a selection and a scroll make NO file operation on the GUI thread ─────
+    // (the real Inspector follows each one: its read, the notes included, runs on a worker). Over a share each is a round trip.
+    {
+        QList<ScriviBridge::GuiCoreCall> calls;
+        ScriviBridge::guiCoreCallObserver() = [&](const ScriviBridge::GuiCoreCall& c) { calls.append(c); };
+        const auto noFileOps = [&](const char* gesture, const std::function<void()>& act) {
+            QTest::qWait(300);                 // the previous gesture's follow-ups land first
+            calls.clear();
+            act();
+            QTest::qWait(500);                 // the Inspector's read lands, and its revision check runs
+            qint64 ops = 0;
+            QStringList who;
+            for (const auto& c : calls) {
+                ops += c.fileOps;
+                if (c.fileOps > 0) { who.append(c.endpoint); }
+            }
+            check(ops == 0, QStringLiteral("SP-197: %1 makes no file operation on the GUI thread (%2)")
+                                .arg(QString::fromUtf8(gesture), who.join(QStringLiteral(", "))));
+        };
+        const auto at = [&](int scene, int offset) {
+            QTextCursor c = r.editor->textCursor();
+            c.setPosition(r.shell->sceneDocument().segments().at(scene).bodyStart + offset);
+            r.editor->setTextCursor(c);
+            QApplication::processEvents();
+        };
+        noFileOps("a click in the same scene", [&] { at(0, 1); at(0, 3); });
+        noFileOps("a click into another scene (the Inspector follows)", [&] { at(2, 1); });
+        noFileOps("a drag-select across scenes", [&] {
+            QTextCursor c = r.editor->textCursor();
+            c.setPosition(r.shell->sceneDocument().segments().at(0).bodyStart + 1);
+            c.setPosition(r.shell->sceneDocument().segments().at(1).bodyStart + 1, QTextCursor::KeepAnchor);
+            r.editor->setTextCursor(c);
+            QApplication::processEvents();
+        });
+        noFileOps("a scroll", [&] { r.editor->verticalScrollBar()->setValue(r.editor->verticalScrollBar()->maximum()); });
+        ScriviBridge::guiCoreCallObserver() = nullptr;
+    }
     // ── [SP-188] AC11 / EP-052 v0.2: the main-thread inventory (on demand) ────────────────────────────────────────────────
     // ⚠️ A MEASUREMENT, not a gate: every GUI-thread core call each writer gesture makes, with its file operations (the cost
     // over a share, one network round trip each). The Mac's twin is `MainThreadInventoryTests`. Run with SCRIVI_INVENTORY=1.

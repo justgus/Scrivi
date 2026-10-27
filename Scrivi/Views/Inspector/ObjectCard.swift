@@ -143,20 +143,41 @@ struct ObjectCardKind: Sendable, Hashable {
     private let sceneID: String
     private let cardKind: ObjectCardKind
 
+    /// SP-197: after a write, what the card shows next. In the Inspector it is a re-read of the whole scene (every card
+    /// shows what landed); a hand-built card reads for itself.
+    private var didWrite: () -> Void = {}
+
+    /// A hand-built card (no Inspector reader): it reads for itself, here.
     init(engine: ScriviEngine, projectRootPath: String, sceneID: String,
          cardKind: ObjectCardKind) {
         self.engine = engine
         self.projectRootPath = projectRootPath
         self.sceneID = sceneID
         self.cardKind = cardKind
+        didWrite = { [weak self] in self?.load() }
         load()
     }
 
+    /// SP-197: built from the Inspector's one read for the scene (`CardContext.scenePart`), never read here.
+    init(engine: ScriviEngine, projectRootPath: String, sceneID: String, cardKind: ObjectCardKind,
+         edges: Result<ListEdgesResult, Error>, objects: Result<ListObjectsResult, Error>,
+         didWrite: @escaping () -> Void) {
+        self.engine = engine
+        self.projectRootPath = projectRootPath
+        self.sceneID = sceneID
+        self.cardKind = cardKind
+        self.didWrite = didWrite
+        apply(edges: edges, objects: objects.map { r in r.objects.filter { $0.kind == cardKind.kind } })
+    }
+
     func load() {
+        apply(edges: Result { try engine.listEdgesFor(projectRootPath: projectRootPath, endpointID: sceneID) },
+              objects: Result { try engine.listObjects(projectRootPath: projectRootPath, kind: cardKind.kind).objects })
+    }
+
+    private func apply(edges edgesRead: Result<ListEdgesResult, Error>, objects objectsRead: Result<[ObjectEntry], Error>) {
         do {
-            let edges = try engine.listEdgesFor(
-                projectRootPath: projectRootPath, endpointID: sceneID
-            ).edges
+            let edges = try edgesRead.get().edges
 
             // Resolving the far endpoint's kind needs the object index; one listing
             // per load rather than a lookup per edge.
@@ -176,9 +197,7 @@ struct ObjectCardKind: Sendable, Hashable {
             let objects: [ObjectEntry]
             var worldAway: WorldStatus? = nil
             do {
-                objects = try engine.listObjects(
-                    projectRootPath: projectRootPath, kind: cardKind.kind
-                ).objects
+                objects = try objectsRead.get()
             } catch let error as ScriviError where error.isWorldUnavailable {
                 objects   = []
                 worldAway = error.unavailableWorldStatus ?? .unavailable
@@ -259,6 +278,9 @@ struct ObjectCardKind: Sendable, Hashable {
         }
     }
 
+    /// A write that threw may still have landed part of itself: show what is there.
+    func reloadAfterFailedWrite() { didWrite() }
+
     /// Orders entries by the STACK's sort (C6). `manual` uses the graph's
     /// `sortIndex` (Doc 1 §5.2), which is what makes manual order persistent.
     func sorted(by sort: InspectorSort) -> [Entry] {
@@ -288,7 +310,7 @@ struct ObjectCardKind: Sendable, Hashable {
             toID: sceneID,
             relationTypeCode: relationTypeCode
         )
-        load()
+        didWrite()
     }
 
     /// Creates a NEW object and relates it to this scene in one step (T-0388).
@@ -327,7 +349,7 @@ struct ObjectCardKind: Sendable, Hashable {
             toID: toSceneID,
             relationTypeCode: relationTypeCode
         )
-        load()
+        didWrite()
     }
 
     /// Renames an existing object in place (the edit half of §4.6).
@@ -357,7 +379,7 @@ struct ObjectCardKind: Sendable, Hashable {
             objectJson: String(decoding: patched, as: UTF8.self),
             authorshipRef: authorshipRef
         )
-        load()
+        didWrite()
     }
 
     /// Removes the object **from this scene** — deletes the edge only (AC22).
@@ -368,7 +390,7 @@ struct ObjectCardKind: Sendable, Hashable {
     func removeFromScene(edgeID: String) {
         do {
             _ = try engine.deleteEdge(projectRootPath: projectRootPath, edgeID: edgeID)
-            load()
+            didWrite()
         } catch let error as ScriviError where error.isWorldUnavailable {
             // The graph is frozen toward an unavailable world (Doc 3 §4.6). This is
             // protection, not breakage, and must read that way.
@@ -570,7 +592,7 @@ struct ObjectCardBody: View {
                                 try model.relate(objectID: objectID,
                                                  relationTypeCode: relationType)
                             } catch {
-                                model.load()
+                                model.reloadAfterFailedWrite()
                             }
                             showPicker = false
                         }
@@ -604,15 +626,22 @@ struct ObjectCardBody: View {
         // entries it loaded while the world was away until the writer switched scenes.
         // Same fix as I-0105's `historyRevision` — fold the revision into the key so
         // a change the card cannot otherwise observe still invalidates it.
-        .task(id: "\(context.sceneID)#\(context.worldRevision)#\(context.objectRevision)") {
-            model = ObjectCardModel(
-                engine: context.engine,
-                projectRootPath: context.projectRootPath,
-                sceneID: context.sceneID,
-                cardKind: cardKind
-            )
-            worlds = (try? context.engine.listWorlds(
-                projectRootPath: context.projectRootPath).worlds) ?? []
+        //
+        // ✅ SP-197: the Inspector's ONE read carries all three (`sceneReadID` changes when it lands), so this rebuilds
+        // from it rather than reading; while it is out the card keeps its last contents, dimmed.
+        .sceneReadGate(context)
+        .task(id: context.sceneReadID) {
+            if context.inspector == nil {   // a hand-built card reads for itself
+                model = ObjectCardModel(engine: context.engine, projectRootPath: context.projectRootPath,
+                                        sceneID: context.sceneID, cardKind: cardKind)
+                worlds = (try? context.engine.listWorlds(projectRootPath: context.projectRootPath).worlds) ?? []
+                return
+            }
+            guard let edges = context.scenePart(\.edges), let objects = context.scenePart(\.objects) else { return }
+            model = ObjectCardModel(engine: context.engine, projectRootPath: context.projectRootPath,
+                                    sceneID: context.sceneID, cardKind: cardKind, edges: edges, objects: objects,
+                                    didWrite: { [inspector = context.inspector] in inspector?.reload() })
+            worlds = (try? context.scenePart(\.worlds)?.get().worlds) ?? []
         }
         // §4.6: leaving a scene with an unfinished card surfaces complete-or-discard.
         // ⚠️ It fires at the scene BOUNDARY — never while she is writing within a

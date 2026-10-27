@@ -45,9 +45,12 @@ platforms' own structural workers are gone (W7h).
 - [x] AC1 — `[Apple]` Every structural edit through the queue; no structural worker of its own
 - [x] AC2 — `[Linux]` The same, in this Sprint
 - [x] AC3 — Gesture cues as v0.2 Q5 (EP-052 AC10)
-- [ ] AC4 — ✅ **Mac and rig live passes (user):** the structural steps and their undo over the share, none freezing
+- [ ] AC4 — ✅ **Mac and rig live passes (user):** the structural steps and their undo over the share, none freezing — ✅ Mac (user, 2026-10-27: *"mac live pass passes."*); ⏳ rig
 
 ## Progress log
+
+### ✅ 2026-10-27 — Mac live pass (AC4, Mac half)
+User: *"mac live pass passes."* The rig pass remains; AC4 stays open until it is in.
 
 ### 🟡 2026-10-27 — Sprint ACTIVATED
 - User: *"Let's proceed with number 2.  SP-196"* — beside [SP-195], whose rig pass (AC6) is blocked on the share; T-0627 → active.

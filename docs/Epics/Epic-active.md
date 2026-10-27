@@ -2,7 +2,7 @@
 
 ## EP-052: `[ScriviCore]` **Background Writes** — one ordered write queue per project, in the core
 
-**Status:** 🟡 **ACTIVE 2026-10-26** (user, 2026-10-26: *"close SP-188 and activate EP-052."*) — created 2026-10-15 (user: *"A new Epic."*, ruling Q5 of the design). S1 [SP-194] ✅ closed 2026-10-26 (AC0–AC3). S2a [SP-195] 🟡 active 2026-10-26; S2b [SP-196] 🟡 active 2026-10-27 (beside S2a, whose rig pass is open).
+**Status:** 🟡 **ACTIVE 2026-10-26** (user, 2026-10-26: *"close SP-188 and activate EP-052."*) — created 2026-10-15 (user: *"A new Epic."*, ruling Q5 of the design). S1 [SP-194] ✅ closed 2026-10-26 (AC0–AC3). S2a [SP-195] 🟡 active 2026-10-26; S2b [SP-196] 🟡 active 2026-10-27 (beside S2a, whose rig pass is open). S3 [SP-197] 🟡 active 2026-10-27.
 **Design:** [`../Scrivi_Background_Writes_Design_v0_1.md`](../Scrivi_Background_Writes_Design_v0_1.md) — ✅ Q1–Q5 ruled
 2026-10-15. **Builds on:** `Scrivi_Core_Concurrency_Design_v0_1.md` (SP-173's per-project lock).
 ✅ **v0.2 RULED 2026-10-26** (user: *"Q1–Q7 agreed as recommended"*): [`../Scrivi_Background_Writes_Design_v0_2.md`](../Scrivi_Background_Writes_Design_v0_2.md) —

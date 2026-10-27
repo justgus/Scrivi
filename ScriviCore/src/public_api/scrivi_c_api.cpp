@@ -212,6 +212,7 @@ static void addProjectCallFields(scrivi::util::JsonDoc& root) {
     // file operations it made on its own thread. Names and counts only.
     scrivi::util::JsonDoc trace;
     trace.setString("endpoint", call->endpoint);
+    trace.setString("project", call->project);
     trace.setInt64("ms", std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::steady_clock::now() - call->started).count());
     trace.setInt64("fileOps", scrivi::util::fileOperationsOnThisThread() - call->fileOpsAtStart);
@@ -1554,15 +1555,45 @@ const char* scrivi_delete_edge(
     return heap(okEnvelope(std::move(doc)));
 }
 
-const char* scrivi_list_edges_for(
-    const char* projectRootPath,
-    const char* endpointID)
-{
-    SCRIVI_PROJECT_READ(projectRootPath);
+// ---------------------------------------------------------------------------
+// One read as a PART (SP-173 D3): a standalone endpoint returns one part; a composite (`scrivi_load_timeline`,
+// `scrivi_load_scene_inspector`) returns several under ONE project lock, each with its own error. One builder per part,
+// shared by both paths: the composite cannot drift from the endpoints it replaces.
+// ---------------------------------------------------------------------------
+struct EndpointPart {
+    bool ok = false;
+    scrivi::util::JsonDoc doc;
+    scrivi::Error error;
+    static EndpointPart failure(scrivi::Error e) { EndpointPart p; p.error = std::move(e); return p; }
+    static EndpointPart success(scrivi::util::JsonDoc d) { EndpointPart p; p.ok = true; p.doc = std::move(d); return p; }
+};
+
+static const char* partEnvelope(EndpointPart part) {
+    return part.ok ? heap(okEnvelope(std::move(part.doc))) : heap(errorEnvelope(part.error));
+}
+
+// A composite's part: its result under `key`, or its error under `key` + "Error".
+static void addPart(scrivi::util::JsonDoc& doc, const std::string& key, EndpointPart part) {
+    if (part.ok) {
+        // ⚠️ An empty part (a scene with no edges: the empty-array trap) is a JSON null until a key is set; its endpoint
+        // returns it as {} and so must the composite, or a client decoding an object rejects the whole result.
+        if (!part.doc.isObject()) { part.doc = std::move(scrivi::util::parseJson("{}").value()); }
+        doc.setSubDoc(key, std::move(part.doc));
+        return;
+    }
+    scrivi::util::JsonDoc err;
+    err.setInt("code", static_cast<int>(part.error.code));
+    err.setString("message", part.error.message);
+    if (!part.error.detail.empty()) { err.setString("detail", part.error.detail); }   // as errorEnvelope: a world away
+    if (!part.error.path.empty())   { err.setString("path",   part.error.path); }
+    doc.setSubDoc(key + "Error", std::move(err));
+}
+
+static EndpointPart edgesForPart(const char* projectRootPath, const std::string& endpointID) {
     auto svc = abiServices();
     scrivi::objects::RelationshipStore store{svc};
-    auto r = store.listFor(S(projectRootPath), S(endpointID));
-    if (!r.ok()) return heap(errorEnvelope(r.error()));
+    auto r = store.listFor(S(projectRootPath), endpointID);
+    if (!r.ok()) return EndpointPart::failure(r.error());
 
     scrivi::util::JsonDoc doc;
     for (const auto& v : r.value()) {
@@ -1594,7 +1625,15 @@ const char* scrivi_list_edges_for(
         }
         doc.appendToArray("edges", std::move(item));
     }
-    return heap(okEnvelope(std::move(doc)));
+    return EndpointPart::success(std::move(doc));
+}
+
+const char* scrivi_list_edges_for(
+    const char* projectRootPath,
+    const char* endpointID)
+{
+    SCRIVI_PROJECT_READ(projectRootPath);
+    return partEnvelope(edgesForPart(projectRootPath, S(endpointID)));
 }
 
 const char* scrivi_list_pending_edges(const char* projectRootPath)
@@ -1726,23 +1765,13 @@ void putObjectEntry(scrivi::util::JsonDoc& item,
 } // namespace
 } // extern "C++"
 
-const char* scrivi_list_objects(const char* projectRootPath, const char* kindOrNull)
-{
-    SCRIVI_PROJECT_READ(projectRootPath);
+// `only`, when given, narrows the listing to those objectIDs (the Inspector's: a scene's far endpoints).
+static EndpointPart objectsPart(const char* projectRootPath, std::optional<scrivi::ObjectKind> wanted,
+                                const std::set<std::string>* only = nullptr) {
     auto svc = abiServices();
-
-    const std::string kindFilter = S(kindOrNull);
-    std::optional<scrivi::ObjectKind> wanted;
-    if (!kindFilter.empty()) {
-        wanted = objectKindFromStr(kindFilter);
-        // An unrecognised kind is an error, never an empty listing — silently
-        // returning nothing would read as "you have no characters".
-        if (!wanted) return heap(errorEnvelope(unknownObjectKindError(kindFilter)));
-    }
-
     scrivi::objects::ObjectIndex index{svc};
     auto r = index.loadAllVisible(S(projectRootPath));
-    if (!r.ok()) return heap(errorEnvelope(r.error()));
+    if (!r.ok()) return EndpointPart::failure(r.error());
 
     // T-0446: resolve image paths ONCE for the whole listing, over only the
     // entries actually being returned — a kind filter therefore also narrows how
@@ -1750,6 +1779,7 @@ const char* scrivi_list_objects(const char* projectRootPath, const char* kindOrN
     std::vector<scrivi::objects::ObjectIndexEntry> visible;
     for (const auto& e : r.value()) {
         if (wanted && e.kind != *wanted) { continue; }
+        if (only && !only->contains(e.objectID.value)) { continue; }
         visible.push_back(e);
     }
     const auto imagePaths = assetPathsByID(svc, S(projectRootPath), visible);
@@ -1760,7 +1790,21 @@ const char* scrivi_list_objects(const char* projectRootPath, const char* kindOrN
         putObjectEntry(item, e, &imagePaths);
         doc.appendToArray("objects", std::move(item));
     }
-    return heap(okEnvelope(std::move(doc)));
+    return EndpointPart::success(std::move(doc));
+}
+
+const char* scrivi_list_objects(const char* projectRootPath, const char* kindOrNull)
+{
+    SCRIVI_PROJECT_READ(projectRootPath);
+    const std::string kindFilter = S(kindOrNull);
+    std::optional<scrivi::ObjectKind> wanted;
+    if (!kindFilter.empty()) {
+        wanted = objectKindFromStr(kindFilter);
+        // An unrecognised kind is an error, never an empty listing — silently
+        // returning nothing would read as "you have no characters".
+        if (!wanted) return heap(errorEnvelope(unknownObjectKindError(kindFilter)));
+    }
+    return partEnvelope(objectsPart(projectRootPath, wanted));
 }
 
 const char* scrivi_list_orphaned_objects(const char* projectRootPath)
@@ -1874,13 +1918,11 @@ const char* scrivi_add_world(const char* projectRootPath, const char* packagePat
     return heap(okEnvelope(std::move(doc)));
 }
 
-const char* scrivi_list_worlds(const char* projectRootPath)
-{
-    SCRIVI_PROJECT_READ(projectRootPath);
+static EndpointPart worldsPart(const char* projectRootPath) {
     auto svc = abiServices();
     scrivi::worlds::WorldStore store{svc};
     auto r = store.listWorlds(S(projectRootPath));
-    if (!r.ok()) return heap(errorEnvelope(r.error()));
+    if (!r.ok()) return EndpointPart::failure(r.error());
 
     scrivi::util::JsonDoc doc;
     for (const auto& w : r.value()) {
@@ -1897,7 +1939,13 @@ const char* scrivi_list_worlds(const char* projectRootPath)
         item.setInt64 ("epochOffsetMs", w.epochOffsetMs);
         doc.appendToArray("worlds", std::move(item));
     }
-    return heap(okEnvelope(std::move(doc)));
+    return EndpointPart::success(std::move(doc));
+}
+
+const char* scrivi_list_worlds(const char* projectRootPath)
+{
+    SCRIVI_PROJECT_READ(projectRootPath);
+    return partEnvelope(worldsPart(projectRootPath));
 }
 
 const char* scrivi_get_world_status(const char* projectRootPath, const char* worldID)
@@ -2653,33 +2701,21 @@ const char* scrivi_rename_chapter(
 // returns all five under ONE project lock, so they describe one state of the project (L2). One builder per part, shared by
 // both paths: the composite cannot drift from the endpoints it replaces.
 // ---------------------------------------------------------------------------
-struct TimelinePart {
-    bool ok = false;
-    scrivi::util::JsonDoc doc;
-    scrivi::Error error;
-    static TimelinePart failure(scrivi::Error e) { TimelinePart p; p.error = std::move(e); return p; }
-    static TimelinePart success(scrivi::util::JsonDoc d) { TimelinePart p; p.ok = true; p.doc = std::move(d); return p; }
-};
-
-static const char* timelinePartEnvelope(TimelinePart part) {
-    return part.ok ? heap(okEnvelope(std::move(part.doc))) : heap(errorEnvelope(part.error));
-}
-
-static TimelinePart timelineSettingsPart(const char* projectRootPath) {
+static EndpointPart timelineSettingsPart(const char* projectRootPath) {
     scrivi::GetTimelineRequest req;
     req.projectRootPath = S(projectRootPath);
     auto r = core().getTimeline(req);
-    if (!r.ok()) return TimelinePart::failure(r.error());
+    if (!r.ok()) return EndpointPart::failure(r.error());
     const auto& v = r.value();
     scrivi::util::JsonDoc doc;
     doc.setString("timelineID", v.timelineID);
     doc.setString("epochLabel", v.epochLabel);
     doc.setString("projectID",  v.projectID);
     doc.setString("createdAt",  v.createdAt);
-    return TimelinePart::success(std::move(doc));
+    return EndpointPart::success(std::move(doc));
 }
 
-static TimelinePart storyTimesPart(const char* projectRootPath) {
+static EndpointPart storyTimesPart(const char* projectRootPath) {
     // EP-039 AC4 (SP-131 T-0515) — THE SPARSE BULK CALL.
     //
     // ⚠️ WHAT THIS REPLACES: the timeline called `scrivi_get_scene_story_time` ONCE PER
@@ -2703,7 +2739,7 @@ static TimelinePart storyTimesPart(const char* projectRootPath) {
     // ✅ `count` is emitted UNCONDITIONALLY below so the key is always present.
     const std::string root = S(projectRootPath);
     if (root.empty()) {
-        return TimelinePart::failure({.code = scrivi::ErrorCode::invalidArgument,
+        return EndpointPart::failure({.code = scrivi::ErrorCode::invalidArgument,
                                       .message = "projectRootPath is required"});
     }
 
@@ -2721,7 +2757,7 @@ static TimelinePart storyTimesPart(const char* projectRootPath) {
         // report "nothing is set", which is what an empty array would claim (AC5a).
         scrivi::manuscript::ManuscriptOrderResolver resolver{services};
         auto scenesR = resolver.resolve(root);
-        if (!scenesR.ok()) return TimelinePart::failure(scenesR.error());
+        if (!scenesR.ok()) return EndpointPart::failure(scenesR.error());
         for (const auto& sc : scenesR.value()) {
             if (scrivi::manuscript::storyTimeIsExplicitlySet(sc.storyTime)) {
                 found.emplace_back(sc.sceneID, sc.storyTime);
@@ -2746,38 +2782,38 @@ static TimelinePart storyTimesPart(const char* projectRootPath) {
     // ⚠️ ALWAYS PRESENT, even at zero — this is the unambiguous "the call ran" signal,
     // because `storyTimes` itself vanishes when the list is empty.
     doc.setInt("count", static_cast<long long>(found.size()));
-    return TimelinePart::success(std::move(doc));
+    return EndpointPart::success(std::move(doc));
 }
 
-static TimelinePart storyStructurePart(const char* projectRootPath) {
+static EndpointPart storyStructurePart(const char* projectRootPath) {
     scrivi::GetStoryStructureRequest req;
     req.projectRootPath = S(projectRootPath);
     auto r = core().getStoryStructure(req);
-    if (!r.ok()) return TimelinePart::failure(r.error());
+    if (!r.ok()) return EndpointPart::failure(r.error());
     const auto& v = r.value();
     scrivi::util::JsonDoc doc;
     doc.setBool("hasStructure",   v.hasStructure);
     doc.setString("structureID",  v.structureID);
     doc.setString("bandLayoutJSON", v.bandLayoutJSON);
-    return TimelinePart::success(std::move(doc));
+    return EndpointPart::success(std::move(doc));
 }
 
-static TimelinePart historicalEventsPart(const char* projectRootPath) {
+static EndpointPart historicalEventsPart(const char* projectRootPath) {
     scrivi::ListHistoricalEventsRequest req;
     req.projectRootPath = S(projectRootPath);
     auto r = core().listHistoricalEvents(req);
-    if (!r.ok()) return TimelinePart::failure(r.error());
+    if (!r.ok()) return EndpointPart::failure(r.error());
     scrivi::util::JsonDoc doc;
     doc.setInt("count",        r.value().count);
     doc.setString("eventsJSON", r.value().eventsJSON);
-    return TimelinePart::success(std::move(doc));
+    return EndpointPart::success(std::move(doc));
 }
 
-static TimelinePart importedTimelinesPart(const char* projectRootPath) {
+static EndpointPart importedTimelinesPart(const char* projectRootPath) {
     scrivi::ListImportedTimelinesRequest req;
     req.projectRootPath = S(projectRootPath);
     auto r = core().listImportedTimelines(req);
-    if (!r.ok()) return TimelinePart::failure(r.error());
+    if (!r.ok()) return EndpointPart::failure(r.error());
     scrivi::util::JsonDoc doc;
     doc.setInt("count",           r.value().count);
     doc.setString("timelinesJSON", r.value().timelinesJSON);
@@ -2791,12 +2827,12 @@ static TimelinePart importedTimelinesPart(const char* projectRootPath) {
         rd.setString("reason", rej.reason);
         doc.appendToArray("rejected", std::move(rd));
     }
-    return TimelinePart::success(std::move(doc));
+    return EndpointPart::success(std::move(doc));
 }
 
 const char* scrivi_get_timeline(const char* projectRootPath) {
     SCRIVI_PROJECT_READ(projectRootPath);
-    return timelinePartEnvelope(timelineSettingsPart(projectRootPath));
+    return partEnvelope(timelineSettingsPart(projectRootPath));
 }
 
 const char* scrivi_set_timeline_epoch_label(const char* projectRootPath, const char* label) {
@@ -2920,16 +2956,15 @@ const char* scrivi_set_scene_todo(const char* projectRootPath, const char* scene
 
 const char* scrivi_list_story_times(const char* projectRootPath) {
     SCRIVI_PROJECT_READ(projectRootPath);
-    return guarded([&]() -> const char* { return timelinePartEnvelope(storyTimesPart(projectRootPath)); });
+    return guarded([&]() -> const char* { return partEnvelope(storyTimesPart(projectRootPath)); });
 }
 
-const char* scrivi_get_scene_notes(const char* projectRootPath, const char* sceneID) {
-    SCRIVI_PROJECT_READ(projectRootPath);
+static EndpointPart sceneNotesPart(const char* projectRootPath, const std::string& sceneID) {
     scrivi::GetSceneNotesRequest req;
     req.projectRootPath = S(projectRootPath);
-    req.sceneID.value   = S(sceneID);
+    req.sceneID.value   = sceneID;
     auto r = core().getSceneNotes(req);
-    if (!r.ok()) return heap(errorEnvelope(r.error()));
+    if (!r.ok()) return EndpointPart::failure(r.error());
     const auto& v = r.value();
 
     scrivi::util::JsonDoc doc;
@@ -2951,7 +2986,12 @@ const char* scrivi_get_scene_notes(const char* projectRootPath, const char* scen
         t.setBool("done",   item.done);
         doc.appendToArray("todo", std::move(t));
     }
-    return heap(okEnvelope(std::move(doc)));
+    return EndpointPart::success(std::move(doc));
+}
+
+const char* scrivi_get_scene_notes(const char* projectRootPath, const char* sceneID) {
+    SCRIVI_PROJECT_READ(projectRootPath);
+    return partEnvelope(sceneNotesPart(projectRootPath, S(sceneID)));
 }
 
 // --- Inspector layout (EP-041 / SP-141, T-0507) -----------------------------
@@ -3222,7 +3262,7 @@ const char* scrivi_unassign_scene_from_band(const char* projectRootPath, const c
 
 const char* scrivi_get_story_structure(const char* projectRootPath) {
     SCRIVI_PROJECT_READ(projectRootPath);
-    return timelinePartEnvelope(storyStructurePart(projectRootPath));
+    return partEnvelope(storyStructurePart(projectRootPath));
 }
 
 const char* scrivi_set_story_structure(const char* projectRootPath, const char* structureID,
@@ -3347,7 +3387,7 @@ const char* scrivi_delete_historical_event(const char* projectRootPath, const ch
 
 const char* scrivi_list_historical_events(const char* projectRootPath) {
     SCRIVI_PROJECT_READ(projectRootPath);
-    return timelinePartEnvelope(historicalEventsPart(projectRootPath));
+    return partEnvelope(historicalEventsPart(projectRootPath));
 }
 
 const char* scrivi_import_external_timeline(const char* projectRootPath,
@@ -3400,7 +3440,7 @@ const char* scrivi_set_imported_timeline_visible(const char* projectRootPath,
 
 const char* scrivi_list_imported_timelines(const char* projectRootPath) {
     SCRIVI_PROJECT_READ(projectRootPath);
-    return timelinePartEnvelope(importedTimelinesPart(projectRootPath));
+    return partEnvelope(importedTimelinesPart(projectRootPath));
 }
 
 // SP-173 / I-0285, D4 — the project's current revision, and nothing else: no file is touched. A platform asks this on the
@@ -3421,18 +3461,54 @@ const char* scrivi_load_timeline(const char* projectRootPath) {
     return guarded([&]() -> const char* {
         SCRIVI_REQUIRE_PATH(projectRootPath, "projectRootPath");
         scrivi::util::JsonDoc doc;
-        auto add = [&doc](const char* key, TimelinePart part) {
-            if (part.ok) { doc.setSubDoc(key, std::move(part.doc)); return; }
-            scrivi::util::JsonDoc err;
-            err.setInt("code", static_cast<int>(part.error.code));
-            err.setString("message", part.error.message);
-            doc.setSubDoc(std::string(key) + "Error", std::move(err));
-        };
+        auto add = [&doc](const char* key, EndpointPart part) { addPart(doc, key, std::move(part)); };
         add("timeline",          timelineSettingsPart(projectRootPath));
         add("storyTimes",        storyTimesPart(projectRootPath));
         add("storyStructure",    storyStructurePart(projectRootPath));
         add("historicalEvents",  historicalEventsPart(projectRootPath));
         add("importedTimelines", importedTimelinesPart(projectRootPath));
+        return heap(okEnvelope(std::move(doc)));
+    });
+}
+
+// SP-197 / EP-052 S3 (v0.2 R3b) — everything the Inspector shows for one scene, under ONE project lock: its notes, its edges,
+// the far objects among them (the object index built ONCE, not once per card), the bound worlds and, when asked, each far
+// object's own edges (the Sources card's second hop). Each part as its endpoint returns it, or that part's error.
+const char* scrivi_load_scene_inspector(const char* projectRootPath, const char* sceneID, int includeCitations) {
+    SCRIVI_PROJECT_READ(projectRootPath);
+    return guarded([&]() -> const char* {
+        SCRIVI_REQUIRE_PATH(projectRootPath, "projectRootPath");
+        const std::string scene = S(sceneID);
+        scrivi::util::JsonDoc doc;
+        addPart(doc, "notes", sceneNotesPart(projectRootPath, scene));
+
+        auto edges = edgesForPart(projectRootPath, scene);
+        std::set<std::string> far;
+        std::vector<std::string> reachable;   // in edge order, for the citations
+        for (std::size_t i = 0; i < edges.doc.arraySize("edges"); ++i) {
+            const auto e  = edges.doc.arrayItem("edges", i);
+            const auto id = e.getString("otherID");
+            if (far.insert(id).second && !e.getBool("otherPending")) { reachable.push_back(id); }
+        }
+        addPart(doc, "edges", std::move(edges));
+        addPart(doc, "objects", objectsPart(projectRootPath, std::nullopt, &far));
+        addPart(doc, "worlds", worldsPart(projectRootPath));
+
+        if (includeCitations != 0) {
+            // A pending object's world is away, so its edges are unreadable: it is left out, never listed as citing nothing.
+            scrivi::util::JsonDoc citations;
+            for (const auto& id : reachable) {
+                auto part = edgesForPart(projectRootPath, id);
+                if (!part.ok) { addPart(doc, "citations", std::move(part)); citations = {}; break; }
+                scrivi::util::JsonDoc item;
+                item.setString("objectID", id);
+                for (std::size_t i = 0; i < part.doc.arraySize("edges"); ++i) {
+                    item.appendToArray("edges", part.doc.arrayItem("edges", i));
+                }
+                citations.appendToArray("objects", std::move(item));
+            }
+            if (!doc.contains("citationsError")) { addPart(doc, "citations", EndpointPart::success(std::move(citations))); }
+        }
         return heap(okEnvelope(std::move(doc)));
     });
 }
@@ -3461,11 +3537,9 @@ const char* scrivi_export_project_timeline(const char* projectRootPath) {
     return heap(okEnvelope(std::move(doc)));
 }
 
-const char* scrivi_extract_searchable_text(const char* projectRootPath) {
-    SCRIVI_PROJECT_READ(projectRootPath);
-    scrivi::ExtractSearchableTextRequest req;
-    req.projectRootPath = S(projectRootPath);
-
+extern "C++" {
+namespace {
+const char* searchableTextEnvelope(const scrivi::ExtractSearchableTextRequest& req) {
     auto r = core().extractSearchableText(req);
     if (!r.ok()) return heap(errorEnvelope(r.error()));
 
@@ -3499,6 +3573,33 @@ const char* scrivi_extract_searchable_text(const char* projectRootPath) {
     }
 
     return heap(okEnvelope(std::move(doc)));
+}
+} // namespace
+} // extern "C++"
+
+const char* scrivi_extract_searchable_text(const char* projectRootPath) {
+    SCRIVI_PROJECT_READ(projectRootPath);
+    scrivi::ExtractSearchableTextRequest req;
+    req.projectRootPath = S(projectRootPath);
+    return searchableTextEnvelope(req);
+}
+
+// SP-197 / EP-052 S3 (v0.2 S3) — the same records for the named scenes only: no project record, no objects, no worlds.
+const char* scrivi_extract_searchable_scenes(const char* projectRootPath, const char* sceneIDsJson) {
+    SCRIVI_PROJECT_READ(projectRootPath);
+    return guarded([&]() -> const char* {
+        SCRIVI_REQUIRE_PATH(projectRootPath, "projectRootPath");
+        scrivi::ExtractSearchableTextRequest req;
+        req.projectRootPath = S(projectRootPath);
+        auto ids = scrivi::util::parseJson(std::string("{\"ids\":") + S(sceneIDsJson) + "}");
+        if (!ids.ok()) {
+            return heap(errorEnvelope({.code = scrivi::ErrorCode::invalidArgument,
+                                       .message = "sceneIDsJson must be a JSON array of scene IDs"}));
+        }
+        for (const auto& id : ids.value().getStringArray("ids")) { req.sceneIDs.insert(id); }
+        req.scenesOnly = true;
+        return searchableTextEnvelope(req);
+    });
 }
 
 // ---- Undo/Redo history (EP-019 SP-052 — T-0202) -------------------------

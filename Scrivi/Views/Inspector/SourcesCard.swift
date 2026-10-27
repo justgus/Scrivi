@@ -84,10 +84,20 @@ final class SourcesCardModel {
     /// `listEdgesFor`, which returns edges in *either* direction with `otherID` already
     /// resolved to the far end — so this never has to reason about canonical edge direction.
     func load() {
+        apply(edges: Result { try engine.listEdgesFor(projectRootPath: projectRootPath, endpointID: sceneID) },
+              citations: { [engine, projectRootPath] id in
+                  try engine.listEdgesFor(projectRootPath: projectRootPath, endpointID: id).edges })
+    }
+
+    /// SP-197: the same walk over the Inspector's one read (`scrivi_load_scene_inspector` with its citations).
+    func apply(edges: Result<ListEdgesResult, Error>, citations: Result<[String: [EdgeView]], Error>) {
+        apply(edges: edges, citations: { id in try citations.get()[id] ?? [] })
+    }
+
+    private func apply(edges: Result<ListEdgesResult, Error>, citations citationsOf: (String) throws -> [EdgeView]) {
         do {
             // Hop 1 — the objects related to this scene.
-            let sceneEdges = try engine.listEdgesFor(
-                projectRootPath: projectRootPath, endpointID: sceneID).edges
+            let sceneEdges = try edges.get().edges
 
             // Hop 2 — each object's citations. Accumulate into an ordered map so one source
             // reached twice lists both objects instead of appearing twice.
@@ -104,8 +114,7 @@ final class SourcesCardModel {
                 // rather than duplicating that warning in a place it cannot act on.
                 if objectEdge.otherPending { continue }
 
-                let citations = try engine.listEdgesFor(
-                    projectRootPath: projectRootPath, endpointID: objectID).edges
+                let citations = try citationsOf(objectID)
 
                 for citation in citations where citation.relationType == Self.citesType {
                     // `cites` is unconstrained on both ends, so an edge from this object
@@ -277,11 +286,20 @@ private struct SourcesCardBody: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         // Reload when the scene changes, and when world availability changes (I-0128) —
         // a reconnected world can make previously-skipped pending objects readable.
-        .task(id: "\(context.sceneID)#\(context.worldRevision)") {
+        .sceneReadGate(context)
+        // SP-197: rebuilt from the Inspector's one read, which re-reads on a scene change and when world availability
+        // changes (I-0128 — a reconnected world can make previously-skipped pending objects readable).
+        .task(id: context.sceneReadID) {
             let m = SourcesCardModel(engine: context.engine,
                                      projectRootPath: context.projectRootPath,
                                      sceneID: context.sceneID)
-            m.load()
+            if context.inspector == nil {
+                m.load()                                   // a hand-built card reads for itself
+            } else if let edges = context.scenePart(\.edges) {
+                m.apply(edges: edges, citations: context.scenePart { $0.citations ?? .success([:]) } ?? .success([:]))
+            } else {
+                return                                     // the read is out: keep the last contents
+            }
             model = m
         }
         .popover(item: $detailEntry) { entry in

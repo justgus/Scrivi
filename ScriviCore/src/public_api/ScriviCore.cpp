@@ -1281,7 +1281,7 @@ Result<ExtractSearchableTextResult> ScriviCore::extractSearchableText(
     out.domainIdentifier = projectID;          // per-project delete-by-domain key
     out.projectRootPath  = request.projectRootPath;
 
-    {
+    if (!request.scenesOnly) {
         SearchableItem item;
         item.uniqueIdentifier = "project:" + projectID;
         item.kind             = "project";
@@ -1301,6 +1301,7 @@ Result<ExtractSearchableTextResult> ScriviCore::extractSearchableText(
         std::size_t chapterOrdinal = 0;
         for (const auto& s : scenesR.value()) {
             if (s.chapterID.value != lastChapter) { lastChapter = s.chapterID.value; ++chapterOrdinal; }
+            if (request.scenesOnly && !request.sceneIDs.contains(s.sceneID.value)) { continue; }
             SearchableItem item;
             item.uniqueIdentifier = "scene:" + s.sceneID.value;
             item.kind             = "scene";
@@ -1320,6 +1321,7 @@ Result<ExtractSearchableTextResult> ScriviCore::extractSearchableText(
     }
     // A missing/empty manuscript is not fatal for indexing — degenerate projects
     // still yield the project record (and any world objects).
+    if (request.scenesOnly) { return Result<ExtractSearchableTextResult>::success(std::move(out)); }
 
     // 3. World-object records.
     //

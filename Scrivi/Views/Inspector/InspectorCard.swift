@@ -161,6 +161,117 @@ struct CardContext {
     /// in which case a card must refuse to create rather than inventing authorship
     /// (T-0388).
     var authorshipRef: AuthorshipRef? = nil
+
+    /// SP-197 (EP-052 S3) — the Inspector's ONE read for this scene, shared by every card. Nil only in a host that has none
+    /// (a test building one card by hand).
+    var inspector: SceneInspectorReader? = nil
+
+    /// The read's parts for THIS scene once they have landed; nil while the read is out (the card keeps its last contents,
+    /// dimmed: `sceneReadGate`).
+    var sceneRead: SceneInspectorParts? {
+        guard let read = inspector?.read, read.sceneID == sceneID else { return nil }
+        return read.parts
+    }
+
+    /// The whole read failed for this scene (not one part): the card reports it in place.
+    var sceneReadFailure: Error? {
+        guard let f = inspector?.failure, f.sceneID == sceneID else { return nil }
+        return f.error
+    }
+
+    /// One part of this scene's read, the whole read's failure standing in for every part; nil while the read is out.
+    func scenePart<T>(_ part: (SceneInspectorParts) -> Result<T, ScriviError>) -> Result<T, Error>? {
+        if let parts = sceneRead { return part(parts).mapError { $0 } }
+        if let error = sceneReadFailure { return .failure(error) }
+        return nil
+    }
+
+    /// Changes whenever a new read lands: a card's `.task(id:)` rebuilds its model from it.
+    var sceneReadID: String { "\(sceneID)#\(inspector?.read?.sceneID ?? "")#\(inspector?.readCount ?? 0)" }
+}
+
+/// SP-197 (EP-052 S3, Background Writes v0.2 R3a/R3b) — the Inspector reads a scene ONCE, off the main actor.
+///
+/// ⛔ Each card used to read for itself in its model's `init` on the main actor: 32 calls and 78 file operations every
+/// time the caret or the scroll entered a scene (v0.2 §1a), each a round trip over a share. Now the shell asks for one
+/// `scrivi_load_scene_inspector`, the cards keep their last contents dimmed while it is out ("Loading…" after 400 ms,
+/// SP-197 Q2), and they rebuild from it when it lands.
+@Observable @MainActor final class SceneInspectorReader {
+    /// The last read that landed — for an earlier scene while a new read is out.
+    private(set) var read: SceneInspectorRead?
+    /// Bumped on every landing, so a re-read of the same scene still rebuilds the cards.
+    private(set) var readCount = 0
+    /// The whole call failed (not one part): the cards report it in place.
+    private(set) var failure: (sceneID: String, error: Error)?
+    /// The read has been out 400 ms (Q2).
+    private(set) var slow = false
+
+    private var wanted: (engine: ScriviEngine, root: String, sceneID: String, citations: Bool, key: String)?
+    private var generation = 0
+    private var task: Task<Void, Never>?
+
+    /// Asks for `sceneID`'s read; `key` folds in whatever else must re-read it (world and object revisions). A repeat of
+    /// the same key does nothing.
+    func want(engine: ScriviEngine, projectRootPath: String, sceneID: String, includeCitations: Bool, key: String) {
+        guard wanted?.key != key else { return }
+        wanted = (engine, projectRootPath, sceneID, includeCitations, key)
+        start()
+    }
+
+    /// Reads the current scene again: after a card's own write, so every card shows what landed.
+    func reload() { if wanted != nil { start() } }
+
+    /// Every read off the main actor has the same revision race to settle (D4): a result whose revision moved is read
+    /// again. shortcut: after 3 lost races the last read is applied anyway, since autosave can bump the revision
+    /// faster than a slow share answers; a card's own write still re-reads (`reload`).
+    private func start() {
+        guard let w = wanted else { return }
+        generation += 1
+        let gen = generation
+        task?.cancel()
+        slow = false
+        task = Task { [weak self] in
+            let slowCue = Task { @MainActor [weak self] in
+                try? await Task.sleep(for: .milliseconds(400))
+                if !Task.isCancelled, let self, self.generation == gen { self.slow = true }
+            }
+            defer { slowCue.cancel() }
+            for attempt in 1...3 {
+                let outcome = await Task.detached(priority: .userInitiated) { () -> Result<SceneInspectorRead, Error> in
+                    Result { try w.engine.loadSceneInspector(projectRootPath: w.root, sceneID: w.sceneID,
+                                                             includeCitations: w.citations) }
+                }.value
+                guard let self, self.generation == gen else { return }
+                switch outcome {
+                case .failure(let error):
+                    self.failure = (w.sceneID, error)
+                case .success(let read):
+                    if attempt < 3, let now = try? w.engine.projectRevision(projectRootPath: w.root),
+                       now != read.revision { continue }
+                    self.failure = nil
+                    self.read = read
+                    self.readCount += 1
+                }
+                self.slow = false
+                return
+            }
+        }
+    }
+}
+
+extension View {
+    /// SP-197 Q2 — while the scene's read is out, the card shows its last contents dimmed and takes no edits;
+    /// "Loading…" after 400 ms. A host with no reader (a hand-built card) is never gated.
+    @MainActor func sceneReadGate(_ context: CardContext) -> some View {
+        let waiting = context.inspector != nil && context.sceneRead == nil
+            && context.inspector?.failure?.sceneID != context.sceneID
+        return VStack(alignment: .leading, spacing: 4) {
+            if waiting && context.inspector?.slow == true {
+                Text("Loading…").font(.caption).foregroundStyle(.secondary)
+            }
+            self.opacity(waiting ? 0.45 : 1).disabled(waiting)
+        }
+    }
 }
 
 /// A card the inspector can render. Conformers are registered in `InspectorCardRegistry`

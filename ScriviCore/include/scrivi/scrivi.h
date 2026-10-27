@@ -666,6 +666,18 @@ const char* scrivi_load_timeline(const char* projectRootPath);
  * main thread just before applying a result read in the background: apply only if the two revisions match. */
 const char* scrivi_get_project_revision(const char* projectRootPath);
 
+/* SP-197 / EP-052 S3 (Background Writes v0.2 R3b) -- everything the Scene Inspector shows for one scene, in ONE call under
+ * ONE project lock. Result keys, each exactly what its standalone endpoint returns:
+ *   "notes"   (scrivi_get_scene_notes)      "edges"  (scrivi_list_edges_for, the scene as endpoint)
+ *   "objects" (scrivi_list_objects, narrowed to the edges' far endpoints; the object index is built once)
+ *   "worlds"  (scrivi_list_worlds)
+ *   "citations" (only when includeCitations != 0): {"objects":[{"objectID", "edges":[...as scrivi_list_edges_for]}]}, one
+ *               per far object that is not pending (its world is away, so its edges cannot be read).
+ * A part that fails is replaced by "<part>Error" ({code, message, detail?, path?}, as an error envelope's); the others are
+ * still returned. The empty-array traps apply inside each part. The envelope's "revision" is the state every part
+ * describes (D4). */
+const char* scrivi_load_scene_inspector(const char* projectRootPath, const char* sceneID, int includeCitations);
+
 /* ---- Searchable content (EP-017 SP-044 — Spotlight indexing facade) ----- */
 
 /*
@@ -682,6 +694,10 @@ const char* scrivi_get_project_revision(const char* projectRootPath);
  * truth. Caller owns the result; free with scrivi_free.
  */
 const char* scrivi_extract_searchable_text(const char* projectRootPath);
+
+/* SP-197 / EP-052 S3 -- the same envelope with only the scene records of `sceneIDsJson` (a JSON array of scene IDs): no
+ * project record, no world objects. For re-indexing the scenes typed in; an ID that is not a scene is skipped. */
+const char* scrivi_extract_searchable_scenes(const char* projectRootPath, const char* sceneIDsJson);
 
 /* ---- Undo/Redo history (EP-019 SP-052 — T-0202) ------------------------- */
 

@@ -43,6 +43,8 @@ struct ScenePropertiesView: View {
     let sceneID: String?
     let projectRootPath: String?
     let engine: ScriviEngine
+    /// SP-197: the Inspector's one read for the scene; nil in a host that has none (this view then reads for itself).
+    var reader: SceneInspectorReader? = nil
 
     @State private var notes: SceneNotesResult?
     @State private var loadFailed = false
@@ -66,7 +68,14 @@ struct ScenePropertiesView: View {
                 ProgressView().controlSize(.small)
             }
         }
-        .task(id: sceneID) { load() }
+        .opacity(waiting ? 0.45 : 1)
+        .task(id: "\(sceneID ?? "")#\(reader?.readCount ?? 0)#\(reader?.failure != nil)") { load() }
+    }
+
+    /// SP-197 Q2: the last scene's properties, dimmed, while this scene's read is out.
+    private var waiting: Bool {
+        guard let reader, let sceneID else { return false }
+        return reader.read?.sceneID != sceneID && reader.failure?.sceneID != sceneID
     }
 
     // MARK: — Fields
@@ -129,6 +138,17 @@ struct ScenePropertiesView: View {
 
     private func load() {
         guard let sceneID, let projectRootPath else { return }
+        if let reader {
+            if let read = reader.read, read.sceneID == sceneID {
+                switch read.parts.notes {
+                case .success(let n): notes = n; loadFailed = false
+                case .failure:        loadFailed = true
+                }
+            } else if reader.failure?.sceneID == sceneID {
+                loadFailed = true
+            }
+            return   // otherwise the read is out: keep the last
+        }
         do {
             notes = try engine.getSceneNotes(projectRootPath: projectRootPath, sceneID: sceneID)
             loadFailed = false

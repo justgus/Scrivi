@@ -10,9 +10,79 @@ in the backlog carrying a 🟠 status.
 
 ---
 
+## 🟠 T-0629 — `[ScriviCore]` EP-052 S3: one Inspector read per scene, and the per-scene searchable text
+
+**Epic:** [EP-052] (AC8, AC9) · **Status:** 🟠 **Implemented - Not Verified** (2026-10-27) — ⏳ the Mac and rig live passes ([SP-197] AC5) · **Sprint:** [SP-197] (🟡 Active) → [`../Sprints/Sprint-SP-197.md`](../Sprints/Sprint-SP-197.md) · **Date Requested:** 2026-10-27 (user: *"plan S3"*)
+
+**What:** (a) one endpoint returning everything the Inspector shows for a scene: its notes, its edges with each far
+object's name, kind, image path and pending state, the sources' citations, and the bound worlds' status, with the object
+index built once (v0.2 R3b; [SP-197] Q1). It replaces the 32 calls the Mac makes today (`ObjectCard.swift:157,179,614`,
+`SourcesCard.swift:89,107`, `WritingToolCards.swift:37`, `ScenePropertiesView.swift:133`) and Linux's
+(`SceneInspector.cpp:404–409,856`). An unreachable world keeps today's behaviour ([I-0222], D8): its edges still list by
+cached name. (b) `scrivi_extract_searchable_text` for a list of scene IDs (`scrivi.h:684` takes a project only).
+**Tests:** boundary tests through `scrivi_*`; the file-operation count for one scene asserted (CountingFileSystem); an
+unreachable world; Engine stub parity (`check-engine-stub-parity.sh`) and the Linux bridge.
+
+**Done (2026-10-27):** `scrivi_load_scene_inspector` (`scrivi_c_api.cpp:3477`): notes, edges, the far objects (the
+object index built once, narrowed to the scene's far endpoints), worlds and, when asked, each reachable far object's own
+edges, under ONE project lock, each part its standalone endpoint's builder (`EndpointPart`, shared with
+`scrivi_load_timeline`), a failing part as `<part>Error`. An empty part is `{}`, never `null`. `scrivi_extract_searchable_scenes`
+(`:3588`): the named scenes' records only (`ExtractSearchableTextRequest::scenesOnly`). Bound in Swift (`loadSceneInspector`,
+`extractSearchableScenes`) and on Linux (`ScriviBridge::loadSceneInspector`). Each envelope's trace now names its project, so a
+test can count one project's main-thread calls apart from the others running beside it. **Evidence:** ctest 786/786 (5 new
+`[SP-197]` boundary cases: parts equal the standalone endpoints, one revision; a world away; nothing related; a missing root;
+the per-scene extraction). File operations on the fixture: the composite **67**, against **353+** for the per-card calls it
+replaces. ⚠️ One unidentified ctest failure in the first full run after a rebuild; 18 full runs since are clean.
+
+---
+
+## 🟠 T-0630 — `[Cross]` EP-052 S3: the Inspector and the timeline read off the main thread, revision-checked
+
+**Epic:** [EP-052] (AC8) · **Status:** 🟠 **Implemented - Not Verified** (2026-10-27) — ⏳ the Mac and rig live passes ([SP-197] AC5) · **Sprint:** [SP-197] (🟡 Active) → [`../Sprints/Sprint-SP-197.md`](../Sprints/Sprint-SP-197.md) · **Date Requested:** 2026-10-27 (user: *"plan S3"*)
+
+**What:** Mac and Linux in the same work (`feedback_linux_adopts_apple_shape`). The Inspector shows the new scene's cards
+at once ([SP-197] Q2), runs [T-0629]'s read as ONE job off the main thread, and fills the cards when it lands if
+`scrivi_get_project_revision` has not moved (D4); otherwise it reads again. The timeline's reloads do the same: the open's
+main-thread fallback (`ProjectSession.swift:328`) and Linux's `reloadTimeline()` (`EditorShell.cpp:3351`). Linux's
+object-card worker (`SceneInspector.cpp:399`) is the shape; its notes read (`:856`) joins it.
+**Tests:** the inventory probes (`MainThreadInventoryTests`; `SCRIVI_INVENTORY=1 structural_baseline_smoke`) assert 0 file
+operations on the main thread for click, select, scroll, navigator and the Inspector following; a result whose revision
+moved is dropped.
+
+**Done (2026-10-27):** Mac: `SceneInspectorReader` (`InspectorCard.swift:199`), owned by `SceneInspectorView`, makes ONE read
+per scene off the main actor; every card (tags, outline, todo, the ten object cards, Sources) and the Properties tab are built
+from it (`CardContext.scenePart`); a result whose revision moved is read again; while the read is out the cards keep their last
+contents dimmed and take no edits, "Loading…" after 400 ms (Q2, `sceneReadGate`); a card's own write re-reads the scene. The
+open's timeline fallback is re-read off the main actor (`ProjectSession.swift:560`). Linux: the Inspector's worker makes the one
+call, the notes included (`SceneInspector.cpp:374`), revision-checked, the last contents dimmed, "Loading…" after 400 ms; the
+load's stale timeline is re-read on a worker (`EditorShell.cpp:3355`). **Evidence:** interop 323/323, new
+`MainThreadNoFileOpsTests` (0 main-thread file ops for click, select, scroll, navigator and the Inspector following; a card's
+write re-reads); Linux smokes 38/38, `structural_baseline_smoke`'s new SP-197 gate (0 GUI-thread file ops for click, select,
+scroll) — a mutation in a copy (the notes read back on the GUI thread) fails it on all four gestures.
+
+---
+
+## 🟠 T-0631 — `[Apple]` EP-052 S3: Spotlight on one serial background queue, per-scene, behind the saves
+
+**Epic:** [EP-052] (AC9) · **Status:** 🟠 **Implemented - Not Verified** (2026-10-27) — ⏳ the Mac and rig live passes ([SP-197] AC5) · **Sprint:** [SP-197] (🟡 Active) → [`../Sprints/Sprint-SP-197.md`](../Sprints/Sprint-SP-197.md) · **Date Requested:** 2026-10-27 (user: *"plan S3"*)
+
+**What:** v0.2 §5 S1–S4. Every `CSSearchableIndex` call (donate, re-index, delete on close) runs on one serial queue
+(Apple: one thread at a time). The open's donation and the app-switch re-index (`ProjectSession.swift:541,550`) leave the
+main thread; the extraction is a read behind the queue's saves; the app switch re-indexes only the scenes typed in
+([T-0629] (b)); a close cancels a pending job. Only `spotlightDomainIdentifier` is set on the main actor, when the job lands.
+**Tests:** the inventory's open and app-switch rows read 0 file operations on the main thread; a close during a donation.
+
+**Done (2026-10-27):** every Spotlight call runs on one serial background queue (`SpotlightDonor.enqueue`,
+`SpotlightDonor.swift:40`): the open's donation and the app-switch re-index extract there, behind the queue's saves; the app
+switch re-indexes only the scenes typed in (`extractSearchableScenes`); a close cancels a pending job and deletes the domain
+behind any donation already started (by the projectID, so it is known before the first donation lands). **Evidence:** interop
+323/323; build clean. ⚠️ No test drives a close during a donation.
+
+---
+
 ## 🟠 T-0627 — `[Cross]` EP-052 S2b: structural edits through the queue, and the gesture cues
 
-**Epic:** [EP-052] (AC4, AC5, AC10) · **Status:** 🟠 **Implemented - Not Verified** (2026-10-27) — ⏳ the Mac and rig live passes ([SP-196] AC4) · **Sprint:** [SP-196] (🟡 Active) →
+**Epic:** [EP-052] (AC4, AC5, AC10) · **Status:** 🟠 **Implemented - Not Verified** (2026-10-27) — ✅ Mac live pass; ⏳ the rig live pass ([SP-196] AC4) · **Sprint:** [SP-196] (🟡 Active) →
 [`../Sprints/Sprint-SP-196.md`](../Sprints/Sprint-SP-196.md) · **Date Requested:** 2026-10-26 (user: *"approve the close.  plan S2."*)
 
 **What:** on both platforms a structural edit is `scrivi_enqueue_range_op` behind the queued saves; the delta comes back in

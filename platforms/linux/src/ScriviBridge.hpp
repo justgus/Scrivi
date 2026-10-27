@@ -307,6 +307,10 @@ public:
     // ✅ [SP-191]: every scene's EXPLICIT story time, one call, worker-safe — all a structural edit changes on the timeline
     // (Apple: `listStoryTimes`). Returns {storyTimes:[…]}; on failure emits errorOccurred, returns {}.
     QVariantMap listStoryTimes(const QString& projectRootPath);
+    // ✅ SP-197 (EP-052 S3): everything the Scene Inspector shows for one scene, one call under one project lock; worker-safe.
+    // Result: {notes, edges, objects, worlds[, citations]}, a failing part replaced by "<part>Error"; lastRevision() is the
+    // state they describe.
+    QVariantMap loadSceneInspector(const QString& projectRootPath, const QString& sceneID, bool includeCitations);
     // SP-173 (D4): the project's current revision (-1 on failure); touches no file.
     qint64 projectRevision(const QString& projectRootPath);
     // SP-173 (fix 3): many scenes' texts in one call, read in parallel by the core; sceneID → markdown. Worker-safe.

@@ -2090,6 +2090,21 @@ QVariantMap ScriviBridge::loadTimeline(const QString& projectRootPath)
     return parseEnvelope(envelope.toQString());
 }
 
+// SP-197 (EP-052 S3, Background Writes v0.2 R3b) — the Inspector's one read for a scene. Safe on a worker thread, as
+// loadTimeline. Result: {notes, edges, objects, worlds[, citations]}, each its endpoint's result or "<part>Error".
+QVariantMap ScriviBridge::loadSceneInspector(const QString& projectRootPath, const QString& sceneID, bool includeCitations)
+{
+    if (!ready_) {
+        tlsLastCallFailed = true;
+        tlsLastRevision = -1;
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_load_scene_inspector(projectRootPath.toUtf8().constData(),
+                                                            sceneID.toUtf8().constData(), includeCitations ? 1 : 0));
+    return parseEnvelope(envelope.toQString());
+}
+
 QVariantMap ScriviBridge::listStoryTimes(const QString& projectRootPath)
 {
     if (!ready_) {

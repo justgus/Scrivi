@@ -21,7 +21,7 @@ struct CoreCallStats: Sendable, Equatable { var mainThreadCalls = 0; var openPro
 let coreCallCounts = Mutex(CoreCallStats())
 
 /// [SP-188] AC11 / EP-052 inventory — every main-thread core call, while a probe holds the recorder open (nil = off).
-struct MainThreadCoreCall: Sendable { let endpoint: String; let ms: Int64; let fileOps: Int64; let lockWaitMs: Int64 }
+struct MainThreadCoreCall: Sendable { let endpoint: String; let ms: Int64; let fileOps: Int64; let lockWaitMs: Int64; var project = "" }
 let mainThreadCoreCalls = Mutex<[MainThreadCoreCall]?>(nil)
 
 /// [SP-191] The main-thread core calls ONE editor's structural edits make — their own work (`own`) and the history's caret
@@ -1105,6 +1105,14 @@ public final class ScriviEngine: @unchecked Sendable {
         return try decodeC(raw)
     }
 
+    /// SP-197 — the same records for the named scenes only (no project record, no world objects): re-indexing the scenes
+    /// typed in. Read-only; safe off the main actor.
+    public func extractSearchableScenes(projectRootPath: String, sceneIDs: [String]) throws -> SearchableContentResult {
+        let ids = String(decoding: try JSONEncoder().encode(sceneIDs), as: UTF8.self)
+        let raw = projectRootPath.withCString { prp in ids.withCString { scrivi_extract_searchable_scenes(prp, $0) } }
+        return try decodeC(raw)
+    }
+
     // MARK: — Undo/Redo history (EP-019 SP-052 — T-0203)
     // Pure decode wrappers over scrivi_history_*; no history logic in Swift.
 
@@ -1846,7 +1854,8 @@ func decodeCWithRevision<T: Decodable>(_ ptr: UnsafePointer<CChar>?) throws -> (
         coreLockWaits.withLock { $0.totalMs += waited; $0.count += 1; $0.maxMs = max($0.maxMs, waited) }
     }
     if Thread.isMainThread, let t = envelope.trace {   // [SP-188] AC11: what the main thread waited on the core for
-        let call = MainThreadCoreCall(endpoint: t.endpoint, ms: t.ms, fileOps: t.fileOps, lockWaitMs: envelope.lockWaitMs ?? 0)
+        let call = MainThreadCoreCall(endpoint: t.endpoint, ms: t.ms, fileOps: t.fileOps, lockWaitMs: envelope.lockWaitMs ?? 0,
+                                      project: t.project ?? "")
         mainThreadCoreCalls.withLock { $0?.append(call) }
         if t.ms >= 1 || t.fileOps > 0 || call.lockWaitMs > 0 {
             ScriviDiag.note("core: \(t.endpoint) \(t.ms) ms, \(t.fileOps) file ops, lock wait \(call.lockWaitMs) ms")
@@ -1975,6 +1984,11 @@ public final class ScriviEngine: @unchecked Sendable {
     public func setImportedTimelineVisible(projectRootPath: String, timelineID: String, visible: Bool) throws -> TimelineBoolResult { try unavailable() }
     public func listImportedTimelines(projectRootPath: String) throws -> ImportedTimelinesListResult { try unavailable() }
     public func loadTimeline(projectRootPath: String) throws -> LoadTimelineResult { try unavailable() }
+    public func enqueueSaveScenes(projectID: String, projectRootPath: String, appSupportRoot: String, scenes: [QueuedSave], authorshipRef: AuthorshipRef) throws -> [String: Int64] { try unavailable() }
+    public func enqueueRangePaste(projectRootPath: String, range: ScriviRange, caretSceneID: String, caretByteOffset: Int, caretSceneText: String, authorshipRef: AuthorshipRef) throws -> Int64 { try unavailable() }
+    public func enqueueRangeCut(projectRootPath: String, range: ScriviRange, authorshipRef: AuthorshipRef) throws -> Int64 { try unavailable() }
+    public func enqueueRangeRelabel(projectRootPath: String, range: ScriviRange, targetChapterID: String, authorshipRef: AuthorshipRef) throws -> Int64 { try unavailable() }
+    public func waitForWrites(projectRootPath: String, ticket: Int64 = 0, timeoutMs: Int64) throws -> WriteQueueWait { try unavailable() }
     public func projectRevision(projectRootPath: String) throws -> Int64 { try unavailable() }
     public func readSceneTexts(projectRootPath: String, sceneIDs: [String]) throws -> ReadSceneTextsResult { try unavailable() }
     public static func markdownWordRange(scene: String, caret: Int) throws -> NSRange? { nil }
@@ -1988,6 +2002,7 @@ public final class ScriviEngine: @unchecked Sendable {
     public func removeImportedTimeline(projectRootPath: String, timelineID: String) throws -> TimelineBoolResult { try unavailable() }
     public func exportProjectTimeline(projectRootPath: String) throws -> ExportTimelineResult { try unavailable() }
     public func extractSearchableText(projectRootPath: String) throws -> SearchableContentResult { try unavailable() }
+    public func extractSearchableScenes(projectRootPath: String, sceneIDs: [String]) throws -> SearchableContentResult { try unavailable() }
     public func historyOpen(projectRootPath: String) throws -> HistoryOpenResult { try unavailable() }
     @discardableResult
     public func historySeedScene(projectRootPath: String, sceneID: String, sceneText: String) throws -> HistorySeedResult { try unavailable() }
@@ -2049,6 +2064,7 @@ public final class ScriviEngine: @unchecked Sendable {
     public func createEdge(projectRootPath: String, fromID: String, toID: String, relationTypeCode: String, note: String = "") throws -> EdgeResult { try unavailable() }
     public func deleteEdge(projectRootPath: String, edgeID: String) throws -> DeleteEdgeResult { try unavailable() }
     public func listEdgesFor(projectRootPath: String, endpointID: String) throws -> ListEdgesResult { try unavailable() }
+    public func loadSceneInspector(projectRootPath: String, sceneID: String, includeCitations: Bool) throws -> SceneInspectorRead { try unavailable() }
     public func listPendingEdges(projectRootPath: String) throws -> ListPendingEdgesResult { try unavailable() }
     public func listObjects(projectRootPath: String, kind: String = "") throws -> ListObjectsResult { try unavailable() }
     public func listOrphanedObjects(projectRootPath: String) throws -> ListObjectsResult { try unavailable() }

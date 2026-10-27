@@ -24,22 +24,23 @@ import SwiftUI
     private let engine: ScriviEngine
     private let projectRootPath: String
     private let sceneID: String
+    /// SP-197: after a write, the Inspector reads the scene again so every card shows what landed.
+    private let didWrite: () -> Void
 
-    init(engine: ScriviEngine, projectRootPath: String, sceneID: String) {
+    /// SP-197: built from the Inspector's one read for the scene (`CardContext.scenePart`), never read here.
+    init(engine: ScriviEngine, projectRootPath: String, sceneID: String,
+         notes: Result<SceneNotesResult, Error>, didWrite: @escaping () -> Void = {}) {
         self.engine = engine
         self.projectRootPath = projectRootPath
         self.sceneID = sceneID
-        load()
-    }
-
-    func load() {
-        do {
-            let notes = try engine.getSceneNotes(projectRootPath: projectRootPath, sceneID: sceneID)
+        self.didWrite = didWrite
+        switch notes {
+        case .success(let notes):
             tags = notes.tags
             outline = notes.outline
             todo = notes.todo
             loadError = nil
-        } catch {
+        case .failure(let error):
             // A card that cannot load reports it in place (Doc 2 §7.1) rather than
             // rendering as empty — an empty card would look like lost work.
             loadError = error.localizedDescription
@@ -62,7 +63,7 @@ import SwiftUI
     }
 
     private func saveTags() {
-        do { try engine.setSceneTags(projectRootPath: projectRootPath, sceneID: sceneID, tags: tags) }
+        do { try engine.setSceneTags(projectRootPath: projectRootPath, sceneID: sceneID, tags: tags); didWrite() }
         catch { loadError = error.localizedDescription }
     }
 
@@ -72,7 +73,7 @@ import SwiftUI
     func saveOutline(_ text: String) {
         guard text != outline else { return }
         outline = text
-        do { try engine.setSceneOutline(projectRootPath: projectRootPath, sceneID: sceneID, outline: text) }
+        do { try engine.setSceneOutline(projectRootPath: projectRootPath, sceneID: sceneID, outline: text); didWrite() }
         catch { loadError = error.localizedDescription }
     }
 
@@ -98,7 +99,7 @@ import SwiftUI
     }
 
     private func saveTodo() {
-        do { try engine.setSceneTodo(projectRootPath: projectRootPath, sceneID: sceneID, todo: todo) }
+        do { try engine.setSceneTodo(projectRootPath: projectRootPath, sceneID: sceneID, todo: todo); didWrite() }
         catch { loadError = error.localizedDescription }
     }
 }
@@ -153,7 +154,8 @@ private struct TagsCardBody: View {
                 ProgressView().controlSize(.small)
             }
         }
-        .task(id: context.sceneID) { model = makeModel(context) }
+        .sceneReadGate(context)
+        .task(id: context.sceneReadID) { if let m = makeModel(context) { model = m } }
     }
 }
 
@@ -235,8 +237,9 @@ private struct OutlineCardBody: View {
                 ProgressView().controlSize(.small)
             }
         }
-        .task(id: context.sceneID) {
-            let m = makeModel(context)
+        .sceneReadGate(context)
+        .task(id: context.sceneReadID) {
+            guard let m = makeModel(context) else { return }
             model = m
             draft = m.outline
         }
@@ -318,17 +321,26 @@ private struct TodoCardBody: View {
                 ProgressView().controlSize(.small)
             }
         }
-        .task(id: context.sceneID) { model = makeModel(context) }
+        .sceneReadGate(context)
+        .task(id: context.sceneReadID) { if let m = makeModel(context) { model = m } }
     }
 }
 
 // MARK: — Shared helpers
 
+/// The scene's notes model, once the Inspector's read for it has landed; nil while it is out (the card keeps its last).
 @MainActor
-private func makeModel(_ context: CardContext) -> SceneNotesModel {
-    SceneNotesModel(engine: context.engine,
-                    projectRootPath: context.projectRootPath,
-                    sceneID: context.sceneID)
+private func makeModel(_ context: CardContext) -> SceneNotesModel? {
+    if let notes = context.scenePart(\.notes) {
+        return SceneNotesModel(engine: context.engine, projectRootPath: context.projectRootPath,
+                               sceneID: context.sceneID, notes: notes,
+                               didWrite: { [inspector = context.inspector] in inspector?.reload() })
+    }
+    // A host with no reader (a hand-built card) reads for itself.
+    guard context.inspector == nil else { return nil }
+    return SceneNotesModel(engine: context.engine, projectRootPath: context.projectRootPath, sceneID: context.sceneID,
+                           notes: Result { try context.engine.getSceneNotes(projectRootPath: context.projectRootPath,
+                                                                            sceneID: context.sceneID) })
 }
 
 /// In-card failure presentation (Doc 2 §7.1) — the card reports its own problem and the

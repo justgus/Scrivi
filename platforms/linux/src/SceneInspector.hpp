@@ -224,6 +224,8 @@ private:
     // tabs from that single read — they are two views of one `getSceneNotes`
     // result, so reading twice would be pure waste.
     void loadSceneNotes();
+    // ✅ SP-197: fills both tabs from the notes part of the scene's one read (`reload`), on the UI thread.
+    void applyNotes(const QVariantMap& notes, bool failed, const QString& why = {});
 
     // Enable/disable the Writing fields. ⚠️ Disabled IN FACT when the scene's
     // notes could not be read — typing into a field we failed to load would
@@ -253,6 +255,11 @@ private:
     // Resolve a worldID to its display name for the pending line, falling back to
     // the ID. ⚠️ An unnamed world is still better than an unattributed warning.
     QString worldDisplayName(const QString& worldID);
+
+    // ✅ SP-197: the read in flight. A newer reload() bumps it, so an older payload or its 400 ms "Loading…" cue is
+    // dropped; `reloadAttempts_` counts reads lost to a moved revision (D4).
+    int reloadGeneration_ = 0;
+    int reloadAttempts_ = 0;
 
     QTabWidget*  tabs_    = nullptr;
     QTreeWidget* tree_    = nullptr;   // Worldbuilding: the scene's objects
