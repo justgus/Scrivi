@@ -655,6 +655,28 @@ int main(int argc, char* argv[])
         }
         ScriviBridge::workerCoreCallObserver() = nullptr;
     }
+    // ── ✅ [SP-196] rig: a save asked for while a structural edit is out never goes behind it ───────────────────────────
+    // (The autosave fired during an undo of a split, queued the removed scene after the undo, and held the queue for good.
+    // A scene the edit REWRITES is worse: its old text, saved after the job, overwrites what the job wrote.)
+    {
+        QTextCursor c = r.editor->textCursor();
+        c.setPosition(r.shell->sceneDocument().segments().at(0).bodyStart);
+        r.editor->setTextCursor(c);
+        QApplication::processEvents();
+        QTest::keyClicks(r.editor, QStringLiteral("Pen "));   // scene 0 dirty, the caret still in it
+        // The autosave's tick on every pass of the event loop while the split is out: after its job is queued too (it is
+        // queued from a worker), which is when the rig's tick came.
+        QTimer tick;
+        QObject::connect(&tick, &QTimer::timeout, r.shell.get(), [&] { r.shell->saveDirtyScenes(); });
+        check(r.landing([&] {
+                  r.shell->splitScene();
+                  tick.start(0);
+              }),
+              QStringLiteral("SP-196 rig: the split landed"));
+        tick.stop();
+        check(!r.shell->writesHeld(), QStringLiteral("SP-196 rig: the queue is not held"));
+        r.listMatchesDisk(QStringLiteral("SP-196 rig: an autosave during a split"));
+    }
     // ── [SP-188] AC11 / EP-052 v0.2: the main-thread inventory (on demand) ────────────────────────────────────────────────
     // ⚠️ A MEASUREMENT, not a gate: every GUI-thread core call each writer gesture makes, with its file operations (the cost
     // over a share, one network round trip each). The Mac's twin is `MainThreadInventoryTests`. Run with SCRIVI_INVENTORY=1.

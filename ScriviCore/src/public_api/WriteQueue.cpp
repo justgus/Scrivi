@@ -197,7 +197,22 @@ void WriteQueue::loop() {
         const bool history = job.kind == Kind::historyAppend || job.kind == Kind::historyState;
         util::JsonDoc outcome;
         try {
-            outcome = history ? runHistory(job) : job.run();
+            if (job.kind == Kind::save && removedScenes_.contains(job.key)) {
+                outcome.setBool("ok", false);
+                util::JsonDoc error;
+                error.setInt("code", static_cast<int>(ErrorCode::invalidArgument));
+                error.setString("message", "Scene no longer exists: " + job.key);
+                outcome.setSubDoc("error", std::move(error));
+            } else {
+                outcome = history ? runHistory(job) : job.run();
+            }
+            if (job.kind == Kind::structural && outcome.getBool("ok")) {
+                const auto delta = outcome.getSubDoc("result").getSubDoc("delta");
+                for (const auto& id : delta.getStringArray("removedSceneIDs")) { removedScenes_.insert(id); }
+                for (std::size_t i = 0; i < delta.arraySize("scenes"); ++i) {
+                    removedScenes_.erase(delta.arrayItem("scenes", i).getString("sceneID"));   // a redo puts one back
+                }
+            }
         } catch (const std::exception& e) {   // the writer thread must outlive any one job
             outcome = util::JsonDoc{};
             outcome.setBool("ok", false);

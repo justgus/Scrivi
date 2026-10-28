@@ -420,6 +420,10 @@ struct SceneSegment: Identifiable {
     /// returns at once.
     @discardableResult
     private func enqueueSaves(_ entries: [(index: Int, cursor: Int, scroll: Double)], ref: AuthorshipRef) -> Bool {
+        // ⛔ [SP-196] rig: never behind a structural edit in flight. Every dirty scene was queued before it (W7b) and the
+        // text takes no typing until it lands, so a save now only repeats one, after the job, with the text from before
+        // it: a scene the job removed held the queue for good. The scenes stay dirty; they are queued when it lands.
+        guard !structuralInFlight else { return false }
         let saves = entries.filter { segments.indices.contains($0.index) }.map { e in
             let seg = segments[e.index]
             return QueuedSave(sceneID: seg.sceneID, metadataPath: seg.metadataPath, contentPath: seg.contentPath,
@@ -564,6 +568,9 @@ struct SceneSegment: Identifiable {
                                               enqueue: @escaping @Sendable (ScriviEngine) throws -> Int64,
                                               finish: @escaping @Sendable (ScriviEngine, RangeOperationResult) -> T,
                                               landed: @escaping @MainActor (Result<T, Error>) -> Void) -> Bool {
+        // W7b: the queue's order replaces "save first" — the job runs on what these saves wrote. Before the flag, which
+        // holds back every later save until the job lands.
+        _ = saveScenesOffMain(segments.indices, engine: engine, ref: ref)
         structuralInFlight = true
         structuralGeneration += 1
         let began = Date()
@@ -577,6 +584,7 @@ struct SceneSegment: Identifiable {
         let done: @MainActor (Result<T, Error>) -> Void = { [weak self] outcome in
             guard let self else { return }
             self.structuralInFlight = false
+            _ = self.saveScenesOffMain(self.segments.indices, engine: self.engine, ref: ref)   // what was held back
             StructuralCallAccounting.$sink.withValue(self.structuralCalls) {
                 ScriviDiag.span("structural: \(label) applied", always: true) { landed(outcome) }
             }
@@ -588,8 +596,6 @@ struct SceneSegment: Identifiable {
             self.structuralWaiters = []
             for w in waiters { w() }
         }
-        // W7b: the queue's order replaces "save first" — the job runs on what these saves wrote.
-        _ = saveScenesOffMain(segments.indices, engine: engine, ref: ref)
         let engine = engine
         Task { @MainActor [weak self] in
             let queued = await Task.detached(priority: .userInitiated) { Result { try enqueue(engine) } }.value

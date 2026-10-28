@@ -1633,6 +1633,12 @@ bool EditorShell::enqueueSaves(const QList<QueuedSaveEntry>& entries)
     if (bridge_ == nullptr || projectPath_.isEmpty()) {
         return false;
     }
+    // ⛔ [SP-196] rig: never behind a structural edit in flight. Every dirty scene was queued before it (W7b) and the
+    // editor takes no typing until it lands, so a save now only repeats one, after the job, with the text from before it:
+    // a scene the job removed held the queue for good. The scenes stay dirty; they are queued when it lands.
+    if (rangeEditInFlight_) {
+        return false;
+    }
     QVariantList scenes;
     QHash<QString, QString> texts;
     for (const QueuedSaveEntry& e : entries) {
@@ -2076,6 +2082,7 @@ bool EditorShell::runRangeEdit(const QString& label, RangeCall call, RangeNode n
         rangeEditInFlight_ = false;
         deferredSteps_.clear();   // the undo pressed for it has nothing of its own to undo
         unlockAfterWork();
+        saveDirtyScenes();   // what was held back while it was out
         QApplication::beep();
         if (failed) { failed(); }
         endBackgroundWork();
@@ -2096,6 +2103,7 @@ bool EditorShell::runRangeEdit(const QString& label, RangeCall call, RangeNode n
         }
         rangeEditInFlight_ = false;
         unlockAfterWork();
+        saveDirtyScenes();   // what was held back while it was out
         if (const auto [sceneID, byte] = caret(result); !sceneID.isEmpty()) {
             placeCaret(sceneID, byte);
         }

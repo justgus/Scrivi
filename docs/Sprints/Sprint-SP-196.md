@@ -49,6 +49,20 @@ platforms' own structural workers are gone (W7h).
 
 ## Progress log
 
+### ❌→🟠 2026-10-27 — Rig pass 2 (build 304): stuck after a split and its undo; fixed, not yet re-passed
+- User: A passed; after B.1 *"something happened and I couldn't do anything any more"*; the quit could not finish saving.
+- Rig log: `"Splitting the scene…"` applied 22:37:53, `"Undoing…"` queued 22:38:04 → `queued save FAILED
+  scene=scene_01a1805f… held=1` → applied. The autosave queued the split-off scene AFTER the undo that removed it; the save
+  could never land, so the queue held for good (and wrote `chapter-D/1.D-scene.md` with no meta). A scene the job rewrites
+  is worse: its old text, saved after the job, overwrites what the job wrote.
+- **Fix:** no save is queued while a structural edit is out (Linux `enqueueSaves`, Mac `enqueueSaves`; the edit's own saves
+  go first, W7b), and what is still dirty is queued when it lands. The core refuses, never holds, a save of a scene a
+  queued structural job removed (`WriteQueue::removedScenes_`). A disk-presence check was tried first and dropped: it
+  cannot tell a removed scene from a pulled drive (two interop tests caught it).
+- **Tests:** ctest 787/787 (new `[write-queue]` case, fails on a mutation in a copy); smokes 38/38 (new: an autosave on
+  every loop pass during a split; fails on a mutation in a copy — disk ≠ window); interop 324/324. ⚠️ No Mac test of the
+  app guard.
+
 ### 🟠 2026-10-27 — Rig failure fixed, not yet re-passed
 - A structural edit is never abandoned once it may be queued: no timeout on the enqueue or the landing worker
   (`AsyncCall` `timeoutMs` ≤ 0 = none), and a failed wait keeps waiting for the edit's outcome instead of failing it

@@ -397,6 +397,37 @@ TEST_CASE("EP-052 queue: a write that fails for any other reason is reported, an
     CHECK(log.find("\"sceneID\":\"" + bad.id + "\",\"sha256\"") == std::string::npos);
 }
 
+// [SP-196] rig: an undo of a split removed a scene, and a save of it queued after the undo held the queue for good (and the
+// first rig run left its .md behind with no meta).
+TEST_CASE("EP-052 queue: a save of a scene a queued structural job removed is refused, never held, and writes nothing",
+          "[write-queue][capi]") {
+    QueueProject p(2);
+    const Scene a = p.scenes[0];
+    const Scene gone = p.scenes[1];
+    const auto aLen = static_cast<long long>(p.onDisk(a).size());
+    JsonDoc op;   // the break between the two scenes cut: a merge, which removes the second
+    op.setString("op", "cut");
+    op.setSubDoc("range", ok(scrivi_range_read(p.r(), a.id.c_str(), aLen, gone.id.c_str(), 0)).getSubDoc("range"));
+    op.setString("identityID", "identity-001");
+    op.setString("personaID", "persona-001");
+    op.setString("displayName", "T");
+    ok(scrivi_enqueue_range_op(p.r(), op.dump(-1).c_str()));
+    const int64_t refused = p.enqueue(gone, "Never written.");   // queued after the merge, as the autosave did
+    const int64_t after = p.enqueue(a, "Written.");
+    const JsonDoc waited = ok(scrivi_wait_for_writes(p.r(), after, -1));
+    CHECK(waited.getBool("landed"));
+    CHECK_FALSE(waited.getBool("held"));
+    const auto outcomes = outcomesOf(waited);
+    REQUIRE(outcomes.size() == 3);
+    CHECK(outcomes[0].getBool("ok"));   // the merge
+    CHECK(outcomes[1].getInt64("ticket") == refused);
+    CHECK_FALSE(outcomes[1].getBool("ok"));
+    CHECK_FALSE(outcomes[1].getBool("held"));
+    CHECK(outcomes[2].getBool("ok"));
+    CHECK_FALSE(fs::exists(p.root / gone.contentPath));
+    CHECK(p.onDisk(a) == "Written.");
+}
+
 TEST_CASE("EP-052 queue: closing with a held queue returns, and its writes land when the project is back "
           "(SP-195 Q1 (a))", "[write-queue][capi]") {
     QueueProject p(1);

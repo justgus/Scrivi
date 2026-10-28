@@ -30,6 +30,7 @@
 #include <functional>
 #include <map>
 #include <mutex>
+#include <set>
 #include <string>
 #include <thread>
 #include <vector>
@@ -95,6 +96,9 @@ private:
     std::thread thread_;
     std::vector<util::JsonDoc> outcomes_;
     std::map<std::string, std::string> unwritten_;   // writer thread only: log appends that failed, by log path
+    // Writer thread only: the scenes a structural job removed (until one puts them back). [SP-196] rig: a save of one,
+    // queued after the job, can never land, and holding for it held the queue for good.
+    std::set<std::string> removedScenes_;
 };
 
 }  // namespace scrivi::abi
