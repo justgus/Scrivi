@@ -686,6 +686,9 @@ public:
     // file operations) and its lock wait. The app logs them (`main.cpp`); smokes tabulate them. Set on the GUI thread only.
     struct GuiCoreCall { QString endpoint; qint64 ms = 0; qint64 fileOps = 0; qint64 lockWaitMs = 0; };
     static std::function<void(const GuiCoreCall&)>& guiCoreCallObserver();
+    // [SP-197] rig: the same for every OTHER thread's call, so a log shows which background read held the project's lock.
+    // Set once, before any worker runs; called on the worker.
+    static std::function<void(const GuiCoreCall&)>& workerCoreCallObserver();
 
 signals:
     void readyChanged();

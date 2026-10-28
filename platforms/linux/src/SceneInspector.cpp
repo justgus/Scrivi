@@ -386,6 +386,31 @@ void SceneInspector::reload()
         return;
     }
 
+    // ✅ SP-197 Q2: the last scene's contents stay, dimmed and taking no edits, while the read is out; "Loading…" after
+    // 400 ms. (⚠️ The Writing fields take no edits IN FACT: `loadingNotes_` blocks every commit, so an old scene's notes
+    // can never be written into this one.)
+    const int generation = ++reloadGeneration_;
+    loadingNotes_ = true;
+    setWritingEnabled(false);
+    if (tree_ != nullptr) { tree_->setEnabled(false); }
+    QTimer::singleShot(400, this, [this, generation] {
+        if (generation == reloadGeneration_) { setStatusLine(tr("Loading…"), false); }
+    });
+    if (readInFlight_) {
+        rereadWanted_ = true;
+        return;
+    }
+    startRead();
+}
+
+void SceneInspector::startRead()
+{
+    if (bridge_ == nullptr || projectRootPath_.isEmpty() || sceneID_.isEmpty()) {
+        return;
+    }
+    readInFlight_ = true;
+    rereadWanted_ = false;
+
     // ⚠️ Captured BY VALUE for the worker. `bridge_` is a raw pointer owned by the
     // UI thread, but the C ABI it wraps is call-thread-safe and the bridge holds
     // no mutable state across a call except the failure flag, which is PER THREAD
@@ -396,16 +421,12 @@ void SceneInspector::reload()
     const WorkerBridge::Handle bridgeHandle = WorkerBridge::handleFor(bridge_);
     const QString root   = projectRootPath_;
     const QString scene  = sceneID_;
-
-    // ✅ SP-197 Q2: the last scene's contents stay, dimmed and taking no edits, while the read is out; "Loading…" after
-    // 400 ms. (⚠️ The Writing fields take no edits IN FACT: `loadingNotes_` blocks every commit, so an old scene's notes
-    // can never be written into this one.)
-    const int generation = ++reloadGeneration_;
-    loadingNotes_ = true;
-    setWritingEnabled(false);
-    if (tree_ != nullptr) { tree_->setEnabled(false); }
-    QTimer::singleShot(400, this, [this, generation] {
-        if (generation == reloadGeneration_) { setStatusLine(tr("Loading…"), false); }
+    const int generation = reloadGeneration_;
+    // A slow read is waited for, never abandoned: the writer is told, and the cards fill when it lands.
+    QTimer::singleShot(AsyncCall::kDefaultTimeoutMs, this, [this, generation] {
+        if (readInFlight_ && generation == reloadGeneration_) {
+            setStatusLine(tr("Still reading this scene — the project may be on a slow or unreachable volume."), false);
+        }
     });
 
     AsyncCall::run<ReloadPayload>(
@@ -427,16 +448,17 @@ void SceneInspector::reload()
             return p;
         },
         [this, scene, root, generation](const ReloadPayload& p) {
+            readInFlight_ = false;
             // ⚠️ The active scene may have changed while we waited. Applying a
             // stale payload would show one scene's objects under another's name.
+            if (rereadWanted_) { return startRead(); }
             if (scene != sceneID_ || generation != reloadGeneration_) { return; }
             // D4: the project changed since it was read — read again. shortcut: after 3 lost races the last read is
             // applied anyway, since autosave can bump the revision faster than a slow share answers.
             if (p.revision >= 0 && reloadAttempts_ < 2 && bridge_ != nullptr
                 && bridge_->projectRevision(root) != p.revision) {
                 ++reloadAttempts_;
-                reload();
-                return;
+                return startRead();
             }
             reloadAttempts_ = 0;
             ++reloadGeneration_;   // the "Loading…" cue is moot
@@ -445,6 +467,8 @@ void SceneInspector::reload()
             applyNotes(p.notesResult, p.notesFailed);
         },
         [this, scene, generation]() {
+            readInFlight_ = false;   // shortcut: the parked worker may still hold the lock; the next read waits behind it
+            if (rereadWanted_) { return startRead(); }
             if (scene != sceneID_ || generation != reloadGeneration_) { return; }
             ++reloadGeneration_;
             reloadAttempts_ = 0;
@@ -459,7 +483,7 @@ void SceneInspector::reload()
                             "unreachable volume. Nothing has been lost.");
             entries_.clear();
             rebuildTree();
-        });
+        }, AsyncCall::kProjectOpenTimeoutMs);   // a backstop only: a slow read is waited for (above)
 }
 
 void SceneInspector::applyReload(const ReloadPayload& payload)

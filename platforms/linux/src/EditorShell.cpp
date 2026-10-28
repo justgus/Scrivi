@@ -1727,7 +1727,8 @@ void EditorShell::applyWriteOutcomes(const QVariantMap& wait)
     if (wait.isEmpty()) {
         queued_.clear();   // the wait failed: the scenes stay dirty for the next save
     }
-    if (structural_ && (wait.isEmpty() || !structuralOutcome.isEmpty())) {   // a failed wait: as a failed edit
+    // ⚠️ A failed wait is NOT a failed edit: the job is still queued and will run, so keep waiting for its outcome.
+    if (structural_ && !structuralOutcome.isEmpty()) {
         const PendingRangeEdit pending = *std::exchange(structural_, std::nullopt);
         pending.landed(structuralOutcome);
     }
@@ -1749,7 +1750,7 @@ void EditorShell::applyWriteOutcomes(const QVariantMap& wait)
     setQueueCounted((!queued_.isEmpty() || structural_) && !writesHeld_);
     if (!queued_.isEmpty() || structural_) {
         // A held queue answers at once; the core retries every 5 s, so asking more often learns nothing.
-        QTimer::singleShot(writesHeld_ ? 1000 : 0, this, [this] { startWaiting(); });
+        QTimer::singleShot(writesHeld_ || wait.isEmpty() ? 1000 : 0, this, [this] { startWaiting(); });
     }
 }
 
@@ -2140,7 +2141,8 @@ bool EditorShell::runRangeEdit(const QString& label, RangeCall call, RangeNode n
                 return l;
             },
             [result, apply](const Landing& l) { apply(result, l); },
-            [fail] { fail(QStringLiteral("the history node or the story times timed out")); }, kProjectOpenTimeoutMs);
+            // ⚠️ No timeout: the edit is on disk already; giving up would leave the window without it ([SP-196] rig).
+            [fail] { fail(QStringLiteral("the history node or the story times timed out")); }, 0);
     };
     struct Queued { qint64 ticket = 0; bool failed = false; };
     AsyncCall::run<Queued>(
@@ -2171,7 +2173,9 @@ bool EditorShell::runRangeEdit(const QString& label, RangeCall call, RangeNode n
             endBackgroundWork();   // the queue counts it now
             startWaiting();
         },
-        [fail] { fail(QStringLiteral("queueing it timed out")); }, kProjectOpenTimeoutMs);
+        // ⚠️ No timeout: a late worker still queues the job, which then runs on disk with the window restored ([SP-196]
+        // rig: queued 18:12:59, given up 18:22:59, ran 18:31:24).
+        [fail] { fail(QStringLiteral("queueing it timed out")); }, 0);
     return true;
 }
 

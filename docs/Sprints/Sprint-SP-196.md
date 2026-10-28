@@ -49,6 +49,20 @@ platforms' own structural workers are gone (W7h).
 
 ## Progress log
 
+### 🟠 2026-10-27 — Rig failure fixed, not yet re-passed
+- A structural edit is never abandoned once it may be queued: no timeout on the enqueue or the landing worker
+  (`AsyncCall` `timeoutMs` ≤ 0 = none), and a failed wait keeps waiting for the edit's outcome instead of failing it
+  (Linux `applyWriteOutcomes`, Mac `ViewportSceneLoader.apply`). Smokes 38/38, interop 324/324; no new test drives a
+  failed wait.
+
+### ❌ 2026-10-27 — Rig live pass FAILED (AC4)
+- User: a cut showed *"Cutting…"* at once, then it went away and nothing was cut.
+- Rig log: `structural "Deleting…": queued` 18:12:59 → `FAILED after 600402 ms — queueing it timed out` 18:22:59 (the
+  enqueue worker, `EditorShell.cpp:2174`). ⚠️ The job was queued anyway and ran at **18:31:24** (A-scene.md,
+  chapter.meta.json mtimes on the share): the disk took the edit, the window never did. Both cuts at 21:40 and 21:43
+  were then refused, *"the range is not what the manuscript holds at scene scene_01a09604…"*, and the quit's save of
+  that scene failed and held (`M-scene.md` written 21:47:16 with no meta beside it).
+
 ### ✅ 2026-10-27 — Mac live pass (AC4, Mac half)
 User: *"mac live pass passes."* The rig pass remains; AC4 stays open until it is in.
 

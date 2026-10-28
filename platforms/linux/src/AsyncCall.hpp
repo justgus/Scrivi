@@ -80,7 +80,8 @@ inline constexpr int kProjectOpenTimeoutMs = 600000;
 //   onTimeout()     -- called ON THE UI THREAD if it did not.
 //
 // Exactly ONE of the two runs. `context` owns the lifetime: if it is destroyed
-// first, neither fires.
+// first, neither fires. A `timeoutMs` of 0 or less never times out: for work that
+// has already reached the write queue, where giving up would not stop it ([SP-196]).
 //
 // ⚠️ `work` is copied to the worker thread. Capture BY VALUE -- a reference to a
 // UI-thread object can dangle, and this is the classic way an async refactor
@@ -125,7 +126,7 @@ void run(QObject* context,
                          if (onTimeout) { onTimeout(); }
                      });
 
-    timer->start(timeoutMs);
+    if (timeoutMs > 0) { timer->start(timeoutMs); }
     watcher->setFuture(QtConcurrent::run(std::move(work)));
 }
 

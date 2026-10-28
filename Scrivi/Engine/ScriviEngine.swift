@@ -1860,6 +1860,9 @@ func decodeCWithRevision<T: Decodable>(_ ptr: UnsafePointer<CChar>?) throws -> (
         if t.ms >= 1 || t.fileOps > 0 || call.lockWaitMs > 0 {
             ScriviDiag.note("core: \(t.endpoint) \(t.ms) ms, \(t.fileOps) file ops, lock wait \(call.lockWaitMs) ms")
         }
+    } else if let t = envelope.trace, t.ms >= 100 || (envelope.lockWaitMs ?? 0) >= 100 {
+        // [SP-197] rig: a slow background call too, so a pile-up behind the project's lock shows in the log.
+        ScriviDiag.note("core (background): \(t.endpoint) \(t.ms) ms, \(t.fileOps) file ops, lock wait \(envelope.lockWaitMs ?? 0) ms")
     }
     if !envelope.ok {
         let e = envelope.error

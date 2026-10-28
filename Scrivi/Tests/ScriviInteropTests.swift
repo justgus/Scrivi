@@ -8555,6 +8555,22 @@ struct MainThreadNoFileOpsTests {
         let again = CardContext(sceneID: scene, projectRootPath: root, engine: engine, config: CardConfig(), inspector: reader)
         #expect((try? again.scenePart(\.notes)?.get().tags) == ["ink"])
     }
+
+    /// [SP-197] rig: every scrolled-past scene's read ran, each holding the project's disk lock, until a cut waited 10 min.
+    @Test("scenes passed by while a read is out start no read of their own; the last one wanted lands")
+    func oneReadInFlight() async throws {
+        let h = try await UndoAfterStructuralOpTests().harness((0..<10).map { "Scene \($0)." })
+        let engine = h.env.engine, root = h.root.path
+        let reader = SceneInspectorReader()
+        for (i, seg) in h.loader.segments.enumerated() {   // no suspension between: the first read cannot land before the last
+            reader.want(engine: engine, projectRootPath: root, sceneID: seg.sceneID, includeCitations: false, key: "\(i)")
+        }
+        let last = try #require(h.loader.segments.last).sceneID
+        for _ in 0..<500 where reader.read?.sceneID != last && reader.failure == nil { try await Task.sleep(for: .milliseconds(20)) }
+        #expect(reader.failure == nil, "the read failed: \(String(describing: reader.failure?.error))")
+        #expect(reader.read?.sceneID == last, "the scene wanted last is the one shown")
+        #expect(reader.readsStarted <= 4, "one read, then one for the last scene (\(reader.readsStarted) reads)")
+    }
 }
 
 // MARK: - [SP-188] AC11 / EP-052 v0.2 — the main-thread inventory

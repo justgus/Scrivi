@@ -48,12 +48,20 @@ std::function<void(const ScriviBridge::GuiCoreCall&)>& ScriviBridge::guiCoreCall
     return observer;
 }
 
-// [SP-188] AC11: hands a GUI-thread project call's `trace` (and its lock wait) to the observer. Both envelope readers call it.
+std::function<void(const ScriviBridge::GuiCoreCall&)>& ScriviBridge::workerCoreCallObserver()
+{
+    static std::function<void(const GuiCoreCall&)> observer;
+    return observer;
+}
+
+// [SP-188] AC11: hands a project call's `trace` (and its lock wait) to the GUI-thread or the worker observer. Both envelope
+// readers call it.
 static void reportGuiCoreCall(const QJsonObject& root)
 {
-    if (!onGuiThread() || !root.contains(QStringLiteral("trace")) || !ScriviBridge::guiCoreCallObserver()) { return; }
+    auto& observer = onGuiThread() ? ScriviBridge::guiCoreCallObserver() : ScriviBridge::workerCoreCallObserver();
+    if (!root.contains(QStringLiteral("trace")) || !observer) { return; }
     const QJsonObject t = root.value(QStringLiteral("trace")).toObject();
-    ScriviBridge::guiCoreCallObserver()({t.value(QStringLiteral("endpoint")).toString(),
+    observer({t.value(QStringLiteral("endpoint")).toString(),
                                          static_cast<qint64>(t.value(QStringLiteral("ms")).toDouble()),
                                          static_cast<qint64>(t.value(QStringLiteral("fileOps")).toDouble()),
                                          static_cast<qint64>(root.value(QStringLiteral("lockWaitMs")).toDouble())});

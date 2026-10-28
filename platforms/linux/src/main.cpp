@@ -84,6 +84,13 @@ int main(int argc, char* argv[])
                                     .arg(c.endpoint).arg(c.ms).arg(c.fileOps).arg(c.lockWaitMs));
         }
     };
+    // [SP-197] rig: a background call only when it took time or waited, so a pile-up behind the lock shows in the log.
+    ScriviBridge::workerCoreCallObserver() = [](const ScriviBridge::GuiCoreCall& c) {
+        if (c.ms >= 100 || c.lockWaitMs >= 100) {
+            DiagnosticLog::note(QStringLiteral("core: %1 %2 ms, %3 file ops, lock wait %4 ms")
+                                    .arg(c.endpoint).arg(c.ms).arg(c.fileOps).arg(c.lockWaitMs));
+        }
+    };
 
     // ⚠️ [SP-146] T-0558 — Linux's FIRST app-level state owner.
     //

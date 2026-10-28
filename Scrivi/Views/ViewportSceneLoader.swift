@@ -484,14 +484,16 @@ struct SceneSegment: Identifiable {
                 failed = true
             }
         }
-        if let s = structural, wait == nil || structuralOutcome != nil {   // a failed wait: as a failed edit
+        // ⚠️ A failed wait is NOT a failed edit: the job is still queued and will run, so keep waiting for its outcome
+        // ([SP-196] rig: giving up left the edit on disk and not in the window).
+        if let s = structural, structuralOutcome != nil {
             structural = nil
             s.landed(structuralOutcome)
         }
-        guard let wait else {   // the wait itself failed: stop, the scenes stay dirty for the next save
+        guard let wait else {   // the wait itself failed: the scenes stay dirty for the next save
             queued.removeAll()
             countQueued()
-            return finishWaiting()
+            return structural != nil || finishWaiting()
         }
         if writesHeld != wait.held { writesHeld = wait.held }
         countQueued()

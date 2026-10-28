@@ -14,6 +14,7 @@
 #include "AppSupport.hpp"
 #include "EditorShell.hpp"
 #include "ManuscriptEditor.hpp"
+#include "SceneInspector.hpp"
 #include "ScriviBridge.hpp"
 
 #include <QAbstractButton>
@@ -28,8 +29,10 @@
 #include <QTextCursor>
 #include <QTextDocument>
 #include <QTimer>
+#include <QTreeWidget>
 
 #include <array>
+#include <atomic>
 #include <cstdio>
 #include <functional>
 #include <memory>
@@ -627,6 +630,30 @@ int main(int argc, char* argv[])
         });
         noFileOps("a scroll", [&] { r.editor->verticalScrollBar()->setValue(r.editor->verticalScrollBar()->maximum()); });
         ScriviBridge::guiCoreCallObserver() = nullptr;
+    }
+    // ── ✅ [SP-197] rig: scenes passed by while a read is out start NO read of their own ─────────────────────────────────
+    // (On the rig every scrolled-past scene's read ran, each holding the project's disk lock, and a cut waited 10 minutes.)
+    // No event is processed between the ten scene changes, so the first read cannot land before the last change.
+    {
+        std::atomic<int> reads{0};
+        ScriviBridge::workerCoreCallObserver() = [&](const ScriviBridge::GuiCoreCall& c) {
+            if (c.endpoint == QLatin1String("scrivi_load_scene_inspector")) { ++reads; }
+        };
+        auto* inspector = r.shell->findChild<SceneInspector*>();
+        check(inspector != nullptr, QStringLiteral("SP-197 rig: the shell has an Inspector"));
+        if (inspector != nullptr) {
+            QTest::qWait(500);   // the earlier gestures' reads land first
+            reads = 0;
+            const auto& segs = r.shell->sceneDocument().segments();
+            for (int i = 0; i < 10; ++i) { inspector->setScene(segs.at(i % 2).sceneID); }
+            QTest::qWait(1500);
+            ScriviBridge::workerCoreCallObserver() = nullptr;
+            check(reads.load() >= 1 && reads.load() <= 4,
+                  QStringLiteral("SP-197 rig: ten scene changes make one read and one for the last (%1 reads)").arg(reads.load()));
+            auto* tree = inspector->findChild<QTreeWidget*>();
+            check(tree != nullptr && tree->isEnabled(), QStringLiteral("SP-197 rig: the last scene's read landed (cards enabled)"));
+        }
+        ScriviBridge::workerCoreCallObserver() = nullptr;
     }
     // ── [SP-188] AC11 / EP-052 v0.2: the main-thread inventory (on demand) ────────────────────────────────────────────────
     // ⚠️ A MEASUREMENT, not a gate: every GUI-thread core call each writer gesture makes, with its file operations (the cost

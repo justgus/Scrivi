@@ -260,6 +260,12 @@ private:
     // dropped; `reloadAttempts_` counts reads lost to a moved revision (D4).
     int reloadGeneration_ = 0;
     int reloadAttempts_ = 0;
+    // ✅ [SP-197] rig: ONE read out at a time. A reload() while it is out only marks it stale; when it lands, the scene
+    // shown NOW is read. (Every scrolled-past scene's read used to run, each holding the project's disk lock, until
+    // they filled the worker pool and a cut could not even be queued for 10 minutes.)
+    bool readInFlight_ = false;
+    bool rereadWanted_ = false;
+    void startRead();
 
     QTabWidget*  tabs_    = nullptr;
     QTreeWidget* tree_    = nullptr;   // Worldbuilding: the scene's objects

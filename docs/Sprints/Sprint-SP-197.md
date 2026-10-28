@@ -83,6 +83,28 @@ moved. Spotlight never runs on the main thread: one serial queue, per-scene re-i
 
 ## Progress log
 
+### 🟠 2026-10-27 — Rig failure fixed (user: *"go ahead with the fixes"*), not yet re-passed
+- **Measured** (local copy of dumas): one `scrivi_load_scene_inspector` = 25 file ops, 45 ms. It reads ONE scene's notes
+  and edges; its objects part loads the whole object index (672 objects) and keeps the linked few (a later narrowing).
+- **Cause:** every scrolled-past scene started a read and none was stopped (a cancelled Swift task, a superseded Qt
+  worker), each holding the disk lock; on Linux they also filled the global thread pool.
+- **Fix, both platforms:** one Inspector read out at a time; a scene change while it is out reads the scene wanted when
+  it lands (`SceneInspector::startRead`, `SceneInspectorReader.start`). A slow read is waited for (a "Still reading…"
+  line at 5 s on Linux), never abandoned; the 10-minute backstop stays.
+- **Logging:** a background core call ≥ 100 ms or waiting ≥ 100 ms for the lock is logged (Linux
+  `workerCoreCallObserver`, Mac `core (background):`).
+- **Tests:** interop 324/324 (new: ten scene changes → ≤ 4 reads, the last lands); smokes 38/38 (same check, Linux); the
+  Linux check fails on a mutation in a copy (guard removed: 10 reads). No Mac mutation run.
+
+### ❌ 2026-10-27 — Rig live pass FAILED (AC5)
+- User: A.1 and A.2 (scroll, click) *"passed ok. But the app never enabled the Scene Inspector elements"*; *"The scene's
+  notes are taking longer…"* never went away (dumas-prose-timelines on the removable drive, over the share; build 303,
+  `0be59bc`). The window stayed responsive.
+- Rig log: the Inspector's read timed out and never retried; a late result is dropped (`SceneInspector.cpp:447`), so the
+  cards stay off for good. The log does not record worker calls, so what held the project's disk lock is NOT proven.
+  Suspected: every superseded scene's composite read still runs, one after another, each holding the lock for its whole
+  length over a slow share.
+
 ### 🟠 2026-10-27 — T-0629, T-0630, T-0631 Implemented - Not Verified (AC1–AC4)
 - **Core:** `scrivi_load_scene_inspector` (one read, parts shared with the standalone endpoints, an empty part `{}`) and
   `scrivi_extract_searchable_scenes`; each envelope's trace names its project. ctest 786/786 (5 new). Fixture: 67 file ops

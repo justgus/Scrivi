@@ -208,7 +208,13 @@ struct CardContext {
 
     private var wanted: (engine: ScriviEngine, root: String, sceneID: String, citations: Bool, key: String)?
     private var generation = 0
-    private var task: Task<Void, Never>?
+    private var landedGeneration = 0
+    /// ✅ [SP-197] rig: ONE read out at a time. Cancelling a task never stops the C call it is in, so every scrolled-past
+    /// scene's read used to run, one after another, each holding the project's disk lock. Now a read that lands while a
+    /// newer scene is wanted is dropped, and the scene wanted NOW is read.
+    private var reading = false
+    /// Reads sent to the core (a test counts them).
+    private(set) var readsStarted = 0
 
     /// Asks for `sceneID`'s read; `key` folds in whatever else must re-read it (world and object revisions). A repeat of
     /// the same key does nothing.
@@ -225,34 +231,43 @@ struct CardContext {
     /// again. shortcut: after 3 lost races the last read is applied anyway, since autosave can bump the revision
     /// faster than a slow share answers; a card's own write still re-reads (`reload`).
     private func start() {
-        guard let w = wanted else { return }
+        guard wanted != nil else { return }
         generation += 1
         let gen = generation
-        task?.cancel()
         slow = false
-        task = Task { [weak self] in
-            let slowCue = Task { @MainActor [weak self] in
-                try? await Task.sleep(for: .milliseconds(400))
-                if !Task.isCancelled, let self, self.generation == gen { self.slow = true }
-            }
-            defer { slowCue.cancel() }
-            for attempt in 1...3 {
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .milliseconds(400))
+            if let self, self.generation == gen, self.landedGeneration != gen { self.slow = true }
+        }
+        guard !reading else { return }   // the read out now is followed by one for what is wanted when it lands
+        reading = true
+        Task { [weak self] in
+            var lostRaces = 0
+            while true {
+                guard let self, let w = self.wanted else { return }
+                let gen = self.generation
+                self.readsStarted += 1
                 let outcome = await Task.detached(priority: .userInitiated) { () -> Result<SceneInspectorRead, Error> in
                     Result { try w.engine.loadSceneInspector(projectRootPath: w.root, sceneID: w.sceneID,
                                                              includeCitations: w.citations) }
                 }.value
-                guard let self, self.generation == gen else { return }
+                guard self.generation == gen else { lostRaces = 0; continue }   // asked again while it was out
+                if case .success(let read) = outcome, lostRaces < 2,
+                   let now = try? w.engine.projectRevision(projectRootPath: w.root), now != read.revision {
+                    lostRaces += 1
+                    continue
+                }
                 switch outcome {
                 case .failure(let error):
                     self.failure = (w.sceneID, error)
                 case .success(let read):
-                    if attempt < 3, let now = try? w.engine.projectRevision(projectRootPath: w.root),
-                       now != read.revision { continue }
                     self.failure = nil
                     self.read = read
                     self.readCount += 1
                 }
+                self.landedGeneration = gen
                 self.slow = false
+                self.reading = false
                 return
             }
         }
