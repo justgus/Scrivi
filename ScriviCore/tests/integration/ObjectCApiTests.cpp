@@ -1268,3 +1268,34 @@ TEST_CASE("SP-197: scrivi_extract_searchable_scenes returns only the named scene
     CHECK(okResult(scrivi_extract_searchable_scenes(fix.root(), "[]")).arraySize("items") == 0);
     errorOf(scrivi_extract_searchable_scenes(fix.root(), "not json"));
 }
+
+// ---------------------------------------------------------------------------
+// [I-0324] — an endpoint sweep walks the manuscript ONCE, not once per scene endpoint: a busy card's edge listing grew
+// with every scene it was linked to.
+// ---------------------------------------------------------------------------
+
+// The open's sweep is guarded below the ABI (RelationshipTests): its per-call read cache hides the repeats from `fileOps`.
+TEST_CASE("[I-0324] the cost of a card's edge listing does not grow with how many scene links it has", "[integration][I-0324]") {
+    CApiFixture fix;
+    const auto vance = fix.makeObject("character", "Vance");
+    std::vector<std::string> scenes{fix.firstSceneID};
+    for (int i = 0; i < 19; ++i) {
+        scenes.push_back(okResult(scrivi_create_scene(fix.root(), fix.appSupport(), fix.projectID.c_str(),
+                                                      fix.firstChapterID.c_str(), scenes.back().c_str(), "",
+                                                      "identity-001", "persona-001", "Test Author"))
+                             .getString("sceneID"));
+    }
+    auto link = [&](std::size_t from, std::size_t to) {
+        for (std::size_t i = from; i < to; ++i) {
+            okResult(scrivi_create_edge(fix.root(), vance.c_str(), scenes[i].c_str(), "appears-in", ""));
+        }
+    };
+    auto cost = [&] { return fileOpsOf(envelope(scrivi_list_edges_for(fix.root(), vance.c_str()))); };
+    link(0, 2);
+    const auto two = cost();
+    link(2, 20);
+    const auto twenty = cost();
+    INFO("edge listing " << two << " -> " << twenty);
+    // Eighteen more edges are eighteen more log lines, read in the same calls; a walk per scene endpoint was ~50 calls.
+    CHECK(twenty - two <= 4);
+}

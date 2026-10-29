@@ -1589,10 +1589,11 @@ static void addPart(scrivi::util::JsonDoc& doc, const std::string& key, Endpoint
     doc.setSubDoc(key + "Error", std::move(err));
 }
 
-static EndpointPart edgesForPart(const char* projectRootPath, const std::string& endpointID) {
+static EndpointPart edgesForPart(const char* projectRootPath, const std::string& endpointID,
+                                 scrivi::objects::EndpointResolver* shared = nullptr) {
     auto svc = abiServices();
     scrivi::objects::RelationshipStore store{svc};
-    auto r = store.listFor(S(projectRootPath), endpointID);
+    auto r = store.listFor(S(projectRootPath), endpointID, shared);
     if (!r.ok()) return EndpointPart::failure(r.error());
 
     scrivi::util::JsonDoc doc;
@@ -3497,8 +3498,10 @@ const char* scrivi_load_scene_inspector(const char* projectRootPath, const char*
         if (includeCitations != 0) {
             // A pending object's world is away, so its edges are unreadable: it is left out, never listed as citing nothing.
             scrivi::util::JsonDoc citations;
+            auto svc = abiServices();
+            scrivi::objects::EndpointResolver resolver{svc};   // [I-0324]: one manuscript walk for every far object
             for (const auto& id : reachable) {
-                auto part = edgesForPart(projectRootPath, id);
+                auto part = edgesForPart(projectRootPath, id, &resolver);
                 if (!part.ok) { addPart(doc, "citations", std::move(part)); citations = {}; break; }
                 scrivi::util::JsonDoc item;
                 item.setString("objectID", id);

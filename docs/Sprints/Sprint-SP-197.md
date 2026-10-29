@@ -83,6 +83,21 @@ moved. Spotlight never runs on the main thread: one serial queue, per-scene re-i
 
 ## Progress log
 
+### 🟠 2026-10-28 — [I-0324] (+ [I-0316]) filed and fixed: real scene links made dumas unopenable
+- User: *"Ok all your recommendations"* (world data Q1–Q3), then *"file the issue and fix it"*.
+- Generating the new world ("Dumas — Characters & Places": 87 characters, 21 locations, 21 buildings, 7,091 links) on a local
+  copy showed the core resolving each link end with a full manuscript walk; the open did not finish. Fixed in
+  `EndpointResolver` (one walk per resolver); ctest 789/789, interop 324/324, smokes 38/38.
+- The world goes to `/Users/justgus/ScriviLinux/projects/Scrivi-Dumas-Fixture/` (user); not yet applied.
+
+### 🟠 2026-10-28 — Linux CI red since this Sprint's first push: the smoke's budget, not the app
+- `structural_baseline_smoke` "split scene: at most 2 GUI-thread core calls" counted 3 on GitHub (all three SP-197
+  pushes) and on 1 of 3 local runs. The extra call was the Inspector's D4 check (`SceneInspector.cpp`, the reply's
+  `projectRevision`): a memory read with no disk access, made once more when the split's write races the read.
+  Mac does the same check (`InspectorCard.swift`).
+- Fixed in the smoke: `measured` leaves out `scrivi_get_project_revision` and prints the endpoints it counted. 10/10
+  runs pass with 0 counted for the split; smokes 38/38.
+
 ### 🟠 2026-10-27 — Rig failure fixed (user: *"go ahead with the fixes"*), not yet re-passed
 - **Measured** (local copy of dumas): one `scrivi_load_scene_inspector` = 25 file ops, 45 ms. It reads ONE scene's notes
   and edges; its objects part loads the whole object index (672 objects) and keeps the linked few (a later narrowing).

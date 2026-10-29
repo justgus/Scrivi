@@ -47,6 +47,8 @@ struct GraphFixture {
     ScriviCore                       core;
 
     SceneID firstSceneID;
+    ProjectID projectID;
+    ChapterID firstChapterID;
     // SP-103: worldbuilding kinds are world-scoped, so the graph fixture needs a
     // world before it can create the objects it relates.
     std::string worldID;
@@ -83,6 +85,8 @@ struct GraphFixture {
         auto r = core.createProject(req);
         REQUIRE(r.ok());
         firstSceneID = r.value().firstSceneID;
+        projectID      = r.value().project.projectID;
+        firstChapterID = r.value().firstChapterID;
 
         worlds::WorldStore ws{services};
         auto w = ws.createWorld(projectDir.string(),
@@ -1226,4 +1230,61 @@ TEST_CASE("I-0207 — listPending returns the SAME edges with the cache in place
     for (const auto& p : pending.value()) {
         REQUIRE_FALSE(p.pendingEndpointID.empty());
     }
+}
+
+// [I-0324] — one sweep walks the manuscript ONCE, not once per scene endpoint. dumas with 7,000 scene links did not open:
+// `repairDangling` (every open) re-read and re-parsed all 1,175 scene sidecars for each of 14,000 endpoints. Called here
+// below the ABI's per-call read cache, which hid the repeats from a file count but not from the CPU.
+TEST_CASE("[I-0324] an endpoint sweep reads each file once, however many scene links there are",
+          "[integration][I-0324]") {
+    GraphFixture fx;
+    const auto vance = fx.makeObject(ObjectKind::character, "Vance", "vance");
+    std::vector<SceneID> scenes{fx.firstSceneID};
+    for (int i = 0; i < 19; ++i) {
+        CreateSceneRequest req;
+        req.projectRootPath = fx.root();
+        req.appSupportRoot  = fx.appSupportDir.string();
+        req.projectID       = fx.projectID;
+        req.chapterID       = fx.firstChapterID;
+        req.afterSceneID    = scenes.back();
+        req.author          = fx.author;
+        auto made = fx.core.createScene(req);
+        REQUIRE(made.ok());
+        scenes.push_back(made.value().sceneID);
+    }
+
+    platform::LocalFileSystem real;
+    CountingFileSystem        counting{real};
+    CoreServices svc = fx.services;
+    svc.fileSystem   = &counting;
+    RelationshipStore store{svc};
+
+    auto link = [&](std::size_t from, std::size_t to) {
+        for (std::size_t i = from; i < to; ++i) {
+            REQUIRE(store.create(fx.root(), vance.value, scenes[i].value, "appears-in", "").ok());
+        }
+    };
+    auto mostReadsOfOneFile = [&](const auto& sweep) {
+        counting.reads.clear();
+        sweep();
+        int most = 0;
+        for (const auto& [path, n] : counting.reads) { most = std::max(most, n); }
+        return most;
+    };
+    link(0, 20);
+    const int repair  = mostReadsOfOneFile([&] { REQUIRE(store.repairDangling(fx.root()).ok()); });
+    const int listing = mostReadsOfOneFile([&] { REQUIRE(store.listFor(fx.root(), vance.value).ok()); });
+    INFO("most reads of one file: repairDangling " << repair << ", listFor " << listing);
+    CHECK(repair <= 2);
+    CHECK(listing <= 2);
+
+    // [I-0316]: with the world gone, its `world.json` was looked for once per endpoint. The edges are held, not pruned.
+    fs::rename(fx.projectDir / "Graph.scrivworld", fx.projectDir / "Graph-away.scrivworld");
+    const int away = mostReadsOfOneFile([&] {
+        auto r = store.repairDangling(fx.root());
+        REQUIRE(r.ok());
+        CHECK(r.value().prunedEdgeIDs.empty());
+    });
+    INFO("most reads of one file with the world away: " << away);
+    CHECK(away <= 2);
 }

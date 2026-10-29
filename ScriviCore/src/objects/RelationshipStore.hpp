@@ -17,6 +17,7 @@
 // in-memory map is retained because memory is not the constraint (§5.4) and it
 // makes duplicate detection and SP-097's orphan queries O(1).
 
+#include "objects/EndpointResolver.hpp"
 #include "objects/RelationTypes.hpp"
 #include "scrivi/Result.hpp"
 #include "scrivi/Services.hpp"
@@ -158,8 +159,11 @@ public:
     // that reads correctly from that endpoint. Does NOT refuse an unresolved
     // endpoint — it reports what it has, because SP-097 must be able to surface
     // edges whose far side is temporarily unreachable.
+    // [I-0324]: `shared` lets one read list several endpoints' edges with ONE resolver (one manuscript walk), as the
+    // Inspector's citations do. Same lifetime rule as BindingCache: never longer than that one read.
     [[nodiscard]] Result<std::vector<EdgeView>> listFor(const AbsolutePath& projectRoot,
-                                                        const std::string& endpointID) const;
+                                                        const std::string& endpointID,
+                                                        EndpointResolver* shared = nullptr) const;
 
     // Rewrites the log with live edges only, renumbering seq from 1. Temp-write
     // → atomic replace, so an interrupted compaction leaves the previous log

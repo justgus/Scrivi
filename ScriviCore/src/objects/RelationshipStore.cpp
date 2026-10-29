@@ -469,7 +469,8 @@ RelationshipStore::repairDangling(const AbsolutePath& projectRoot) const {
 
 Result<std::vector<EdgeView>>
 RelationshipStore::listFor(const AbsolutePath& projectRoot,
-                            const std::string& endpointID) const {
+                            const std::string& endpointID,
+                            EndpointResolver* shared) const {
     auto loadedR = load(projectRoot);
     if (!loadedR.ok()) { return Result<std::vector<EdgeView>>::failure(loadedR.error()); }
 
@@ -478,7 +479,8 @@ RelationshipStore::listFor(const AbsolutePath& projectRoot,
     if (!typesR.ok()) { return Result<std::vector<EdgeView>>::failure(typesR.error()); }
     const auto& types = typesR.value();
 
-    EndpointResolver resolver{services_};
+    EndpointResolver own{services_};
+    EndpointResolver& resolver = shared != nullptr ? *shared : own;
     std::vector<EdgeView> out;
 
     for (const auto& e : loadedR.value()) {

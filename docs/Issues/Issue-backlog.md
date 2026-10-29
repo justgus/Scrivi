@@ -10,7 +10,6 @@ Issues listed here are open and documented but not currently assigned to a Sprin
 | **I-0192** | `[ScriviCore]` ⚠️ **A world on a PHYSICALLY REMOVED volume resolved `available`, and a full object read SUCCEEDED through it, until a scene change forced a re-resolve.** ⚠️ **Found by the USER on the REAL RIG during T-0477's S3 physical yank, 2026-09-07.** ⚠️ **RE-SCOPED 2026-09-07 from `[Linux]` to `[ScriviCore]` after reading the code — ⚠️ MY ORIGINAL DIAGNOSIS WAS WRONG.** ⚠️ **I filed this as an app-layer 'cached status with no invalidation' and as a placeholder dialog reusing a name it already held. ✅ **The code says otherwise, and the truth is WORSE:** `EditorShell::onOpenObjectRequested` (`EditorShell.cpp:~1790`) calls `bridge_->openObject(...)`, checks `lastCallFailed()`, and ⚠️ **parses the displayed name out of the `objectJson` THAT CALL RETURNED** — its own comment reads *"the object is genuinely read here."* ⚠️ **There is no app-side status cache to go stale.** ✅ **The read is guarded end-to-end**: `ObjectStore::open` → `findByID` → `kindDirFor` (`ObjectStore.cpp:~250`), which calls `WorldStore::resolve()` and ⚠️ **refuses unless status is `available`.** ✅ **And `resolve` caches NO verdict** — it sets `available` only after actually reading and parsing `world.json` from the candidate path (`WorldStore.cpp:337-342`). ⚠️ **SO THE DEFECT IS NOT STALENESS ANYWHERE — the filesystem itself answered successfully for a volume that was physically gone**, and every layer above correctly trusted a correct answer. ⚠️ **The likely mechanism is the PAGE CACHE / unreaped dentries**, which ✅ **the 2b container pass ALREADY measured in a stronger form**: a held FD survived `umount -l` + `losetup -D` entirely, reading and writing fine while the PATH broke instantly. ⚠️ **THIS IS I-0181's SIBLING, NOT ITS OPPOSITE**: I-0181 is `resolve` inferring absence it cannot prove; ⚠️ **I-0192 is `resolve` inferring PRESENCE it cannot prove** — ✅ **and `read succeeded` is no more proof of a mounted volume than `directory exists` is proof of a deleted one.** ⚠️ **T-0498's `st_dev` primitive is plausibly the SAME fix for both** — ⚠️ **but that must be MEASURED, not assumed.** ⚠️ **PARTIALLY MEASURED 2026-09-07 (over SSH, drive already out): the STEADY STATE is CORRECT** — `scrivi_get_world_status` returns ✅ **`unavailable`** (not `missing`), with `packagePath` empty and `lastKnownPackagePath` preserved, ⚠️ **stable across repeated calls**, and ✅ **`binding.json` stores no status key at all** — ⚠️ **so there is no persisted verdict to go stale.** ⚠️ **Therefore I-0192 is a TRANSIENT WINDOW, not a stuck verdict** — ⚠️ **severity lowered accordingly.** ⚠️ **The decay-vs-persist question across the yank itself is STILL OPEN and needs the sampled run.** | **Low** | [EP-044] — no Sprint (user, 2026-10-24: kept in the backlog, *"I don't think they pose a major threat to data"*) |
 | **I-0317** | `[Linux]` ⚠️ **Drag-selecting toward the top or bottom (autoscroll) freezes the window for up to 25.6 s over the share: every autoscroll step that enters a new scene moves the Inspector to it on the GUI thread (50–290 ms each, back to back).** Found 2026-10-23 in the rig log during [SP-188]'s live pass (not that Sprint's code). → [details](#i-0317) | High | Not Assigned |
 | **I-0318** | `[Linux]` ⚠️ **After a large cross-scene cut lands, the caret is restored to a position past the end of the shortened document** (`QTextCursor::setPosition: Position '1846043' out of range`). Nothing visible broke. Found 2026-10-23 in the rig log ([SP-188] live pass). → [details](#i-0318) | Low | Not Assigned |
-| **I-0316** | `[ScriviCore]` ⚠️ **When a project's linked world cannot be found, every project open tries to find it once PER RELATIONSHIP ENDPOINT: 270 reads of `world.json` and 540 folder probes on dumas-prose-timelines (135 relationships), each one failing.** The binding read is cached per sweep ([I-0207], [I-0231]); the world lookup is not. Found 2026-10-22 measuring [SP-191]. → [details](#i-0316) | Medium | Not Assigned |
 | **I-0308** | `[Linux]` ⛔ **The app CRASHED while the writer typed in the Find bar** (dumas-prose-timelines over the share, after a cross-scene paste, a quit, a reopen and an undo of the paste). Found on the rig 2026-10-15. ⚪ **Not reproducible** (user, 2026-10-22): not reproduced in Docker under ASan, did not recur on the rig (build 75). → [details](#i-0308) | **High** | Not Assigned (removed from [SP-185] 2026-10-22) |
 | **I-0301** | `[Apple]` ⚠️ **At the beginning of the manuscript, scrolling down jitters and the view does not move — as if something keeps putting it back.** Reported by the user 2026-10-13 during [SP-180]'s live pass. ✅ Caught in the diagnostics 2026-10-17 (after a Show chapter titles toggle): the view snaps back about 35 pt mid-gesture, with no Scrivi scroll call logged. Cause not yet named. → [details](#i-0301) | **Medium** | — (detached from [SP-180] 2026-10-14) |
 | **I-0286** | `[Linux]` ⚠️ **A large aggregate dot cannot show all its members: the fan-out is painted inside the timeline panel and clipped at its edges.** Reported by the user 2026-10-10 (rig, dumas, during [SP-173]; not related to it). → [details](#i-0286) | Medium | Not Assigned |
@@ -160,36 +159,6 @@ SP-182's presenter changes (chapter-title lines). ⏳ Not yet proven either way.
 
 ---
 
-## I-0316
-
-**Title:** A missing world is looked for once per relationship endpoint on every project open
-**Status:** 🔴 Open
-**Platform:** `[ScriviCore]`
-**Component:** `RelationshipStore::repairDangling` (`ScriviCore/src/objects/RelationshipStore.cpp:439`), which runs on every
-project open → `EndpointResolver::resolve` (`ScriviCore/src/objects/EndpointResolver.cpp:43`) → `WorldStore::resolve`
-(`ScriviCore/src/worlds/WorldStore.cpp:284`) for every bound world, for each endpoint
-**Severity:** Medium. On local disk it costs little. Over a network share each failed lookup is a round trip, about 800 of
-them per open on dumas, all for an answer the first lookup already gave.
-**Sprint:** Not Assigned
-**Date Identified:** 2026-10-22 (a file-call count of `scrivi_open_project` through the C ABI, [SP-191])
-
-**Measured:** `scrivi_open_project` on a copy of dumas-prose-timelines (1,180 scenes, 135 relationships, one bound world):
-- **world missing** (the project copied without `Dumas-France-Prose.scrivworld` beside it): 2,244 file calls. Of those, 270 are
-  reads of `../Dumas-France-Prose.scrivworld/world.json`, plus 270 probes each of the project's parent folder and the folder
-  above that.
-- **world present:** 1,433 file calls, with no repeated world reads.
-- 270 = 135 relationships × 2 endpoints. `repairDangling` shares a `BindingCache`, so `binding.json` is read once. But
-  `WorldStore::resolve` reads `world.json` at each candidate path, and probes the folders to tell "absent" from "offline",
-  again for every endpoint.
-
-**Why it is not fixed by the existing cache:** `BindingCache` holds the binding record, not the resolution. Its header
-(`WorldStore.hpp:126`) explains why a cache must not outlive one read-only operation. A resolution cache with the same
-lifetime (one sweep) would keep that rule.
-
-**Steps to reproduce:** copy a project with relationships to world objects somewhere its world is not beside it, open it,
-and count file calls (`CountingFileSystem`).
-
----
 
 ## I-0301
 

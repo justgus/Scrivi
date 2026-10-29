@@ -220,6 +220,8 @@ struct Rig {
         const qint64 calls = ScriviBridge::guiThreadCallCount();
         const int loads = shell->loadCount();
         const int builds = shell->sceneDocument().builds();
+        QStringList endpoints;   // which project calls the count is made of, so a red CI log names them
+        ScriviBridge::guiCoreCallObserver() = [&](const ScriviBridge::GuiCoreCall& c) { endpoints.append(c.endpoint); };
         act();
         if (structural) {
             check(editor->isReadOnly(), QStringLiteral("%1: Q5's cue — read-only at once, in the key press's own turn").arg(what));
@@ -229,13 +231,17 @@ struct Rig {
             if (!editor->isReadOnly()) { break; }
         }
         QTest::qWait(200);
-        const qint64 made = ScriviBridge::guiThreadCallCount() - calls;   // before the checks below make their own
+        // Before the checks below make their own. The Inspector's D4 revision check is a memory read (no disk) and runs
+        // once more each time a write races its read, so it is not counted.
+        const qint64 made = ScriviBridge::guiThreadCallCount() - calls
+                            - endpoints.count(QStringLiteral("scrivi_get_project_revision"));
+        ScriviBridge::guiCoreCallObserver() = nullptr;
         if (structural) {
             check(shell->dirtySceneCount() == 0, QStringLiteral("%1: no scene left dirty (the core wrote them)").arg(what));
         }
-        std::printf("[EP-053 baseline] %s: guiThreadCoreCalls=%lld projectLoads=%d documentBuilds=%d\n", what,
+        std::printf("[EP-053 baseline] %s: guiThreadCoreCalls=%lld projectLoads=%d documentBuilds=%d (%s)\n", what,
                     qlonglong(made), shell->loadCount() - loads,
-                    shell->sceneDocument().builds() - builds);
+                    shell->sceneDocument().builds() - builds, qPrintable(endpoints.join(QStringLiteral(", "))));
         check(shell->sceneDocument().textMatchesDocument(), QStringLiteral("%1: every scene's text is its body").arg(what));
         // ✅ [SP-191]: nothing re-reads the project, and nothing rebuilds the document.
         check(shell->loadCount() == loads, QStringLiteral("%1: no project load").arg(what));
@@ -288,7 +294,7 @@ int main(int argc, char* argv[])
     armConfirmer(r.shell.get());
 
     // ✅ [I-0315]: the caret moving into the new scene writes NOTHING for the scene it left (the notes were not changed) —
-    // what is left is the new scene's notes read and one more. Before, the Inspector rewrote the outline and the to-do too.
+    // [SP-197] the notes are read on a worker now. Before, the Inspector rewrote the outline and the to-do too.
     check(r.measured("split scene", [&] { r.caretAt(QStringLiteral("Alpha one. ")); r.shell->splitScene(); }) <= 2,
           QStringLiteral("split scene: at most 2 GUI-thread core calls ([I-0315]: no notes written on the scene switch)"));
     check(r.texts() == QStringList({QStringLiteral("Alpha one. "), QStringLiteral("Alpha two."), QStringLiteral("Beta body."),

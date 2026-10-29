@@ -16,15 +16,34 @@ ResolvedEndpoint EndpointResolver::resolve(const AbsolutePath& projectRoot,
     if (endpointID.empty()) { return out; }
 
     // 1. Objects — the index is authoritative for ID→kind (SP-095 §4.2).
+    //    [I-0324]: loaded once per resolver; a miss rebuilds it once (as `find` does), not once per endpoint.
     ObjectIndex index{services_};
-    if (auto hit = index.find(projectRoot, ObjectID{endpointID}); hit.ok()) {
-        const auto& e = hit.value();
-        out.found       = true;
-        out.isScene     = false;
-        out.kind        = e.kind;
-        out.displayName = e.displayName;
-        out.slug        = e.slug;
-        return out;
+    if (!projectIndex_) {
+        if (auto loaded = index.load(projectRoot); loaded.ok()) { projectIndex_ = loaded.value(); }
+    }
+    auto inProjectIndex = [&]() -> const ObjectIndexEntry* {
+        for (const auto& e : *projectIndex_) {
+            if (e.objectID.value == endpointID) { return &e; }
+        }
+        return nullptr;
+    };
+    if (projectIndex_) {
+        const ObjectIndexEntry* e = inProjectIndex();
+        if (e == nullptr && !projectIndexRebuilt_) {
+            projectIndexRebuilt_ = true;
+            if (auto rebuilt = index.rebuild(projectRoot); rebuilt.ok()) {
+                projectIndex_ = rebuilt.value();
+                e = inProjectIndex();
+            }
+        }
+        if (e != nullptr) {
+            out.found       = true;
+            out.isScene     = false;
+            out.kind        = e->kind;
+            out.displayName = e->displayName;
+            out.slug        = e->slug;
+            return out;
+        }
     }
 
     // 2. World objects — the object index spans BOTH partitions (Doc 1 §4.2,
@@ -35,12 +54,26 @@ ResolvedEndpoint EndpointResolver::resolve(const AbsolutePath& projectRoot,
     //    entry read "⟨Midgard: Sword of Dawn⟩" instead of a bare UUID.
     {
         worlds::WorldStore ws{services_};
-        if (auto ids = ws.listBoundWorldIDs(projectRoot); ids.ok()) {
-            for (const auto& worldID : ids.value()) {
+        if (!boundWorldIDs_) {
+            auto ids = ws.listBoundWorldIDs(projectRoot);
+            boundWorldIDs_ = ids.ok() ? ids.value() : std::vector<std::string>{};
+        }
+        {
+            for (const auto& worldID : *boundWorldIDs_) {
                 // SP-144 / [I-0231]: share the caller's binding cache here too.
-                // This runs for EVERY endpoint x EVERY bound world, so it — not the
-                // pending branch below — is where the repeated binding reads were.
-                auto res = ws.resolve(projectRoot, worldID, bindingCache);
+                // [I-0316]: and resolve each world, and read its index, once per resolver.
+                auto [it, fresh] = worlds_.try_emplace(worldID);
+                WorldRead& w = it->second;
+                if (fresh) {
+                    w.res = ws.resolve(projectRoot, worldID, bindingCache);
+                    if (w.res.status == worlds::WorldStatus::available) {
+                        if (auto entries = index.loadWorldIndex(w.res.packagePath, &w.indeterminate); entries.ok()) {
+                            w.indexOk = true;
+                            w.entries = entries.value();
+                        }
+                    }
+                }
+                const auto& res = w.res;
                 if (res.status == worlds::WorldStatus::available) {
                     // ⚠️ I-0183 — "available" is NOT a promise the object set is
                     // readable. `resolve` establishes availability from
@@ -50,10 +83,9 @@ ResolvedEndpoint EndpointResolver::resolve(const AbsolutePath& projectRoot,
                     // destroyed 10 of 12 relationships in a real project
                     // (the-lone-golem, 2026-09-01) when a pulled SMB volume left
                     // the mount serving a phantom listing.
-                    bool indeterminate = false;
-                    if (auto entries = index.loadWorldIndex(res.packagePath, &indeterminate);
-                        entries.ok() && !indeterminate) {
-                        for (const auto& e : entries.value()) {
+                    const bool indeterminate = w.indeterminate;
+                    if (w.indexOk && !indeterminate) {
+                        for (const auto& e : w.entries) {
                             if (e.objectID.value == endpointID) {
                                 out.found       = true;
                                 out.kind        = e.kind;
@@ -113,16 +145,19 @@ ResolvedEndpoint EndpointResolver::resolve(const AbsolutePath& projectRoot,
     // 3. Scenes — the EP-027 filesystem-authoritative identity path. Scenes are
     //    never objects/ files (§8), so they are resolved by walking the
     //    manuscript rather than through the object index.
-    manuscript::ManuscriptOrderResolver resolver{services_};
-    if (auto scenes = resolver.resolve(projectRoot); scenes.ok()) {
-        for (const auto& s : scenes.value()) {
-            if (s.sceneID.value == endpointID) {
-                out.found       = true;
-                out.isScene     = true;
-                out.displayName = s.title;
-                return out;
-            }
+    //    [I-0324]: walked once per resolver, not once per endpoint.
+    if (!sceneTitles_) {
+        sceneTitles_.emplace();
+        manuscript::ManuscriptOrderResolver resolver{services_};
+        if (auto scenes = resolver.resolve(projectRoot); scenes.ok()) {
+            for (const auto& s : scenes.value()) { sceneTitles_->emplace(s.sceneID.value, s.title); }
         }
+    }
+    if (auto hit = sceneTitles_->find(endpointID); hit != sceneTitles_->end()) {
+        out.found       = true;
+        out.isScene     = true;
+        out.displayName = hit->second;
+        return out;
     }
 
     // 4. Neither. Not an error — the caller decides what an unresolved endpoint

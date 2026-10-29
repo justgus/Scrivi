@@ -31,7 +31,12 @@
 #include "worlds/WorldStore.hpp"
 #include "worlds/WorldTypes.hpp"
 
+#include "objects/ObjectIndex.hpp"
+
+#include <optional>
 #include <string>
+#include <unordered_map>
+#include <vector>
 
 namespace scrivi::objects {
 
@@ -118,6 +123,20 @@ public:
 
 private:
     CoreServices& services_;
+
+    // [I-0324] / [I-0316]: what one sweep has already read, so N endpoints cost one manuscript walk and one world read,
+    // not N. A resolver lives for one operation (every caller makes it locally), the same lifetime rule as BindingCache.
+    struct WorldRead {
+        worlds::WorldResolution res;
+        bool indexOk = false;
+        bool indeterminate = false;
+        std::vector<ObjectIndexEntry> entries;
+    };
+    mutable std::optional<std::vector<ObjectIndexEntry>> projectIndex_;
+    mutable bool projectIndexRebuilt_ = false;
+    mutable std::optional<std::vector<std::string>> boundWorldIDs_;
+    mutable std::unordered_map<std::string, WorldRead> worlds_;
+    mutable std::optional<std::unordered_map<std::string, std::string>> sceneTitles_;   // sceneID -> title
 };
 
 } // namespace scrivi::objects

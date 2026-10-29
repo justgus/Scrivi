@@ -10,7 +10,11 @@ Issues awaiting **user verification**. An Issue leaves this file only when the u
 | -- | ----- | -------- | ------ | ------ |
 | **I-0242** | `[Linux]` ⛔ **THE WRITER'S CARD STACK IS IGNORED — Linux ENUMERATES KINDS instead of honouring the chosen stack, and DROPS any card that is empty.** ⚠️ **FOUND BY THE USER on the real rig, 2026-09-21**, during [SP-142]'s live pass on `the-stairs-of-tintagael` — ⛔ **not by any test.** ✅ **USER RULING (2026-09-21), and it is the whole specification:** ⚠️ ***"The writer chooses which Card elements to display and in what order they appear. Therefore, if the writer chooses to display an empty card in the stack, then it should be displayed with an appropriate 'No Objects to Display' message. Apple already does this. Linux must as well."*** ⚠️ **REPORTED AS 'Factions is missing'; ⛔ THAT IS THE SYMPTOM, NOT THE DEFECT.** ✅ **Linux CAN render factions** — it derives kinds from `ObjectKindScope`/`kAllStorableKinds` and hardcodes nothing (the standing rule WAS followed). ⛔ **THE DEFECT IS THAT IT NEVER ASKS WHAT THE WRITER CHOSE.** ✅ **`SceneInspector.cpp:551` lists the CORE's kinds and `:577` skips any with no entries in this scene** (*"a kind with nothing in this scene is simply not a row"*) — ⚠️ **so the stack is DERIVED FROM DATA, while Apple's is DECLARED BY THE WRITER.** ⚠️ **APPLE IS THE REFERENCE AND IT IS EXPLICIT:** `ObjectCard.swift:450` renders *"No <kind> in this scene yet."* with the comment ⚠️ ***"§2: empty is a normal state, not an error."*** ⛔ **THE ROOT CAUSE IS A DANGLING READ.** ✅ **`inspector-layout.json` HOLDS the answer — `defaultStacks` and per-scene `scenes` — and [T-0537] just proved Linux ROUND-TRIPS both LOSSLESSLY.** ⚠️ **But `InspectorLayoutStore` exposes ONLY `selectedTab`: ⛔ ZERO reads of `defaultStacks` or `scenes` anywhere in `platforms/linux/`.** ✅ **So Linux has been faithfully PRESERVING a document it does not consult** — ⚠️ **`project_capability_without_surface` in its exact form: a dangling read with no reader.** ⚠️ **CONSEQUENCE BEYOND THE MISSING CARD: ORDER IS ALSO WRONG.** ⛔ **Linux emits kinds in the CORE's order; the writer's chosen order is in `defaultStacks` and is ignored** — ✅ **the user's ruling names order explicitly.** ⚠️ **AND IT BLOCKS THE STACK PICKER ([EP-036] AC4b): a '+' menu that adds a card to a stack nothing reads would change nothing on screen.** ⛔ **That picker had NO Task number; ⚠️ an earlier draft of this row cited `T-0543`, which is now [SP-134]'s — ✅ corrected 2026-09-22.** | **Medium** | ⛔ **UNASSIGNED** — ⚠️ **candidate for [EP-036]; ✅ it is the PREREQUISITE for T-0543, so they should sequence together** | 🔵 **Open** |
 |  **I-0244** | `[Linux]` ⚠️ **THE LINUX APP HAS NONE OF [EP-040]'s EDITOR SHELL, AND NOTHING TRACKS THE GAP.** ⚠️ **RAISED 2026-09-22 from the user's own observation during [SP-135]'s live pass:** ⚠️ ***"I did not toggle the panels on Linux or any of the more recent UI changes because many of them have not been made on Linux yet."*** ✅ **MEASURED THE SAME DAY, not asserted:** ⛔ **Linux has ZERO `QToolBar`/`addToolBar` in `platforms/linux/src/`** · ⛔ **ZERO navigator-visibility state** · ⚠️ **Apple now has a `.toolbar` with 3 `ControlGroup`s and SIX `safeAreaBar`s.** ⚠️ **THIS IS NOT A DEFECT IN EITHER PLATFORM.** ✅ **[EP-040] is scoped `[Apple]` DELIBERATELY** — ⛔ **but four Sprints of shell work ([SP-134] toolbar · [SP-135] bars · [SP-136] inspector column · [SP-137] detail sheet) have no Linux counterpart, and NO Epic, Sprint or Issue records that.** ⚠️ **`feedback_linux_adopts_apple_shape` is the standing rule: *Apple is the reference for architecture; a shape change on Apple must be made the same way on Linux in the SAME work.*** ⛔ **That has not happened, and the divergence is now FOUR SPRINTS DEEP AND GROWING.** ✅ **WHAT THE APPLE WORK ALREADY PROVED, and Linux will re-earn without it:** ⚠️ **[I-0203]'s root cause was that bars were STACK SIBLINGS** — ✅ **Linux's `EditorShell` uses the same layout idiom** — ⚠️ **and the Navigator was unrecoverable because NOTHING OWNED ITS VISIBILITY STATE.** ⛔ **Linux's pane visibility is SESSION-SCOPED ONLY (SP-078/T-0320), which is the same class of gap.** ⚠️ **IT IS NOT [EP-043]'s EITHER:** ✅ **that Epic is the SESSION (multi-window, restore, geometry)** — ⛔ **this is the SHELL (toolbar, bars, panes).** ✅ **They are adjacent and both wait on the same `EditorShell` rework, which is an argument for SEQUENCING them together, not for merging them.** ⚠️ **NOT URGENT AND NOT A REGRESSION** — ✅ **Linux works as it did** — ⛔ **but an untracked divergence is how a port silently falls behind, which is exactly what the Porting Outline exists to prevent.** ---- ⚠️ **A PERFORMANCE EXPECTATION IS INHERITED FROM [I-0213]** (⚠️ *`[Apple]` chapter create froze the app ~2.7 s on a 1,174-scene manuscript; now `~305–400 ms` of work*) **AND IS RECORDED HERE SO LINUX DOES NOT RE-DISCOVER IT AS A DEFECT.** ✅ **[I-0213] was VERIFIED on Apple 2026-09-24 with `createChapter WORK=396.7 ms` on 1,179 scenes, ⚠️ measured DELIBERATELY from a USB mount as a WORST-CASE FLOOR.** ⚠️ **The user named what follows:** *"On Linux it will be even worse because it has to also come through this computer's operating system."* ✅ **SO A LINUX FIGURE WORSE THAN `396.7 ms` ON THE SAME FIXTURE IS ANTICIPATED — ⛔ NOT a regression against [I-0213], and NOT a new Issue on its own.** ⛔ **NOTHING HAS BEEN MEASURED ON LINUX YET; ✅ this is an EXPECTATION TO TEST AGAINST, not a claim about the rig.** ⚠️ **When the Linux editor shell is built, the structural ops MUST be timed with the SAME `[SCRIVI-STRUCT]`-style instrumentation** — ✅ **[I-0213] proved the cost was UNATTRIBUTABLE until each op reported its own number, and that three code-read diagnoses were wrong before it did.** | **Low** | ⛔ **UNASSIGNED — awaiting its OWN Epic.** ✅ **SCOPE RULED 2026-09-26 ([EP-043] [R-Q5], user-approved): it becomes its OWN `[Linux]` Epic, SEQUENCED AFTER [EP-043]** — ⛔ **NOT ACs inside it.** ⚠️ **THIS ROW PREVIOUSLY SAID *"sequenced WITH or after"*; ✅ it is AFTER, and [EP-043]'s record now says the same** — ⛔ **the two records disagreed and no longer do.** ✅ **WHY NOT FOLDED IN: this Issue is FOUR Apple Sprints deep ([SP-134]–[SP-137]), and folding it into a SESSION Epic would repeat the [EP-035] AC1 collapse [I-0178] cites.** ✅ **THE COLLISION IS ALREADY HANDLED: [SP-145] carries a NAMED CARVE-OUT** — ⚠️ **its extraction takes `inspectorVisible_` + `timelineVisible_` onto the session object** (⛔ **per-project state, not per-widget**), ✅ **so this Epic will NOT have to re-open `EditorShell` for pane state.** ⚠️ **Of this Issue's THREE measured gaps, ONLY pane-visibility overlapped, and that is the carve-out** | 🔵 **Open**  |
+| **I-0324** | `[ScriviCore]` ⛔ **With real scene links, dumas-prose-timelines does not open: every relationship endpoint walks the whole manuscript.** Found 2026-10-28 linking 7,029 scenes to the new Dumas world: `repairDangling` (every open) re-parsed all 1,175 scene sidecars for each of ~14,000 endpoints (5+ min at full CPU, local disk, not finished); a card's edge listing and each citation listing did the same. → [details](#i-0324) | High | [SP-197] | 🟠 Resolved - Not Verified |
+| **I-0316** | `[ScriviCore]` ⚠️ **When a project's linked world cannot be found, every project open tries to find it once PER RELATIONSHIP ENDPOINT: 270 reads of `world.json` and 540 folder probes on dumas-prose-timelines (135 relationships), each one failing.** The binding read is cached per sweep ([I-0207], [I-0231]); the world lookup is not. Found 2026-10-22 measuring [SP-191]. → [details](#i-0316) | Medium | [SP-197] | 🟠 Resolved - Not Verified |
 
+
+*Last Updated: 2026-10-28 — **I-0324 filed** (user: *"file the issue and fix it"*) and **I-0316** moved here from the backlog; both [SP-197] → 🟠 Resolved - Not Verified.*
 
 *Last Updated: 2026-10-25 — **I-0319** → ✅ Verified (Mac 2026-10-24, rig 2026-10-25) and archived.*
 
@@ -760,3 +764,78 @@ follows.)*
 *2026-08-15 (docs cleanup — 48 verified Issues archived to decade files, 4 closed Issues
 archived; 6 stale full entries (I-0064, I-0067–I-0071) reconciled against their authoritative table rows.
 10 `Resolved - Not Verified` Issues remain active.)*
+
+## I-0324
+
+**Title:** With real scene links, a project does not open: every relationship endpoint walks the whole manuscript
+**Status:** 🟠 Resolved - Not Verified (2026-10-28)
+**Platform:** `[ScriviCore]` (both apps)
+**Component:** `EndpointResolver::resolve` (`ScriviCore/src/objects/EndpointResolver.cpp`), called per endpoint by
+`RelationshipStore::repairDangling` (every open), `listFor` (a card's links, the Inspector's citations), `listPending`
+**Severity:** High. A writer who links scenes to their characters makes the project unopenable at a few thousand links.
+**Sprint:** [SP-197] (user, 2026-10-28: *"file the issue and fix it"*)
+**Date Identified:** 2026-10-28, generating the Dumas world (87 characters, 21 locations, 21 buildings, 7,091 links) on a
+local copy of dumas-prose-timelines (1,175 scenes)
+
+**Measured (local disk, Debug):**
+- `scrivi_open_project` on the linked copy: 5+ min at full CPU, stopped. A sample showed
+  `repairDangling` → `EndpointResolver::resolve` → `ManuscriptOrderResolver::resolve` → `parseSceneMeta`.
+- Linking: about 3 links a second by the end (each create resolves its scene endpoint with a walk).
+- `scrivi_load_scene_inspector` with citations: 21,747 file calls, 2.8 s.
+
+**Root cause:** each `resolve` (1) loaded the project index and, on a miss, REBUILT it (`ObjectIndex::find`), (2) resolved
+every bound world and read its index, and (3) walked and parsed every scene sidecar, all for ONE endpoint. A scene endpoint
+misses (1) and (2) and pays all three. The open's per-call read cache served the repeated reads from memory, so a file count
+of the open never showed it; the cost was parsing.
+
+**Resolution:** a resolver remembers the project index (rebuilt at most once), each world's resolution and index, and the
+scene list, for its own lifetime: one operation, as every caller makes it locally (the `BindingCache` rule).
+`RelationshipStore::listFor` takes an optional shared resolver, and the Inspector's citations share one.
+**Files Affected:** `ScriviCore/src/objects/EndpointResolver.{hpp,cpp}`, `ScriviCore/src/objects/RelationshipStore.{hpp,cpp}`,
+`ScriviCore/src/public_api/scrivi_c_api.cpp`; tests in `ScriviCore/tests/integration/RelationshipTests.cpp` and
+`ObjectCApiTests.cpp`.
+
+**Verification:**
+- `[I-0324]` (`RelationshipTests.cpp`): 20 scene links; `repairDangling` and `listFor`, below any cache, read no file more
+  than twice (unfixed: 80 and 40). `[I-0324]` (`ObjectCApiTests.cpp`): a card's listing costs the same file calls at 2 and 20
+  scene links (unfixed: 112 → 1,084). Both fail against the unfixed core in a copy.
+- The linked dumas copy: open + d'Artagnan's 584 links 1.5 s; one scene's Inspector load 49 file calls, or 4,009 with
+  citations (one walk, for the far objects' scene titles), 1.3 s.
+- ctest 789/789, interop 324/324, Linux smokes 38/38. ⏳ User verification (the rig pass on the linked project).
+
+---
+
+## I-0316
+
+**Title:** A missing world is looked for once per relationship endpoint on every project open
+**Status:** 🟠 Resolved - Not Verified (2026-10-28, with [I-0324])
+**Platform:** `[ScriviCore]`
+**Component:** `RelationshipStore::repairDangling` (`ScriviCore/src/objects/RelationshipStore.cpp:439`), which runs on every
+project open → `EndpointResolver::resolve` (`ScriviCore/src/objects/EndpointResolver.cpp:43`) → `WorldStore::resolve`
+(`ScriviCore/src/worlds/WorldStore.cpp:284`) for every bound world, for each endpoint
+**Severity:** Medium. On local disk it costs little. Over a network share each failed lookup is a round trip, about 800 of
+them per open on dumas, all for an answer the first lookup already gave.
+**Sprint:** [SP-197] (2026-10-28, user: *"file the issue and fix it"*; the same fix)
+**Date Identified:** 2026-10-22 (a file-call count of `scrivi_open_project` through the C ABI, [SP-191])
+
+**Measured:** `scrivi_open_project` on a copy of dumas-prose-timelines (1,180 scenes, 135 relationships, one bound world):
+- **world missing** (the project copied without `Dumas-France-Prose.scrivworld` beside it): 2,244 file calls. Of those, 270 are
+  reads of `../Dumas-France-Prose.scrivworld/world.json`, plus 270 probes each of the project's parent folder and the folder
+  above that.
+- **world present:** 1,433 file calls, with no repeated world reads.
+- 270 = 135 relationships × 2 endpoints. `repairDangling` shares a `BindingCache`, so `binding.json` is read once. But
+  `WorldStore::resolve` reads `world.json` at each candidate path, and probes the folders to tell "absent" from "offline",
+  again for every endpoint.
+
+**Why it is not fixed by the existing cache:** `BindingCache` holds the binding record, not the resolution. Its header
+(`WorldStore.hpp:126`) explains why a cache must not outlive one read-only operation. A resolution cache with the same
+lifetime (one sweep) would keep that rule.
+
+**Steps to reproduce:** copy a project with relationships to world objects somewhere its world is not beside it, open it,
+and count file calls (`CountingFileSystem`).
+**Resolution (2026-10-28, with [I-0324]):** `EndpointResolver` resolves each bound world, and reads its index, once per
+resolver (`ScriviCore/src/objects/EndpointResolver.cpp`), so one sweep looks for a missing world once.
+**Verification:** `[I-0324]` in `RelationshipTests.cpp`: with the world's folder moved away, `repairDangling` reads no file
+more than twice and prunes nothing. ⏳ User verification.
+
+---
