@@ -146,8 +146,8 @@ ctest --test-dir build --output-on-failure
 - **visionOS:** 27.0+
 - **Swift:** 6.0+ (Swift 6 language mode)
 
-All app targets deploy to **27.0** (`MACOSX_DEPLOYMENT_TARGET` / `IPHONEOS_DEPLOYMENT_TARGET` /
-`XROS_DEPLOYMENT_TARGET = 27.0`), including the `ScriviInteropTests` target. Build and test the macOS
+Deployment targets: the **iOS app at 27.1** (EP-055 Q7: the iPhone Duo APIs are 27.1+), the **macOS app at 27.1**,
+visionOS and the `ScriviInteropTests` target at **27.0**. Build and test the macOS
 app with `xcodebuild -scheme ScriviApp -destination 'platform=macOS' build|test`.
 
 **NEVER assume features, APIs, or behaviors from earlier versions of Xcode or any Apple platform.**

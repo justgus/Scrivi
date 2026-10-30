@@ -10,9 +10,6 @@
 		86BF02842FEDE0AE00531EAC /* Scrivi/Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = ASSETS_REF /* Scrivi/Assets.xcassets */; };
 		86BF02862FEDE0BF00531EAC /* Scrivi/Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = ASSETS_REF /* Scrivi/Assets.xcassets */; };
 		ASSETS_BF /* Scrivi/Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = ASSETS_REF /* Scrivi/Assets.xcassets */; };
-		FONTS_BF1 /* Fonts in Resources */ = {isa = PBXBuildFile; fileRef = FONTS_REF /* Fonts */; };
-		FONTS_BF2 /* Fonts in Resources */ = {isa = PBXBuildFile; fileRef = FONTS_REF /* Fonts */; };
-		FONTS_BF3 /* Fonts in Resources */ = {isa = PBXBuildFile; fileRef = FONTS_REF /* Fonts */; };
 		C001_BF /* ScriviApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C001 /* ScriviApp.swift */; };
 		C002_BF /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = C002 /* AppEnvironment.swift */; };
 		C003_BF /* LandingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C003 /* LandingView.swift */; };
@@ -20,12 +17,6 @@
 		C005_BF /* NewProjectSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C005 /* NewProjectSheet.swift */; };
 		C006_BF /* ViewportSceneLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = C006 /* ViewportSceneLoader.swift */; };
 		C007_BF /* ManuscriptTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C007 /* ManuscriptTextView.swift */; };
-		C078_BF /* ManuscriptEscapes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C078 /* ManuscriptEscapes.swift */; };
-		C079_BF /* MarkdownBlocks.swift in Sources */ = {isa = PBXBuildFile; fileRef = C079 /* MarkdownBlocks.swift */; };
-		C081_BF /* MarkdownEmphasis.swift in Sources */ = {isa = PBXBuildFile; fileRef = C081 /* MarkdownEmphasis.swift */; };
-		C080_BF /* ManuscriptPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = C080 /* ManuscriptPresenter.swift */; };
-		C082_BF /* ManuscriptCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = C082 /* ManuscriptCommands.swift */; };
-		C083_BF /* ManuscriptFind.swift in Sources */ = {isa = PBXBuildFile; fileRef = C083 /* ManuscriptFind.swift */; };
 		C008_BF /* SceneNavigatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C008 /* SceneNavigatorView.swift */; };
 		C010_BF /* ScriviEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B010 /* ScriviEngine.swift */; };
 		C011_BF /* ScriviError.swift in Sources */ = {isa = PBXBuildFile; fileRef = B011 /* ScriviError.swift */; };
@@ -39,10 +30,6 @@
 		C019_BF /* ObjectImageSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B019 /* ObjectImageSection.swift */; };
 		C020_BF /* libScriviCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = SCRIVI_CORE_LIB /* libScriviCore.a */; };
 		C030_BF /* ProjectSettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C030 /* ProjectSettingsSheet.swift */; };
-		C2A1_BF /* StaleBranchesSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A1 /* StaleBranchesSheet.swift */; };
-		C2A2_BF /* ManuscriptTypography.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A2 /* ManuscriptTypography.swift */; };
-		C2A3_BF /* ManuscriptAccessibility.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A3 /* ManuscriptAccessibility.swift */; };
-		C2A4_BF /* ManuscriptPresentedMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A4 /* ManuscriptPresentedMap.swift */; };
 		C031_BF /* ProjectPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = C031 /* ProjectPreferences.swift */; };
 		C032_BF /* WindowFrameAutosave.swift in Sources */ = {isa = PBXBuildFile; fileRef = C032 /* WindowFrameAutosave.swift */; };
 		C033_BF /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C033 /* AboutView.swift */; };
@@ -73,7 +60,18 @@
 		C075_BF /* WorldVolumeStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = C075 /* WorldVolumeStatus.swift */; };
 		C076_BF /* WorldWarningView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C076 /* WorldWarningView.swift */; };
 		C077_BF /* SourcesCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C077 /* SourcesCard.swift */; };
+		C078_BF /* ManuscriptEscapes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C078 /* ManuscriptEscapes.swift */; };
+		C079_BF /* MarkdownBlocks.swift in Sources */ = {isa = PBXBuildFile; fileRef = C079 /* MarkdownBlocks.swift */; };
+		C080_BF /* ManuscriptPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = C080 /* ManuscriptPresenter.swift */; };
+		C081_BF /* MarkdownEmphasis.swift in Sources */ = {isa = PBXBuildFile; fileRef = C081 /* MarkdownEmphasis.swift */; };
+		C082_BF /* ManuscriptCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = C082 /* ManuscriptCommands.swift */; };
+		C083_BF /* ManuscriptFind.swift in Sources */ = {isa = PBXBuildFile; fileRef = C083 /* ManuscriptFind.swift */; };
 		C099_BF /* ScriviDiag.swift in Sources */ = {isa = PBXBuildFile; fileRef = C099 /* ScriviDiag.swift */; };
+		C2A1_BF /* StaleBranchesSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A1 /* StaleBranchesSheet.swift */; };
+		C2A2_BF /* ManuscriptTypography.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A2 /* ManuscriptTypography.swift */; };
+		C2A3_BF /* ManuscriptAccessibility.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A3 /* ManuscriptAccessibility.swift */; };
+		C2A4_BF /* ManuscriptPresentedMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A4 /* ManuscriptPresentedMap.swift */; };
+		CORPUS_BF /* manuscript_format_corpus.json in Resources */ = {isa = PBXBuildFile; fileRef = CORPUS_REF /* manuscript_format_corpus.json */; };
 		C_CITE_BF /* Citation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B022 /* Citation.swift */; };
 		C_EAPICK_BF /* ExistingAssetPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B020 /* ExistingAssetPicker.swift */; };
 		C_SRCSEC_BF /* ObjectSourcesSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B021 /* ObjectSourcesSection.swift */; };
@@ -84,12 +82,6 @@
 		D005_BF /* NewProjectSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C005 /* NewProjectSheet.swift */; };
 		D006_BF /* ViewportSceneLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = C006 /* ViewportSceneLoader.swift */; };
 		D007_BF /* ManuscriptTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C007 /* ManuscriptTextView.swift */; };
-		D078_BF /* ManuscriptEscapes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C078 /* ManuscriptEscapes.swift */; };
-		D079_BF /* MarkdownBlocks.swift in Sources */ = {isa = PBXBuildFile; fileRef = C079 /* MarkdownBlocks.swift */; };
-		D081_BF /* MarkdownEmphasis.swift in Sources */ = {isa = PBXBuildFile; fileRef = C081 /* MarkdownEmphasis.swift */; };
-		D080_BF /* ManuscriptPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = C080 /* ManuscriptPresenter.swift */; };
-		D082_BF /* ManuscriptCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = C082 /* ManuscriptCommands.swift */; };
-		D083_BF /* ManuscriptFind.swift in Sources */ = {isa = PBXBuildFile; fileRef = C083 /* ManuscriptFind.swift */; };
 		D008_BF /* SceneNavigatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C008 /* SceneNavigatorView.swift */; };
 		D010_BF /* ScriviEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B010 /* ScriviEngine.swift */; };
 		D011_BF /* ScriviError.swift in Sources */ = {isa = PBXBuildFile; fileRef = B011 /* ScriviError.swift */; };
@@ -102,10 +94,6 @@
 		D018_BF /* ObjectRelationPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B018 /* ObjectRelationPicker.swift */; };
 		D019_BF /* ObjectImageSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B019 /* ObjectImageSection.swift */; };
 		D030_BF /* ProjectSettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C030 /* ProjectSettingsSheet.swift */; };
-		D2A1_BF /* StaleBranchesSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A1 /* StaleBranchesSheet.swift */; };
-		D2A2_BF /* ManuscriptTypography.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A2 /* ManuscriptTypography.swift */; };
-		D2A3_BF /* ManuscriptAccessibility.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A3 /* ManuscriptAccessibility.swift */; };
-		D2A4_BF /* ManuscriptPresentedMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A4 /* ManuscriptPresentedMap.swift */; };
 		D031_BF /* ProjectPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = C031 /* ProjectPreferences.swift */; };
 		D032_BF /* WindowFrameAutosave.swift in Sources */ = {isa = PBXBuildFile; fileRef = C032 /* WindowFrameAutosave.swift */; };
 		D033_BF /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C033 /* AboutView.swift */; };
@@ -136,7 +124,17 @@
 		D075_BF /* WorldVolumeStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = C075 /* WorldVolumeStatus.swift */; };
 		D076_BF /* WorldWarningView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C076 /* WorldWarningView.swift */; };
 		D077_BF /* SourcesCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C077 /* SourcesCard.swift */; };
+		D078_BF /* ManuscriptEscapes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C078 /* ManuscriptEscapes.swift */; };
+		D079_BF /* MarkdownBlocks.swift in Sources */ = {isa = PBXBuildFile; fileRef = C079 /* MarkdownBlocks.swift */; };
+		D080_BF /* ManuscriptPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = C080 /* ManuscriptPresenter.swift */; };
+		D081_BF /* MarkdownEmphasis.swift in Sources */ = {isa = PBXBuildFile; fileRef = C081 /* MarkdownEmphasis.swift */; };
+		D082_BF /* ManuscriptCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = C082 /* ManuscriptCommands.swift */; };
+		D083_BF /* ManuscriptFind.swift in Sources */ = {isa = PBXBuildFile; fileRef = C083 /* ManuscriptFind.swift */; };
 		D099_BF /* ScriviDiag.swift in Sources */ = {isa = PBXBuildFile; fileRef = C099 /* ScriviDiag.swift */; };
+		D2A1_BF /* StaleBranchesSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A1 /* StaleBranchesSheet.swift */; };
+		D2A2_BF /* ManuscriptTypography.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A2 /* ManuscriptTypography.swift */; };
+		D2A3_BF /* ManuscriptAccessibility.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A3 /* ManuscriptAccessibility.swift */; };
+		D2A4_BF /* ManuscriptPresentedMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A4 /* ManuscriptPresentedMap.swift */; };
 		D_CITE_BF /* Citation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B022 /* Citation.swift */; };
 		D_EAPICK_BF /* ExistingAssetPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B020 /* ExistingAssetPicker.swift */; };
 		D_SRCSEC_BF /* ObjectSourcesSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B021 /* ObjectSourcesSection.swift */; };
@@ -147,12 +145,6 @@
 		E005_BF /* NewProjectSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C005 /* NewProjectSheet.swift */; };
 		E006_BF /* ViewportSceneLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = C006 /* ViewportSceneLoader.swift */; };
 		E007_BF /* ManuscriptTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C007 /* ManuscriptTextView.swift */; };
-		E078_BF /* ManuscriptEscapes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C078 /* ManuscriptEscapes.swift */; };
-		E079_BF /* MarkdownBlocks.swift in Sources */ = {isa = PBXBuildFile; fileRef = C079 /* MarkdownBlocks.swift */; };
-		E081_BF /* MarkdownEmphasis.swift in Sources */ = {isa = PBXBuildFile; fileRef = C081 /* MarkdownEmphasis.swift */; };
-		E080_BF /* ManuscriptPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = C080 /* ManuscriptPresenter.swift */; };
-		E082_BF /* ManuscriptCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = C082 /* ManuscriptCommands.swift */; };
-		E083_BF /* ManuscriptFind.swift in Sources */ = {isa = PBXBuildFile; fileRef = C083 /* ManuscriptFind.swift */; };
 		E008_BF /* SceneNavigatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C008 /* SceneNavigatorView.swift */; };
 		E010_BF /* ScriviEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B010 /* ScriviEngine.swift */; };
 		E011_BF /* ScriviError.swift in Sources */ = {isa = PBXBuildFile; fileRef = B011 /* ScriviError.swift */; };
@@ -165,10 +157,6 @@
 		E018_BF /* ObjectRelationPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B018 /* ObjectRelationPicker.swift */; };
 		E019_BF /* ObjectImageSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B019 /* ObjectImageSection.swift */; };
 		E030_BF /* ProjectSettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C030 /* ProjectSettingsSheet.swift */; };
-		E2A1_BF /* StaleBranchesSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A1 /* StaleBranchesSheet.swift */; };
-		E2A2_BF /* ManuscriptTypography.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A2 /* ManuscriptTypography.swift */; };
-		E2A3_BF /* ManuscriptAccessibility.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A3 /* ManuscriptAccessibility.swift */; };
-		E2A4_BF /* ManuscriptPresentedMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A4 /* ManuscriptPresentedMap.swift */; };
 		E031_BF /* ProjectPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = C031 /* ProjectPreferences.swift */; };
 		E032_BF /* WindowFrameAutosave.swift in Sources */ = {isa = PBXBuildFile; fileRef = C032 /* WindowFrameAutosave.swift */; };
 		E033_BF /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C033 /* AboutView.swift */; };
@@ -199,13 +187,25 @@
 		E075_BF /* WorldVolumeStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = C075 /* WorldVolumeStatus.swift */; };
 		E076_BF /* WorldWarningView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C076 /* WorldWarningView.swift */; };
 		E077_BF /* SourcesCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C077 /* SourcesCard.swift */; };
+		E078_BF /* ManuscriptEscapes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C078 /* ManuscriptEscapes.swift */; };
+		E079_BF /* MarkdownBlocks.swift in Sources */ = {isa = PBXBuildFile; fileRef = C079 /* MarkdownBlocks.swift */; };
+		E080_BF /* ManuscriptPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = C080 /* ManuscriptPresenter.swift */; };
+		E081_BF /* MarkdownEmphasis.swift in Sources */ = {isa = PBXBuildFile; fileRef = C081 /* MarkdownEmphasis.swift */; };
+		E082_BF /* ManuscriptCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = C082 /* ManuscriptCommands.swift */; };
+		E083_BF /* ManuscriptFind.swift in Sources */ = {isa = PBXBuildFile; fileRef = C083 /* ManuscriptFind.swift */; };
 		E099_BF /* ScriviDiag.swift in Sources */ = {isa = PBXBuildFile; fileRef = C099 /* ScriviDiag.swift */; };
+		E2A1_BF /* StaleBranchesSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A1 /* StaleBranchesSheet.swift */; };
+		E2A2_BF /* ManuscriptTypography.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A2 /* ManuscriptTypography.swift */; };
+		E2A3_BF /* ManuscriptAccessibility.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A3 /* ManuscriptAccessibility.swift */; };
+		E2A4_BF /* ManuscriptPresentedMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A4 /* ManuscriptPresentedMap.swift */; };
 		E_CITE_BF /* Citation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B022 /* Citation.swift */; };
 		E_EAPICK_BF /* ExistingAssetPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B020 /* ExistingAssetPicker.swift */; };
 		E_SRCSEC_BF /* ObjectSourcesSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B021 /* ObjectSourcesSection.swift */; };
 		F001_BF /* ScriviInteropTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F001 /* ScriviInteropTests.swift */; };
-		CORPUS_BF /* manuscript_format_corpus.json in Resources */ = {isa = PBXBuildFile; fileRef = CORPUS_REF /* manuscript_format_corpus.json */; };
 		F020_BF /* libScriviCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = SCRIVI_CORE_LIB /* libScriviCore.a */; };
+		FONTS_BF1 /* Fonts in Resources */ = {isa = PBXBuildFile; fileRef = FONTS_REF /* Fonts */; };
+		FONTS_BF2 /* Fonts in Resources */ = {isa = PBXBuildFile; fileRef = FONTS_REF /* Fonts */; };
+		FONTS_BF3 /* Fonts in Resources */ = {isa = PBXBuildFile; fileRef = FONTS_REF /* Fonts */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -240,19 +240,8 @@
 		C005 /* NewProjectSheet.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = NewProjectSheet.swift; path = Scrivi/Views/NewProjectSheet.swift; sourceTree = SOURCE_ROOT; };
 		C006 /* ViewportSceneLoader.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ViewportSceneLoader.swift; path = Scrivi/Views/ViewportSceneLoader.swift; sourceTree = SOURCE_ROOT; };
 		C007 /* ManuscriptTextView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptTextView.swift; path = Scrivi/Views/ManuscriptTextView.swift; sourceTree = SOURCE_ROOT; };
-		C078 /* ManuscriptEscapes.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptEscapes.swift; path = Scrivi/Views/ManuscriptEscapes.swift; sourceTree = SOURCE_ROOT; };
-		C079 /* MarkdownBlocks.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = MarkdownBlocks.swift; path = Scrivi/Views/MarkdownBlocks.swift; sourceTree = SOURCE_ROOT; };
-		C081 /* MarkdownEmphasis.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = MarkdownEmphasis.swift; path = Scrivi/Views/MarkdownEmphasis.swift; sourceTree = SOURCE_ROOT; };
-		C080 /* ManuscriptPresenter.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptPresenter.swift; path = Scrivi/Views/ManuscriptPresenter.swift; sourceTree = SOURCE_ROOT; };
-		C082 /* ManuscriptCommands.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptCommands.swift; path = Scrivi/Views/ManuscriptCommands.swift; sourceTree = SOURCE_ROOT; };
-		C083 /* ManuscriptFind.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptFind.swift; path = Scrivi/Views/ManuscriptFind.swift; sourceTree = SOURCE_ROOT; };
 		C008 /* SceneNavigatorView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = SceneNavigatorView.swift; path = Scrivi/Views/SceneNavigatorView.swift; sourceTree = SOURCE_ROOT; };
 		C030 /* ProjectSettingsSheet.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ProjectSettingsSheet.swift; path = Scrivi/Views/ProjectSettingsSheet.swift; sourceTree = SOURCE_ROOT; };
-		C2A1 /* StaleBranchesSheet.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = StaleBranchesSheet.swift; path = Scrivi/Views/StaleBranchesSheet.swift; sourceTree = SOURCE_ROOT; };
-		C2A2 /* ManuscriptTypography.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptTypography.swift; path = Scrivi/Views/ManuscriptTypography.swift; sourceTree = SOURCE_ROOT; };
-		C2A3 /* ManuscriptAccessibility.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptAccessibility.swift; path = Scrivi/Views/ManuscriptAccessibility.swift; sourceTree = SOURCE_ROOT; };
-		C2A4 /* ManuscriptPresentedMap.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptPresentedMap.swift; path = Scrivi/Views/ManuscriptPresentedMap.swift; sourceTree = SOURCE_ROOT; };
-		FONTS_REF /* Fonts */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Fonts; path = Resources/Fonts; sourceTree = SOURCE_ROOT; };
 		C031 /* ProjectPreferences.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ProjectPreferences.swift; path = Scrivi/App/ProjectPreferences.swift; sourceTree = SOURCE_ROOT; };
 		C032 /* WindowFrameAutosave.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = WindowFrameAutosave.swift; path = Scrivi/App/WindowFrameAutosave.swift; sourceTree = SOURCE_ROOT; };
 		C033 /* AboutView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = AboutView.swift; path = Scrivi/Views/AboutView.swift; sourceTree = SOURCE_ROOT; };
@@ -283,12 +272,23 @@
 		C075 /* WorldVolumeStatus.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = WorldVolumeStatus.swift; path = Scrivi/App/WorldVolumeStatus.swift; sourceTree = SOURCE_ROOT; };
 		C076 /* WorldWarningView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = WorldWarningView.swift; path = Scrivi/Views/WorldWarningView.swift; sourceTree = SOURCE_ROOT; };
 		C077 /* SourcesCard.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = SourcesCard.swift; path = Scrivi/Views/Inspector/SourcesCard.swift; sourceTree = SOURCE_ROOT; };
+		C078 /* ManuscriptEscapes.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptEscapes.swift; path = Scrivi/Views/ManuscriptEscapes.swift; sourceTree = SOURCE_ROOT; };
+		C079 /* MarkdownBlocks.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = MarkdownBlocks.swift; path = Scrivi/Views/MarkdownBlocks.swift; sourceTree = SOURCE_ROOT; };
+		C080 /* ManuscriptPresenter.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptPresenter.swift; path = Scrivi/Views/ManuscriptPresenter.swift; sourceTree = SOURCE_ROOT; };
+		C081 /* MarkdownEmphasis.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = MarkdownEmphasis.swift; path = Scrivi/Views/MarkdownEmphasis.swift; sourceTree = SOURCE_ROOT; };
+		C082 /* ManuscriptCommands.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptCommands.swift; path = Scrivi/Views/ManuscriptCommands.swift; sourceTree = SOURCE_ROOT; };
+		C083 /* ManuscriptFind.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptFind.swift; path = Scrivi/Views/ManuscriptFind.swift; sourceTree = SOURCE_ROOT; };
 		C099 /* ScriviDiag.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ScriviDiag.swift; path = Scrivi/App/ScriviDiag.swift; sourceTree = SOURCE_ROOT; };
+		C2A1 /* StaleBranchesSheet.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = StaleBranchesSheet.swift; path = Scrivi/Views/StaleBranchesSheet.swift; sourceTree = SOURCE_ROOT; };
+		C2A2 /* ManuscriptTypography.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptTypography.swift; path = Scrivi/Views/ManuscriptTypography.swift; sourceTree = SOURCE_ROOT; };
+		C2A3 /* ManuscriptAccessibility.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptAccessibility.swift; path = Scrivi/Views/ManuscriptAccessibility.swift; sourceTree = SOURCE_ROOT; };
+		C2A4 /* ManuscriptPresentedMap.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptPresentedMap.swift; path = Scrivi/Views/ManuscriptPresentedMap.swift; sourceTree = SOURCE_ROOT; };
+		CORPUS_REF /* manuscript_format_corpus.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = manuscript_format_corpus.json; path = ScriviCore/tests/fixtures/manuscript_format_corpus.json; sourceTree = SOURCE_ROOT; };
 		C_PRODUCT /* Scrivi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Scrivi.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D_PRODUCT /* Scrivi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Scrivi.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E_PRODUCT /* Scrivi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Scrivi.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F001 /* ScriviInteropTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ScriviInteropTests.swift; path = Scrivi/Tests/ScriviInteropTests.swift; sourceTree = SOURCE_ROOT; };
-		CORPUS_REF /* manuscript_format_corpus.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = manuscript_format_corpus.json; path = ScriviCore/tests/fixtures/manuscript_format_corpus.json; sourceTree = SOURCE_ROOT; };
+		FONTS_REF /* Fonts */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Fonts; path = Resources/Fonts; sourceTree = SOURCE_ROOT; };
 		F_PRODUCT /* ScriviInteropTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ScriviInteropTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		GRP_SCRIVI /* Scrivi */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Scrivi; sourceTree = SOURCE_ROOT; };
 		LINUX_PLATFORM_REF /* platforms/linux */ = {isa = PBXFileReference; lastKnownFileType = folder; path = platforms/linux; sourceTree = SOURCE_ROOT; };
@@ -604,25 +604,6 @@
 			shellPath = /bin/zsh;
 			shellScript = "set -e\nexport PATH=\"/opt/homebrew/bin:$PATH\"\ncd \"$SRCROOT\"\n# Pin ScriviCore to the SAME deployment target the app links at.\n# Without this CMake builds for the HOST SDK (e.g. 27.2) while the app links at\n# MACOSX_DEPLOYMENT_TARGET (27.0), and every object in libScriviCore.a emits\n# \"was built for newer macOS version than being linked\" - 13 warnings.\n# The iOS phase below already did this correctly; macOS did not.\ncmake -S . -B build -DSCRIVI_BUILD_TESTS=OFF -DCMAKE_BUILD_TYPE=Debug \\\n  -DCMAKE_OSX_DEPLOYMENT_TARGET=\"$MACOSX_DEPLOYMENT_TARGET\"\ncmake --build build --parallel\n";
 		};
-		D_CMAKE_PHASE /* Build ScriviCore for iOS (CMake) */ = {
-			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			name = "Build ScriviCore for iOS (CMake)";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/zsh;
-			shellScript = "set -e\nexport PATH=\"/opt/homebrew/bin:$PATH\"\ncd \"$SRCROOT\"\n# Cross-build ScriviCore for the iOS SDK currently selected by Xcode.\n# $SDKROOT, $ARCHS, $PLATFORM_NAME come from the build; a per-platform build dir\n# (build-$PLATFORM_NAME) keeps simulator and device slices separate.\nBUILD_DIR=\"build-${PLATFORM_NAME}\"\nARCH_LIST=\"${ARCHS// /;}\"\ncmake -S . -B \"$BUILD_DIR\" \\\n  -DSCRIVI_BUILD_TESTS=OFF \\\n  -DCMAKE_BUILD_TYPE=Debug \\\n  -DCMAKE_SYSTEM_NAME=iOS \\\n  -DCMAKE_OSX_SYSROOT=\"$SDKROOT\" \\\n  -DCMAKE_OSX_ARCHITECTURES=\"$ARCH_LIST\" \\\n  -DCMAKE_OSX_DEPLOYMENT_TARGET=\"$IPHONEOS_DEPLOYMENT_TARGET\"\ncmake --build \"$BUILD_DIR\" --parallel\n";
-		};
 		C_VERSION_PHASE /* Stamp the version (T-0622) */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
@@ -642,6 +623,25 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "\"$SRCROOT/scripts/stamp-version.sh\"\n";
+		};
+		D_CMAKE_PHASE /* Build ScriviCore for iOS (CMake) */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Build ScriviCore for iOS (CMake)";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/zsh;
+			shellScript = "set -e\nexport PATH=\"/opt/homebrew/bin:$PATH\"\ncd \"$SRCROOT\"\n# Cross-build ScriviCore for the iOS SDK currently selected by Xcode.\n# $SDKROOT, $ARCHS, $PLATFORM_NAME come from the build; a per-platform build dir\n# (build-$PLATFORM_NAME) keeps simulator and device slices separate.\nBUILD_DIR=\"build-${PLATFORM_NAME}\"\nARCH_LIST=\"${ARCHS// /;}\"\ncmake -S . -B \"$BUILD_DIR\" \\\n  -DSCRIVI_BUILD_TESTS=OFF \\\n  -DCMAKE_BUILD_TYPE=Debug \\\n  -DCMAKE_SYSTEM_NAME=iOS \\\n  -DCMAKE_OSX_SYSROOT=\"$SDKROOT\" \\\n  -DCMAKE_OSX_ARCHITECTURES=\"$ARCH_LIST\" \\\n  -DCMAKE_OSX_DEPLOYMENT_TARGET=\"$IPHONEOS_DEPLOYMENT_TARGET\"\ncmake --build \"$BUILD_DIR\" --parallel\n";
 		};
 		D_VERSION_PHASE /* Stamp the version (T-0622) */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -922,13 +922,13 @@
 				ENABLE_RESOURCE_ACCESS_USB = NO;
 				INFOPLIST_FILE = "$(SRCROOT)/Scrivi/App/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = Scrivi;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.6;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
 				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/build/ScriviCore";
-				MACOSX_DEPLOYMENT_TARGET = 27.0;
+				MACOSX_DEPLOYMENT_TARGET = 27.1;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-framework",
@@ -979,13 +979,13 @@
 				ENABLE_RESOURCE_ACCESS_USB = NO;
 				INFOPLIST_FILE = "$(SRCROOT)/Scrivi/App/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = Scrivi;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.6;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
 				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/build/ScriviCore";
-				MACOSX_DEPLOYMENT_TARGET = 27.0;
+				MACOSX_DEPLOYMENT_TARGET = 27.1;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-framework",
@@ -1020,7 +1020,7 @@
 				INFOPLIST_KEY_UIStatusBarHidden = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.1;
 				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/build-$(PLATFORM_NAME)/ScriviCore";
 				MARKETING_VERSION = 1.0;
 				OTHER_LDFLAGS = (
@@ -1053,7 +1053,7 @@
 				INFOPLIST_KEY_UIStatusBarHidden = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.1;
 				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/build-$(PLATFORM_NAME)/ScriviCore";
 				MARKETING_VERSION = 1.0;
 				OTHER_LDFLAGS = (

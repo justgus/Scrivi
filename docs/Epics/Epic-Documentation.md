@@ -93,7 +93,7 @@ user-approved), ⛔ not from either copy.\*\* ⚠️ **The table is now ONE unbr
 | EP-052 | `[ScriviCore]` **Background Writes** — one ordered write queue per project in the core: undo, redo, Replace All, structural operations and the autosave off the GUI thread; Apple and Linux adopt it together | 🟡 **ACTIVE** 2026-10-26 — v0.2 ruled; S1 SP-194 ✅ closed (AC0–AC3); S2a SP-195 🟡 active; S2b SP-196 🔵 Planning | 2026-10-26 | — |
 | EP-053 | `[Cross]` **Range-Based Structural Editing** — cut, copy, paste and undo as one Range and one core call, applied in memory with no reload; the same on the Mac and Linux | 🟡 **ACTIVE** 2026-10-17 | [SP-186]–[SP-191] | — |
 | EP-054 | `[ScriviCore]` **Import & Export** — project archives (with history), worlds, manuscript export (formatted HTML for fanfic, Markdown, .docx, PDF, ePub) and import (Markdown, .docx, Scrivener); for the alpha | 🟡 **ACTIVE** 2026-10-24 | [SP-193] (S0) |
-| EP-055 | `[Apple]` **iPad and iPhone** — the full app on iPad, a phone surface (incl. the iPhone Duo), TestFlight; for the alpha | 🔵 **Draft** (backlog) 2026-10-24 | — |
+| EP-055 | `[Apple]` **iPad and iPhone** — the full app on iPad, a phone surface (incl. the iPhone Duo), TestFlight; for the alpha | 🟡 **ACTIVE** 2026-10-29 — the manuscript first | [SP-198] (S1) |
 | EP-056 | `[Linux]` **Install on Ubuntu** — a .deb testers can install, update and remove; for the alpha | 🔵 **Draft** (backlog) 2026-10-24 | — |
 
 ## Statistics
@@ -141,6 +141,8 @@ ruling **R-23(②)**. **To count Epics by status, read the table.**
 *Last Updated: 2026-10-26 (**EP-052**: design v0.2 Q1–Q7 ruled (user: *"Q1–Q7 agreed as recommended"*); ACs AC0, AC8–AC10 added; S1 = SP-194 (🔵 Planning).)*
 
 *Last Updated: 2026-10-26 (**EP-052 → 🟡 ACTIVE** (user, 2026-10-26: *"close SP-188 and activate EP-052."*); design v0.2 drafted, Q1–Q7 to rule. **EP-053**: S3 [SP-188] ✅ closed.)*
+
+*Last Updated: 2026-10-29 (**EP-055 → 🟡 ACTIVE** with [SP-198] (S1), the manuscript first (user: *"Activate EP-055, go with 27.1"*).)*
 
 *Last Updated: 2026-10-25 (**EP-054**: S0 [SP-193] ✅ closed; the Epic stays 🟡 Active, its Q1–Q6 to rule before S1.)*
 

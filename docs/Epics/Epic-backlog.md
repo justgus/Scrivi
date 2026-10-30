@@ -35,54 +35,6 @@ Apple delivery by **TestFlight**; Linux as a **.deb**.
 
 ---
 
-## EP-055: `[Apple]` **iPad and iPhone** — the full app on iPad, and a phone surface
-
-**Status:** 🔵 **Draft** — created 2026-10-24. No Sprint assigned. (The user's *"There will be more questions for this"*
-meant the questions below.)
-**Codebase:** `[Apple]` (`Scrivi/`, the `ScriviApp-iOS` target). The core is shared and already cross-builds for iOS.
-**Goal:** an alpha tester can write a real project on an **iPad** with the full feature set (manuscript, navigator,
-inspector, timeline, worlds, undo history, buffers), and use a **phone** surface (possibly limited, including the
-unreleased "iPhone Duo"), all delivered by **TestFlight**.
-
-**What the code has today (read 2026-10-24):**
-- ✅ A `ScriviApp-iOS` target at 27.0, and a build phase that cross-builds ScriviCore for the iOS SDK
-  (`build-${PLATFORM_NAME}`). Bundle `com.caposoft.scrivi`, automatic signing, team set.
-- ⚠️ **The manuscript editor on iOS is a stub:** *"Manuscript editor not yet available on this platform."*
-  (`ManuscriptTextView.swift:3672`). The Mac editor is ~3,670 lines of AppKit (`NSTextView`, TextKit 2).
-- About 10 `#if os(iOS)` branches (EditorView's toolbar menu and sheets; the engine).
-- The porting outline (`Scrivi_Platform_Porting_Outline_v0_1.md` §7) puts iPad 2nd and iPhone 3rd. Its first step is a
-  **gap audit of the surfaces** (the binding is shared with the Mac), and it warns that **§4.7 (no gesture-only
-  affordance) inverts** on touch.
-
-**Scope (draft):** a surface gap audit first; the manuscript editor on UIKit (TextKit 2) with the same presenter and
-Markdown model; navigator, inspector card stack, timeline, worlds and detail sheets; undo/redo with the session question,
-the branch chooser and mark; buffers and keyboard shortcuts with a hardware keyboard; Find; project settings; file
-access (Files, iCloud Drive, external drives on iPad); iPad multi-window; a phone layout; TestFlight delivery.
-
-**Acceptance Criteria (draft, to be rewritten after the gap audit):**
-- [ ] AC1 — A surface gap audit: every Mac surface and its iPad / iPhone disposition, ruled
-- [ ] AC2 — The manuscript editor on iPad: typing, selection, the markers and hints, chapter titles, structural edits,
-      undo/redo, Find — the Mac's behaviour, by touch, by Pencil where ruled, and by hardware keyboard
-- [ ] AC3 — Navigator, inspector, timeline, worlds and detail sheets on iPad
-- [ ] AC4 — Projects opened from, and kept on, the places the testers use (Q2), surviving app relaunch
-- [ ] AC5 — The phone surface, per Q1's feature set
-- [ ] AC6 — TestFlight builds for iPad/iPhone (and the Mac, per the delivery ruling), installable by external testers
-- [ ] AC7 — Live passes on a real iPad and a real iPhone
-
-**Questions (to rule):**
-
-| # | Question | Recommendation |
-| - | -------- | -------------- |
-| **Q1** | **The phone's feature set:** which surfaces does a phone get (write and navigate only? the inspector? the timeline?), and does the iPhone Duo get the iPad layout when unfolded? | **Write, navigate, undo, Find and the inspector** on the phone; the timeline and world management iPad-only at first. Treat an unfolded Duo as a **regular-width size class** (the iPad layout) so it needs no special case until Apple documents the device. |
-| **Q2** | **Where projects live on iPad/iPhone,** and how they get there from a Mac. | **Files / iCloud Drive** (a project folder the tester opens through the document picker, kept by a security-scoped bookmark as the Mac does), plus the [EP-054] archive. CloudKit sync stays future. |
-| **Q3** | **The editor:** port the AppKit editor to UIKit, sharing the presenter and Markdown model, or first extract a platform-neutral editing core? | **Audit first (AC1)**, then decide. Extracting the parts that don't touch AppKit (presentation, caret and selection rules, structural editing) is likely, so iPad and Mac don't diverge. |
-| **Q4** | **One Epic or two?** The editor port alone may be several Sprints. | **One Epic now**; split after AC1 if the audit shows the editor is an Epic of its own. |
-| **Q5** | **TestFlight prerequisites:** an active Apple Developer Program membership and an App Store Connect record for `com.caposoft.scrivi`? External testers need a beta review. | ✅ **RULED (user, 2026-10-24): *"yes, I am all setup for testflight."*** Builds are Debug (pre-release). |
-
-**Depends on:** [EP-054] S1–S2 (the archive) for moving projects onto an iPad, unless Q2's iCloud Drive route is enough.
-
----
-
 ## EP-056: `[Linux]` **Install on Ubuntu** — a `.deb` alpha testers can install, update and remove
 
 **Status:** 🔵 **Draft** — created 2026-10-24. No Sprint assigned.
@@ -918,6 +870,8 @@ project; sharing/binding across projects; repair for a world whose package moved
 *Last Updated: 2026-10-24 (**EP-054 → 🟡 Active** with [SP-193] (user: *"activate SP-193"*); moved to `Epic-active.md`.)*
 
 *Last Updated: 2026-10-24 (alpha rulings (user): Debug; no Linux feedback channel; I-0308 stays in the backlog; version `1.0.<build>` → T-0622; EP-054 Q2 open (each paragraph a `<p>`); EP-055 Q5 TestFlight ready; EP-056 Q1 24.04 + 26.04.)*
+
+*Last Updated: 2026-10-29 (**EP-055** activated → `Epic-active.md`, removed here.)*
 
 *Last Updated: 2026-10-24 (**EP-054** `[ScriviCore]` Import & Export, **EP-055** `[Apple]` iPad and iPhone, **EP-056** `[Linux]` Install on Ubuntu created in 🔵 Draft for the alpha release (user).)*
 

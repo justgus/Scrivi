@@ -465,6 +465,7 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-195** | `[Cross]` **[EP-052] S2a** — every scene save through the queue, Mac and Linux (T-0625, T-0626) | EP-052 | 2026-10-26 | — | 🟡 **ACTIVE** → [`Sprint-SP-195.md`](Sprint-SP-195.md) |
 | **SP-196** | `[Cross]` **[EP-052] S2b** — structural edits through the queue, and the gesture cues (T-0627) | EP-052 | 2026-10-27 | — | 🟡 **ACTIVE** → [`Sprint-SP-196.md`](Sprint-SP-196.md) |
 | **SP-197** | `[Cross]` **[EP-052] S3** — reads off the main thread and Spotlight in the background (T-0629–T-0631) | EP-052 | 2026-10-27 | — | 🟡 **ACTIVE** → [`Sprint-SP-197.md`](Sprint-SP-197.md) |
+| **SP-198** | `[Apple]` **[EP-055] S1** — the manuscript on iPad and iPhone, and an iOS test target (T-0632–T-0635) | EP-055 | 2026-10-29 | — | 🟡 **ACTIVE** → [`Sprint-SP-198.md`](Sprint-SP-198.md) |
 | **SP-160** | `[Linux]` **[EP-049] S1** — Linux writes Apple's manuscript format: escaping, paste/copy, pair deletion, Return/⌫, shared corpus (T-0586); + I-0276 | EP-049 | 2026-10-04 | 2026-10-04 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-160.md) |
 
 ## Statistics
@@ -506,6 +507,8 @@ by status, read the table.**
 ---
 
 *Last Updated: 2026-10-22 (**SP-185 → ✅ CLOSED** (user: *"SP-185 can be closed (authorized)."*); I-0309, I-0310, T-0612 verified and archived; AC5 → EP-052.)*
+
+*Last Updated: 2026-10-29 (**SP-198 → 🟡 ACTIVE** (user: *"Activate EP-055"*); T-0632–T-0634 → active.)*
 
 *Last Updated: 2026-10-27 (**SP-197 → 🟡 ACTIVE** (user: *"activate and implement SP-197"*); T-0629–T-0631 → active.)*
 

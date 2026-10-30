@@ -785,6 +785,10 @@ archive files reconstructed after the fact from secondary sources.
 | T-0629 | `[ScriviCore]` One Inspector read per scene, and the per-scene searchable text | SP-197 | **EP-052** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
 | T-0630 | `[Cross]` The Inspector and the timeline read off the main thread, revision-checked | SP-197 | **EP-052** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
 | T-0631 | `[Apple]` Spotlight on one serial background queue, per-scene, behind the saves | SP-197 | **EP-052** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
+| T-0632 | `[Apple]` The manuscript host gap audit — what is AppKit, what is shared, the iOS shape | SP-198 | **EP-055** | 🟡 Active | [`Task-active.md`](Task-active.md) |
+| T-0633 | `[Apple]` The presentation layer compiles for iOS, the Mac unchanged | SP-198 | **EP-055** | 🟡 Active | [`Task-active.md`](Task-active.md) |
+| T-0634 | `[Apple]` The `UITextView` manuscript on iPad and iPhone | SP-198 | **EP-055** | 🟡 Active | [`Task-active.md`](Task-active.md) |
+| T-0635 | `[Apple]` An iOS test target | SP-198 | **EP-055** | 🟡 Active | [`Task-active.md`](Task-active.md) |
 | T-0592 | `[Apple]` E2-S3: formatting commands + lists + Option-Return | 🟡 **SP-163** | **EP-046** | ✅ **Verified 2026-10-06** | [`Task-verified-0592.md`](Verified/Task-verified-0592.md) |
 | T-0591 | `[Apple]` Balance emphasis across SCENE boundaries (cross-scene cut/copy/paste) | 🟡 **SP-163** | **EP-046** | ✅ **Verified 2026-10-06** | [`Task-verified-0591.md`](Verified/Task-verified-0591.md) |
 | T-0590 | `[Apple]` E2-S2: bold and italic + span reveal + the split rule | ✅ **SP-162** | **EP-046** | ✅ **Verified 2026-10-05** | [`Task-verified-0590.md`](Verified/Task-verified-0590.md) |
@@ -822,6 +826,10 @@ archive files reconstructed after the fact from secondary sources.
 ⚠️ **This index ended at `T-0485 (next available)` until 2026-09-10 — ✅ that was STALE.** ⚠️ **T-0485–T-0498 had all been taken**, and T-0485–T-0490/T-0492–T-0496 are archived as Verified. ⚠️ **Rows for T-0486–T-0497 are NOT reconstructed here** — ✅ **their Sprints' closed records are authoritative** (`feedback_archive_on_close`).
 
 ---
+
+*Last Updated: 2026-10-30 (**T-0635 filed → active** with SP-198.)*
+
+*Last Updated: 2026-10-29 (**T-0632–T-0634 filed → active** with SP-198, EP-055 S1.)*
 
 *Last Updated: 2026-10-27 (**T-0629–T-0631 → 🟠 Implemented - Not Verified**.)*
 
