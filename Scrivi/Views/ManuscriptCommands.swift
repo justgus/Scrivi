@@ -1,6 +1,4 @@
 import Foundation
-#if os(macOS)
-import AppKit
 
 // EP-046 E2-S3 ([SP-163], T-0592 + T-0591) — THE FORMAT COMMANDS, as edits the presenter computes.
 //
@@ -97,4 +95,3 @@ extension ManuscriptPresenter {
         }
     }
 }
-#endif

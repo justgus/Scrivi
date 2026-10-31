@@ -73,6 +73,9 @@ Key documents:
   ✅ Core finding: **bars are `VStack` siblings throughout**, where macOS 26+ provides `safeAreaBar`
   and `NSSplitViewItemAccessoryViewController` — ⚠️ and the project window has **no `NSToolbar` at all**
   while asking SwiftUI for `.navigationTitle`.
+- `docs/Scrivi_iOS_Manuscript_Design_v0_1.md` — the manuscript on iOS (EP-055): ✅ Q1 = (c) — what a keystroke stores
+  (`ManuscriptEditRules`) and the model sync (`ManuscriptSceneSync`) are SHARED in `ManuscriptEditing.swift`; the Mac and iOS
+  hosts only apply them. ⚠️ A change to the write path goes THERE, never into one host.
 - `docs/Scrivi_ABI_Binding_Gap_Audit_v0_1.md` — mechanical per-endpoint disposition of all **100** `scrivi_*` endpoints across Apple and Linux (T-0460). ⚠️ **The endpoint count is 100, not 102** — the earlier figure counted prose matches and `scrivi_free`.
 
 ### Backend: C++23 (ScriviCore)
@@ -147,8 +150,10 @@ ctest --test-dir build --output-on-failure
 - **Swift:** 6.0+ (Swift 6 language mode)
 
 Deployment targets: the **iOS app at 27.1** (EP-055 Q7: the iPhone Duo APIs are 27.1+), the **macOS app at 27.1**,
-visionOS and the `ScriviInteropTests` target at **27.0**. Build and test the macOS
-app with `xcodebuild -scheme ScriviApp -destination 'platform=macOS' build|test`.
+the `ScriviInteropTests` target at **27.1** (it must match the app it tests), visionOS at **27.0**. Build and test the macOS
+app with `xcodebuild -scheme ScriviApp -destination 'platform=macOS' build|test`. The iOS tests (`ScriviTests-iOS`, EP-055) run
+with `xcodebuild -workspace Scrivi.xcworkspace -scheme ScriviApp-iOS -destination 'platform=iOS Simulator,name=iPhone Duo' test`
+(⚠️ a 27.1+ simulator runtime — the 27.0 devices are refused — and a name that matches ONE device: there are two "iPhone 18 Pro" on 27.2).
 
 **NEVER assume features, APIs, or behaviors from earlier versions of Xcode or any Apple platform.**
 

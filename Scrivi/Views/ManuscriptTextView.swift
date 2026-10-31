@@ -2,28 +2,6 @@ import SwiftUI
 #if os(macOS)
 import AppKit
 
-// Custom attribute key used to mark chapter title heading ranges as non-editable.
-extension NSAttributedString.Key {
-    static let scriviHeading = NSAttributedString.Key("scrivi.heading")
-    /// ✅ EP-045 AC1 — THE ONE TEST FOR "is this a scene divider?". Its value is a
-    /// `DividerRenderState`. ⛔ Never test `.attachment` for that question: any attachment a
-    /// future feature inserts (EP-032 references, EP-046 rendering) would then split scenes,
-    /// and `sceneBoundaries` is what the save path slices scene bytes with.
-    static let scriviDivider = NSAttributedString.Key("scrivi.divider")
-}
-
-/// EP-045 AC1 — the rendering state of a `DividerTextAttachment`, carried as the value of
-/// `.scriviDivider` on the divider's character (user ruling 2026-10-03: *"We can make the class
-/// manage different rendering states without changing the type. The attribute key can be
-/// managed via an enum and can represent the rendering state of the class."*).
-/// ⚠️ View-only: ScriviCore has no dividers, so this never crosses the ABI or reaches disk.
-enum DividerRenderState: Equatable {
-    /// Between two scenes of the same chapter.
-    case sceneBreak
-    /// Closes a chapter — drawn tinted (T-0575).
-    case chapterEnd
-}
-
 // ManuscriptTextView presents all loaded SceneSegments as a single continuous NSTextView.
 //
 // Scene boundaries are tracked as character ranges in `sceneBoundaries`.
@@ -285,8 +263,18 @@ struct ManuscriptTextView: NSViewRepresentable {
 
     @MainActor
     final class Coordinator: NSObject, NSTextViewDelegate {
-        var parent: ManuscriptTextView
+        var parent: ManuscriptTextView {
+            didSet {
+                sync.loader = parent.loader
+                sync.env = parent.env
+                sync.session = parent.session
+                sync.showChapterTitles = parent.showChapterTitles
+            }
+        }
         weak var textView: NSTextView?
+        /// ✅ EP-055 (T-0633): the model sync shared with every host — the boundary table, the presenter, what an edit
+        /// and a caret move do to the loader, and the render. This coordinator forwards to it.
+        let sync: ManuscriptSceneSync
 
         // ⚠️ I-0131: while set, scroll-driven viewport retargeting is suppressed.
         // An explicit navigation (navigator click, deep link) sets it so the scroll it
@@ -298,7 +286,7 @@ struct ManuscriptTextView: NSViewRepresentable {
         // Dividers occupy 1 character each between segments.
         // ✅ EP-045 AC11 (T-0583): MAINTAINED by `boundaryTable` from each edit; read here, it
         // is current or rescanned — never a stale copy (ONE authority, [I-0131]).
-        let boundaryTable = SceneBoundaryTable()
+        var boundaryTable: SceneBoundaryTable { sync.boundaryTable }
         var sceneBoundaries: [NSRange] {
             guard let storage = textView?.textStorage else { return [] }
             return boundaryTable.ranges(in: storage)
@@ -322,26 +310,21 @@ struct ManuscriptTextView: NSViewRepresentable {
             }
             return parts.joined(separator: "\u{1f}")
         }
-        private var saveTask: Task<Void, Never>?
-        private var titleTask: Task<Void, Never>?
-        private var highlightTask: Task<Void, Never>?
-        private var scrollTask: Task<Void, Never>?
+        private var highlightTask: Task<Void, Never>? { get { sync.highlightTask } set { sync.highlightTask = newValue } }
+        private var scrollTask: Task<Void, Never>? { get { sync.scrollTask } set { sync.scrollTask = newValue } }
 
         // Set true during rebuildStorage to suppress textDidChange callbacks
         // that fire from NSTextStorage delegate notifications mid-rebuild.
-        private var isRebuilding: Bool = false
+        private var isRebuilding: Bool { get { sync.isRebuilding } set { sync.isRebuilding = newValue } }
 
         // Tracks which segment index the cursor was in at last check.
-        private var lastCursorSegmentIndex: Int = 0
+        private var lastCursorSegmentIndex: Int {
+            get { sync.lastCursorSegmentIndex } set { sync.lastCursorSegmentIndex = newValue }
+        }
 
         // Set true after the first updateNSView restores the last-session writing
         // surface (I-0058), so resume runs exactly once per editor lifetime.
         var didRestoreSurface: Bool = false
-
-        // Set by textDidChange so the immediately-following selection-change
-        // callback (fired on the same run loop turn) does not treat an edit as a
-        // pure cursor move; cleared each turn. History trigger #2 (§4.a).
-        private var editInFlight: Bool = false
 
         // Set by makeNSView; call to transfer first-responder directly in AppKit.
         var onTakeFocus: (() -> Void)?
@@ -353,9 +336,13 @@ struct ManuscriptTextView: NSViewRepresentable {
         // caret in the text view.
         private let forkPopover = ForkPopoverController()
 
-        init(_ parent: ManuscriptTextView) { self.parent = parent }
+        init(_ parent: ManuscriptTextView) {
+            self.parent = parent
+            sync = ManuscriptSceneSync(loader: parent.loader, env: parent.env, session: parent.session,
+                                       showChapterTitles: parent.showChapterTitles)
+        }
         /// EP-046 E2-S1 — presents headings and hides escape backslashes (see `ManuscriptPresenter`).
-        let presenter = ManuscriptPresenter()
+        var presenter: ManuscriptPresenter { sync.presenter }
 
         // MARK: — History capture helpers (EP-019)
 
@@ -364,14 +351,6 @@ struct ManuscriptTextView: NSViewRepresentable {
             parent.loader.segments.indices.contains(index) ? parent.loader.segments[index] : nil
         }
 
-        // Scene-local UTF-8 byte offset of the insertion point. `sceneText` is
-        // the scene's full text, `storageLoc` the storage char offset, `segRange`
-        // the scene's storage char range. History offsets are UTF-8 bytes (§4.b).
-        static func sceneLocalByteOffset(in sceneText: String, storageLoc: Int, segRange: NSRange) -> Int {
-            let charOffset = max(0, min(storageLoc - segRange.location, (sceneText as NSString).length))
-            let prefix = (sceneText as NSString).substring(to: charOffset)
-            return prefix.utf8.count
-        }
 
         // MARK: — Undo / Redo apply path (T-0205, design §8)
 
@@ -986,61 +965,16 @@ struct ManuscriptTextView: NSViewRepresentable {
         /// titles show and the chapter count changed it renders everything instead.
         private var renderedChapterCount = 0
 
-        static func chapterCount(_ segments: [SceneSegment]) -> Int {
-            var n = 0
-            for (i, seg) in segments.enumerated() where i == 0 || segments[i - 1].chapterID != seg.chapterID { n += 1 }
-            return n
-        }
+        static func chapterCount(_ segments: [SceneSegment]) -> Int { ManuscriptSceneSync.chapterCount(segments) }
 
-        /// What goes before scene `i`: the divider (every scene but the first; the one that CLOSES a chapter at full
-        /// strength, T-0575), then its chapter title at a chapter boundary when titles show.
+        /// What goes before scene `i` — the shared render ([T-0633]).
         private func renderedPrefix(_ i: Int, _ segments: [SceneSegment]) -> NSAttributedString {
-            let out = NSMutableAttributedString()
-            let seg = segments[i]
-            let isChapterBoundary = i == 0 || segments[i - 1].chapterID != seg.chapterID
-            if i > 0 {
-                let state: DividerRenderState = isChapterBoundary ? .chapterEnd : .sceneBreak
-                out.append(SceneDivider.string(makeDividerAttachment(state), state: state,
-                                               newlineAttributes: presenter.typography.bodyAttributes))
-            }
-            if parent.showChapterTitles && isChapterBoundary {
-                let chapterTitle = parent.loader.allScenes
-                    .first(where: { $0.sceneID == seg.sceneID })
-                    .map { info -> String in
-                        let t = info.chapterTitle.trimmingCharacters(in: .whitespaces)
-                        if !t.isEmpty { return t }
-                        let chapterIDs = parent.loader.allScenes.map(\.chapterID)
-                        var seen: [String: Int] = [:]
-                        var ordinal = 0
-                        for cid in chapterIDs {
-                            if seen[cid] == nil { ordinal += 1; seen[cid] = ordinal }
-                        }
-                        return "Chapter \(seen[info.chapterID] ?? ordinal)"
-                    } ?? ""
-                // ✅ EP-047 P7 + P9: chapter titles in the manuscript face, at Heading 1 size, in the text colour.
-                var headingAttrs = presenter.typography.chapterTitleAttributes
-                headingAttrs[.scriviHeading] = true
-                out.append(NSAttributedString(string: i == 0 ? "\(chapterTitle)\n" : "\n\(chapterTitle)\n",
-                                              attributes: headingAttrs))
-            }
-            return out
+            sync.renderedPrefix(i, segments)
         }
 
-        /// The whole manuscript as the storage shows it, with each scene body's range. ✅ EP-047 AC4: the ONE source
-        /// (font, line height); I-0112: it carries `.foregroundColor` (a run without it is black in Dark Mode).
+        /// The whole manuscript as the storage shows it, with each scene body's range — the shared render ([T-0633]).
         func renderedManuscript(_ segments: [SceneSegment]) -> (NSAttributedString, [NSRange]) {
-            let out = NSMutableAttributedString()
-            var ranges: [NSRange] = []
-            ranges.reserveCapacity(segments.count)
-            let attrs = presenter.typography.bodyAttributes
-            for i in segments.indices {
-                ScriviDiag.tick("rebuildStorage", i, of: segments.count)
-                out.append(renderedPrefix(i, segments))
-                let body = NSAttributedString(string: segments[i].text, attributes: attrs)
-                ranges.append(NSRange(location: out.length, length: body.length))
-                out.append(body)
-            }
-            return (out, ranges)
+            sync.renderedManuscript(segments)
         }
 
         /// Re-render ONE run of scenes: `old` is where the run sat in the storage before the scene list changed, `new` where
@@ -1193,151 +1127,18 @@ struct ManuscriptTextView: NSViewRepresentable {
 
         func textDidChange(_ notification: Notification) {
             guard !isRebuilding else { return }
-            guard let tv = notification.object as? NSTextView else { return }
-            // While a history undo/redo apply mutates storage, the resulting
-            // textDidChange is not a user edit — skip capture (still update the
-            // loader below so in-memory text stays in sync).
-            let isHistoryApply = parent.session.historyCapture?.isApplying ?? false
+            guard let tv = notification.object as? NSTextView, let storage = tv.textStorage else { return }
             // A genuine keystroke commits the writer to the current branch, so
             // any open fork popover must dismiss rather than obstruct (§10 T2).
-            if !isHistoryApply { forkPopover.close() }
-            let loc = tv.selectedRange().location
-
-            // T-0531 DIAGNOSTIC — per-keystroke cost, by step.
-            let __k0 = Date()
-            // Recompute boundaries from live storage — they shift with every keystroke.
-            ensureBoundaries(tv)
-            let __kBounds = Date()
-
-            guard let segIdx = segmentIndex(for: loc) else { return }
-            let __kSeg = Date()
-
-            // Extract this segment's text from storage.
-            let range = sceneBoundaries[segIdx]
-            let extracted = (tv.string as NSString).substring(with: range)
-            let __kExtract = Date()
-
-            // The scene's text *before* this edit (for first-edit baseline seeding).
-            let preEditText = loader(for: segIdx)?.text ?? ""
-
-            // Update loader in-memory; segment stays loaded.
-            parent.loader.updateText(extracted, at: segIdx)
-            let __kUpdate = Date()
-            defer {
-                let ms = { (a: Date, b: Date) in b.timeIntervalSince(a) * 1000 }
-                let total = Date().timeIntervalSince(__k0) * 1000
-                if total > 0.5 {
-                    NSLog(String(format:
-                        "[SCRIVI-KEY] total=%.1f  bounds=%.1f  segIdx=%.1f  extract=%.1f  update=%.1f  rest=%.1f (len=%d)",
-                        total, ms(__k0,__kBounds), ms(__kBounds,__kSeg), ms(__kSeg,__kExtract),
-                        ms(__kExtract,__kUpdate), Date().timeIntervalSince(__kUpdate) * 1000,
-                        tv.textStorage?.length ?? -1))
-                }
-            }
-
-            if segIdx != lastCursorSegmentIndex {
-                lastCursorSegmentIndex = segIdx
-                parent.loader.setCurrentIndex(segIdx)
-            }
-
-            // History capture (EP-019 §4.a): report the edit; ✅ SP-177: the CORE latches it and decides whether it ends
-            // an undo step (a sentence terminator or Return; not trailing whitespace). `editInFlight` lets the following
-            // selection-change callback know this run came from an edit.
-            if !isHistoryApply, let capture = parent.session.historyCapture,
-               let sceneID = loader(for: segIdx)?.sceneID {
-                let cursorCharOffset = loc - range.location
-                // The history card's caret highlight reads UTF-8 bytes (EP-030) — not a capture rule.
-                let cursorByte = Self.sceneLocalByteOffset(in: extracted, storageLoc: loc, segRange: range)
-                parent.loader.setCursorByteOffset(cursorByte, sceneID: sceneID)
-                capture.noteEdit(sceneID: sceneID, text: extracted, caretUTF16: cursorCharOffset, textBefore: preEditText)
-                editInFlight = true
-            }
-
-            // Debounce 1-second auto-save.
-            saveTask?.cancel()
-            let loader = parent.loader
-            let env = parent.env
-            let session = parent.session
-            saveTask = Task { @MainActor in
-                try? await Task.sleep(nanoseconds: 1_000_000_000)
-                guard !Task.isCancelled else { return }
-                if let ref = env.authorshipRef {
-                    // T-0396: this no longer seals the typing session. Mid-session
-                    // it deliberately records nothing (so a continuously-typed
-                    // sentence stays ONE entry); it commits only if the writer has
-                    // already gone idle past the threshold. The scene is written to
-                    // disk either way — see the §4.d note on `flushThenSave`.
-                    session.historyCapture?.flushThenSave()
-                    await loader.saveCurrentIfDirty(engine: env.engine, ref: ref)
-                }
-            }
-
-            // Debounce 300ms live-title update for the Navigator.
-            titleTask?.cancel()
-            let sceneID = loader.segments.indices.contains(segIdx)
-                ? loader.segments[segIdx].sceneID : nil
-            titleTask = Task { @MainActor in
-                try? await Task.sleep(nanoseconds: 300_000_000)
-                guard !Task.isCancelled, let sid = sceneID else { return }
-                let firstLine = extracted
-                    .components(separatedBy: .newlines)
-                    .first { !$0.trimmingCharacters(in: .whitespaces).isEmpty } ?? ""
-                loader.updateLiveTitle(firstLine, forSceneID: sid)
-                session.timelineModel?.updateDotTitles(liveTitles: loader.liveTitles, allScenes: loader.allScenes)
-            }
+            if !(parent.session.historyCapture?.isApplying ?? false) { forkPopover.close() }
+            sync.textChanged(in: storage, caret: tv.selectedRange().location)
         }
 
         func textViewDidChangeSelection(_ notification: Notification) {
             let span = ScriviDiag.begin("caret moved"); defer { ScriviDiag.end(span) }
             guard !isRebuilding else { return }
-            guard let tv = notification.object as? NSTextView else { return }
-            let loc = tv.selectedRange().location
-            guard let segIdx = segmentIndex(for: loc) else { return }
-
-            // History triggers #2 and #5 (§4.a), ✅ SP-177 decided by the CORE: a scene switch commits (hard); a caret
-            // move in the same scene commits unless only whitespace changed (soft); a selection change that came from an
-            // edit this turn, or from an undo/redo apply, is not a move.
-            if let capture = parent.session.historyCapture, let sceneID = loader(for: segIdx)?.sceneID {
-                capture.caretMoved(sceneID: sceneID, editInFlight: editInFlight, applying: capture.isApplying)
-            }
-            editInFlight = false
-
-            // Publish the caret's scene-local byte offset so the history card can bold
-            // the entry whose change the caret sits inside (user request, 2026-08-06).
-            // Done on every selection change, not just edits, so plain arrow-key moves
-            // update the highlight too.
-            if let seg = loader(for: segIdx), sceneBoundaries.indices.contains(segIdx) {
-                let byte = Self.sceneLocalByteOffset(in: seg.text, storageLoc: loc,
-                                                segRange: sceneBoundaries[segIdx])
-                parent.loader.setCursorByteOffset(byte, sceneID: seg.sceneID)
-            }
-
-            if segIdx != lastCursorSegmentIndex {
-                lastCursorSegmentIndex = segIdx
-                parent.loader.setCurrentIndex(segIdx)
-                // Cursor moved to a new scene — update viewport scene immediately.
-                // Cancel any pending scroll-based update; cursor movement takes priority.
-                scrollTask?.cancel()
-                highlightTask?.cancel()
-                let loader = parent.loader
-                let sceneID = loader.segments.indices.contains(segIdx)
-                    ? loader.segments[segIdx].sceneID : nil
-                highlightTask = Task { @MainActor in
-                    try? await Task.sleep(nanoseconds: 80_000_000) // 80ms debounce
-                    guard !Task.isCancelled else { return }
-                    loader.setViewportScene(sceneID)
-                }
-            }
-
-            let manuscriptPos = storageOffsetToManuscriptPosition(loc)
-            parent.loader.updateCursorPosition(manuscriptPos)
-
-            // Record the scene-local cursor offset so the next save persists it as the
-            // restored selection (I-0058). Boundaries were recomputed above via segmentIndex.
-            if sceneBoundaries.indices.contains(segIdx) {
-                let sceneLocalOffset = max(0, loc - sceneBoundaries[segIdx].location)
-                parent.loader.updateSceneCursorOffset(sceneLocalOffset)
-            }
+            guard let tv = notification.object as? NSTextView, let storage = tv.textStorage else { return }
+            sync.selectionChanged(in: storage, caret: tv.selectedRange().location)
         }
 
         // MARK: — Scene/Chapter creation and split/merge (called from ManuscriptNSTextView)
@@ -2171,17 +1972,7 @@ struct ManuscriptTextView: NSViewRepresentable {
         // by subtracting the 2-char separator pairs (attachment + \n) before it.
         func storageOffsetToManuscriptPosition(_ storageOffset: Int) -> Int {
             guard let tv = textView, let storage = tv.textStorage else { return storageOffset }
-            var separatorCount = 0
-            var pos = 0
-            while pos < storageOffset && pos < storage.length {
-                if SceneDivider.isDivider(in: storage, at: pos) {
-                    separatorCount += 1
-                    pos += 2
-                } else {
-                    pos += 1
-                }
-            }
-            return storageOffset - (separatorCount * 2)
+            return sync.storageOffsetToManuscriptPosition(storageOffset, in: storage)
         }
 
         // ✅ [I-0313]: at a line's start AppKit gives typing the attributes of the character AFTER the caret. Before an
@@ -2193,49 +1984,8 @@ struct ManuscriptTextView: NSViewRepresentable {
         }
 
         private func segmentIndex(for characterLocation: Int) -> Int? {
-            for (i, range) in sceneBoundaries.enumerated() {
-                let end = range.location + range.length
-                if characterLocation >= range.location && characterLocation <= end {
-                    return i
-                }
-            }
-            // If after all segments, return last.
-            return sceneBoundaries.isEmpty ? nil : sceneBoundaries.count - 1
-        }
-
-        private func makeDividerAttachment(_ state: DividerRenderState) -> NSTextAttachment {
-            // ⚠️ EP-039 T-0526: was `attachment.attachmentCell = DividerAttachmentCell()`.
-            // ✅ `NSTextAttachmentCell` is TEXTKIT 1 **and APPKIT-ONLY** — it has no UIKit
-            // equivalent, so it blocked the iOS port independently of performance.
-            // ✅ `DividerTextAttachment` overrides the TextKit 2 sizing/imaging API, which is
-            // `macos(12.0), ios(15.0)` — the SAME type on both platforms.
-            let attachment = DividerTextAttachment()
-            attachment.renderState = state
-
-            // ⛔ [I-0252] / T-0554 — THIS ONE LINE IS THE FIX, AND WITHOUT IT THE
-            // DIVIDER DRAWS NOTHING AT ALL.
-            //
-            // ⚠️ MEASURED 2026-09-29 by rendering a real `NSTextView` to a bitmap
-            // and sampling it: with no `image` PROPERTY set, TextKit 2 calls
-            // `attachmentBounds` (so the 24 pt gap IS reserved) but NEVER calls
-            // `image(for:)` — ⛔ `image(for:) calls = 0`, and an OPAQUE MAGENTA bar
-            // did not put a single pixel on the canvas.
-            //
-            // ✅ Setting a placeholder `image` makes TK2 take the image path; the
-            // `image(for:)` override then supplies the real, correctly-width-ed art
-            // per layout pass (measured: `image(for:) calls = 2`, 48 rows drawn).
-            // ⚠️ 1×1 is deliberate — the override always replaces it, so the
-            // placeholder's own size is never used and must not be mistaken for the
-            // divider's geometry (`attachmentBounds` owns that).
-            //
-            // ⚠️ WHY THIS TOOK THREE ATTEMPTS, recorded because the pattern is the
-            // lesson: the first fix blamed a dropped appearance guard, the second
-            // blamed `separatorColor`'s 1.34:1 contrast. ⛔ BOTH MEASUREMENTS WERE
-            // CORRECT AND BOTH ANSWERED THE WRONG QUESTION — the line was never
-            // being drawn, so no colour could have made it visible.
-            attachment.image = NSImage(size: NSSize(width: 1, height: 1))
-
-            return attachment
+            guard let storage = textView?.textStorage else { return nil }
+            return sync.segmentIndex(for: characterLocation, in: storage)
         }
 
         // MARK: — Cross-boundary Cut/Copy/Paste support (EP-029 SP-089, T-0354)
@@ -2440,8 +2190,7 @@ struct ManuscriptTextView: NSViewRepresentable {
                 loader.updateText(after, at: i)
                 grouped.append(.init(sceneID: seg.sceneID, textBefore: before[i] ?? after,
                                      textAfter: after, caret: 0))
-                let firstLine = after.components(separatedBy: .newlines)
-                    .first { !$0.trimmingCharacters(in: .whitespaces).isEmpty } ?? ""
+                let firstLine = ManuscriptPresenter.presentedFirstLine(of: after)
                 loader.updateLiveTitle(firstLine, forSceneID: seg.sceneID)
             }
             capture.recordGroupedEdit(grouped, kind: "replace")
@@ -2640,99 +2389,31 @@ final class ManuscriptNSTextView: NSTextView {
             let ms = Date().timeIntervalSince(__t0) * 1000
             if ms > 0.5 { NSLog(String(format: "[SCRIVI-EDIT] shouldChangeText=%.1f ms", ms)) }
         }
-        guard let storage = textStorage, affectedCharRange.length > 0 || (replacementString?.isEmpty == false) else {
+        guard let storage = textStorage else {
             return super.shouldChangeText(in: affectedCharRange, replacementString: replacementString)
         }
-        // Block any edit that touches a character with the scriviHeading attribute.
-        // For pure insertions (length == 0, non-empty replacement) check the character
-        // AT the insertion point — do NOT look backward, as that would land inside
-        // heading text when the cursor is at the start of a scene.
-        // ⚠️ [I-0266] It used to check a ZERO-length range, which matches nothing, so
-        // typing at offset 0 (before Chapter 1's heading) was let through. ✅ An insertion
-        // whose next character is heading text is BEFORE or INSIDE a heading — the same
-        // rule `caretInHeading` applies to structured paste.
-        // For deletions (length > 0) or backspace-style (length == 0, empty replacement)
-        // check the character being removed, falling back one position for backspace.
-        let isInsertion = affectedCharRange.length == 0 && replacementString?.isEmpty == false
-        let checkRange: NSRange
-        if isInsertion {
-            checkRange = NSRange(location: affectedCharRange.location, length: 1)
-        } else {
-            checkRange = affectedCharRange.length > 0
-                ? affectedCharRange
-                : NSRange(location: max(0, affectedCharRange.location - 1), length: 1)
-        }
-        var isHeading = false
-        if checkRange.location < storage.length {
-            let safeRange = NSRange(
-                location: checkRange.location,
-                length: min(checkRange.length, storage.length - checkRange.location)
-            )
-            if safeRange.length > 0 {
-                storage.enumerateAttribute(.scriviHeading, in: safeRange, options: []) { value, _, stop in
-                    if value != nil { isHeading = true; stop.pointee = true }
-                }
-            }
-        }
-        if isHeading {
-            #if DEBUG
-            NSLog("[SCRIVI-ROTOR] refused edit %@ (chapter title)", NSStringFromRange(affectedCharRange))
-            #endif
+        // ✅ EP-055 (T-0633): the rules are shared with every host — `ManuscriptEditRules.verdict` (headings, dividers,
+        // escape pairs, balanced emphasis). This applies its answer.
+        switch ManuscriptEditRules.verdict(changing: affectedCharRange, with: replacementString, in: storage,
+                                           presenter: presenter, applyingBalancedEdit: applyingBalancedEdit,
+                                           pastingOwnCopy: pastingOwnCopy) {
+        case .allow:
+            return super.shouldChangeText(in: affectedCharRange, replacementString: replacementString)
+        case .refuse:
             return false
-        }
-        // ⛔ [I-0270] NEVER let an ordinary edit remove a scene DIVIDER. Each divider is one
-        // scene boundary; `recomputeBoundaries` maps the Nth text segment to the Nth loaded
-        // scene, so deleting one made the merged text save into the first scene (the second
-        // scene's tail then existed TWICE on disk) and shifted every later scene's edits into
-        // the PREVIOUS scene's file. Joining scenes is a structural op (⌘⌫ merge, cross-scene
-        // ⌘X) that goes through ScriviCore and rebuilds — never a text edit.
-        if affectedCharRange.length > 0, affectedCharRange.location < storage.length {
-            let safe = NSRange(location: affectedCharRange.location,
-                               length: min(affectedCharRange.length, storage.length - affectedCharRange.location))
-            var hasDivider = false
-            storage.enumerateAttribute(.scriviDivider, in: safe, options: []) { value, _, stop in
-                if value != nil { hasDivider = true; stop.pointee = true }
-            }
-            if hasDivider { return false }
-        }
-        // ✅ EP-045 AC4: an escape pair (`\*`) is ONE unit. ⚠️ Measured 2026-10-03: ⌫ after a `*`
-        // removed only the `*` (leaving `a\b` — an orphaned backslash that becomes VISIBLE), and
-        // ⌦ before the `\` removed only the backslash (leaving a LIVE `*`). Re-issue the edit
-        // over the whole pair instead. (EP-046: the same for any stop run — a marker is never split.)
-        // ⚠️ Never on an edit the presenter COMPUTED (balanced edits, Format commands): it is exact, and widening it
-        // past a stop run it starts beside (a list's `1. `) replaced the prefix — [SP-163] live pass, step 12.
-        if affectedCharRange.length > 0, !applyingBalancedEdit, let presenter,
-           let pair = MarkdownEscapes.snapSelection(affectedCharRange, in: storage.string as NSString,
-                                                    runAt: Self.runLookup(presenter, storage)) {
-            if shouldChangeText(in: pair, replacementString: replacementString) {
-                let replacement = NSAttributedString(
-                    string: replacementString ?? "",
-                    attributes: typography.bodyAttributes)
-                storage.replaceCharacters(in: pair, with: replacement)
-                didChangeText()
-                setSelectedRange(NSRange(location: pair.location + replacement.length, length: 0))
-            }
-            return false
-        }
-        // ✅ EP-046 AC12 / [SP-162] Q3: an edit that would leave emphasis UNBALANCED — a cut or delete
-        // across a span edge, typing or pasting over one, a Return inside bold, Scrivi's own copy pasted
-        // into bold — is re-issued as the BALANCED edit of the stretch it touches (`balancedEdit`). ONE
-        // replacement, so ONE history event. ✅ Plain typing inside or outside a span returns nil there.
-        if !applyingBalancedEdit, let presenter, let replacementString,
-           let edit = presenter.balancedEdit(in: storage, replacing: affectedCharRange, with: replacementString,
-                                             keepsOwnFormatting: pastingOwnCopy) {
-            applyingBalancedEdit = true
-            defer { applyingBalancedEdit = false }
-            if shouldChangeText(in: edit.range, replacementString: edit.replacement) {
-                storage.replaceCharacters(in: edit.range, with: NSAttributedString(
-                    string: edit.replacement,
+        case let .reissue(range, replacement, caret, balanced):
+            let wasBalancing = applyingBalancedEdit
+            if balanced { applyingBalancedEdit = true }
+            defer { applyingBalancedEdit = wasBalancing }
+            if shouldChangeText(in: range, replacementString: replacement) {
+                storage.replaceCharacters(in: range, with: NSAttributedString(
+                    string: replacement,
                     attributes: typography.bodyAttributes))
                 didChangeText()
-                setSelectedRange(NSRange(location: edit.caret, length: 0))
+                setSelectedRange(NSRange(location: caret, length: 0))
             }
             return false
         }
-        return super.shouldChangeText(in: affectedCharRange, replacementString: replacementString)
     }
 
     /// True while a balanced edit is being applied — it must not be balanced again.
@@ -2796,7 +2477,7 @@ final class ManuscriptNSTextView: NSTextView {
             var range = r
             if range.length > 0, let presenter,
                let pair = MarkdownEscapes.snapSelection(range, in: storage.string as NSString,
-                                                        runAt: Self.runLookup(presenter, storage)) {
+                                                        runAt: ManuscriptEditRules.runLookup(presenter, storage)) {
                 range = pair
             }
             if let presenter, let edit = presenter.balancedEdit(in: storage, replacing: range, with: escaped) {
@@ -2813,11 +2494,6 @@ final class ManuscriptNSTextView: NSTextView {
     /// True while Scrivi's OWN copy is pasted: it keeps its own formatting.
     private var pastingOwnCopy = false
 
-    /// The presenter's stop runs in the form the snap takes.
-    static func runLookup(_ presenter: ManuscriptPresenter, _ ts: NSAttributedString) -> (Int) -> MarkdownEscapes.StopRun? {
-        let stops = presenter.stopTest(in: ts)
-        return { i in stops(i).map { ($0.range, $0.homeAfter) } }
-    }
 
     /// ✅ EP-046 E2-S1 — the view's presenter, found through TextKit 2's own delegate slot so a view
     /// built without a coordinator (the interop fixtures) works the same way.
@@ -2862,25 +2538,10 @@ final class ManuscriptNSTextView: NSTextView {
     /// (the core's `CaptureSession::isCommitBoundary`, SP-177), so a split edit would commit half the gesture as its own undo step.
     override func insertNewline(_ sender: Any?) {
         guard let storage = textStorage, !hasMarkedText() else { return super.insertNewline(sender) }
-        let sel = selectedRange()
-        // ✅ [SP-163] Return in a LIST ITEM starts the next item (an empty item ends the list), renumbering what follows.
-        if let presenter, let edit = presenter.listReturnEdit(in: storage, selection: sel) {
-            applyCommandEdit(edit)
-            return
+        switch ManuscriptEditRules.returnEdit(in: storage, selection: selectedRange(), presenter: presenter) {
+        case let .command(edit): applyCommandEdit(edit)
+        case let .paragraph(range, source): insertVerbatim(source, replacementRange: range)
         }
-        // ⚠️ Read backward from the caret only — ⛔ never copy the document (EP-045 trap #2).
-        let ns = storage.string as NSString
-        var start = sel.location
-        while start > 0, ns.character(at: start - 1) == 0x20 { start -= 1 }
-        var tail = start < sel.location ? " " : ""
-        if tail.isEmpty {
-            // Only an escape PAIR collapses: an even run of backslashes is all `\\` pairs.
-            var run = 0
-            while run < start, ns.character(at: start - 1 - run) == 0x5C { run += 1 }
-            if run >= 2, run % 2 == 0 { start -= 2; tail = "\\" }
-        }
-        let range = NSRange(location: start, length: NSMaxRange(sel) - start)
-        insertVerbatim(tail + "\n\n", replacementRange: range)
     }
 
     /// Insert text that is already in stored form, unescaped.
@@ -3079,7 +2740,7 @@ final class ManuscriptNSTextView: NSTextView {
                 let ms = Date().timeIntervalSince(t0) * 1000
                 if ms > 0.5 { NSLog(String(format: "[SCRIVI-EDIT] caretSnap=%.1f ms", ms)) }
             }
-            let runAt = Self.runLookup(presenter, storage)
+            let runAt = ManuscriptEditRules.runLookup(presenter, storage)
             if r.length == 0,
                let target = MarkdownEscapes.snapCaret(r.location, from: selectedRange().location,
                                                       length: storage.length, runAt: runAt) {
@@ -3311,64 +2972,11 @@ final class ManuscriptNSTextView: NSTextView {
         let loc = selectedRange().location
         // ✅ [SP-163] Q1: ⌫ inside an empty pending pair takes the pair away.
         if let p = presenter?.pending, loc == p.caret { removePendingPair(); setSelectedRange(NSRange(location: p.range.location, length: 0)); return }
-        guard loc > 0 else { return }
-        // ✅ EP-046: markers are ATOMIC — ⌫ never deletes part of one. Just after an opening marker (the
-        // start of a bold word, [SP-162] Q1) ⌫ acts on what the writer SEES before the caret: the
-        // character before the marker, or the paragraph join. ⚠️ Just after a heading's `## ` (the
-        // visible start of the heading) ⌫ removes the WHOLE prefix — the line becomes body text.
-        if let presenter, let stop = presenter.stopTest(in: storage)(loc - 1), NSMaxRange(stop.range) == loc {
-            switch stop.kind {
-            case .prefix, .listPrefix:
-                // ✅ [SP-163]: a list item's `- ` / `1. ` goes the same way — the item becomes body text.
-                insertVerbatim("", replacementRange: stop.range)
-                return
-            case .opener:
-                let s = stop.range.location
-                guard s > 0, !isSeparatorPosition(s - 1, in: storage) else { return }
-                if let join = paragraphJoin(at: s, in: storage.string as NSString) {
-                    insertVerbatim(" ", replacementRange: join)
-                } else {
-                    insertVerbatim("", replacementRange: NSRange(location: s - 1, length: 1))
-                }
-                return
-            case .escape, .closer:
-                break
-            }
+        switch ManuscriptEditRules.deleteBackwardEdit(at: loc, in: storage, presenter: presenter) {
+        case .system: super.deleteBackward(sender)
+        case .nothing: return
+        case let .verbatim(range, source): insertVerbatim(source, replacementRange: range)
         }
-        // The character that would be deleted is at loc-1.
-        let target = loc - 1
-        if isSeparatorPosition(target, in: storage) { return }
-        if let join = paragraphJoin(at: loc, in: storage.string as NSString) {
-            insertVerbatim(" ", replacementRange: join)
-            return
-        }
-        super.deleteBackward(sender)
-    }
-
-    /// ✅ EP-045 Q3 (ruled 2026-10-04): ⌫ at the start of a paragraph JOINS it to the one above
-    /// with ONE space — `a.⏎⏎b.` → `a. b.`. ⚠️ §3A.6 ruled "delete one `\n`" on the premise that
-    /// a soft break RENDERS as a space; ⛔ E1 renders nothing, so it showed as a line break and
-    /// the paragraphs never visibly joined (live check 2026-10-04). ✅ A space is what [EP-046]
-    /// would render for that soft break anyway, so nothing needs reverting later.
-    /// ✅ Q2 is subsumed: the trailing-space run becomes exactly ONE space and no newline is
-    /// left, so no hard break can form. Returns the range to replace with `" "`, or nil to let
-    /// ⌫ delete one character:
-    /// - ⛔ the line above ends in a BARE `\` — the writer's deliberate hard break (§4B.6): one
-    ///   `\n` goes, `end\⏎next` remains, and the styler hides the `\`;
-    /// - the paragraph above or the one being joined is EMPTY — ⌫ just removes a blank line.
-    private func paragraphJoin(at loc: Int, in ns: NSString) -> NSRange? {
-        let nl = loc - 2   // the first newline of the `\n\n` before the caret
-        guard nl > 0, ns.character(at: loc - 1) == 0x0A, ns.character(at: nl) == 0x0A else { return nil }
-        guard loc < ns.length, ns.character(at: loc) != 0x0A else { return nil }
-        var start = nl
-        while start > 0, ns.character(at: start - 1) == 0x20 { start -= 1 }
-        guard start > 0, ns.character(at: start - 1) != 0x0A else { return nil }
-        if start == nl {
-            var run = 0
-            while run < start, ns.character(at: start - 1 - run) == 0x5C { run += 1 }
-            if run % 2 == 1 { return nil }
-        }
-        return NSRange(location: start, length: loc - start)
     }
 
     override func deleteForward(_ sender: Any?) {
@@ -3379,31 +2987,11 @@ final class ManuscriptNSTextView: NSTextView {
         }
         let loc = selectedRange().location
         if let p = presenter?.pending, loc == p.caret { removePendingPair(); setSelectedRange(NSRange(location: p.range.location, length: 0)); return }
-        guard loc < storage.length else { return }
-        // ✅ EP-046: just before a CLOSING marker (the end of a bold word) ⌦ deletes what the writer SEES
-        // after the caret — the character after the marker — never the marker itself.
-        if let presenter, let stop = presenter.stopTest(in: storage)(loc), stop.kind == .closer,
-           stop.range.location == loc {
-            let after = NSMaxRange(stop.range)
-            guard after < storage.length, !isSeparatorPosition(after, in: storage) else { return }
-            insertVerbatim("", replacementRange: NSRange(location: after, length: 1))
-            return
+        switch ManuscriptEditRules.deleteForwardEdit(at: loc, in: storage, presenter: presenter) {
+        case .system: super.deleteForward(sender)
+        case .nothing: return
+        case let .verbatim(range, source): insertVerbatim(source, replacementRange: range)
         }
-        // The character that would be deleted is at loc.
-        if isSeparatorPosition(loc, in: storage) { return }
-        super.deleteForward(sender)
-    }
-
-    // Returns true if the character at `pos` is part of a separator (attachment or its \n).
-    private func isSeparatorPosition(_ pos: Int, in storage: NSTextStorage) -> Bool {
-        guard pos >= 0, pos < storage.length else { return false }
-        // The divider character itself (EP-045 AC1: by `.scriviDivider`, not `.attachment`).
-        if SceneDivider.isDivider(in: storage, at: pos) { return true }
-        // The \n that immediately follows a divider.
-        if (storage.string as NSString).character(at: pos) == 10,
-           pos >= 1,
-           SceneDivider.isDivider(in: storage, at: pos - 1) { return true }
-        return false
     }
 
     private var coordinator: ManuscriptTextView.Coordinator? {
@@ -3411,308 +2999,5 @@ final class ManuscriptNSTextView: NSTextView {
     }
 }
 
-// MARK: — Divider attachment cell
-
-// Renders a 1pt horizontal rule across the full text column.
-// No text, no label — purely visual separation.
-private let dividerCellHeight: CGFloat = 24
-
-// MARK: — EP-045 AC1: the ONE definition of "scene divider"
-
-/// ✅ Every question "is this a scene divider?" is answered here, from the `.scriviDivider` key.
-/// ⛔ Never from `.attachment` — that matches ANY attachment, and `sceneBoundaries` (computed
-/// here) is what the save path slices scene bytes with.
-enum SceneDivider {
-
-    /// The divider as it goes into storage: the attachment character carrying the
-    /// `.scriviDivider` KEY, then a "\n". ✅ The ONLY place a divider is built, so the key
-    /// cannot be forgotten. ⚠️ The key is on the attachment character ALONE — the "\n" keeps
-    /// the body attributes, so text typed after it never inherits the key.
-    static func string(_ attachment: NSTextAttachment, state: DividerRenderState,
-                       newlineAttributes: [NSAttributedString.Key: Any]) -> NSAttributedString {
-        let s = NSMutableAttributedString(attachment: attachment)
-        s.addAttribute(.scriviDivider, value: state, range: NSRange(location: 0, length: s.length))
-        s.append(NSAttributedString(string: "\n", attributes: newlineAttributes))
-        return s
-    }
-
-    /// True when the character at `i` is a scene divider.
-    static func isDivider(in storage: NSAttributedString, at i: Int) -> Bool {
-        i >= 0 && i < storage.length
-            && storage.attribute(.scriviDivider, at: i, effectiveRange: nil) != nil
-    }
-
-    /// Scene ranges in storage: the text between dividers, skipping chapter-heading runs.
-    /// Pure — reads only `storage` — so the save path's slicing can be tested directly.
-    /// `nil` for empty storage (the caller keeps its previous boundaries).
-    static func sceneBoundaries(in storage: NSAttributedString) -> [NSRange]? {
-        let fullLen = storage.length
-        guard fullLen > 0 else { return nil }
-        let whole = NSRange(location: 0, length: fullLen)
-
-        // Scene divider positions, found by RUN, not by character. ✅ EP-045 AC1: by the
-        // `.scriviDivider` KEY — ⛔ not `.attachment`, which any attachment would match.
-        var dividers: [Int] = []
-        storage.enumerateAttribute(.scriviDivider, in: whole, options: []) { value, range, _ in
-            if value != nil { dividers.append(range.location) }
-        }
-
-        // Ranges carrying chapter-heading text, so a segment can start AFTER one.
-        // ⚠️ `skipHeading`'s job, expressed once up front instead of per position.
-        var headings: [NSRange] = []
-        storage.enumerateAttribute(.scriviHeading, in: whole, options: []) { value, range, _ in
-            if value != nil { headings.append(range) }
-        }
-
-        // First position at or after `pos` that is not inside a heading run.
-        func skipHeading(from pos: Int) -> Int {
-            var p = pos
-            var moved = true
-            while moved {
-                moved = false
-                for h in headings where h.location <= p && p < h.location + h.length {
-                    p = h.location + h.length
-                    moved = true
-                }
-            }
-            return min(p, fullLen)
-        }
-
-        var newBoundaries: [NSRange] = []
-        newBoundaries.reserveCapacity(dividers.count + 1)
-        var segStart = skipHeading(from: 0)
-
-        for divider in dividers {
-            // ⚠️ A divider inside the leading heading run cannot close a segment.
-            guard divider >= segStart else { continue }
-            newBoundaries.append(NSRange(location: segStart, length: divider - segStart))
-            // Skip the attachment + its trailing newline, then any heading after it.
-            segStart = skipHeading(from: divider + 2)
-        }
-        // Last (or only) segment runs to end of storage.
-        newBoundaries.append(NSRange(location: segStart,
-                                     length: max(0, fullLen - segStart)))
-
-        return newBoundaries
-    }
-}
-
-
-// MARK: — [I-0279]: the held cross-scene Range
-
-/// Scrivi's cross-scene copy (a Range ScriviCore can paste back as scenes), valid only while the system pasteboard still
-/// holds what that copy put there. ⛔ It was held forever (SP-089), so after one cross-scene copy every ⌘V pasted it —
-/// whatever had been copied since ([I-0279], found in [SP-163]'s live pass). ✅ [SP-191] Q4a: it holds a Range, as the
-/// buffers and history do.
-struct StructuredClipboard {
-    private var held: (range: ScriviRange, changeCount: Int)?
-
-    mutating func hold(_ range: ScriviRange?, changeCount: Int) {
-        held = range.map { ($0, changeCount) }
-    }
-
-    /// The Range, or nil once anything else has been copied (the change count moved on).
-    func range(currentChangeCount: Int) -> ScriviRange? {
-        guard let held, held.changeCount == currentChangeCount else { return nil }
-        return held.range
-    }
-}
-
-// MARK: — EP-045 AC11: the scene-boundary table, MAINTAINED (T-0583)
-
-/// `sceneBoundaries`, kept current from each edit instead of rescanned over the whole manuscript.
-/// ⛔ It used to be REBUILT by `SceneDivider.sceneBoundaries` (two whole-storage attribute scans)
-/// on every keystroke: measured 2.3–3.9 ms on 1.85 MB (SP-157 AC10).
-/// ✅ The shape Linux already ships (`SceneDocument::applyContentsChange`): an edit inside scene
-/// `i` changes that scene's length and shifts every LATER scene by the edit's `changeInLength`.
-/// ⚠️ Anything it cannot prove local — an edit spanning scenes, or text that carries a divider or
-/// heading — marks the table DIRTY, and the next reader rescans. ⛔ ONE authority ([I-0131] was a
-/// second scene-offset table drifting from the real one): readers take `ranges(in:)`, nothing else.
-/// ⚠️ It observes a NOTIFICATION, not the storage delegate (the presenter's slot), and it needs
-/// `willProcessEditing` anyway — see below.
-/// ⛔ MEASURED 2026-10-04: by `didProcessEditing`, `editedRange` has been WIDENED to whole lines
-/// (cause not traced), and a scene's LAST line holds its divider character — so every edit in a
-/// scene's last line looked cross-scene and forced a rescan. ✅ `willProcessEditing` carries the
-/// raw edit (the AC11 tests fail with `did`, pass with `will`).
-final class SceneBoundaryTable: NSObject {
-    private var table: [NSRange] = []
-    private(set) var isDirty = true
-    private weak var storage: NSTextStorage?
-
-    func observe(_ storage: NSTextStorage) {
-        if let old = self.storage {
-            NotificationCenter.default.removeObserver(self, name: NSTextStorage.willProcessEditingNotification, object: old)
-        }
-        self.storage = storage
-        isDirty = true
-        NotificationCenter.default.addObserver(self, selector: #selector(storageWillProcessEditing(_:)),
-                                               name: NSTextStorage.willProcessEditingNotification, object: storage)
-    }
-
-    /// The scene ranges, rescanned only when the table cannot be trusted.
-    func ranges(in storage: NSAttributedString) -> [NSRange] {
-        if isDirty, let scanned = SceneDivider.sceneBoundaries(in: storage) {
-            table = scanned
-            isDirty = false
-        }
-        return table
-    }
-
-    /// Install ranges already known to be exact (`rebuildStorage` builds them as it appends).
-    func reset(_ ranges: [NSRange]) { table = ranges; isDirty = false }
-
-    func invalidate() { isDirty = true }
-
-    @objc private func storageWillProcessEditing(_ note: Notification) {
-        guard let ts = note.object as? NSTextStorage, ts.editedMask.contains(.editedCharacters) else { return }
-        apply(editedRange: ts.editedRange, changeInLength: ts.changeInLength, in: ts)
-    }
-
-    /// One processed edit. `editedRange` is in POST-edit coordinates.
-    func apply(editedRange: NSRange, changeInLength delta: Int, in storage: NSAttributedString) {
-        guard !isDirty, !table.isEmpty, editedRange.location != NSNotFound else { return }
-        let start = editedRange.location
-        let oldEnd = start + editedRange.length - delta
-        // The last scene starting at or before the edit (binary search; scenes are ordered).
-        var lo = 0, hi = table.count - 1
-        while lo < hi {
-            let mid = (lo + hi + 1) / 2
-            if table[mid].location <= start { lo = mid } else { hi = mid - 1 }
-        }
-        let scene = table[lo]
-        guard scene.location <= start, oldEnd <= scene.location + scene.length, oldEnd >= start else {
-            isDirty = true; return
-        }
-        // Inserted text that brings structure (a divider or heading) changes the scene list.
-        if editedRange.length > 0 {
-            var structural = false
-            for key in [NSAttributedString.Key.scriviDivider, .scriviHeading] where !structural {
-                storage.enumerateAttribute(key, in: editedRange, options: []) { value, _, stop in
-                    if value != nil { structural = true; stop.pointee = true }
-                }
-            }
-            if structural { isDirty = true; return }
-        }
-        table[lo].length += delta
-        for j in (lo + 1)..<table.count { table[j].location += delta }
-    }
-}
-
-// Renders a 1pt horizontal rule across the full text column — the scene divider.
-// No text, no label; purely visual separation.
-//
-// ⚠️ EP-039 T-0526 — REPLACES `DividerAttachmentCell: NSTextAttachmentCell`.
-// ⚠️ `NSTextAttachmentCell` is TextKit 1 AND APPKIT-ONLY: there is no UIKit counterpart, so
-// it blocked the iOS port on its own, before any performance question.
-// ✅ `attachmentBounds(for:location:textContainer:proposedLineFragment:position:)` and
-// `image(forBounds:attributes:location:textContainer:)` are `macos(12.0), ios(15.0)` — the
-// SAME API on both platforms, so this class ports with only its drawing primitives changed.
-//
-// ✅ EP-045 AC1: dividers are found by the `.scriviDivider` KEY, whose value is this class's
-// `renderState` — never by `.attachment`. ONE class; its rendering states live in the enum.
-private final class DividerTextAttachment: NSTextAttachment {
-
-    // ✅ T-0575 (user request 2026-10-02): with chapter titles OFF nothing showed where a
-    // chapter ended — *"slightly dim the current Scene separator and use the full color one
-    // for the last scene in the Chapter."* ⚠️ Done by RAISING the chapter-end rule to
-    // `labelColor`, NOT by dimming the scene rule: `secondaryLabelColor` (5.89:1) is the
-    // measured visibility floor for a 1 px rule ([I-0252]; `tertiaryLabelColor` at 2.26:1
-    // was rejected as too faint), so the relative difference is made above it.
-    // ✅ Drawn the same with titles ON — what a divider means does not change with the toggle.
-    var renderState: DividerRenderState = .sceneBreak
-
-    override func attachmentBounds(
-        for attributes: [NSAttributedString.Key: Any],
-        location: any NSTextLocation,
-        textContainer: NSTextContainer?,
-        proposedLineFragment: CGRect,
-        position: CGPoint
-    ) -> CGRect {
-        // ⚠️ Full column width, as the cell did. `proposedLineFragment` is the authority
-        // under TextKit 2; the container may not be sized yet on first layout.
-        let width = proposedLineFragment.width > 0
-            ? proposedLineFragment.width
-            : (textContainer?.size.width ?? 0)
-        return CGRect(x: 0, y: 0, width: width, height: dividerCellHeight)
-    }
-
-    override func image(
-        for bounds: CGRect,
-        attributes: [NSAttributedString.Key: Any],
-        location: any NSTextLocation,
-        textContainer: NSTextContainer?
-    ) -> NSImage? {
-        // ⚠️ [I-0112]: `NSColor.separatorColor` is semantic and must be resolved against the
-        // right appearance. ✅ An `NSImage` drawn with a handler resolves against the CURRENT
-        // appearance at draw time, which the text view sets — so Light/Dark tracks correctly
-        // without the cell's `controlView` dance.
-        //
-        // ✅ [I-0252] (T-0554, 2026-09-28): THAT COMMENT IS CORRECT AND WAS VERIFIED BY
-        // MEASUREMENT — a harness rasterising this exact handler under each appearance got
-        // `rgba(1,1,1,0.047)` under Dark and `rgba(0,0,0,0.047)` under Light. ⛔ The appearance
-        // was NEVER the bug.
-        //
-        // ⛔ THE BUG WAS THE COLOUR. `separatorColor` is `white @ 9.8% alpha` in Dark, which
-        // COMPOSITES over the editor background to a contrast ratio of **1.34 : 1** — against
-        // `16.67 : 1` for body text. It is a chrome hairline meant to divide CONTROLS, and it
-        // is invisible as a content mark inside a writing surface. ⚠️ It measures `1.25 : 1`
-        // in Light too, so this was never a Dark Mode defect — Dark is only where it was
-        // noticed.
-        //
-        // ✅ `secondaryLabelColor` measures `5.89 : 1` (Dark) and `3.95 : 1` (Light): visible
-        // as a structural mark without competing with prose. ⚠️ `tertiaryLabelColor` was
-        // measured too and rejected at `2.26 : 1` — still too faint for a 1 px rule.
-        //
-        // ⚠️ THIS IS A VISIBILITY FIX, NOT THE FINAL DESIGN. The scene break is to become a
-        // typeset `* * *` mark (the writer must be able to SEE that the caret is at a scene
-        // boundary, because operations depend on it) — see
-        // `docs/Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md` §1.5. ⛔ Do not elaborate
-        // this drawing code in the meantime; it is scheduled to be replaced.
-        let size = NSSize(width: max(bounds.width, 1), height: max(bounds.height, 1))
-        return NSImage(size: size, flipped: false) { rect in
-            // ⚠️ [I-0252] SECOND DEFECT, also measured: a 1 pt line centred on an INTEGRAL
-            // y straddles the pixel grid, so antialiasing splits it across TWO rows at
-            // HALF alpha each — measured `0.275 / 0.275` instead of one row at `0.549`.
-            // ⛔ That halved the line's contrast on its own, independently of the colour.
-            // ✅ Offsetting by half a point puts the 1 pt stroke inside ONE pixel row:
-            // measured `0.549` on a single row.
-            let lineY = rect.midY.rounded() + 0.5
-            let path = NSBezierPath()
-            path.lineWidth = 1.0
-            path.move(to: NSPoint(x: rect.minX + 20, y: lineY))
-            path.line(to: NSPoint(x: rect.maxX - 20, y: lineY))
-            // T-0575 — first pass used `labelColor`; ⛔ user: *"The dividers are too subtle.
-            // Perhaps a slight tint to the chapter divider?"* ✅ The ACCENT colour: a different
-            // KIND of mark, not merely a darker line, and it follows the writer's own
-            // System Settings accent.
-            // ⚠️ 3rd pass — user: *"The tinted divider may be too much."* ✅ Softened to 60%.
-            (self.renderState == .chapterEnd ? NSColor.controlAccentColor.withAlphaComponent(0.6)
-                              : NSColor.secondaryLabelColor).setStroke()
-            path.stroke()
-            return true
-        }
-    }
-}
-
-#else
-
-// iOS / visionOS stub — full UITextView implementation is a future task.
-struct ManuscriptTextView: View {
-    var loader: ViewportSceneLoader
-    var env: AppEnvironment
-    var session: ProjectSession
-    @Binding var navigateToSceneID: String?
-    var showChapterTitles: Bool
-    var typography: ManuscriptTypography   // EP-047: the macOS surface draws with it; not used here yet
-    var markupHints: Bool = true           // EP-047 S4: likewise
-
-    var body: some View {
-        Text("Manuscript editor not yet available on this platform.")
-            .foregroundStyle(.secondary)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    func takeFocus() {}
-}
-
+// iOS / visionOS: `ManuscriptUITextView.swift` (EP-055 S1).
 #endif

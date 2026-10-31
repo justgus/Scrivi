@@ -14,7 +14,8 @@
 # Run: scripts/check-manuscript-type-source.sh     (exit 1 on a second source)
 set -uo pipefail
 cd "$(dirname "$0")/.."
-hits=$(grep -n -E 'NSFont\.(systemFont|monospacedSystemFont|boldSystemFont|monospacedDigitSystemFont)\(|NSFont\(name|NSFontManager|NSFont\.systemFontSize' \
+# ⚠️ EP-055 (T-0633): `UIFont` and the `PlatformFont` alias are the same question on iOS.
+hits=$(grep -n -E '(NS|UI|Platform)Font\.(systemFont|monospacedSystemFont|boldSystemFont|monospacedDigitSystemFont)\(|(NS|UI|Platform)Font\(name|NSFontManager|(NS|UI|Platform)Font\.systemFontSize' \
     Scrivi/Views/Manuscript*.swift Scrivi/Views/Markdown*.swift \
     | grep -v '^Scrivi/Views/ManuscriptTypography.swift:' | grep -v 'type-source-ok')
 if [ -n "$hits" ]; then

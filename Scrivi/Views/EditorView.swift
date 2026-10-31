@@ -214,14 +214,24 @@ private struct ManuscriptEditorView: View {
                 .navigationTitle(projectTitle)
                 .navigationSubtitle(prefs.projectSubtitle)
                 .navigationBarTitleDisplayMode(.inline)
-                .toolbar { editorMenuToolbar }
+                .toolbar {
+                    ProjectToolbar(session: session, env: env)
+                    editorMenuToolbar
+                }
         }
         .navigationSplitViewStyle(.balanced)
         // Choose the initial detail scene: the restored viewport scene if any, else the first scene.
         .onAppear { selectDefaultSceneIfNeeded() }
         // Selecting a scene in the master scrolls the continuous manuscript to it.
         .onChange(of: selectedSceneID) { _, newValue in
-            if let id = newValue { navigateToSceneID = id }
+            guard let id = newValue else { return }
+            // The Mac's I-0132 loop break (below): a selection that echoes the viewport is not a writer's choice. Without
+            // it a scroll or caret move into another scene sent the caret to that scene's start (SP-198 live pass).
+            guard !loader.isMirroringViewportToSelection else { return }
+            guard id != loader.viewportSceneID else { return }
+            navigateToSceneID = id
+            // As on the Mac: the manuscript takes focus, so the caret the navigation placed is the one typing uses.
+            loader.takeFocus()
         }
         #else
         // ⚠️ **macOS uses the same selection-as-source-of-truth shape as iOS above

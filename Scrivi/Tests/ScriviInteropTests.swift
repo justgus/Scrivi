@@ -3773,7 +3773,7 @@ struct MarkdownEscapeMapTests {
     /// `ab\*cd` with the backslash (offset 2) a stop run whose home is BEFORE it, as the presenter reports it.
     /// ⚠️ EP-046: hidden-ness is a LOOKUP now (storage carries no hiding attribute).
     private let text: NSString = #"ab\*cd"#
-    private let escape: (Int) -> MarkdownEscapes.StopRun? = { $0 == 2 ? (NSRange(location: 2, length: 1), false) : nil }
+    private let escape: (Int) -> MarkdownEscapes.StopRun? = { $0 == 2 ? (NSRange(location: 2, length: 1), false, false) : nil }
 
     @Test("only the boundary between a hidden backslash and its mark is unreachable")
     func unreachable() {
@@ -3798,16 +3798,28 @@ struct MarkdownEscapeMapTests {
         #expect(MarkdownEscapes.snapSelection(NSRange(location: 0, length: 4), in: text, runAt: escape) == nil)
     }
 
+    @Test("[I-0327] an untitled scene's Navigator title is its first line as the manuscript shows it")
+    func presentedFirstLine() {
+        let t = ManuscriptPresenter.presentedFirstLine(of:)
+        #expect(t("## Youth against age\n\nBody.") == "Youth against age", "a heading prefix is hidden")
+        #expect(t("\n\nMr\\. **Smith** said *hi*") == "Mr. Smith said hi", "escapes and emphasis markers are hidden")
+        #expect(t("**bold\nline two**") == "bold", "a pair that closes on a later line is still a pair")
+        #expect(t("- a list item") == "- a list item", "a list prefix is shown, as in the manuscript")
+        #expect(t(" \n\n") == "")
+    }
+
     @Test("EP-046 AC5 + [SP-162] Q1: a heading prefix or opener sends the caret AFTER it; ← steps out past the character before")
     func stopRuns() {
         // `x⏎## H`: the prefix (2..<5) is a stop run whose home is AFTER it.
-        let prefix: (Int) -> MarkdownEscapes.StopRun? = { (2..<5).contains($0) ? (NSRange(location: 2, length: 3), true) : nil }
+        let prefix: (Int) -> MarkdownEscapes.StopRun? = { (2..<5).contains($0) ? (NSRange(location: 2, length: 3), true, true) : nil }
         #expect(MarkdownEscapes.snapCaret(2, from: 1, length: 6, runAt: prefix) == 5)  // → onto the line: after `## `
         #expect(MarkdownEscapes.snapCaret(3, from: 9, length: 6, runAt: prefix) == 5)  // a click inside the prefix
         #expect(MarkdownEscapes.snapCaret(4, from: 5, length: 6, runAt: prefix) == 1)  // ← from home: end of the line above
         #expect(MarkdownEscapes.snapCaret(5, from: 2, length: 6, runAt: prefix) == nil) // home is left alone
+        #expect(MarkdownEscapes.snapSelection(NSRange(location: 5, length: 1), in: "x\n## H", runAt: prefix) == nil,
+                "a selection from home keeps the prefix out of it")
         // A closer (`**b**`, closer 3..<5): home BEFORE it; → from home steps past the character after.
-        let closer: (Int) -> MarkdownEscapes.StopRun? = { (3..<5).contains($0) ? (NSRange(location: 3, length: 2), false) : nil }
+        let closer: (Int) -> MarkdownEscapes.StopRun? = { (3..<5).contains($0) ? (NSRange(location: 3, length: 2), false, false) : nil }
         #expect(MarkdownEscapes.snapCaret(5, from: 9, length: 7, runAt: closer) == 3)  // just past it → home
         #expect(MarkdownEscapes.snapCaret(4, from: 3, length: 7, runAt: closer) == 6)  // → from home
         // ⛔ E1 moved a selection's end FORWARD whatever the direction, so shift-← from `ab\*c|d`
@@ -6443,7 +6455,7 @@ struct ManuscriptAccessibilityTests {
         let c = f.tv.selectedRange().location
         let divider = (f.text as NSString).range(of: "\u{FFFC}", options: .backwards).location
         #expect(c <= divider && MarkdownEscapes.snapCaret(c, from: c, length: f.tv.textStorage!.length,
-                                                          runAt: ManuscriptNSTextView.runLookup(f.presenter, f.tv.textStorage!)) == nil,
+                                                          runAt: ManuscriptEditRules.runLookup(f.presenter, f.tv.textStorage!)) == nil,
                 "caret \(c), divider \(divider)")
     }
 
@@ -6549,7 +6561,7 @@ struct ManuscriptAccessibilityTests {
     func caretRoundTrip() {
         let f = fixture(text)
         let storage = f.tv.textStorage!
-        let runAt = ManuscriptNSTextView.runLookup(f.presenter, storage)
+        let runAt = ManuscriptEditRules.runLookup(f.presenter, storage)
         let n = f.tv.accessibilityNumberOfCharacters()
         // In order, in reverse, and re-set in place: VoiceOver's cursor and Scrivi's caret never drift apart.
         for k in Array(0...n) + Array((0...n).reversed()) {
@@ -7849,6 +7861,40 @@ struct UndoAfterStructuralOpTests {
         #expect(h.tv.isEditable)
         #expect(!h.loader.writesHeld)
         try h.listMatchesDisk("after the held structural edit landed")
+    }
+
+    /// [I-0328] SP-198 live pass, 2026-10-30: ⌘W, then Open Project, came back at the place the project was OPENED at — a
+    /// close saved nothing and stamped no resume place (quit and app-resign did).
+    @Test("a close keeps the place and the typing: reopened, the project resumes where the writer was")
+    func closeKeepsThePlace() async throws {
+        let h = try await harness(["Alpha", "Bravo", "Charlie"])
+        h.caret(scene: 1, at: 5)
+        h.tv.insertText("X", replacementRange: h.tv.selectedRange())     // inside the 1 s autosave
+        h.caret(scene: 2, at: 3)
+        let charlie = h.loader.segments[2].sceneID
+        for _ in 0..<100 where h.loader.viewportSceneID != charlie { try await Task.sleep(for: .milliseconds(10)) }
+        h.session.close()
+        let r = try await UndoAfterStructuralOpTests().attach(h.root, h.env, identityID: h.identityID, projectID: h.projectID)
+        #expect(r.loader.viewportSceneID == charlie, "resumes at the scene the writer was in")
+        #expect(r.loader.segments.map(\.text) == ["Alpha", "BravoX", "Charlie"], "the typing reached the files")
+    }
+
+    /// SP-198 live pass, 2026-10-30: dumas had lost `## ` from every heading starting "The" — a Replace All of a match at a
+    /// heading's first presented character took the hidden prefix with it.
+    @Test("Replace All of a match at a heading's start keeps the heading")
+    func replaceAllKeepsHeading() async throws {
+        let h = try await harness(["## The claim\n\nThey said."])
+        let p = h.tv.presentedMap.snapshot()
+        let presented = p.string
+        var edits: [(NSRange, String)] = []
+        var at = 0
+        while case let m = presented.range(of: "The", range: NSRange(location: at, length: presented.length - at)),
+              m.location != NSNotFound {
+            edits.insert((p.storageRange(m), "the"), at: 0)
+            at = NSMaxRange(m)
+        }
+        h.c.replaceAll(edits)
+        #expect(h.loader.segments[0].text == "## the claim\n\nthey said.")
     }
 
     /// [I-0305] — a close or quit while scenes are being written in the background WAITS for them, behind *"Please wait —

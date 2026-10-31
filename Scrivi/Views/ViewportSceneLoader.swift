@@ -220,8 +220,7 @@ struct SceneSegment: Identifiable {
                     contentPath: info.contentPath,
                     text: text
                 ))
-                let firstLine = text.components(separatedBy: .newlines)
-                    .first { !$0.trimmingCharacters(in: .whitespaces).isEmpty } ?? ""
+                let firstLine = ManuscriptPresenter.presentedFirstLine(of: text)
                 if !firstLine.isEmpty { liveTitles[info.sceneID] = firstLine }
             }
             start += slice.count
@@ -644,8 +643,7 @@ struct SceneSegment: Identifiable {
                                  contentPath: change.contentPath, chapterMetadataPath: change.chapterMetadataPath),
                        in: &all, id: \.sceneID, after: change.afterSceneID)
             if let written = change.text {
-                let firstLine = written.components(separatedBy: .newlines)
-                    .first { !$0.trimmingCharacters(in: .whitespaces).isEmpty } ?? ""
+                let firstLine = ManuscriptPresenter.presentedFirstLine(of: written)
                 if firstLine.isEmpty { titles.removeValue(forKey: change.sceneID) } else { titles[change.sceneID] = firstLine }
             }
         }
@@ -967,8 +965,7 @@ struct SceneSegment: Identifiable {
             text: text
         ))
         let firstLine = ScriviDiag.measure("  firstLine scan") {
-            text.components(separatedBy: .newlines)
-                .first { !$0.trimmingCharacters(in: .whitespaces).isEmpty } ?? ""
+            ManuscriptPresenter.presentedFirstLine(of: text)
         }
         if !firstLine.isEmpty {
             titles[info.sceneID] = firstLine

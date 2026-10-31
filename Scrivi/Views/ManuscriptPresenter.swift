@@ -1,6 +1,9 @@
 import Foundation
 #if os(macOS)
 import AppKit
+#else
+import UIKit
+#endif
 
 // EP-046 E2-S1 (T-0588) + E2-S2 (T-0590) — THE PRESENTER: route (a′), Q-E2-6 ruled 2026-10-05.
 // Design: `docs/Scrivi_Manuscript_Renderer_E2_Design_v0_1.md` §2–§3.
@@ -26,12 +29,12 @@ final class ManuscriptPresenter: NSObject, NSTextContentStorageDelegate, NSTextS
 
     /// A hidden character: near-zero and transparent (measured: no visible width, no glyph).
     static var hiddenAttributes: [NSAttributedString.Key: Any] {
-        [.font: NSFont.systemFont(ofSize: 0.01), .foregroundColor: NSColor.clear]   // type-source-ok: hides a character; not manuscript type
+        [.font: PlatformFont.systemFont(ofSize: 0.01), .foregroundColor: PlatformColor.clear]   // type-source-ok: hides a character; not manuscript type
     }
 
     /// ✅ SP-161 Q2 (ruled 2026-10-05): a REVEALED prefix — dimmed, in the body font.
     var revealedPrefixAttributes: [NSAttributedString.Key: Any] {
-        [.font: typography.bodyFont, .foregroundColor: NSColor.tertiaryLabelColor]
+        [.font: typography.bodyFont, .foregroundColor: PlatformColor.manuscriptHint]
     }
 
     /// A REVEALED inline marker (Q-E2-1 span half; [SP-162] Q2 attributes as for the prefix).
@@ -184,6 +187,37 @@ final class ManuscriptPresenter: NSObject, NSTextContentStorageDelegate, NSTextS
 
     func info(_ text: String) -> BlockInfo {
         if let hit = cache[text] { return hit }
+        let info = Self.analyze(text)
+        if cache.count > 4096 { cache.removeAll(keepingCapacity: true) }
+        cache[text] = info
+        return info
+    }
+
+    /// [I-0327] A scene's first non-blank line as the manuscript draws it at rest — escapes, emphasis markers and a heading
+    /// prefix hidden, a list prefix shown — what the Navigator shows for an untitled scene. "" when the scene is blank.
+    static func presentedFirstLine(of text: String) -> String {
+        let ns = text as NSString
+        var p = 0
+        while p < ns.length {
+            let line = ns.paragraphRange(for: NSRange(location: p, length: 0))
+            if !ns.substring(with: line).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { break }
+            p = NSMaxRange(line)
+        }
+        guard p < ns.length else { return "" }
+        // The whole block, so an emphasis pair that closes on a later line is still a pair.
+        let blankLine = ns.range(of: "\n\n", range: NSRange(location: p, length: ns.length - p))
+        let block = ns.substring(with: NSRange(location: p, length: (blankLine.location == NSNotFound ? ns.length : blankLine.location) - p))
+        let info = analyze(block)
+        var hidden = info.escapes
+        for m in info.analysis.markers { for k in m.range.location..<NSMaxRange(m.range) { hidden.insert(k) } }
+        for h in info.headings { for k in h.prefix.location..<NSMaxRange(h.prefix) { hidden.insert(k) } }
+        let units = Array(block.utf16).enumerated().filter { !hidden.contains($0.offset) }.map(\.element)
+        let presented = String(utf16CodeUnits: units, count: units.count)
+        return presented.components(separatedBy: .newlines).first { !$0.trimmingCharacters(in: .whitespaces).isEmpty } ?? ""
+    }
+
+    /// What a block hides and styles — `info`, uncached.
+    static func analyze(_ text: String) -> BlockInfo {
         var info = BlockInfo()
         if text.utf16.contains(0x5C) {
             // E1, unchanged: one line at a time; a line-end backslash is a hidden HARD BREAK only when
@@ -200,8 +234,6 @@ final class ManuscriptPresenter: NSObject, NSTextContentStorageDelegate, NSTextS
             }
         }
         info.analysis = MarkdownBlocks.analyze(text)
-        if cache.count > 4096 { cache.removeAll(keepingCapacity: true) }
-        cache[text] = info
         return info
     }
 
@@ -225,7 +257,7 @@ final class ManuscriptPresenter: NSObject, NSTextContentStorageDelegate, NSTextS
 
     /// The font for a heading level (nil = body) with italic / bold bits — `ManuscriptTypography`'s rule (bold 700; bold
     /// inside a heading = the face's heaviest weight; the face's own italic file).
-    private func font(level: Int?, style: UInt8) -> NSFont {
+    private func font(level: Int?, style: UInt8) -> PlatformFont {
         typography.font(level: level, style: style)
     }
 
@@ -581,4 +613,3 @@ final class ManuscriptPresenter: NSObject, NSTextContentStorageDelegate, NSTextS
         if ms > 0.5 { NSLog(String(format: "[SCRIVI-EDIT] present=%.1f ms (range=%d)", ms, editedRange.length)) }
     }
 }
-#endif

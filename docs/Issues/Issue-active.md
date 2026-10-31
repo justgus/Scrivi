@@ -10,6 +10,8 @@ Issues awaiting **user verification**. An Issue leaves this file only when the u
 | -- | ----- | -------- | ------ | ------ |
 | **I-0242** | `[Linux]` ⛔ **THE WRITER'S CARD STACK IS IGNORED — Linux ENUMERATES KINDS instead of honouring the chosen stack, and DROPS any card that is empty.** ⚠️ **FOUND BY THE USER on the real rig, 2026-09-21**, during [SP-142]'s live pass on `the-stairs-of-tintagael` — ⛔ **not by any test.** ✅ **USER RULING (2026-09-21), and it is the whole specification:** ⚠️ ***"The writer chooses which Card elements to display and in what order they appear. Therefore, if the writer chooses to display an empty card in the stack, then it should be displayed with an appropriate 'No Objects to Display' message. Apple already does this. Linux must as well."*** ⚠️ **REPORTED AS 'Factions is missing'; ⛔ THAT IS THE SYMPTOM, NOT THE DEFECT.** ✅ **Linux CAN render factions** — it derives kinds from `ObjectKindScope`/`kAllStorableKinds` and hardcodes nothing (the standing rule WAS followed). ⛔ **THE DEFECT IS THAT IT NEVER ASKS WHAT THE WRITER CHOSE.** ✅ **`SceneInspector.cpp:551` lists the CORE's kinds and `:577` skips any with no entries in this scene** (*"a kind with nothing in this scene is simply not a row"*) — ⚠️ **so the stack is DERIVED FROM DATA, while Apple's is DECLARED BY THE WRITER.** ⚠️ **APPLE IS THE REFERENCE AND IT IS EXPLICIT:** `ObjectCard.swift:450` renders *"No <kind> in this scene yet."* with the comment ⚠️ ***"§2: empty is a normal state, not an error."*** ⛔ **THE ROOT CAUSE IS A DANGLING READ.** ✅ **`inspector-layout.json` HOLDS the answer — `defaultStacks` and per-scene `scenes` — and [T-0537] just proved Linux ROUND-TRIPS both LOSSLESSLY.** ⚠️ **But `InspectorLayoutStore` exposes ONLY `selectedTab`: ⛔ ZERO reads of `defaultStacks` or `scenes` anywhere in `platforms/linux/`.** ✅ **So Linux has been faithfully PRESERVING a document it does not consult** — ⚠️ **`project_capability_without_surface` in its exact form: a dangling read with no reader.** ⚠️ **CONSEQUENCE BEYOND THE MISSING CARD: ORDER IS ALSO WRONG.** ⛔ **Linux emits kinds in the CORE's order; the writer's chosen order is in `defaultStacks` and is ignored** — ✅ **the user's ruling names order explicitly.** ⚠️ **AND IT BLOCKS THE STACK PICKER ([EP-036] AC4b): a '+' menu that adds a card to a stack nothing reads would change nothing on screen.** ⛔ **That picker had NO Task number; ⚠️ an earlier draft of this row cited `T-0543`, which is now [SP-134]'s — ✅ corrected 2026-09-22.** | **Medium** | ⛔ **UNASSIGNED** — ⚠️ **candidate for [EP-036]; ✅ it is the PREREQUISITE for T-0543, so they should sequence together** | 🔵 **Open** |
 |  **I-0244** | `[Linux]` ⚠️ **THE LINUX APP HAS NONE OF [EP-040]'s EDITOR SHELL, AND NOTHING TRACKS THE GAP.** ⚠️ **RAISED 2026-09-22 from the user's own observation during [SP-135]'s live pass:** ⚠️ ***"I did not toggle the panels on Linux or any of the more recent UI changes because many of them have not been made on Linux yet."*** ✅ **MEASURED THE SAME DAY, not asserted:** ⛔ **Linux has ZERO `QToolBar`/`addToolBar` in `platforms/linux/src/`** · ⛔ **ZERO navigator-visibility state** · ⚠️ **Apple now has a `.toolbar` with 3 `ControlGroup`s and SIX `safeAreaBar`s.** ⚠️ **THIS IS NOT A DEFECT IN EITHER PLATFORM.** ✅ **[EP-040] is scoped `[Apple]` DELIBERATELY** — ⛔ **but four Sprints of shell work ([SP-134] toolbar · [SP-135] bars · [SP-136] inspector column · [SP-137] detail sheet) have no Linux counterpart, and NO Epic, Sprint or Issue records that.** ⚠️ **`feedback_linux_adopts_apple_shape` is the standing rule: *Apple is the reference for architecture; a shape change on Apple must be made the same way on Linux in the SAME work.*** ⛔ **That has not happened, and the divergence is now FOUR SPRINTS DEEP AND GROWING.** ✅ **WHAT THE APPLE WORK ALREADY PROVED, and Linux will re-earn without it:** ⚠️ **[I-0203]'s root cause was that bars were STACK SIBLINGS** — ✅ **Linux's `EditorShell` uses the same layout idiom** — ⚠️ **and the Navigator was unrecoverable because NOTHING OWNED ITS VISIBILITY STATE.** ⛔ **Linux's pane visibility is SESSION-SCOPED ONLY (SP-078/T-0320), which is the same class of gap.** ⚠️ **IT IS NOT [EP-043]'s EITHER:** ✅ **that Epic is the SESSION (multi-window, restore, geometry)** — ⛔ **this is the SHELL (toolbar, bars, panes).** ✅ **They are adjacent and both wait on the same `EditorShell` rework, which is an argument for SEQUENCING them together, not for merging them.** ⚠️ **NOT URGENT AND NOT A REGRESSION** — ✅ **Linux works as it did** — ⛔ **but an untracked divergence is how a port silently falls behind, which is exactly what the Porting Outline exists to prevent.** ---- ⚠️ **A PERFORMANCE EXPECTATION IS INHERITED FROM [I-0213]** (⚠️ *`[Apple]` chapter create froze the app ~2.7 s on a 1,174-scene manuscript; now `~305–400 ms` of work*) **AND IS RECORDED HERE SO LINUX DOES NOT RE-DISCOVER IT AS A DEFECT.** ✅ **[I-0213] was VERIFIED on Apple 2026-09-24 with `createChapter WORK=396.7 ms` on 1,179 scenes, ⚠️ measured DELIBERATELY from a USB mount as a WORST-CASE FLOOR.** ⚠️ **The user named what follows:** *"On Linux it will be even worse because it has to also come through this computer's operating system."* ✅ **SO A LINUX FIGURE WORSE THAN `396.7 ms` ON THE SAME FIXTURE IS ANTICIPATED — ⛔ NOT a regression against [I-0213], and NOT a new Issue on its own.** ⛔ **NOTHING HAS BEEN MEASURED ON LINUX YET; ✅ this is an EXPECTATION TO TEST AGAINST, not a claim about the rig.** ⚠️ **When the Linux editor shell is built, the structural ops MUST be timed with the SAME `[SCRIVI-STRUCT]`-style instrumentation** — ✅ **[I-0213] proved the cost was UNATTRIBUTABLE until each op reported its own number, and that three code-read diagnoses were wrong before it did.** | **Low** | ⛔ **UNASSIGNED — awaiting its OWN Epic.** ✅ **SCOPE RULED 2026-09-26 ([EP-043] [R-Q5], user-approved): it becomes its OWN `[Linux]` Epic, SEQUENCED AFTER [EP-043]** — ⛔ **NOT ACs inside it.** ⚠️ **THIS ROW PREVIOUSLY SAID *"sequenced WITH or after"*; ✅ it is AFTER, and [EP-043]'s record now says the same** — ⛔ **the two records disagreed and no longer do.** ✅ **WHY NOT FOLDED IN: this Issue is FOUR Apple Sprints deep ([SP-134]–[SP-137]), and folding it into a SESSION Epic would repeat the [EP-035] AC1 collapse [I-0178] cites.** ✅ **THE COLLISION IS ALREADY HANDLED: [SP-145] carries a NAMED CARVE-OUT** — ⚠️ **its extraction takes `inspectorVisible_` + `timelineVisible_` onto the session object** (⛔ **per-project state, not per-widget**), ✅ **so this Epic will NOT have to re-open `EditorShell` for pane state.** ⚠️ **Of this Issue's THREE measured gaps, ONLY pane-visibility overlapped, and that is the carve-out** | 🔵 **Open**  |
+| **I-0326** | `[Apple]` `[Linux]` ⛔ **Replace All of a heading's first word deletes the heading's `## `** — dumas-prose-timelines lost the heading on all 542 scenes whose heading starts "The". The selection snap took the hidden prefix into the match. → [details](#i-0326) | High | [SP-198] | 🟠 Resolved - Not Verified |
+| **I-0328** | `[Apple]` ⛔ **Closing a project (⌘W / Close Project) saved nothing: typing inside the 1 s autosave was LOST, and the project reopened where it had been opened, not where the writer left it.** Both platforms: `ProjectSession.close()`, the one chokepoint every close reaches, released the session without the save and resume stamp that quit and app-resign do. → [details](#i-0328) | High | [SP-198] | 🟠 Resolved - Not Verified |
 | **I-0324** | `[ScriviCore]` ⛔ **With real scene links, dumas-prose-timelines does not open: every relationship endpoint walks the whole manuscript.** Found 2026-10-28 linking 7,029 scenes to the new Dumas world: `repairDangling` (every open) re-parsed all 1,175 scene sidecars for each of ~14,000 endpoints (5+ min at full CPU, local disk, not finished); a card's edge listing and each citation listing did the same. → [details](#i-0324) | High | [SP-197] | 🟠 Resolved - Not Verified |
 | **I-0316** | `[ScriviCore]` ⚠️ **When a project's linked world cannot be found, every project open tries to find it once PER RELATIONSHIP ENDPOINT: 270 reads of `world.json` and 540 folder probes on dumas-prose-timelines (135 relationships), each one failing.** The binding read is cached per sweep ([I-0207], [I-0231]); the world lookup is not. Found 2026-10-22 measuring [SP-191]. → [details](#i-0316) | Medium | [SP-197] | 🟠 Resolved - Not Verified |
 
@@ -764,6 +766,71 @@ follows.)*
 *2026-08-15 (docs cleanup — 48 verified Issues archived to decade files, 4 closed Issues
 archived; 6 stale full entries (I-0064, I-0067–I-0071) reconciled against their authoritative table rows.
 10 `Resolved - Not Verified` Issues remain active.)*
+
+## I-0328
+
+**Title:** Closing a project saved nothing: recent typing lost, resume place not stamped
+**Status:** 🟠 Resolved - Not Verified (2026-10-30)
+**Platform:** `[Apple]` — Mac and iOS (shared `ProjectSession`)
+**Component:** `ProjectSession.close()` (`Scrivi/App/ProjectSession.swift:394`), reached by the Mac's red button / ⌘W
+(`windowWillClose → didCloseProjectWindow → closeProject`) and iOS's File ▸ Close Project (`AppEnvironment.closeProject`)
+**Severity:** High. Silent loss of the writer's last second of typing on every close.
+**Sprint:** [SP-198]
+**Date Identified:** 2026-10-30, live pass step I on the iPad simulator: *"Position at the end of the manuscript … Cmd-W.
+Open Project. I'm in Scene 17 of Chapter 49."* The console: the reopen resolved scene index 1014, where the session had
+OPENED; no `quit:` / `stampWritingSurface` line at the close (they appear only at `onAppResign`).
+
+**Root cause:** `close()` committed and closed the history and released the session, but never ran
+`saveAllDirtyBlocking()` — the history flush, the dirty-scene writes, the resume stamp and the wait for the write queue that
+`applicationWillTerminate` and `willResignActive` do. A scene typed into within the 1 s autosave was dropped with the loader,
+and the resume place was whatever the last save had stamped. The test showed the typing loss on the Mac as well.
+
+**Resolution:** `close()` runs `saveAllDirtyBlocking()` first (`ProjectSession.swift:409–412`), so every close path saves
+and stamps exactly as a quit does. The Mac's [I-0305] wait has already let background writes land before this runs.
+**Files Affected:** `Scrivi/App/ProjectSession.swift`; test `closeKeepsThePlace` (`ScriviInteropTests.swift:7869`).
+**Verification:** `closeKeepsThePlace` (type into scene 2, move to scene 3, close, reopen in a new session) failed before
+the fix — the reopened scene held `"Bravo"`, not `"BravoX"` — and passes after. Mac interop 327/327, iOS 10/10.
+⏳ User: iPad — leave the caret somewhere, ⌘W, Open Project; type, ⌘W at once, reopen, the typing is there. Mac: the same.
+✅ **iPad half passed** (user, 2026-10-30, pass 4 step 5). ⏳ **Mac half not yet run** — the fix is in shared code, so it needs its own check.
+
+---
+
+## I-0326
+
+**Title:** Replace All of a heading's first word deletes the heading's `## `
+**Status:** 🟠 Resolved - Not Verified (2026-10-30)
+**Platform:** `[Apple]` (both Mac and iOS: shared code) and `[Linux]` (the same rule, ported)
+**Component:** `MarkdownEscapes.isUnreachable` (`Scrivi/Views/ManuscriptEscapes.swift:176–182`), used by `snapSelection`,
+which `applyReplacements` (`ManuscriptTextView.swift:2480`) and the edit verdict (`ManuscriptEditing.swift:444`) call;
+Linux `ManuscriptEditor::isUnreachable` (`platforms/linux/src/ManuscriptEditor.cpp:172`)
+**Severity:** High. Silent loss of the writer's formatting across hundreds of scenes in one step.
+**Sprint:** [SP-198]
+**Date Identified:** 2026-10-30. The user: *"in the dumas-prose-timelines project many (and I mean a lot) of the Scene headers
+have lost their formatting."* On disk, 542 of 1,175 scenes begin `the claim stated plainly` where the fixture generator
+(`ScriviCore/tools/scrivi_make_test_world.cpp:231`) writes `## The claim stated plainly`. Exactly the topics that start
+"The" are affected, 47–48 scenes each, and `They` → `they` in body text: a case-sensitive Replace All of `The` → `the`
+from an earlier live pass. The iCloud copy and the rig's copy are identical.
+
+**Root cause:** a SELECTION never starts just past a stop run (`snapSelection`, E2-S2), so ⌘B on a bold word takes the `**`
+with it. A heading prefix `## ` is a stop run too, so a match at a heading's first presented character (storage 3..<6) was
+widened to 0..<6 and replaced, `## ` included. The same rule applied to a writer's own selection typed over or cut.
+
+**Resolution:** `StopRun` carries `blockPrefix` (a heading or list prefix); the boundary just past one is the paragraph's
+first character, so it is reachable. An emphasis opener is still taken in (⌘B's toggle). Linux: the same exemption.
+**Files Affected:** `Scrivi/Views/ManuscriptEscapes.swift`, `Scrivi/Views/ManuscriptEditing.swift` (`runLookup`),
+`platforms/linux/src/ManuscriptEditor.cpp`; tests `Scrivi/Tests/ScriviInteropTests.swift` (`replaceAllKeepsHeading`, and a
+`snapSelection` case in the stop-run test), `platforms/linux/tests/replace_smoke.cpp` (a heading seed scene).
+**Verification:** `replaceAllKeepsHeading` failed before the fix with the dumas damage exactly (`"the claim\n\nthey said."`)
+and passes after. Mac interop 325/325, iOS 10/10.
+**Fixture repaired (user: *"yes, please repair the document"*, 2026-10-30):** both copies (iCloud and `~/ScriviLinux/projects`)
+restored from their OWN history logs: the two 2026-10-26 Replace All groups (`The` → `teh`, then `teh` → `the`) undone per
+scene, each undo checked byte-for-byte against the recorded inserted text; the writer's later typing replayed on top. 1,167
+scenes restored per copy, 0 skipped; one scene's two keystrokes (typing `##` and deleting it — an attempt at this same
+heading) were not replayed. Backups: `dumas-manuscript-before-repair-2026-10-30.tar.gz` beside each package. ⚠️ Sidecar
+`stats` were not recomputed; the next open records an `externalChange` barrier per scene (design §6.b), so undo stops there.
+⏳ User: Replace All of a heading's first word on the Mac; a selection from a heading's start typed over.
+
+---
 
 ## I-0324
 

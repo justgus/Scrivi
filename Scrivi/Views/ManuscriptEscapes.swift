@@ -135,7 +135,8 @@ enum MarkdownEscapes {
     // LEFT), a closing marker (home BEFORE it — the end of a bold word continues the bold). ⚠️ EP-046:
     // storage carries no hiding attribute, so these take a lookup — `ManuscriptPresenter.stopTest` in
     // the app — returning the run that holds a unit and which side is home.
-    typealias StopRun = (range: NSRange, homeAfter: Bool)
+    /// `blockPrefix`: a heading or list prefix — it formats the whole paragraph, so a selection never takes it in.
+    typealias StopRun = (range: NSRange, homeAfter: Bool, blockPrefix: Bool)
 
     /// Where a CARET proposed at `loc` (coming from `previous`) must land instead, or nil to leave it.
     /// ✅ Any spot inside a run, or on its far side, goes HOME. ✅ A single arrow step from home INTO the
@@ -172,9 +173,12 @@ enum MarkdownEscapes {
         }
     }
 
-    /// True when boundary `s` sits inside a stop run or just past it.
+    /// True when boundary `s` sits inside a stop run or just past it — except just past a heading or list prefix: that is
+    /// the paragraph's first character. ⛔ Treating it as unreachable widened a Replace All of a heading's first word over
+    /// the `## `, and the heading was lost (SP-198 live pass, dumas). An opener is still taken in (⌘B toggles it off).
     static func isUnreachable(_ s: Int, length: Int, runAt: (Int) -> StopRun?) -> Bool {
-        s > 0 && s < length && runAt(s - 1) != nil
+        guard s > 0, s < length, let run = runAt(s - 1) else { return false }
+        return !(run.blockPrefix && s == NSMaxRange(run.range))
     }
 
     /// A SELECTION never ends inside a stop run: its start moves before the run. Its end moves past

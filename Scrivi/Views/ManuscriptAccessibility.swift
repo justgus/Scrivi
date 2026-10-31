@@ -161,7 +161,7 @@ extension ManuscriptNSTextView {
         var r = m.storageRange(clamped(range, m))
         if r.length == 0, let presenter, let ts = textStorage,
            let home = MarkdownEscapes.snapCaret(r.location, from: r.location, length: ts.length,
-                                               runAt: Self.runLookup(presenter, ts)) {
+                                               runAt: ManuscriptEditRules.runLookup(presenter, ts)) {
             r.location = home
         }
         return r

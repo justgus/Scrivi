@@ -172,7 +172,15 @@ int ManuscriptEditor::snapOnce(int loc, int previous) const
 bool ManuscriptEditor::isUnreachable(int pos) const
 {
     const int length = document()->characterCount() - 1;
-    return presenter_ != nullptr && pos > 0 && pos < length && presenter_->stopAt(pos - 1).has_value();
+    if (presenter_ == nullptr || pos <= 0 || pos >= length) {
+        return false;
+    }
+    const auto run = presenter_->stopAt(pos - 1);
+    // Just past a heading or list prefix is the paragraph's first character, not inside the markup (Apple's
+    // `isUnreachable`): taking the prefix in let a Replace All of a heading's first word delete the `## `.
+    const bool prefix = run && (run->kind == ManuscriptPresenter::StopKind::Prefix
+                                || run->kind == ManuscriptPresenter::StopKind::ListPrefix);
+    return run.has_value() && !(prefix && pos == run->end);
 }
 
 void ManuscriptEditor::snapSelection(int& start, int& end, int previousEnd) const

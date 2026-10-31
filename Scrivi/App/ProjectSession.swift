@@ -406,6 +406,11 @@ import os
             deepLinkAccessURL = nil
         }
 
+        // ⛔ [I-0328]: a close is a quit for this project — commit the history, write every dirty scene and stamp the resume
+        // place, as `applicationWillTerminate` does. Without it, typing inside the 1 s autosave was lost and the project
+        // reopened where it had been opened.
+        saveAllDirtyBlocking()
+
         historyCapture?.close()
         historyCapture = nil
 

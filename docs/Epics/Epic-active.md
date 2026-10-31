@@ -112,7 +112,7 @@ EP-055 Q2).
 
 ## EP-055: `[Apple]` **iPad and iPhone** — the manuscript first, then the full app on iPad and a phone surface
 
-**Status:** 🟡 **ACTIVE** 2026-10-29 — S1 = [SP-198] (🟡 active). Created 2026-10-24 as a Draft; activated 2026-10-29 (user:
+**Status:** 🟡 **ACTIVE** 2026-10-29 — S1 = [SP-198] (🟡 active; implemented 2026-10-30, ⏳ its live passes); S2 = [SP-199] (🟡 active 2026-10-31: panels by size class, gestures, toolbar). Created 2026-10-24 as a Draft; activated 2026-10-29 (user:
 *"Activate EP-055"*), with the manuscript ruled first (user, 2026-10-29: *"In the iOS version, we should focus on the
 Manuscript View first."*).
 **Codebase:** `[Apple]` (`Scrivi/`, the `ScriviApp-iOS` target). The core is shared and already cross-builds for iOS.

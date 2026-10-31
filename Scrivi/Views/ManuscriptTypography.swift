@@ -1,7 +1,22 @@
 import CoreText
 import Foundation
-#if canImport(AppKit)
+#if os(macOS)
 import AppKit
+typealias PlatformFont = NSFont
+typealias PlatformColor = NSColor
+extension NSColor {
+    static var manuscriptText: NSColor { .textColor }
+    static var manuscriptHint: NSColor { .tertiaryLabelColor }
+}
+#else
+import UIKit
+// EP-055 S1 (T-0633): the manuscript's type and colours on UIKit — the same source, UIKit's types.
+typealias PlatformFont = UIFont
+typealias PlatformColor = UIColor
+extension UIColor {
+    static var manuscriptText: UIColor { .label }
+    static var manuscriptHint: UIColor { .tertiaryLabel }
+}
 #endif
 
 // EP-047 S2 (SP-168, T-0597) — the manuscript's TYPE: the bundled faces, and the one source every type decision reads.
@@ -126,9 +141,7 @@ struct ManuscriptTypography: Equatable, Sendable {
     var face: BundledFonts.Face? { BundledFonts.face(named: faceName) }
 }
 
-#if canImport(AppKit)
-
-// The drawing half (macOS — the only manuscript surface today; iOS/visionOS have a placeholder).
+// The drawing half (every Apple platform: PlatformFont / PlatformColor).
 extension ManuscriptTypography {
 
     // MARK: Sizes (Apple's SP-161 Q1 heading sizes, 22 / 18 / 16 over a 13 pt body, kept as RATIOS)
@@ -144,12 +157,12 @@ extension ManuscriptTypography {
 
     // MARK: Fonts
 
-    var bodyFont: NSFont { font(size: size, weight: 400, italic: false) }
+    var bodyFont: PlatformFont { font(size: size, weight: 400, italic: false) }
 
     /// A heading (level 1–6) or body (nil) run with inline `style` bits (`MarkdownBlocks.bold` / `.italic`).
     /// ✅ Headings are bold (700). Bold is 700 in body text; bold INSIDE a heading is the face's HEAVIEST weight, so it still
     /// shows ([SP-162] live pass: "bold is one real weight step above the text").
-    func font(level: Int?, style: UInt8) -> NSFont {
+    func font(level: Int?, style: UInt8) -> PlatformFont {
         let s = level.map(headingSize(level:)) ?? size
         let bold = style & MarkdownBlocks.bold != 0
         let weight: CGFloat = level == nil ? (bold ? 700 : 400) : (bold ? heaviestWeight : 700)
@@ -157,7 +170,7 @@ extension ManuscriptTypography {
     }
 
     /// P9: chapter titles are Heading 1, in the text colour.
-    var chapterTitleFont: NSFont { font(level: 1, style: 0) }
+    var chapterTitleFont: PlatformFont { font(level: 1, style: 0) }
 
     var heaviestWeight: CGFloat {
         guard let face else { return 700 }
@@ -190,12 +203,12 @@ extension ManuscriptTypography {
 
     /// The attributes of plain body text in storage — every site that writes body text uses exactly these.
     var bodyAttributes: [NSAttributedString.Key: Any] {
-        [.font: bodyFont, .foregroundColor: NSColor.textColor, .paragraphStyle: paragraphStyle()]
+        [.font: bodyFont, .foregroundColor: PlatformColor.manuscriptText, .paragraphStyle: paragraphStyle()]
     }
 
     /// A chapter title as stored (EP-047 P7, P9).
     var chapterTitleAttributes: [NSAttributedString.Key: Any] {
-        [.font: chapterTitleFont, .foregroundColor: NSColor.textColor,
+        [.font: chapterTitleFont, .foregroundColor: PlatformColor.manuscriptText,
          .paragraphStyle: paragraphStyle(lineFor: headingSize(level: 1), heading: true)]
     }
 
@@ -226,21 +239,21 @@ extension ManuscriptTypography {
     /// The face at `weight` and `italic`. ✅ The italic is chosen BY FILE (the face's italic font), never by asking the font
     /// manager for an "italic trait": that resolves INSTALLED families, and these are bundled. A variable face takes the weight
     /// on its `wght` axis (clamped to the face's range); a static face takes the nearest-weight file.
-    func font(size: CGFloat, weight: CGFloat, italic: Bool) -> NSFont {
+    func font(size: CGFloat, weight: CGFloat, italic: Bool) -> PlatformFont {
         let key = "\(faceName)|\(size)|\(weight)|\(italic)"
         if let hit = FontCache.shared.get(key) { return hit }
         guard let face else { return .systemFont(ofSize: size) }
         let styled = face.files.filter { $0.italic == italic }
         let candidates = styled.isEmpty ? face.files : styled
-        var made: NSFont?
+        var made: PlatformFont?
         if face.variable, let file = candidates.first, let d = Self.descriptor(file, face) {
             let r = Self.weightRange(face)
             let v = CTFontDescriptorCreateCopyWithAttributes(
                 d, [kCTFontVariationAttribute: [Self.wght: min(max(weight, r.lowerBound), r.upperBound)]] as CFDictionary)
-            made = CTFontCreateWithFontDescriptor(v, size, nil) as NSFont
+            made = CTFontCreateWithFontDescriptor(v, size, nil) as PlatformFont
         } else if let best = candidates.min(by: { abs(CGFloat($0.weight) - weight) < abs(CGFloat($1.weight) - weight) }),
                   let d = Self.descriptor(best, face) {
-            made = CTFontCreateWithFontDescriptor(d, size, nil) as NSFont
+            made = CTFontCreateWithFontDescriptor(d, size, nil) as PlatformFont
         }
         let f = made ?? .systemFont(ofSize: size)
         FontCache.shared.set(key, f)
@@ -252,9 +265,7 @@ extension ManuscriptTypography {
 private final class FontCache: @unchecked Sendable {
     static let shared = FontCache()
     private let lock = NSLock()
-    private var fonts: [String: NSFont] = [:]
-    func get(_ key: String) -> NSFont? { lock.withLock { fonts[key] } }
-    func set(_ key: String, _ font: NSFont) { lock.withLock { fonts[key] = font } }
+    private var fonts: [String: PlatformFont] = [:]
+    func get(_ key: String) -> PlatformFont? { lock.withLock { fonts[key] } }
+    func set(_ key: String, _ font: PlatformFont) { lock.withLock { fonts[key] = font } }
 }
-
-#endif

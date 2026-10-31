@@ -189,7 +189,8 @@ int main(int argc, char** argv)
     check(!rig.projectID.isEmpty(), QStringLiteral("project created"));
 
     const QStringList seeds{QStringLiteral("a **Smith** b and Smith c"), QStringLiteral("Bravo"),
-                            QStringLiteral("cat and **cat** too"), QStringLiteral("Delta"), QStringLiteral("cat")};
+                            QStringLiteral("cat and **cat** too"), QStringLiteral("Delta"),
+                            QStringLiteral("## cat")};   // a heading: Replace All of its first word keeps the `## `
     {
         auto scenes = [&] { return rig.bridge.openProject(rig.projectDir, rig.appSupport).value(QStringLiteral("scenes")).toList(); };
         for (int i = 1; i < seeds.size(); ++i) {
@@ -251,18 +252,18 @@ int main(int argc, char** argv)
     check(rig.landed(QStringLiteral("3 replaced")), QStringLiteral("§3 Replace All landed (%1)").arg(rig.bar->countText()));
     check(!rig.editor->isReadOnly(), QStringLiteral("§3 … and the editor is unlocked"));
     const QStringList written = rig.disk();   // what the Replace All itself wrote — no autosave yet
-    check(written.at(2) == QStringLiteral(R"(d\*g and **d\*g** too)") && written.at(4) == QStringLiteral(R"(d\*g)"),
+    check(written.at(2) == QStringLiteral(R"(d\*g and **d\*g** too)") && written.at(4) == QStringLiteral(R"(## d\*g)"),
           QStringLiteral("§3 every match replaced, escaped, the bold one bold: %1").arg(shown(written)));
     check(written.at(3) == QStringLiteral("Delta"), QStringLiteral("§3 the unmatched scene with unsaved typing was NOT written (%1)").arg(written.at(3)));
     check(rig.modified(before.at(1).contentPath) == bravoAt, QStringLiteral("§3 the unmatched clean scene's file is untouched"));
     const QStringList after{QStringLiteral(R"(a **J\. Jones** b and Smith c)"), QStringLiteral("Bravo"),
-                            QStringLiteral(R"(d\*g and **d\*g** too)"), QStringLiteral("Delta Pre"), QStringLiteral(R"(d\*g)")};
+                            QStringLiteral(R"(d\*g and **d\*g** too)"), QStringLiteral("Delta Pre"), QStringLiteral(R"(## d\*g)")};
     check(rig.saved() == after, QStringLiteral("§3 after the autosave: %1").arg(shown(rig.disk())));
 
     // ── §4 ONE undo step: Ctrl+Z restores every replaced scene, Ctrl+Shift+Z re-applies it ─────────────────────────────
     rig.editor->setFocus();
     rig.control(Qt::Key_Z);
-    const QStringList undone{after.at(0), after.at(1), QStringLiteral("cat and **cat** too"), after.at(3), QStringLiteral("cat")};
+    const QStringList undone{after.at(0), after.at(1), QStringLiteral("cat and **cat** too"), after.at(3), QStringLiteral("## cat")};
     check(rig.saved() == undone, QStringLiteral("§4 one Ctrl+Z undoes the whole Replace All: %1").arg(shown(rig.disk())));
     rig.control(Qt::Key_Z, Qt::ShiftModifier);
     check(rig.saved() == after, QStringLiteral("§4 Ctrl+Shift+Z re-applies it: %1").arg(shown(rig.disk())));
