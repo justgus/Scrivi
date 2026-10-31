@@ -3760,33 +3760,8 @@ void EditorShell::showTimeDeltaPicker(const QString& sceneID, qint64 seedOffsetM
                                    QStringLiteral("default"));
     }
 
-    // Chain propagation (Apple recomputeAndPersistFrom): from the changed scene
-    // onward, recompute each scene's absolute offset from the running chain and
-    // re-persist it, keeping each scene's OWN stored gapMs. A manual scene's gap is
-    // preserved (it just shifts if an earlier scene moved); default scenes keep gap 0.
-    qint64 prevEnd = 0;
-    for (int i = 0; i < segs.size(); ++i) {
-        const QString sid = segs.at(i).sceneID;
-        const QVariantMap st = bridge_->getSceneStoryTime(projectPath_, sid);
-        const qint64 gapMs = st.value(QStringLiteral("gapMs")).toLongLong();
-        qint64 durationMs = st.value(QStringLiteral("durationMs")).toLongLong();
-        if (durationMs <= 0) {
-            durationMs = kDefaultDurationMs;
-        }
-        const QString source = st.value(QStringLiteral("offsetSource"),
-                                        QStringLiteral("default")).toString();
-        const QString durSource = st.value(QStringLiteral("durationSource"),
-                                           QStringLiteral("default")).toString();
-        const qint64 offsetMs = (i == 0) ? gapMs : (prevEnd + gapMs);
-        prevEnd = offsetMs + durationMs;
-
-        // Re-persist only from the changed scene onward (earlier scenes are unaffected).
-        if (i >= idx) {
-            bridge_->setSceneStoryTime(projectPath_, sid, offsetMs, source,
-                                       gapMs, durationMs, durSource);
-        }
-    }
-
+    // [I-0329] Later scenes are NOT re-saved: their starts derive from the gap chain on reload
+    // (Apple recomputeOffsetsFrom). One write per later scene froze a 1,175-scene project.
     reloadTimeline();   // rebuild the strip from the persisted story-time
 }
 

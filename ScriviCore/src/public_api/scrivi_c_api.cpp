@@ -451,8 +451,8 @@ struct ProjectIndexInvalidation {
 // that is invisible; ⚠️ on the user's USB rig every one of those reads is real.
 // ✅ Figures from `StructuralOpIndexRebuildTests.cpp`.
 //
-// ⛔ THIS DOES NOT WEAKEN AC5b. The index is still dropped on BOTH sides of the
-// write by default; the patch is attempted ONLY after the write has SUCCEEDED and
+// ⛔ THIS DOES NOT WEAKEN AC5b. The index is still dropped AFTER the write by
+// default ([I-0329] removed the before-drop: see the constructor); the patch is attempted ONLY after the write has SUCCEEDED and
 // ONLY with the sceneID the endpoint itself echoed back. ✅ ANY doubt drops the
 // whole index:
 //
@@ -461,19 +461,22 @@ struct ProjectIndexInvalidation {
 //   ⚠️ the index does not know this scene → drop (it is already wrong about something)
 //   ⚠️ the patch returns false       → drop
 //
-// ⚠️ THE ORDER MATTERS. `patchAfterWrite` must be called while the endpoint's
-// `ProjectIndexInvalidation` guard is STILL ALIVE, so the BEFORE-drop has already
-// happened and the work's own locator lookups have already repopulated a PRE-WRITE
-// index. ✅ This replaces that stale index's story-time entry with the written one
-// and then CANCELS the destructor's drop. ⛔ Cancelling without patching would
+// ⚠️ THE ORDER MATTERS. `patchAfterWrite` must be called while the guard is STILL
+// ALIVE, after the work's own locator lookups (which build the index if none was
+// cached — from PRE-WRITE disk). ✅ This replaces that index's story-time entry with
+// the written one and then CANCELS the destructor's drop. ⛔ Cancelling without patching would
 // reintroduce exactly the `count:0` defect AC5b caught.
 struct StoryTimePatchGuard {
     std::string root;
     bool        cancelled = false;
 
-    explicit StoryTimePatchGuard(std::string r) : root(std::move(r)) {
-        invalidateProjectIndex(root);
-    }
+    // ⚠️ [I-0329] NO before-drop. It forced the write's own `findSceneMetaPath` to
+    // REBUILD the whole index from disk on EVERY call (~1,175 reads on iCloud), and the
+    // Timeline makes one call per later scene: ~1.4M reads, a 6-minute freeze. ✅ A
+    // story-time write moves no file, so a WARM index locates the target correctly; the
+    // written value is re-read by `patchAfterWrite`, and ANY failure still drops in the
+    // destructor, so a part-way write never leaves a confident index behind.
+    explicit StoryTimePatchGuard(std::string r) : root(std::move(r)) {}
     ~StoryTimePatchGuard() { if (!cancelled) { invalidateProjectIndex(root); } }
 
     StoryTimePatchGuard(const StoryTimePatchGuard&)            = delete;

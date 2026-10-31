@@ -1107,16 +1107,22 @@ Result<ExportProjectTimelineResult> ScriviCore::exportProjectTimeline(
     manuscript::ManuscriptOrderResolver resolver{services_};
     auto scenesR = resolver.resolve(request.projectRootPath);
     if (scenesR.ok()) {
+        // [I-0329] A scene's start is DERIVED from the gap chain (`gapMs` is canonical), the
+        // same way both platforms' Timelines compute it: the stored `offsetMs` of a scene
+        // after a moved one is no longer re-saved.
+        int64_t prevEndMs = 0;
         for (const auto& s : scenesR.value()) {
             auto metaPath = util::join(request.projectRootPath, s.metadataPath);
             auto textR = services_.fileSystem->readTextFile(metaPath);
             if (!textR.ok()) { continue; }
             auto parseR = schemas::parseSceneMeta(textR.value());
             if (!parseR.ok()) { continue; }
+            const auto& st = parseR.value().storyTime;
             schemas::ExternalTimelineEvent ev;
             ev.eventID  = s.sceneID.value;
             ev.title    = s.title;
-            ev.offsetMs = parseR.value().storyTime.offsetMs;
+            ev.offsetMs = prevEndMs + st.gapMs;
+            prevEndMs   = ev.offsetMs + (st.durationMs > 0 ? st.durationMs : schemas::SceneStoryTime{}.durationMs);
             ev.kind     = "scene";
             exportData.events.push_back(std::move(ev));
         }

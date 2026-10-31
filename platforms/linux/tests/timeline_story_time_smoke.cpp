@@ -7,10 +7,10 @@
 //   1. A 3-scene fixture starts on the default chain (each scene gapMs 0, offsets
 //      chaining by the default 1-hour duration).
 //   2. Place scene 1 (0-based) MANUALLY 2 hours after scene 0's end
-//      (setSceneStoryTime source="manual"), then re-persist the chain from scene 1 on
-//      (mirroring the shell's propagation). Reopen: scene 1 is "manual" with the right
-//      gap; scene 2 (still default) shifted to sit after scene 1's new end.
-//   3. RESET scene 1 to default (source="default", gap 0) + re-persist. Reopen: scene 1
+//      (setSceneStoryTime source="manual"); scene 2 is NOT re-saved ([I-0329]: its
+//      offset derives from the gap chain). Reopen: scene 1 is "manual" with the right
+//      gap; scene 2 is still on the chain (gap 0).
+//   3. RESET scene 1 to default (source="default", gap 0). Reopen: scene 1
 //      back on the chain; scene 2 follows again.
 //
 //   argv[1] = project dir to create (e.g. <tmp>/timeline-story-time.scrivi)
@@ -108,12 +108,6 @@ int main(int argc, char* argv[])
     const qint64 s1Gap       = s1NewOffset - s0End;       // 2h
     bridge.setSceneStoryTime(projectPath, s1, s1NewOffset, QStringLiteral("manual"),
                              s1Gap, kDefaultMs, QStringLiteral("manual"));
-    // Re-persist s2 from the chain (it keeps its own gap 0, new offset = s1End).
-    const StoryTime s2st = storyTime(bridge, projectPath, s2);
-    const qint64 s1End = s1NewOffset + kDefaultMs;        // 4h
-    bridge.setSceneStoryTime(projectPath, s2, s1End + s2st.gapMs,
-                             s2st.source, s2st.gapMs, s2st.durationMs,
-                             QStringLiteral("default"));
 
     // Reopen — story-time persists.
     opened = bridge.openProject(projectPath, appSupport);
@@ -132,7 +126,7 @@ int main(int argc, char* argv[])
     check(storyTime(bridge, projectPath, s1).gapMs == 0, "s1 gap 0 after reset");
 
     if (failures == 0) {
-        std::printf("OK: story-time manual placement + chain re-persist + reset passed.\n");
+        std::printf("OK: story-time manual placement + chain + reset passed.\n");
         std::printf("projectID: %s\n", projectID.toUtf8().constData());
         std::printf("PASS: setSceneStoryTime persisted manual/default placement across reopen.\n");
     }

@@ -216,3 +216,28 @@ struct IOSManuscriptSaveTests {
                 "on disk: \(markdown.debugDescription)")
     }
 }
+
+
+@Suite("iOS panel swipes (SP-199, design §8)")
+struct PanelSwipeTests {
+    let w: CGFloat = 1000
+
+    @Test("width regular: each edge rule, and a full-width swipe does both (G1)")
+    func regular() {
+        #expect(PanelSwipe.actions(startX: 5, endX: 400, width: w, compact: false) == [.showNavigator])
+        #expect(PanelSwipe.actions(startX: 500, endX: 950, width: w, compact: false) == [.hideInspector])
+        #expect(PanelSwipe.actions(startX: 5, endX: 990, width: w, compact: false) == [.showNavigator, .hideInspector])
+        #expect(PanelSwipe.actions(startX: 995, endX: 600, width: w, compact: false) == [.showInspector])
+        #expect(PanelSwipe.actions(startX: 500, endX: 50, width: w, compact: false) == [.hideNavigator])
+        #expect(PanelSwipe.actions(startX: 995, endX: 10, width: w, compact: false) == [.showInspector, .hideNavigator])
+        #expect(PanelSwipe.actions(startX: 300, endX: 700, width: w, compact: false).isEmpty, "mid-screen does nothing")
+    }
+
+    @Test("width compact: a leftward swipe from the right edge is the next page; rightward is the system's back")
+    func compact() {
+        #expect(PanelSwipe.actions(startX: 995, endX: 600, width: w, compact: true) == [.nextPage])
+        #expect(PanelSwipe.actions(startX: 995, endX: 10, width: w, compact: true) == [.nextPage])
+        #expect(PanelSwipe.actions(startX: 500, endX: 10, width: w, compact: true).isEmpty)
+        #expect(PanelSwipe.actions(startX: 5, endX: 990, width: w, compact: true).isEmpty)
+    }
+}

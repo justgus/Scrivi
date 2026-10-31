@@ -62,14 +62,20 @@ private struct ManuscriptEditorView: View {
     /// flashes open and then collapses. ✅ Seeding the `@State` here does exactly that: measured
     /// 2026-10-03 in an off-screen `NavigationSplitView`, an initial `.detailOnly` draws the first
     /// frame with no sidebar and fires no `onChange` (so restoring does not write the file back).
-    /// ⚠️ macOS only: on iOS this binding also drives the compact-width push and stays `.automatic`.
+    /// ⚠️ iOS: only the width-regular split reads it; width compact pages with `compactColumn` (SP-199).
     init(loader: ViewportSceneLoader, prefs: ProjectPreferences, navigatorHidden: Bool) {
         self.loader = loader
         self.prefs = prefs
-        #if os(macOS)
         _columnVisibility = State(initialValue: navigatorHidden ? .detailOnly : .automatic)
-        #endif
     }
+
+    #if os(iOS)
+    // SP-199 (design §8): width compact is ONE stack, Navigator → Manuscript → Inspector, opening on the Manuscript;
+    // width regular is the split plus the `.inspector` column, as on the Mac. ⚠️ Size class only, never the idiom.
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @State private var compactColumn: NavigationSplitViewColumn = .content
+    private var isCompact: Bool { horizontalSizeClass == .compact }
+    #endif
 
     // MARK: — Object Detail Sheet (EP-034 SP-117, D1-E)
     //
@@ -191,35 +197,38 @@ private struct ManuscriptEditorView: View {
     @ViewBuilder
     private var container: some View {
         #if os(iOS)
-        // Single Master/Detail layout for both iPhone and iPad. NavigationSplitView adapts to
-        // idiom and orientation on its own: side-by-side on iPad and iPhone landscape (regular
-        // width), and a navigator→manuscript push with a back chevron on iPhone portrait (compact
-        // width). The selection binding is what makes the detail track the master and drives the
-        // compact-width push.
-        NavigationSplitView(columnVisibility: $columnVisibility) {
-            SceneNavigatorView(
-                loader: loader,
-                env: env,
-                session: session,
-                prefs: prefs,
-                onTakeFocus: { loader.takeFocus() },
-                selection: $selectedSceneID,
-                // I-0161: only scenes reached from elsewhere are revealed.
-                revealRequest: revealRequest
-            )
-            .navigationTitle(projectTitle)
-            .navigationBarTitleDisplayMode(.inline)
-        } detail: {
-            manuscriptDetail
-                .navigationTitle(projectTitle)
-                .navigationSubtitle(prefs.projectSubtitle)
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ProjectToolbar(session: session, env: env)
-                    editorMenuToolbar
+        Group {
+            if isCompact {
+                // ✅ A three-column split collapses to exactly the ruled stack, with the system's back button and back
+                // swipe; `preferredCompactColumn` is which page shows (measured on the Duo simulator, 2026-10-31).
+                NavigationSplitView(preferredCompactColumn: $compactColumn) {
+                    navigator
+                } content: {
+                    manuscriptPage
+                } detail: {
+                    inspector(loader: loader)
+                        .navigationTitle("Scene Inspector")
+                        .navigationBarTitleDisplayMode(.inline)
                 }
+            } else {
+                NavigationSplitView(columnVisibility: $columnVisibility) {
+                    navigator
+                } detail: {
+                    manuscriptPage
+                }
+                .navigationSplitViewStyle(.balanced)
+                // As on the Mac (I-0255): the writer's sidebar choice is recorded; hidden ≡ `.detailOnly`.
+                .onChange(of: columnVisibility) { _, newValue in
+                    session.navigatorVisible = (newValue != .detailOnly)
+                }
+            }
         }
-        .navigationSplitViewStyle(.balanced)
+        .background(PanelSwipeInstaller { actions in actions.forEach(applyPanel) })
+        .accessibilityAction(named: "Scene Navigator") { applyPanel(.showNavigator) }
+        .accessibilityAction(named: "Scene Inspector") { applyPanel(.showInspector) }
+        .accessibilityAction(named: session.timelineVisible ? "Hide Timeline" : "Show Timeline") {
+            session.timelineVisible.toggle()
+        }
         // Choose the initial detail scene: the restored viewport scene if any, else the first scene.
         .onAppear { selectDefaultSceneIfNeeded() }
         // Selecting a scene in the master scrolls the continuous manuscript to it.
@@ -228,6 +237,8 @@ private struct ManuscriptEditorView: View {
             // The Mac's I-0132 loop break (below): a selection that echoes the viewport is not a writer's choice. Without
             // it a scroll or caret move into another scene sent the caret to that scene's start (SP-198 live pass).
             guard !loader.isMirroringViewportToSelection else { return }
+            // Width compact: choosing a scene goes to the Manuscript page, even the scene already showing.
+            if isCompact { compactColumn = .content }
             guard id != loader.viewportSceneID else { return }
             navigateToSceneID = id
             // As on the Mac: the manuscript takes focus, so the caret the navigation placed is the one typing uses.
@@ -311,6 +322,55 @@ private struct ManuscriptEditorView: View {
         }
         #endif
     }
+
+    #if os(iOS)
+    private var navigator: some View {
+        SceneNavigatorView(
+            loader: loader,
+            env: env,
+            session: session,
+            prefs: prefs,
+            onTakeFocus: { loader.takeFocus() },
+            selection: $selectedSceneID,
+            // I-0161: only scenes reached from elsewhere are revealed.
+            revealRequest: revealRequest
+        )
+        .navigationTitle(projectTitle)
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var manuscriptPage: some View {
+        manuscriptDetail
+            .navigationTitle(projectTitle)
+            .navigationSubtitle(prefs.projectSubtitle)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ProjectToolbar(session: session, env: env)
+                editorMenuToolbar
+            }
+    }
+
+    /// One panel move — a swipe's, a VoiceOver action's or the ⋯ menu's. Width compact moves between pages; width regular
+    /// shows and hides the side panels.
+    private func applyPanel(_ action: PanelSwipe) {
+        if isCompact {
+            switch action {
+            case .showNavigator: compactColumn = .sidebar
+            case .showInspector: compactColumn = .detail
+            case .nextPage: compactColumn = compactColumn == .sidebar ? .content : .detail
+            case .hideNavigator, .hideInspector: break
+            }
+            return
+        }
+        switch action {
+        case .showNavigator: columnVisibility = .all
+        case .hideNavigator: columnVisibility = .detailOnly
+        case .showInspector: session.inspectorVisible = true
+        case .hideInspector: session.inspectorVisible = false
+        case .nextPage: break
+        }
+    }
+    #endif
 
     // On open, seed the selection so the navigator shows the current scene (and, on iOS,
     // so the detail has content): prefer the restored viewport scene, else the first.
@@ -412,81 +472,47 @@ private struct ManuscriptEditorView: View {
             // NOT tied to the warning strip (SP-102 R1). Converting both to bars must not couple
             // them, and AC4 exists to check that.
             .safeAreaBar(edge: .bottom) {
-            #if os(iOS)
-            if UIDevice.current.userInterfaceIdiom != .phone,
-               session.timelineVisible,
-               let tlModel = session.timelineModel,
-               let prp = session.projectRootPath {
-                TimelineStripView(
-                    model: tlModel,
-                    engine: env.engine,
-                    projectRootPath: prp,
-                    authorshipRef: env.authorshipRef,
-                    loader: loader,
-                    // ⚠️ I-0209 — set SELECTION + REVEAL, not the one-shot trigger.
-                    //
-                    // Writing `navigateToSceneID` directly scrolls the MANUSCRIPT but
-                    // leaves the Navigator's selection and scroll position untouched,
-                    // so the writer lands in a scene the list is not showing — the
-                    // same defect I-0157 fixed for the Detail Sheet, which is why
-                    // that call site (below) already does it this way.
-                    //
-                    // I-0132 ruled selection the source of truth on both platforms;
-                    // `onChange(of: selectedSceneID)` then drives the manuscript.
-                    // `revealRequest` is what scrolls the list, and it is deliberately
-                    // the OUTSIDE-DRIVEN reveal path (I-0161): the navigator defers
-                    // it until the manuscript reports arriving, and uses `anchor: nil`
-                    // so an already-visible row is not nudged (I-0132).
-                    onSelectScene: { sceneID in
-                        selectedSceneID = sceneID
-                        revealToken += 1
-                        revealRequest = SceneRevealRequest(sceneID: sceneID,
-                                                           token: revealToken)
-                    }
-                )
-            }
-            #else
-            if session.timelineVisible,
-               let tlModel = session.timelineModel,
-               let prp = session.projectRootPath {
-                TimelineStripView(
-                    model: tlModel,
-                    engine: env.engine,
-                    projectRootPath: prp,
-                    authorshipRef: env.authorshipRef,
-                    loader: loader,
-                    // ⚠️ I-0209 — set SELECTION + REVEAL, not the one-shot trigger.
-                    //
-                    // Writing `navigateToSceneID` directly scrolls the MANUSCRIPT but
-                    // leaves the Navigator's selection and scroll position untouched,
-                    // so the writer lands in a scene the list is not showing — the
-                    // same defect I-0157 fixed for the Detail Sheet, which is why
-                    // that call site (below) already does it this way.
-                    //
-                    // I-0132 ruled selection the source of truth on both platforms;
-                    // `onChange(of: selectedSceneID)` then drives the manuscript.
-                    // `revealRequest` is what scrolls the list, and it is deliberately
-                    // the OUTSIDE-DRIVEN reveal path (I-0161): the navigator defers
-                    // it until the manuscript reports arriving, and uses `anchor: nil`
-                    // so an already-visible row is not nudged (I-0132).
-                    onSelectScene: { sceneID in
-                        selectedSceneID = sceneID
-                        revealToken += 1
-                        revealRequest = SceneRevealRequest(sceneID: sceneID,
-                                                           token: revealToken)
-                    }
-                )
-            }
-            #endif
+                VStack(spacing: 0) {
+                #if os(iOS)
+                // SP-199 G2: the Timeline's grabber (a tap toggles it), at every width (the idiom gate that kept it off the iPhone is gone).
+                TimelineGrabber(isShown: Bindable(session).timelineVisible)
+                #endif
+                if session.timelineVisible,
+                   let tlModel = session.timelineModel,
+                   let prp = session.projectRootPath {
+                    TimelineStripView(
+                        model: tlModel,
+                        engine: env.engine,
+                        projectRootPath: prp,
+                        authorshipRef: env.authorshipRef,
+                        loader: loader,
+                        // ⚠️ I-0209 — set SELECTION + REVEAL, not the one-shot trigger.
+                        //
+                        // Writing `navigateToSceneID` directly scrolls the MANUSCRIPT but
+                        // leaves the Navigator's selection and scroll position untouched,
+                        // so the writer lands in a scene the list is not showing — the
+                        // same defect I-0157 fixed for the Detail Sheet, which is why
+                        // that call site (below) already does it this way.
+                        //
+                        // I-0132 ruled selection the source of truth on both platforms;
+                        // `onChange(of: selectedSceneID)` then drives the manuscript.
+                        // `revealRequest` is what scrolls the list, and it is deliberately
+                        // the OUTSIDE-DRIVEN reveal path (I-0161): the navigator defers
+                        // it until the manuscript reports arriving, and uses `anchor: nil`
+                        // so an already-visible row is not nudged (I-0132).
+                        onSelectScene: { sceneID in
+                            selectedSceneID = sceneID
+                            revealToken += 1
+                            revealRequest = SceneRevealRequest(sceneID: sceneID,
+                                                               token: revealToken)
+                        }
+                    )
+                }
+                }
             }
             // ⛔ [I-0263] — the world warning USED TO BE a second `.safeAreaBar(edge: .bottom)`
             // here (T-0545). It is now an OVERLAY on the manuscript, above — see the note there.
-            #if os(iOS)
-            if UIDevice.current.userInterfaceIdiom != .phone && session.inspectorVisible {
-                inspector(loader: loader)
-            }
-            #endif
-            // ⚠️ macOS: the Inspector is NOT an HStack member — see the `.inspector`
+            // ⚠️ The Inspector is NOT an HStack member, on either platform (SP-199 removed iOS's) — see the `.inspector`
             // modifier applied to this HStack below (T-0546). It is a REAL trailing
             // column, which is what `.inspector(isPresented:)` presents.
             // ⛔ Do not re-add a macOS branch here.
@@ -509,7 +535,6 @@ private struct ManuscriptEditorView: View {
             //
             // ⛔ Do not re-add a detail pane to this HStack.
         }
-        #if os(macOS)
         // ⚠️ T-0546 / [EP-040] AC6 — THE INSPECTOR IS A REAL TRAILING COLUMN.
         //
         // ⛔ IT USED TO BE AN `HStack` MEMBER with a hand-rolled resize handle: a
@@ -531,7 +556,9 @@ private struct ManuscriptEditorView: View {
         // item, not an `HStack` sibling — AppKit negotiates it against the content as a
         // pair, which is exactly what D1-E's third view broke. ⛔ A SECOND one WOULD
         // contend, and this guard must fail on it.
-        .inspector(isPresented: Bindable(session).inspectorVisible) {  // layout-ok: the single split-view Inspector ([SP-136]); a SECOND column would contend and must fail
+        // ⚠️ SP-199: iOS too, at width regular. At width compact `.inspector` would become a sheet, and the ruled Inspector
+        // there is the stack's third page (G3), so the column is never presented.
+        .inspector(isPresented: inspectorColumnPresented) {  // layout-ok: the single split-view Inspector ([SP-136]); a SECOND column would contend and must fail
             inspector(loader: loader)
                 // ⚠️ Q2: the PLATFORM owns the width now. `ideal:` is seeded ONCE from
                 // the retired `@AppStorage("inspectorPaneWidth")` so a writer who had
@@ -542,7 +569,6 @@ private struct ManuscriptEditorView: View {
                                       ideal: SceneInspectorView.migratedIdealWidth,
                                       max: 560)
         }
-        #endif
         // ⚠️ T-0546 / [I-0245] — THE OBJECT DETAIL SHEET, AS A REAL SHEET.
         //
         // ⛔ IT WAS AN `HStack` SIBLING (D1-E). That made three views — manuscript,
@@ -625,6 +651,13 @@ private struct ManuscriptEditorView: View {
         // ⚠️ `Cancel` and `Save` do NOT close, by design: Cancel REVERTS to the saved
         // version (T-0452) and Save keeps the sheet open to keep working.
         .interactiveDismissDisabled()
+    }
+
+    private var inspectorColumnPresented: Binding<Bool> {
+        #if os(iOS)
+        if isCompact { return .constant(false) }
+        #endif
+        return Bindable(session).inspectorVisible
     }
 
     /// Writer-facing scene names for the Detail Sheet's related list (I-0151).
@@ -732,7 +765,12 @@ private struct ManuscriptEditorView: View {
         ToolbarItem(placement: .primaryAction) {
             Menu {
                 Button("Project Settings…") { session.showProjectSettings = true }
-                Toggle("Show Scene Inspector", isOn: Bindable(session).inspectorVisible)
+                // SP-199 G4: the way to every panel without a gesture. Width compact: the Inspector is a page.
+                if isCompact {
+                    Button("Scene Inspector") { applyPanel(.showInspector) }
+                } else {
+                    Toggle("Show Scene Inspector", isOn: Bindable(session).inspectorVisible)
+                }
                 Toggle("Show Timeline", isOn: Bindable(session).timelineVisible)
                 Toggle("Show World Warnings", isOn: Bindable(session).worldWarningVisible)
                 Divider()

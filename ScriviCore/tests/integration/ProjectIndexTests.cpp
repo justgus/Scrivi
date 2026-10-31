@@ -308,6 +308,38 @@ TEST_CASE("a patched index answers with the WRITTEN value, repeatedly (SP-150 T-
 }
 
 // ---------------------------------------------------------------------------
+// [I-0329] — a story-time write does NOT rebuild a warm index.
+// ---------------------------------------------------------------------------
+//
+// ⚠️ The ABI has no counting filesystem, so the rebuild is observed by its EFFECT: a
+// scene written OUT OF BAND after priming is invisible to the warm index, and appears
+// only if something rebuilds it. Before the fix every write dropped the index first,
+// so the write's own scene lookup rebuilt it — ~1,175 reads per call on iCloud, one
+// call per later scene from the Timeline: a 6-minute freeze.
+TEST_CASE("a story-time write keeps the WARM index (I-0329)", "[integration][EP-039][I-0329]")
+{
+    Fixture fx; initProject(fx);
+    writeSceneOnDisk(fx.chapterDir(), "002", "scene-002", /*explicitStoryTime=*/false);
+    {
+        Envelope primed{scrivi_list_story_times(fx.root().c_str())};
+        REQUIRE(primed.ok());
+        REQUIRE(primed.compact().find("\"count\":0") != std::string::npos);
+    }
+    writeSceneOnDisk(fx.chapterDir(), "003", "scene-003", /*explicitStoryTime=*/true);
+
+    Envelope set{scrivi_set_scene_story_time(
+        fx.root().c_str(), "scene-002", /*offsetMs=*/555, /*source=*/"manual",
+        /*gapMs=*/0, /*durationMs=*/3600000, /*durationSource=*/"manual")};
+    REQUIRE(set.ok());
+
+    Envelope after{scrivi_list_story_times(fx.root().c_str())};
+    REQUIRE(after.ok());
+    const std::string json = after.compact();
+    CHECK(json.find("\"offsetMs\":555") != std::string::npos);   // the write is visible (AC5b)
+    CHECK(json.find("scene-003") == std::string::npos);           // ✅ and nothing rebuilt
+}
+
+// ---------------------------------------------------------------------------
 // T-0550 (SP-150) AC3 — the PARTIALLY-REBUILT path must still satisfy AC5b.
 // ---------------------------------------------------------------------------
 //

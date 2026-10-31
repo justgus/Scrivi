@@ -110,7 +110,9 @@ import os
     var inspectorVisible: Bool = true {
         didSet {
             guard oldValue != inspectorVisible else { return }
+            #if !os(iOS)
             inspectorLayout?.setInspectorHidden(!inspectorVisible)
+            #endif
         }
     }
     /// Restored from (and written back to) inspector-layout.json, exactly as `inspectorVisible`
@@ -118,7 +120,9 @@ import os
     var timelineVisible: Bool = true {
         didSet {
             guard oldValue != timelineVisible else { return }
+            #if !os(iOS)
             inspectorLayout?.setTimelineHidden(!timelineVisible)
+            #endif
         }
     }
     /// Scene Navigator shown (I-0255) — persisted like the two above. ⚠️ The Navigator is the
@@ -128,7 +132,9 @@ import os
     var navigatorVisible: Bool = true {
         didSet {
             guard oldValue != navigatorVisible else { return }
+            #if !os(iOS)
             inspectorLayout?.setNavigatorHidden(!navigatorVisible)
+            #endif
         }
     }
     var showProjectSettings: Bool = false
@@ -373,9 +379,17 @@ import os
         // Restore the persisted hide/show state (Doc 2 AC4) BEFORE publishing the store,
         // so `inspectorVisible`'s didSet has no store to write back to. Otherwise
         // restoring would immediately re-save the value we just read.
+        #if os(iOS)
+        // SP-199 (user, 2026-10-31): the writing surface first — iOS opens with every panel hidden, and its show/hide
+        // stays in the session (the didSets above skip the write), so an iPad never changes the Mac's saved layout.
+        inspectorVisible = false
+        timelineVisible = false
+        navigatorVisible = false
+        #else
         inspectorVisible = !layout.document.inspectorHidden
         timelineVisible = !layout.document.timelineHidden
         navigatorVisible = !layout.document.navigatorHidden
+        #endif
         inspectorLayout = layout
 
         // Donate the project's indexable content to Spotlight (best-effort).

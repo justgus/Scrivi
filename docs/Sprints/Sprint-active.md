@@ -1,6 +1,6 @@
 # Active Sprints
 
-🟡 **[SP-199] ACTIVE 2026-10-31** `[Apple]` [EP-055] S2 → [`Sprint-SP-199.md`](Sprint-SP-199.md) — panels by size class (compact: Navigator → Manuscript → Inspector stack; regular: split + inspector column), the iOS edge swipes and the Timeline grabber (G1–G4), the Mac's toolbar buttons at the system's placement. Ahead of SP-198's iPhone and Duo passes. Tasks: T-0636, T-0637 (active), T-0638 (🟠 Implemented - Not Verified).
+🟡 **[SP-199] ACTIVE 2026-10-31** `[Apple]` [EP-055] S2 → [`Sprint-SP-199.md`](Sprint-SP-199.md) — panels by size class (compact: Navigator → Manuscript → Inspector stack; regular: split + inspector column), the iOS edge swipes and the Timeline grabber (G1–G4), the Mac's toolbar buttons at the system's placement. Ahead of SP-198's iPhone and Duo passes. Tasks: T-0636, T-0637, T-0638 (🟠 Implemented - Not Verified). ✅ AC4; ⏳ AC1–AC3, AC5 (simulator live passes).
 
 🟡 **[SP-195] ACTIVE 2026-10-26** `[Cross]` [EP-052] S2a → [`Sprint-SP-195.md`](Sprint-SP-195.md) — every scene save through the queue, Mac and Linux; a failed write holds the queue (Q1 (a)); Linux gets the drive-lost banner and quit question (Q3). Tasks: T-0625 (✅ Verified), T-0626 (🟠 Implemented - Not Verified). ✅ AC1–AC5, AC7 (Mac live pass); ⏳ AC6, the rig pass, blocked: the share could not be remounted while Scrivi was open ("target is busy").
 

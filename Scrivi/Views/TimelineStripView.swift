@@ -754,7 +754,7 @@ private struct ImportedTimelinesPayload: Decodable {
             projectRootPath: projectRootPath, sceneID: sceneID,
             offsetMs: offsetMs, source: offsetSource,
             gapMs: gapMs, durationMs: durationMs, durationSource: durationSource)
-        recomputeAndPersistFrom(idx + 1, engine: engine, projectRootPath: projectRootPath)
+        recomputeOffsetsFrom(idx + 1)
     }
 
     func resetToDefault(sceneID: String, engine: ScriviEngine, projectRootPath: String) {
@@ -764,7 +764,7 @@ private struct ImportedTimelinesPayload: Decodable {
         dots[idx].durationMs     = defaultSceneDurationMs
         dots[idx].durationSource = "default"
         _ = try? engine.clearSceneStoryTime(projectRootPath: projectRootPath, sceneID: sceneID)
-        recomputeAndPersistFrom(idx, engine: engine, projectRootPath: projectRootPath)
+        recomputeOffsetsFrom(idx)
     }
 
     // MARK: Chain helpers
@@ -780,21 +780,13 @@ private struct ImportedTimelinesPayload: Decodable {
         }
     }
 
-    private func recomputeAndPersistFrom(_ startIdx: Int,
-                                          engine: ScriviEngine,
-                                          projectRootPath: String) {
+    // [I-0329] In memory only: a later scene's start is derived from the gap chain on every load, so re-saving each one
+    // (one disk write per scene, on the main thread) froze the iPad for 6 minutes on a 1,175-scene project.
+    private func recomputeOffsetsFrom(_ startIdx: Int) {
         guard startIdx < dots.count else { return }
         for i in startIdx..<dots.count {
             let prevEnd: Int64 = i == 0 ? 0 : dots[i - 1].offsetMs + dots[i - 1].durationMs
             dots[i].offsetMs = prevEnd + dots[i].gapMs
-            _ = try? engine.setSceneStoryTime(
-                projectRootPath: projectRootPath,
-                sceneID: dots[i].sceneID,
-                offsetMs: dots[i].offsetMs,
-                source: dots[i].offsetSource,
-                gapMs: dots[i].gapMs,
-                durationMs: dots[i].durationMs,
-                durationSource: dots[i].durationSource)
         }
     }
 
@@ -856,6 +848,9 @@ struct TimelineStripView: View {
     @GestureState private var magnifyGestureScale: CGFloat = 1.0
     // scrollOffsetFraction 0.0 = leftmost edge of full span; 1.0 = rightmost.
     @State private var scrollOffsetFraction: CGFloat = 0.0
+    #if os(iOS)
+    @State private var touchPanX: CGFloat = 0   // the drag's translation already applied by pan(by:)
+    #endif
 
     // I-0045: max zoom is data-driven, not a fixed 50. For year-spanning timelines a cap of
     // 50 leaves a 24-hour cluster unresolvable (visible span stays ~weeks wide). We compute
@@ -1004,6 +999,17 @@ struct TimelineStripView: View {
                     // on empty space. Must be first (bottom layer) so all child views on top
                     // of it win hit-testing when clicked directly.
                     Color.clear.contentShape(Rectangle())
+                        #if os(iOS)
+                        // SP-199: iOS has no scroll wheel, so a drag on empty space pans (the Mac pans with the wheel below).
+                        .gesture(
+                            DragGesture(minimumDistance: 4)
+                                .onChanged { v in
+                                    pan(by: v.translation.width - touchPanX, usable: usable)
+                                    touchPanX = v.translation.width
+                                }
+                                .onEnded { _ in touchPanX = 0 }
+                        )
+                        #endif
 
                     // Band background — drawn behind everything.
                     // I-0048: the band region spans the FIRST→LAST scene in story time, mapped
@@ -1398,9 +1404,7 @@ struct TimelineStripView: View {
                                 // visible window is only 1/zoom of it — so a raw dx/usable moves
                                 // the content by dx*zoom px (far too fast when zoomed in). Divide
                                 // by effectiveZoom so dx pixels of finger travel pans dx pixels.
-                                let usable = geo.size.width - 32
-                                let panFraction = -dx / usable / effectiveZoom
-                                scrollOffsetFraction = max(0, min(1, scrollOffsetFraction + panFraction))
+                                pan(by: dx, usable: geo.size.width - 32)
                             }
                         }
                     )
@@ -1771,6 +1775,12 @@ struct TimelineStripView: View {
     // T-0173: pan the visible window so the given scene's dot is on-screen. If it already
     // falls inside the current visible span, do nothing (avoid yanking the view around).
     // Only meaningful when zoomed in; at zoom 1 the whole span is visible.
+    /// Pans the visible window by `dx` points of finger or wheel travel. Only meaningful when zoomed in.
+    private func pan(by dx: CGFloat, usable: CGFloat) {
+        guard zoomFactor > 1.0 else { return }
+        scrollOffsetFraction = max(0, min(1, scrollOffsetFraction - dx / usable / effectiveZoom))
+    }
+
     private func revealScene(_ sceneID: String) {
         guard let dot = model.dots.first(where: { $0.sceneID == sceneID }) else { return }
         let vSpan = visibleSpanMs()
@@ -2750,6 +2760,11 @@ private struct SceneDotView: View {
     @State private var isDraggingUp = false
     @State private var hoveredBandID: String? = nil
     @State private var showPicker = false
+    #if os(macOS)
+    private static let pickerArrowEdge: Edge? = .top
+    #else
+    private static let pickerArrowEdge: Edge? = nil
+    #endif
     @State private var pendingOffsetMs: Int64 = 0
     @State private var isHovered = false
 
@@ -2804,7 +2819,9 @@ private struct SceneDotView: View {
         }
         .frame(width: radius * 2 + 12, height: radius * 2 + 12)
         .contentShape(Circle().size(CGSize(width: radius * 2 + 12, height: radius * 2 + 12)))
-        .popover(isPresented: $showPicker, arrowEdge: .top) {
+        // iOS 18.1+ honours the arrow edge: `.top` forced the picker BELOW the dot, into the strip at the bottom of the
+        // screen, clipping it to one row of buttons (SP-199 live pass). `nil` lets iOS open it where it fits.
+        .popover(isPresented: $showPicker, arrowEdge: Self.pickerArrowEdge) {
             TimeDeltaPicker(
                 referenceName: previousSceneTitle,
                 rawOffsetMs: pendingOffsetMs,

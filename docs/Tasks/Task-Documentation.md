@@ -789,8 +789,8 @@ archive files reconstructed after the fact from secondary sources.
 | T-0633 | `[Apple]` The presentation layer compiles for iOS, the Mac unchanged | SP-198 | **EP-055** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
 | T-0634 | `[Apple]` The `UITextView` manuscript on iPad and iPhone | SP-198 | **EP-055** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
 | T-0635 | `[Apple]` An iOS test target | SP-198 | **EP-055** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
-| T-0636 | `[Apple]` Panels by size class: the compact stack and the regular split | SP-199 | **EP-055** | 🔵 Active | [`Task-active.md`](Task-active.md) |
-| T-0637 | `[Apple]` The iOS gestures and the Timeline grabber, with routes that need no gesture | SP-199 | **EP-055** | 🔵 Active | [`Task-active.md`](Task-active.md) |
+| T-0636 | `[Apple]` Panels by size class: the compact stack and the regular split | SP-199 | **EP-055** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
+| T-0637 | `[Apple]` The iOS gestures and the Timeline grabber, with routes that need no gesture | SP-199 | **EP-055** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
 | T-0638 | `[Apple]` The Mac's toolbar buttons on iOS, at the system's placement | SP-199 | **EP-055** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
 | T-0592 | `[Apple]` E2-S3: formatting commands + lists + Option-Return | 🟡 **SP-163** | **EP-046** | ✅ **Verified 2026-10-06** | [`Task-verified-0592.md`](Verified/Task-verified-0592.md) |
 | T-0591 | `[Apple]` Balance emphasis across SCENE boundaries (cross-scene cut/copy/paste) | 🟡 **SP-163** | **EP-046** | ✅ **Verified 2026-10-06** | [`Task-verified-0591.md`](Verified/Task-verified-0591.md) |

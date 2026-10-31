@@ -535,8 +535,8 @@ private:
 
     // Shared picker flow (SP-080, T-0328): open the Time Delta Picker for `sceneID`
     // seeded with `seedOffsetMs`, then apply the result — write the scene's story-time
-    // via setSceneStoryTime (manual placement or reset-to-default) and re-persist every
-    // subsequent scene's offset from the gap chain (Apple recomputeAndPersistFrom).
+    // via setSceneStoryTime (manual placement or reset-to-default). Later scenes are not
+    // re-saved ([I-0329]): reloadTimeline derives their offsets from the gap chain.
     // Rebuilds the strip. No-op if the sceneID is unknown.
     void showTimeDeltaPicker(const QString& sceneID, qint64 seedOffsetMs);
 

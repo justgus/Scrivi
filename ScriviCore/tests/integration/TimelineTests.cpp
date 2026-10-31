@@ -592,6 +592,7 @@ TEST_CASE("exportProjectTimeline produces valid scrivi.externalTimeline.v1", "[i
     sreq.projectRootPath = proj.str();
     sreq.sceneID         = p.firstSceneID;
     sreq.offsetMs        = 7'200'000LL;
+    sreq.gapMs           = 7'200'000LL;   // [I-0329] export derives the start from the gap chain
     sreq.source          = "manual";
     REQUIRE(core.setSceneStoryTime(sreq).ok());
 

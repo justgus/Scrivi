@@ -92,7 +92,7 @@ and each one took the recommended option.
 
 **Size classes** (Apple has no "expanded"; each axis is compact or regular). iPhone portrait is width compact; iPhone
 landscape is width compact except Plus/Max; a full-screen iPad is regular/regular; a narrow iPad window is width compact.
-The Duo is to be measured on the simulator. ⚠️ The layout branches on **horizontal size class only**, so a narrow iPad
+The Duo simulator measured **466×678, width compact**, with the navigation controls on the right (2026-10-31). ⚠️ The layout branches on **horizontal size class only**, so a narrow iPad
 window behaves like a phone.
 
 | | Width compact | Width regular |
@@ -105,12 +105,22 @@ window behaves like a phone.
 
 - ⚠️ **Why G2 is a grabber.** A one-finger vertical swipe scrolls the manuscript, and so does a two-finger one. The bottom edge
   is Home and the app switcher, and the top edge opens Notification Center and Control Center.
-- ✅ **G4, the way without gestures:** the iPad menu bar's View menu with the Mac's shortcuts (⌥⌘I, ⌥⌘T), VoiceOver actions,
+- ✅ **G4, the way without gestures:** the iPad menu bar's Project menu with ⇧⌘I / ⇧⌘T (⚠️ not the Mac's ⌥⌘, which collides with the menu iOS synthesizes, `ScriviApp.swift:531`), VoiceOver actions,
   and Show Inspector and Show Timeline in the toolbar's ⋯ menu. ⛔ No show/hide buttons on the toolbar. A gesture is never
   the only way (porting outline §4.7).
 - **The toolbar** carries the Mac's buttons (`ProjectWindowManager.swift`: the Scene and Chapter groups, Worlds, Project
   Settings) at the **system's default placement**. It sits at the top on iPad and iPhone and down the right side on the Duo,
   wherever the system puts it. ⛔ There is no placement code ([SP-198] R3).
+
+**Revised after the iPad live pass (user, 2026-10-31):**
+- **iOS opens with the Navigator, Inspector and Timeline hidden**, so the writing surface comes first. Show/hide on iOS is
+  kept for the session only and never written to `inspector-layout.json`, so an iPad never changes the Mac's layout.
+- **G2 is now a tap.** Tapping the grabber toggles the Timeline; swiping up on it also raised the Dock and the app switcher.
+- **Swipes count only when they start on the manuscript.** Over the Timeline they took its drag-to-scroll. ⚠️ At compact
+  width this means no swipe from the Navigator page; tapping a scene goes to the Manuscript.
+- The start edge zone is wider (44 pt), and a swipe can be slower or longer. Swipes often needed a second try.
+
+*Last Updated: 2026-10-31 (§8 revised after the iPad live pass.)*
 
 *Last Updated: 2026-10-31 (§8: panels, gestures and the toolbar ruled.)*
 

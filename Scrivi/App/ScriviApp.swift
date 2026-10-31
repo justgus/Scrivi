@@ -568,9 +568,11 @@ struct ScriviApp: App {
             Divider()
 
             if let session = env.activeSession {
-                Toggle("Show Scene Inspector", isOn: Bindable(session).inspectorVisible)
+                // SP-199 live pass: as a Toggle, ⌘-shortcut showed a panel but did not hide it again. A Button flips the live
+                // value, so it cannot depend on the menu having re-read the session (the suspected cause, not yet proven).
+                Button("Show or Hide Scene Inspector") { session.inspectorVisible.toggle() }
                     .keyboardShortcut("i", modifiers: [.command, .shift])
-                Toggle("Show Timeline", isOn: Bindable(session).timelineVisible)
+                Button("Show or Hide Timeline") { session.timelineVisible.toggle() }
                     .keyboardShortcut("t", modifiers: [.command, .shift])
                 Toggle("Show World Warnings", isOn: Bindable(session).worldWarningVisible)
             } else {
