@@ -45,9 +45,14 @@ enum class EventKind {
 // A minimal scene-local diff: at `offsetUtf8`, `removed` bytes were replaced by
 // `inserted` bytes. Offsets are UTF-8 byte offsets on scalar boundaries.
 struct Diff {
+    // The first (or only) change: `removed` at `offsetUtf8` in the OLD text becomes `inserted`.
     std::size_t offsetUtf8 = 0;
     std::string removed;
     std::string inserted;
+    // T-0643 (b1): further changes, ascending, not overlapping, offsets in the OLD text — a Replace All's matches, instead
+    // of one change from the first match to the last (≈ the scene twice). Empty for typing.
+    struct Hunk { std::size_t offsetUtf8 = 0; std::string removed; std::string inserted; };
+    std::vector<Hunk> more;
 };
 
 // One history node. The root is the oldest retained state and has no diff.
@@ -91,6 +96,12 @@ struct EventNode {
     // Undo across the node resets those heads to it — the app's inverse op puts that text back on disk — and a scene
     // the node brings into history takes it as its floor. Empty for every other node. Persisted.
     std::map<std::string, std::string> sceneTextsBefore;
+    // T-0644 (b2): the PERSISTED form of the two maps above, for a scene that had history text when the op ran — a change
+    // against that text (the head at the parent), or for a before-text equal to it, nothing but its name. A scene with
+    // no history text then keeps its full text. The full maps are rebuilt from these at load (`finalizeLoad`).
+    std::map<std::string, Diff> sceneTextDiffs;
+    std::map<std::string, Diff> sceneTextsBeforeDiffs;
+    std::set<std::string> sceneTextsBeforeSame;
 
     // Structural-only (EventKind::Structural, EP-029 AC6 / T-0356): an OPAQUE JSON
     // payload the app minted describing how to reverse this structural edit (the
@@ -466,6 +477,11 @@ public:
     [[nodiscard]] int eventCount() const { return static_cast<int>(nodes_.size()) - 1; }
 
 private:
+    // [I-0332]: a walk from the root carrying each scene's text down every path — the load's expansion (T-0644) and
+    // consistency check. `before(node, texts)` runs with the texts at the node's PARENT, before the node is applied, and
+    // returns false to skip the node and its subtree (it may erase them). Changed on the way down and restored on the way
+    // up, so a fork costs nothing: a copy per fork was the whole manuscript per branch.
+    template <typename Before> void walkWithTexts(Before before);
     EventNode& nodeRef(const std::string& id);
     [[nodiscard]] const EventNode& nodeRef(const std::string& id) const;
     void noteSessionCrossing(const EventNode& departed, StepResult& r);

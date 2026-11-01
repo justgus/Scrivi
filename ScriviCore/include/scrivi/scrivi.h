@@ -272,6 +272,18 @@ const char* scrivi_list_edges_for(
 
 const char* scrivi_list_pending_edges(const char* projectRootPath);
 
+/* T-0647 (SP-200) — how large and how connected a project is, for the Inspector's Properties tab. Read-only; every
+ * number comes from what the core already holds or one index file per world — no scene, object or history file is
+ * opened for it.
+ * result: { sceneCount, chapterCount,                       (chapters that hold scenes)
+ *           links: { total, world },                       (relationships; `world`: with an end in a bound world)
+ *           history: { open, steps, bytes },               (steps and bytes only when the history is open; bytes =
+ *                                                            the active log segment, what the next open reads)
+ *           worlds: [ { worldID, displayName, status, fromCache, total,
+ *                       kinds: [ { kind, count } ] } ] }   (kinds in the core's kind order, non-zero only; `fromCache`:
+ *                                                            the world is away, the counts are the binding's cache) */
+const char* scrivi_get_project_metrics(const char* projectRootPath);
+
 /* ---------------------------------------------------------------------------
  * Object discovery (EP-031 SP-098 T-0378) — Worldbuilding Object Model v0.2 §5.5
  *

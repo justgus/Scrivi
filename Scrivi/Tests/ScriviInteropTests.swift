@@ -2438,6 +2438,26 @@ struct ScriviGraphInteropTests {
         #expect(pending.isEmpty)
     }
 
+    @Test("T-0647: project metrics count scenes, links and each world's objects by kind")
+    func projectMetricsCrossTheBoundary() throws {
+        let f = try makeFixture()
+        let ada = try makeCharacter(f, "Ada")
+        _ = try f.engine.createEdge(
+            projectRootPath: f.root, fromID: ada, toID: f.sceneID,
+            relationTypeCode: "appears-in"
+        )
+
+        let m = try f.engine.getProjectMetrics(projectRootPath: f.root)
+        #expect(m.sceneCount >= 1)
+        #expect(m.chapterCount >= 1)
+        #expect(m.links.total == 1)
+        #expect(m.links.world == 1)   // Ada lives in the fixture's world
+        let world = try #require(m.worlds.first { $0.worldID == f.worldID })
+        #expect(!world.fromCache)
+        #expect(world.kinds.first { $0.kind == "character" }?.count == 1)
+        #expect(world.total == world.kinds.reduce(0) { $0 + $1.count })
+    }
+
     // MARK: Error detail (the prerequisite T-0407 had to fix first)
 
     @Test("a ScriviError carries the backend's `detail` rather than dropping it")
@@ -8577,6 +8597,27 @@ struct MainThreadNoFileOpsTests {
         let read = try #require(reader.read)
         #expect(read.sceneID == scene)
         #expect((try? read.parts.notes.get().tags) == ["dawn"], "the cards are built from what the read found")
+    }
+
+    @Test("[I-0331] the load opens the history off the main thread, and the History card reads its tree off it")
+    func historyOffMain() async throws {
+        func mainCalls(_ root: String) -> [String] {
+            mainThreadCoreCalls.withLock { c in defer { c = nil }; return c ?? [] }.filter { $0.project == root }.map(\.endpoint)
+        }
+        mainThreadCoreCalls.withLock { $0 = [] }
+        let h = try await UndoAfterStructuralOpTests().harness(["One.", "Two."])
+        let root = h.root.path
+        var main = mainCalls(root)
+        #expect(!main.contains("scrivi_history_open"), "the history opened on the main thread")
+        #expect(!main.contains("scrivi_history_validate_scene"), "the scenes were validated on the main thread")
+        let capture = try #require(h.session.historyCapture)
+        #expect(capture.isOpen, "the worker's open was adopted")
+
+        mainThreadCoreCalls.withLock { $0 = [] }
+        let tree = await capture.tree()
+        main = mainCalls(root)
+        #expect(tree != nil)
+        #expect(!main.contains("scrivi_history_get_tree"), "the card's tree was read on the main thread")
     }
 
     @Test("a card's own write re-reads the scene, so every card shows what landed")

@@ -1581,6 +1581,17 @@ QVariantMap ScriviBridge::listPendingEdges(const QString& projectRootPath)
     return parseEnvelope(envelope.toQString());
 }
 
+QVariantMap ScriviBridge::getProjectMetrics(const QString& projectRootPath)
+{
+    if (!ready_) {
+        tlsLastCallFailed = true;
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_get_project_metrics(projectRootPath.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
 QVariantMap ScriviBridge::listRelationTypes(const QString& projectRootPath)
 {
     if (!ready_) {

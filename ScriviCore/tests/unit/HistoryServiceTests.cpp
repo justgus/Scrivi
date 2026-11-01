@@ -2,6 +2,10 @@
 
 #include "history/HistoryService.hpp"
 
+#include <map>
+#include <string>
+#include <vector>
+
 using namespace scrivi::history;
 
 namespace {
@@ -1031,4 +1035,95 @@ TEST_CASE("getTree reports barrier metadata", "[History][T-0394]") {
         }
     }
     CHECK(sawBarrier);
+}
+
+// [I-0332] — at capacity every record evicts, and eviction no longer re-walks the whole history to rebuild the heads
+// (promotion folds into the floor exactly what the walk would add back). The heads, and every undo, must still read the
+// texts the writer typed — across two scenes and a branch that falls off the old end.
+TEST_CASE("[I-0332] eviction at capacity keeps every head and undo text without a rebuild", "[History][I-0332]") {
+    auto h = fresh();
+    h.setCapacity(5);
+    std::map<std::string, std::string> text{{"scene_a", ""}, {"scene_b", ""}};
+    std::vector<std::pair<std::string, std::string>> trail;   // (scene, text) after each event on the current line
+    int id = 0;
+    auto type = [&](const std::string& scene, const std::string& add) {
+        const auto before = text[scene].size();
+        text[scene] += add;
+        h.record(typing(scene, text[scene], static_cast<std::int64_t>(before),
+                        static_cast<std::int64_t>(text[scene].size())), "evt_" + std::to_string(++id));
+        trail.emplace_back(scene, text[scene]);
+    };
+    type("scene_a", "One. ");
+    type("scene_b", "Two. ");
+    // A branch near the old end: undo one, type something else — the fork falls off as the history grows.
+    const auto u = h.undo();
+    REQUIRE(u.change.has_value());
+    text[u.change->sceneID] = u.change->newText;
+    trail.pop_back();
+    for (int i = 0; i < 40; ++i) {
+        type(i % 3 ? "scene_a" : "scene_b", "s" + std::to_string(i) + ". ");
+        REQUIRE(h.eventCount() <= 5);
+        CHECK(h.headTextForScene("scene_a") == text["scene_a"]);
+        CHECK(h.headTextForScene("scene_b") == text["scene_b"]);
+    }
+    // Undo walks back through exactly the texts typed, down to the folded floor.
+    for (int k = 0; k < 5; ++k) {
+        const auto step = h.undo();
+        REQUIRE(step.moved);
+        const auto& [scene, after] = trail[trail.size() - 1 - k];
+        // Undoing the event recorded in `scene` restores that scene's text before it.
+        std::string expected;
+        for (std::size_t j = trail.size() - 1 - k; j-- > 0;) {
+            if (trail[j].first == scene) { expected = trail[j].second; break; }
+        }
+        CHECK(step.change->sceneID == scene);
+        CHECK(step.change->newText == expected);
+        (void)after;
+    }
+    CHECK_FALSE(h.undo().moved);
+    // At the root, the floor IS the text: what the next open rebuilds the heads from. Undo reads backwards from the heads,
+    // so a wrong fold would show only here (or after a reopen).
+    for (const char* scene : {"scene_a", "scene_b"}) {
+        CHECK(h.floorTexts().at(scene) == h.headTextForScene(scene));
+    }
+}
+
+// [T-0643] (b1) — a Replace All across a long scene is stored as its separate changes, and undo and redo still give the
+// exact texts: ASCII, multi-byte UTF-8 (a change may start mid-character in bytes), and more matches than the 64-change cap.
+TEST_CASE("[T-0643] a Replace All is stored as separate changes and undoes exactly", "[History][T-0643]") {
+    auto replaceAll = [](std::string text, const std::string& from, const std::string& to) {
+        for (std::size_t p = text.find(from); p != std::string::npos; p = text.find(from, p + to.size())) {
+            text.replace(p, from.size(), to);
+        }
+        return text;
+    };
+    struct Case { const char* name; std::string unit; std::string from, to; int repeats; bool smaller; };
+    const std::vector<Case> cases{
+        {"ascii, 40 matches", "The count rode out of the gate before dawn, and the road was empty. ", "the", "that", 40, true},   // a different length: each change moves the next
+        {"utf-8, 40 matches", "Le café était fermé; la porte était close à l'aube. ", "é", "è", 40, false},
+        {"350 matches, merged to 64", "the a the b the c the d, as the long road wound on. ", "the", "THE", 70, false},
+    };
+    for (const auto& c : cases) {
+        INFO(c.name);
+        auto h = fresh();
+        std::string before;
+        for (int i = 0; i < c.repeats; ++i) before += c.unit;
+        h.seedSceneBaseline("s", before);
+        const std::string after = replaceAll(before, c.from, c.to);
+        const auto r = h.record(typing("s", after, 0, 0), "evt_ra");
+        const auto& d = h.nodes().at(r.eventID).diff;
+        CHECK_FALSE(d.more.empty());
+        CHECK(d.more.size() + 1 <= 64);
+        std::size_t stored = d.removed.size() + d.inserted.size();
+        for (const auto& m : d.more) stored += m.removed.size() + m.inserted.size();
+        // Where the 64-change cap or close matches merge changes, the texts are still exact but not much smaller.
+        if (c.smaller) CHECK(stored < (before.size() + after.size()) / 4);
+        CHECK(h.headTextForScene("s") == after);
+        const auto u = h.undo();
+        REQUIRE(u.change.has_value());
+        CHECK(u.change->newText == before);
+        const auto re = h.redo();
+        REQUIRE(re.change.has_value());
+        CHECK(re.change->newText == after);
+    }
 }

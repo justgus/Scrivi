@@ -210,7 +210,7 @@ import os
 
         // Off the main thread: open the project, then read every scene, then (SP-173 / I-0285) the timeline.
         // ⚠️ Progress counts every scene PLUS the timeline read, the last step: `total` = scenes + 1 (AC5).
-        let (result, loaded, timeline) = try await Task.detached(priority: .userInitiated) {
+        let (result, loaded, timeline, historyOpened) = try await Task.detached(priority: .userInitiated) {
             let result = try engine.openProject(
                 projectRootPath: path,
                 appSupportRoot: appSupportRoot,
@@ -224,9 +224,13 @@ import os
                 allScenes: result.scenes,
                 onProgress: { done, total in onProgress(done, total + 1) }
             )
+            // [I-0331]: the history opens and checks each scene against its last close HERE, as Linux does
+            // (`EditorShell.cpp:614`) — `scrivi_history_open` replays the whole log (1.8–2.6 s on dumas).
+            let historyOpened = HistoryCapture.openOffMain(engine: engine, projectRootPath: path,
+                                                           scenes: loaded.segments.map { ($0.sceneID, $0.text) })
             let timeline = try? engine.loadTimeline(projectRootPath: path)
             onProgress(result.scenes.count + 1, result.scenes.count + 1)
-            return (result, loaded, timeline)
+            return (result, loaded, timeline, historyOpened)
         }.value
 
         // ---- main actor from here down ----
@@ -245,7 +249,7 @@ import os
             activeSceneID: result.activeScene?.sceneID,
             restoredSelection: result.restored?.anchor
         )
-        finishLoad(result: result, loader: loader, timelineRead: timeline)
+        finishLoad(result: result, loader: loader, timelineRead: timeline, historyOpened: historyOpened)
         return result
     }
 
@@ -308,7 +312,7 @@ import os
     /// baseline from disk), and `inspectorVisible` must be restored BEFORE
     /// `inspectorLayout` is published or the didSet writes the value straight back.
     private func finishLoad(result: OpenProjectResult, loader: ViewportSceneLoader,
-                            timelineRead: LoadTimelineResult? = nil) {
+                            timelineRead: LoadTimelineResult? = nil, historyOpened: Bool? = nil) {
         // Both callers set `projectRootPath` before calling this.
         let path = projectRootPath ?? ""
         NSLog("[SCRIVI-TIMING] >>> entering: viewportLoader assignment")
@@ -348,12 +352,17 @@ import os
         // Open the undo/redo history for this project (best-effort — never blocks open).
         NSLog("[SCRIVI-TIMING] >>> entering: HistoryCapture.open")
         let capture = HistoryCapture(engine: engine, projectRootPath: path)
-        ScriviDiag.measure("HistoryCapture.open") { capture.open() }
-        // Head-hash validation (§6.b): flag any scene changed outside Scrivi since
-        // last close with an externalChange barrier (never modifies the manuscript).
-        NSLog("[SCRIVI-TIMING] >>> entering: HistoryCapture.validateScenes")
-        ScriviDiag.measure("HistoryCapture.validateScenes") {
-            capture.validateScenes(loader.segments.map { ($0.sceneID, $0.text) })
+        if let historyOpened {
+            // [I-0331]: `loadAsync`'s worker already opened and validated; adopt its result.
+            if historyOpened { capture.adoptOpened() }
+        } else {
+            ScriviDiag.measure("HistoryCapture.open") { capture.open() }
+            // Head-hash validation (§6.b): flag any scene changed outside Scrivi since
+            // last close with an externalChange barrier (never modifies the manuscript).
+            NSLog("[SCRIVI-TIMING] >>> entering: HistoryCapture.validateScenes")
+            ScriviDiag.measure("HistoryCapture.validateScenes") {
+                capture.validateScenes(loader.segments.map { ($0.sceneID, $0.text) })
+            }
         }
         historyCapture = capture
         // I-0104: let the save path report the bytes it writes, so the head hash

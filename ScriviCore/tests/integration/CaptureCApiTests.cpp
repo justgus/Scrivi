@@ -287,10 +287,17 @@ void runOutsideEditSessions(Root& r, bool legacyLog) {
             std::ifstream in(e.path());
             std::string line, out;
             while (std::getline(in, line)) {
-                const auto at = line.find(texts);
-                if (line.find(R"("barrierKind":"externalChange")") != std::string::npos && at != std::string::npos) {
-                    line.erase(at, texts.size());
-                    out += line + "\n";
+                // The barrier's text, in either shape (T-0644 writes it as a change) — removed, as the old build wrote it.
+                if (line.find(R"("barrierKind":"externalChange")") != std::string::npos
+                    && (line.find(texts) != std::string::npos || line.find(R"("sceneTextDiffs")") != std::string::npos)) {
+                    auto parsed = scrivi::util::parseJson(line);
+                    scrivi::util::JsonDoc d = std::move(parsed.value());
+                    scrivi::util::JsonDoc b = d.getSubDoc("barrier");
+                    scrivi::util::JsonDoc stripped;
+                    stripped.setString("barrierKind", b.getString("barrierKind"));
+                    stripped.setString("note", b.getString("note"));
+                    d.setSubDoc("barrier", std::move(stripped));
+                    out += d.dump(-1) + "\n";
                     out += R"({"rec":"floor","seq":0,"sceneID":"S","reason":"externalChange","text":"Zulu.","sha256":"","timestamp":""})";
                     out += "\n";
                     ++rewritten;

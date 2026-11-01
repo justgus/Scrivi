@@ -15,6 +15,23 @@ ResolvedEndpoint EndpointResolver::resolve(const AbsolutePath& projectRoot,
     ResolvedEndpoint out;
     if (endpointID.empty()) { return out; }
 
+    // 0. Scenes from memory FIRST ([I-0330]): the open project's index holds every scene, so a scene endpoint never misses
+    //    the object index and forces its rebuild from disk. An ID is a scene or an object, never both. With no index
+    //    (no locator, or it cannot answer) scenes are left to step 3's walk, as before.
+    if (!sceneTitles_ && services_.sceneLocator != nullptr) {
+        if (auto titles = services_.sceneLocator->listSceneTitles(projectRoot)) {
+            sceneTitles_.emplace(titles->begin(), titles->end());
+        }
+    }
+    if (sceneTitles_) {
+        if (auto hit = sceneTitles_->find(endpointID); hit != sceneTitles_->end()) {
+            out.found       = true;
+            out.isScene     = true;
+            out.displayName = hit->second;
+            return out;
+        }
+    }
+
     // 1. Objects — the index is authoritative for ID→kind (SP-095 §4.2).
     //    [I-0324]: loaded once per resolver; a miss rebuilds it once (as `find` does), not once per endpoint.
     ObjectIndex index{services_};
@@ -143,9 +160,8 @@ ResolvedEndpoint EndpointResolver::resolve(const AbsolutePath& projectRoot,
     }
 
     // 3. Scenes — the EP-027 filesystem-authoritative identity path. Scenes are
-    //    never objects/ files (§8), so they are resolved by walking the
-    //    manuscript rather than through the object index.
-    //    [I-0324]: walked once per resolver, not once per endpoint.
+    //    never objects/ files (§8), so without an index they are resolved by walking the
+    //    manuscript. [I-0324]: walked once per resolver, not once per endpoint.
     if (!sceneTitles_) {
         sceneTitles_.emplace();
         manuscript::ManuscriptOrderResolver resolver{services_};

@@ -1,5 +1,7 @@
 # Unverified Tasks
 
+*Last Updated: 2026-11-01 (**T-0647** filed in SP-200 and implemented → 🟠.)*
+
 Tasks that are **implemented and awaiting user verification** before being archived to `Verified/`.
 
 **Claude may mark a Task `Implemented - Not Verified`. Only the user can mark it Verified.**
@@ -9,6 +11,107 @@ Tasks that are **implemented and awaiting user verification** before being archi
 in the backlog carrying a 🟠 status.
 
 ---
+
+## 🟠 T-0647 — `[Cross]` Properties tab: scene links, Project and World metrics
+
+**Epic:** [EP-052] (AC11) · **Status:** 🟠 **Implemented - Not Verified** (2026-11-01) — ✅ Mac live pass (user, 2026-11-01: *"All steps pass."*); ⏳ rig live pass · **Sprint:** [SP-200] (🟡 Active) →
+[`../Sprints/Sprint-SP-200.md`](../Sprints/Sprint-SP-200.md) · **Date Requested:** 2026-11-01
+
+**What (user, 2026-11-01):** *"Your recommendations for the metrics are approved … do both the scene links in the scene
+portion and the total world links in the project section. Perhaps we can also do a 'World' metrics with a breakdown of the
+number of what kind of objects exist (assuming you have that information without resorting to counting them)."*
+**Done (2026-11-01):**
+- **Core:** one new endpoint, `scrivi_get_project_metrics` (`scrivi.h:285`, `scrivi_c_api.cpp:1684`): scenes and chapters
+  from the warm project index; links and world links from the relationship log; history steps and the active segment's
+  bytes from the open store (`HistoryStore::segmentBytes`, memory only); per bound world, objects by kind from the world's
+  own `index.json`, or the binding's cached index while the world is away (`fromCache`). Kinds in `kAllStorableKinds`
+  order, never a restated list. No scene, object or history file is opened. ABI: one endpoint added.
+- **Mac / iOS** (`ScenePropertiesView.swift`): Scene section gains **Links** (from the Inspector's existing read, no extra
+  call); new **Project** section (Scenes, Chapters, Links, World links, History "4,612 steps · 18.7 MB") and one **World —
+  name** section per bound world (Objects, then each kind). Read off the main actor each time the scene's read lands.
+  `ScriviEngine.getProjectMetrics` + visionOS stub.
+- **Linux** (`SceneInspector.cpp:1001`, `ScriviBridge::getProjectMetrics`): the same rows and sections, read on the
+  Inspector's worker after the scene's read.
+**Tests:** `[T-0647]` (`ObjectCApiTests.cpp:1337`, through `scrivi_*`); Mac interop `projectMetricsCrossTheBoundary`.
+ctest 800/800, Mac interop 329/329, iOS 17/17, Linux smokes 38/38 (Docker, offscreen, non-root).
+⚠️ The figures refresh when the scene's read lands (scene change, world or object change), not on every keystroke: the
+history count can trail typing until the next scene change.
+
+## 🟠 T-0645 — `[ScriviCore]` History load b3: the structural payload stored as JSON
+
+**Epic:** [EP-052] (AC11) · **Status:** 🟠 **Implemented - Not Verified** (2026-11-01) — ⏳ Mac and rig live passes · **Sprint:** [SP-200] (🟡 Active) →
+[`../Sprints/Sprint-SP-200.md`](../Sprints/Sprint-SP-200.md) · **Date Requested:** 2026-11-01
+
+**What:** design §3 b3. Written as an object, read as an object or a string. Core only. 38% of dumas's log.
+**Done (2026-11-01):** written as an object, read as an object or a string (`HistoryStore.cpp:460`). Test `[T-0645]`:
+the log's shape, and a log rewritten into the old string shape still returns the payload. Linux's
+`structured_paste_smoke` read the log's payload as a string; it reads both now. ctest 799/799, Mac interop 328/328, iOS 17/17, Linux smokes 38/38 (Docker, Qt 6.4, offscreen, non-root).
+
+## 🟠 T-0644 — `[ScriviCore]` History load b2: barrier texts stored as changes
+
+**Epic:** [EP-052] (AC11) · **Status:** 🟠 **Implemented - Not Verified** (2026-11-01) — ⏳ Mac and rig live passes · **Sprint:** [SP-200] (🟡 Active) →
+[`../Sprints/Sprint-SP-200.md`](../Sprints/Sprint-SP-200.md) · **Date Requested:** 2026-11-01
+
+**What:** design §3 b2. `sceneTexts` as per-scene diffs against the history's text at the parent; `sceneTextsBefore` only
+when it differs (Q2); expanded to full texts during the load. 27% of dumas's log.
+**Done (2026-11-01):** a barrier's texts are stored as a change against the history's text at its parent
+(`sceneTextDiffs`), a before-text equal to it as its name only (`sceneTextsBeforeSame`), a different one as a change;
+a scene with no history text then keeps its full text (`persistableBarrierTexts` / `expandBarrierTexts`,
+`HistoryService.cpp:280`, `:295`; `HistoryStore.cpp:79`). The load expands them in one walk (`:1332`), which also gives
+an older log's barriers their changes, so a compaction writes the new shape. ⚠️ That walk and the consistency check now
+share `walkWithTexts` (`:1243`): one text map changed on the way down and restored on the way up — a copy per fork was
+the whole manuscript per branch (generated history's open 626 → 331 ms). Test `[T-0644]`: the scene's text is in the log
+once (its floor), and after a reopen the next edit undoes to what the op left; a mutation (no expansion) is caught. The
+I-0288 legacy test's fabricated old log strips either shape. ctest 799/799, Mac interop 328/328, iOS 17/17, Linux smokes 38/38 (Docker, Qt 6.4, offscreen, non-root).
+
+## 🟠 T-0643 — `[ScriviCore]` History load b1: a diff is a list of hunks
+
+**Epic:** [EP-052] (AC11) · **Status:** 🟠 **Implemented - Not Verified** (2026-11-01) — ⏳ Mac and rig live passes · **Sprint:** [SP-200] (🟡 Active) →
+[`../Sprints/Sprint-SP-200.md`](../Sprints/Sprint-SP-200.md) · **Date Requested:** 2026-11-01
+
+**What:** design §3 b1. `Diff` holds hunks; the old one-change shape is read as one hunk; apply, reverse, the match check,
+the I-0107 rebase and the tree's change span follow. `computeDiff` finds several hunks as Q3 rules. Replace All's
+diffs are 20% of dumas's log.
+**Done (2026-11-01):** `Diff` keeps its first change and adds `more`; `computeDiff` (`HistoryService.cpp:168`) splits a
+changed middle over 4 KB with a Myers diff (`:124`) — ⚠️ **by word, not by character** (300 replaced short words are ~600
+word edits but ~1,800 character edits; a word never splits a UTF-8 character); merged within 8 bytes, capped at 64.
+Apply, reverse, the match check and the I-0107 rebase handle every change; on disk one change keeps the v0.1 shape,
+several are `{"hunks":[…]}` (`HistoryStore.cpp:41`). Tests `[T-0643]` (ASCII with a length change, UTF-8, 350 matches
+merged to 64; the log's shape and an exact undo after a reopen); a mutation (reverse not shifting) is caught — the first
+cases kept every length equal and missed it. ⚠️ **Measured on dumas: 6.86 of its 6.91 MB of Replace All diffs are UNDER
+4 KB, so the ruled threshold changes nothing there; 1 KB would take them to 4.6 MB.** ✅ Kept at 4 KB, and the by-word diff accepted (user, 2026-11-01: *"no 4KB is sufficient. These departures are accepted."*). ctest 799/799, Mac interop 328/328, iOS 17/17, Linux smokes 38/38 (Docker, Qt 6.4, offscreen, non-root).
+
+## 🟠 T-0400 — `[ScriviCore]` History log-segment rotation → (c) compaction
+
+**Epic:** EP-052 (AC11) — was EP-019 (deferred) · **Status:** 🟠 **Implemented - Not Verified** (2026-11-01) — ⏳ Mac and rig live passes · **Sprint:** [SP-200] (🟡 Active) →
+[`../Sprints/Sprint-SP-200.md`](../Sprints/Sprint-SP-200.md). Was 🟢 Nice to have (user ruling 2026-08-11); scheduled
+2026-11-01 (user: *"I'd like to do all three (a), (b), and (c)"*).
+
+**Now (2026-11-01):** design [`../Scrivi_History_Load_Design_v0_1.md`](../Scrivi_History_Load_Design_v0_1.md) §2 — the
+live tree written to `log-(N+1).jsonl` through the write queue at open and close when worth it (Q1), `state.json` moved to
+it, old segments removed; the open replays only that segment. ⚠️ **Correction:** the text below says the reader honours
+`activeLogSegment`; it does not — `state.json` is read only after `log-000001.jsonl` has been replayed
+(`HistoryStore.cpp`), so reading it first is part of this Task. dumas's log is now 34 MB.
+
+**As filed:**
+
+`activeSegment_` is hard-fixed to `log-000001.jsonl` (`HistoryStore.hpp:114`); nothing rotates it, so
+a project accumulates one unbounded segment (a real project is already ~3.4 MB). Capacity/eviction
+bounds the **tree**, not the **log**. The reader already honours `activeLogSegment` from `state.json`,
+so rotation is **additive, with no format change**. Documented as not-implemented in package-structure
+§16a. Raised by T-0217; deliberately **not** folded into a verification sprint.
+**Done (2026-11-01):** `HistoryStore::resolveActiveSegment` (`HistoryStore.cpp:640`) opens the segment `state.json`
+names (else the newest) and removes the others; `compactIfWorthIt` / `compact` (`:664`, `:678`) write the live tree as log
+records — the last session closed, floors, a promoted root named by a new `ctl:root`, every live node parents-first, fork
+primaries, the current node, the persisted hashes, `ctl:compacted` — through the write queue, then `state.json`. Called at
+open (after the load) and at close (`scrivi_c_api.cpp:4238`); the queue is connected before the open so the open's
+compaction is queued. ⚠️ Q1's "10,000 in all" is counted since the LAST compaction: a 20,000-event live tree always holds
+more, and would be rewritten at every open. Tests `[T-0400]` (`HistoryCApiTests.cpp`): a 2,500-event history at capacity
+50 with a re-selected fork, a barrier and an edit group compacts at close and reopens as the same tree and undo texts; the
+three crash points of design §2.2; a short history is not compacted. A mutation (no fork-primary records) is caught — the
+first version of the test missed it ([I-0332] notes why). Real logs (a scratch harness): dumas and the generated history
+open as the same tree and the same 300 undo texts before and after. ctest 799/799, Mac interop 328/328, iOS 17/17, Linux smokes 38/38 (Docker, Qt 6.4, offscreen, non-root).
+
 
 
 

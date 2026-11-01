@@ -83,6 +83,28 @@ moved. Spotlight never runs on the main thread: one serial queue, per-scene re-i
 
 ## Progress log
 
+### 🟠 2026-11-01 — [I-0332]: the history open, 2.05 s → 0.25 s on dumas
+- User: *"determine where the app slows down when the history gets large … figure out how to fix it."* Profiled
+  `scrivi_history_open` with `sample` on dumas's 34 MB log: a manuscript-wide map copy per node in the consistency pass
+  (fixed: moved, copied only at a fork), and the Debug build's JSON parser (ruled (a): `util/Json.cpp` at `-O2`).
+- New fixture tool `scrivi_make_test_history` (`ScriviCore/tools/`): copies a project and drives a long history into the
+  copy through `scrivi_*`, with a self-check that no scene differs from the history's head. ⚠️ It uses a fixed identity: on a
+  Mac `scrivi_ensure_local_identity` reached the keychain and a rebuilt unsigned tool waited on its prompt.
+- (b) and (c) → [SP-200] (🔵 Planning), user: *"I accept your recommendation for 1, 2, and 3."*
+
+### 🟠 2026-11-01 — [I-0330] and [I-0331] filed and fixed (from the Mac pass's log)
+- User: *"file both issues and fix them in SP-197"*.
+- [I-0330]: the pending-edge sweep takes the scenes from the open project's index (no manuscript walk; a scene endpoint no
+  longer forces the object index's rebuild), and the Mac's world-warning strip skips it unless a world is away.
+- [I-0331]: the Mac opens the history and validates the scenes on the load worker (Linux's shape); the History card reads its
+  tree off the main actor, only when the history changes, not on every scene; the core's tree rebases only the nodes it returns.
+- Checks: ctest 791/791 (new `[I-0330]`, caught by a mutation in a copy), Mac interop 328/328 (new `historyOffMain`, caught by
+  a mutation in a copy), iOS 17/17, Linux smokes 38/38, stub-parity / layout / ABI-guard / package-boundary checks clean.
+- ✅ Mac re-check (user, 2026-11-01: *"The re-check passed, no history calls on main."*): `scrivi_history_open` 2,623 ms on
+  `[worker]`; no `scrivi_history_get_tree` line (a background call under 100 ms is not logged); no `scrivi_list_pending_edges`.
+  [I-0330] and [I-0331] → ✅ Verified. ⚠️ dumas's history is small, so the long-history `getTree` cost is not yet measured.
+
+
 ### 🟠 2026-11-01 — AC5 Mac live pass PASSED (rig still held)
 - User: *"There were no issues."* Steps A–D (scroll and click with the Inspector open, Navigator and Timeline clicks,
   ⌘Tab after typing, close and reopen). dumas-prose-timelines on the **removable drive** (some latency), not the low-latency
@@ -95,7 +117,7 @@ moved. Spotlight never runs on the main thread: one serial queue, per-scene re-i
   1,857–1,887 ms (0 file ops) on most scene changes, then `scrivi_history_list_stale_branches` (5 ms). The caller is the
   History card's `reload()` (`HistoryCard.swift:219`), which asks for the whole tree (`maxNodes` 0). `scrivi_history_open`
   also runs on main for 1.8–2.6 s at open, and `scrivi_list_worlds` waits on the lock on main for up to 346 ms. The user
-  reported no freeze. ⏳ Not yet filed; awaiting the user's call.
+  reported no freeze. → filed as [I-0330] and [I-0331] (below).
 
 ### 🟠 2026-10-28 — [I-0324] (+ [I-0316]) filed and fixed: real scene links made dumas unopenable
 - User: *"Ok all your recommendations"* (world data Q1–Q3), then *"file the issue and fix it"*.

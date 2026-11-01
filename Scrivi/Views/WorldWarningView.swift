@@ -73,7 +73,9 @@ import SwiftUI
         let computed: Result<([Row], Void), Error> = await Task.detached(priority: .utility) {
             do {
                 let worlds  = try engine.listWorlds(projectRootPath: projectRootPath).worlds
-                let pending = try engine.listPendingEdges(projectRootPath: projectRootPath).pending
+                // [I-0330]: the counts are only for unavailable worlds; with none, the sweep's answer is thrown away.
+                let pending = worlds.contains(where: { $0.worldStatus.isUnavailable })
+                    ? try engine.listPendingEdges(projectRootPath: projectRootPath).pending : []
 
                 var counts: [String: Int] = [:]
                 for edge in pending { counts[edge.worldID, default: 0] += 1 }
@@ -111,7 +113,8 @@ import SwiftUI
         guard !projectRootPath.isEmpty else { rows = []; return }
         do {
             let worlds = try engine.listWorlds(projectRootPath: projectRootPath).worlds
-            let pending = try engine.listPendingEdges(projectRootPath: projectRootPath).pending
+            let pending = worlds.contains(where: { $0.worldStatus.isUnavailable })   // [I-0330]
+                ? try engine.listPendingEdges(projectRootPath: projectRootPath).pending : []
 
             // Count pending edges per world so each row can say what is at stake.
             var counts: [String: Int] = [:]

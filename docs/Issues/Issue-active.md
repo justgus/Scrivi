@@ -8,6 +8,9 @@ Issues awaiting **user verification**. An Issue leaves this file only when the u
 
 | ID | Title | Severity | Sprint | Status |
 | -- | ----- | -------- | ------ | ------ |
+| **I-0332** | `[ScriviCore]` ⛔ **Opening a project's undo history costs ~2 s on dumas (34 MB log) and grows with the history: a whole-manuscript copy per history node, and an unoptimised parse of the log.** Measured 2026-11-01 for the user's long-history work. → [details](#i-0332) | High | [SP-197], [SP-200] | 🟠 Resolved - Not Verified (dumas 2.05 s → 0.2 s; 25,000 events 16.7 s → 0.7 s; a sentence at capacity 16 → 0.3 ms); the rest is [SP-200] |
+| **I-0331** | `[Apple]` ⛔ **The Mac runs the undo history on the main thread: the History card re-read the whole tree on every scene change (~1.9 s each on dumas), and the open replayed the log there (1.8–2.6 s).** Found in the SP-197 Mac live pass log, 2026-11-01. → [details](#i-0331) | High | [SP-197] | ✅ **Verified** (user, 2026-11-01: Mac re-check) |
+| **I-0330** | `[ScriviCore]` `[Apple]` ⛔ **The pending-edge sweep walked the whole manuscript (2,538 file operations on dumas) on every switch back into the app, and its answer is discarded unless a world is away.** Found in the SP-197 Mac live pass log, 2026-11-01. → [details](#i-0330) | Medium | [SP-197] | ✅ **Verified** (user, 2026-11-01: Mac re-check) |
 | **I-0242** | `[Linux]` ⛔ **THE WRITER'S CARD STACK IS IGNORED — Linux ENUMERATES KINDS instead of honouring the chosen stack, and DROPS any card that is empty.** ⚠️ **FOUND BY THE USER on the real rig, 2026-09-21**, during [SP-142]'s live pass on `the-stairs-of-tintagael` — ⛔ **not by any test.** ✅ **USER RULING (2026-09-21), and it is the whole specification:** ⚠️ ***"The writer chooses which Card elements to display and in what order they appear. Therefore, if the writer chooses to display an empty card in the stack, then it should be displayed with an appropriate 'No Objects to Display' message. Apple already does this. Linux must as well."*** ⚠️ **REPORTED AS 'Factions is missing'; ⛔ THAT IS THE SYMPTOM, NOT THE DEFECT.** ✅ **Linux CAN render factions** — it derives kinds from `ObjectKindScope`/`kAllStorableKinds` and hardcodes nothing (the standing rule WAS followed). ⛔ **THE DEFECT IS THAT IT NEVER ASKS WHAT THE WRITER CHOSE.** ✅ **`SceneInspector.cpp:551` lists the CORE's kinds and `:577` skips any with no entries in this scene** (*"a kind with nothing in this scene is simply not a row"*) — ⚠️ **so the stack is DERIVED FROM DATA, while Apple's is DECLARED BY THE WRITER.** ⚠️ **APPLE IS THE REFERENCE AND IT IS EXPLICIT:** `ObjectCard.swift:450` renders *"No <kind> in this scene yet."* with the comment ⚠️ ***"§2: empty is a normal state, not an error."*** ⛔ **THE ROOT CAUSE IS A DANGLING READ.** ✅ **`inspector-layout.json` HOLDS the answer — `defaultStacks` and per-scene `scenes` — and [T-0537] just proved Linux ROUND-TRIPS both LOSSLESSLY.** ⚠️ **But `InspectorLayoutStore` exposes ONLY `selectedTab`: ⛔ ZERO reads of `defaultStacks` or `scenes` anywhere in `platforms/linux/`.** ✅ **So Linux has been faithfully PRESERVING a document it does not consult** — ⚠️ **`project_capability_without_surface` in its exact form: a dangling read with no reader.** ⚠️ **CONSEQUENCE BEYOND THE MISSING CARD: ORDER IS ALSO WRONG.** ⛔ **Linux emits kinds in the CORE's order; the writer's chosen order is in `defaultStacks` and is ignored** — ✅ **the user's ruling names order explicitly.** ⚠️ **AND IT BLOCKS THE STACK PICKER ([EP-036] AC4b): a '+' menu that adds a card to a stack nothing reads would change nothing on screen.** ⛔ **That picker had NO Task number; ⚠️ an earlier draft of this row cited `T-0543`, which is now [SP-134]'s — ✅ corrected 2026-09-22.** | **Medium** | ⛔ **UNASSIGNED** — ⚠️ **candidate for [EP-036]; ✅ it is the PREREQUISITE for T-0543, so they should sequence together** | 🔵 **Open** |
 |  **I-0244** | `[Linux]` ⚠️ **THE LINUX APP HAS NONE OF [EP-040]'s EDITOR SHELL, AND NOTHING TRACKS THE GAP.** ⚠️ **RAISED 2026-09-22 from the user's own observation during [SP-135]'s live pass:** ⚠️ ***"I did not toggle the panels on Linux or any of the more recent UI changes because many of them have not been made on Linux yet."*** ✅ **MEASURED THE SAME DAY, not asserted:** ⛔ **Linux has ZERO `QToolBar`/`addToolBar` in `platforms/linux/src/`** · ⛔ **ZERO navigator-visibility state** · ⚠️ **Apple now has a `.toolbar` with 3 `ControlGroup`s and SIX `safeAreaBar`s.** ⚠️ **THIS IS NOT A DEFECT IN EITHER PLATFORM.** ✅ **[EP-040] is scoped `[Apple]` DELIBERATELY** — ⛔ **but four Sprints of shell work ([SP-134] toolbar · [SP-135] bars · [SP-136] inspector column · [SP-137] detail sheet) have no Linux counterpart, and NO Epic, Sprint or Issue records that.** ⚠️ **`feedback_linux_adopts_apple_shape` is the standing rule: *Apple is the reference for architecture; a shape change on Apple must be made the same way on Linux in the SAME work.*** ⛔ **That has not happened, and the divergence is now FOUR SPRINTS DEEP AND GROWING.** ✅ **WHAT THE APPLE WORK ALREADY PROVED, and Linux will re-earn without it:** ⚠️ **[I-0203]'s root cause was that bars were STACK SIBLINGS** — ✅ **Linux's `EditorShell` uses the same layout idiom** — ⚠️ **and the Navigator was unrecoverable because NOTHING OWNED ITS VISIBILITY STATE.** ⛔ **Linux's pane visibility is SESSION-SCOPED ONLY (SP-078/T-0320), which is the same class of gap.** ⚠️ **IT IS NOT [EP-043]'s EITHER:** ✅ **that Epic is the SESSION (multi-window, restore, geometry)** — ⛔ **this is the SHELL (toolbar, bars, panes).** ✅ **They are adjacent and both wait on the same `EditorShell` rework, which is an argument for SEQUENCING them together, not for merging them.** ⚠️ **NOT URGENT AND NOT A REGRESSION** — ✅ **Linux works as it did** — ⛔ **but an untracked divergence is how a port silently falls behind, which is exactly what the Porting Outline exists to prevent.** ---- ⚠️ **A PERFORMANCE EXPECTATION IS INHERITED FROM [I-0213]** (⚠️ *`[Apple]` chapter create froze the app ~2.7 s on a 1,174-scene manuscript; now `~305–400 ms` of work*) **AND IS RECORDED HERE SO LINUX DOES NOT RE-DISCOVER IT AS A DEFECT.** ✅ **[I-0213] was VERIFIED on Apple 2026-09-24 with `createChapter WORK=396.7 ms` on 1,179 scenes, ⚠️ measured DELIBERATELY from a USB mount as a WORST-CASE FLOOR.** ⚠️ **The user named what follows:** *"On Linux it will be even worse because it has to also come through this computer's operating system."* ✅ **SO A LINUX FIGURE WORSE THAN `396.7 ms` ON THE SAME FIXTURE IS ANTICIPATED — ⛔ NOT a regression against [I-0213], and NOT a new Issue on its own.** ⛔ **NOTHING HAS BEEN MEASURED ON LINUX YET; ✅ this is an EXPECTATION TO TEST AGAINST, not a claim about the rig.** ⚠️ **When the Linux editor shell is built, the structural ops MUST be timed with the SAME `[SCRIVI-STRUCT]`-style instrumentation** — ✅ **[I-0213] proved the cost was UNATTRIBUTABLE until each op reported its own number, and that three code-read diagnoses were wrong before it did.** | **Low** | ⛔ **UNASSIGNED — awaiting its OWN Epic.** ✅ **SCOPE RULED 2026-09-26 ([EP-043] [R-Q5], user-approved): it becomes its OWN `[Linux]` Epic, SEQUENCED AFTER [EP-043]** — ⛔ **NOT ACs inside it.** ⚠️ **THIS ROW PREVIOUSLY SAID *"sequenced WITH or after"*; ✅ it is AFTER, and [EP-043]'s record now says the same** — ⛔ **the two records disagreed and no longer do.** ✅ **WHY NOT FOLDED IN: this Issue is FOUR Apple Sprints deep ([SP-134]–[SP-137]), and folding it into a SESSION Epic would repeat the [EP-035] AC1 collapse [I-0178] cites.** ✅ **THE COLLISION IS ALREADY HANDLED: [SP-145] carries a NAMED CARVE-OUT** — ⚠️ **its extraction takes `inspectorVisible_` + `timelineVisible_` onto the session object** (⛔ **per-project state, not per-widget**), ✅ **so this Epic will NOT have to re-open `EditorShell` for pane state.** ⚠️ **Of this Issue's THREE measured gaps, ONLY pane-visibility overlapped, and that is the carve-out** | 🔵 **Open**  |
 | **I-0329** | `[Apple]` ⛔ **iPad: dragging a Timeline scene dot a second time froze the whole UI for about 6 minutes** (no touch, keyboard or tap), then it recovered by itself. Found by the user on a real iPad with a hardware keyboard, 2026-10-31, in [SP-199]'s live pass, project `dumas-prose-timelines` (1,175 scenes). Steps: zoom the Timeline, drag a dot (it moves; on release the Time Delta Picker popover opens, as designed); dismiss it (the dot returns, as designed); drag a dot again → freeze. Evidence: the console logged `_UISystemGestureGateGestureRecognizer … has been in possible phase for 359.959951 seconds` and `Gesture: System gesture gate timed out`, which points to the main thread or the touch pipeline being stuck. ✅ **Cause found** (second `bt all`, taken WHILE frozen, 2026-10-31): the freeze starts when a Time Delta Picker choice is tapped ("that night"), not on the drag. `TimelineViewModel.setStoryTime` → `recomputeAndPersistFrom` (`TimelineStripView.swift:784`) calls `scrivi_set_scene_story_time` once for EVERY later scene, on the MAIN thread (~1,172 calls here). Each call's `StoryTimePatchGuard` (`scrivi_c_api.cpp:474`) drops the index BEFORE the write, so the core's `findSceneMetaPath` rebuilds the whole `ProjectIndex` (every sidecar, over iCloud) — ~1,172 full traversals ≈ 1.4M reads. The read-amplification class again; T-0549's patch saved only the AFTER rebuild. Linux `EditorShell.cpp:3763` runs the same chain loop. The dismiss "snap back" is by design (dismiss commits nothing); the moved position seen after reload is the "that night" write finishing. ✅ **Fix (user ruling: both halves, 2026-10-31):** (1) `StoryTimePatchGuard` no longer drops the index BEFORE the write (`scrivi_c_api.cpp:479`) — a warm index locates the scene, the after-write patch/drop is unchanged; (2) only the moved scene is saved — Apple `recomputeOffsetsFrom` (`TimelineStripView.swift:785`) recomputes later scenes in memory, Linux `showTimeDeltaPicker` (`EditorShell.cpp:3763`) dropped its re-save loop; both loads already derive offsets from the gap chain; (3) `exportProjectTimeline` derives scene starts from the gap chain instead of the stored `offsetMs` (`ScriviCore.cpp:1110`). Test: `ProjectIndexTests.cpp` "a story-time write keeps the WARM index (I-0329)". ctest 790/790, Mac interop 327, iOS 14/14, Mac build. ⚠️ Linux not built or smoked; no mutation check of the new test. iPad pass 1 (2026-10-31): steps 1, 2, 5 pass (no freeze on "that night"; the Mac step passes). Steps 3–4 were blocked: the picker showed only its first row of buttons. Cause: `.popover(arrowEdge: .top)` is honoured on iOS 18.1+, so the picker opened BELOW the dot, inside the bottom strip. Fix: `arrowEdge` is `nil` on iOS (`SceneDotView.pickerArrowEdge`); the Mac keeps `.top`. iPad pass 2: all steps pass, the picker fits. | High | — | ✅ **Verified** (user, 2026-10-31) |
@@ -44,6 +47,8 @@ Issues awaiting **user verification**. An Issue leaves this file only when the u
 *Last Updated: 2026-10-22 — **I-0314**, **I-0311** and **I-0297 VERIFIED** (user) → `Verified/Issue-verified-0311-0320.md`, with [SP-191]'s close; **I-0315** stays, Resolved - Not Verified, its sprint closed.*
 
 *Last Updated: 2026-10-22 — **I-0308** `[Linux]` → the backlog, not reproducible (user); removed from [SP-185].*
+
+*Last Updated: 2026-11-01 (**I-0330, I-0331 filed and fixed** from SP-197's Mac live pass log → 🟠.)*
 
 *Last Updated: 2026-10-21 — **I-0315** `[Linux]` assigned to SP-191 (user) and moved here from the backlog; → 🟠 Resolved - Not Verified (the Inspector writes only what changed, never to a removed scene).*
 
@@ -767,6 +772,118 @@ follows.)*
 *2026-08-15 (docs cleanup — 48 verified Issues archived to decade files, 4 closed Issues
 archived; 6 stale full entries (I-0064, I-0067–I-0071) reconciled against their authoritative table rows.
 10 `Resolved - Not Verified` Issues remain active.)*
+
+## I-0332
+
+**Title:** Opening the undo history takes seconds and grows with the history
+**Status:** 🟠 Resolved - Not Verified (2026-11-01) — parts 1 and 2 (a) done: 2.05 s → 0.25 s per open on dumas. What
+grows with the log is [SP-200]'s ((b), (c)).
+**Platform:** `[ScriviCore]` (both platforms open the history through `scrivi_history_open`)
+**Severity:** High. Every project open waits for it (off the main thread since [I-0331], but the window waits on the load).
+**Sprint:** [SP-197]
+**Date Identified:** 2026-11-01. User: *"the reason I'm having you do this is so that we can determine where the app slows
+down when the history gets large … We want to immediately figure out how to fix it."* dumas-prose-timelines's history:
+34 MB, 12,245 log lines (≈4,600 events, 98 sessions, 1,194 scenes, 13 forks; four Replace All barriers of 3.6–6.4 MB each).
+
+**Measured** (`sample`, Debug build, `scrivi_make_test_history`'s per-call timing; ~2.05 s per open):
+1. `HistoryService::pruneInconsistentNodes` (~45%): its DFS pushed every child with a COPY of the whole per-scene text map,
+   so a 4,600-node, nearly linear history made thousands of whole-manuscript copies.
+2. Parsing the log, line by line through nlohmann (~55%; ~90% after part 1). Most of the bytes are records that store whole
+   texts: structural-cut payloads (38%; the four 3.6–6.4 MB lines are `rangeCut`s across ~1,049 scenes, NOT Replace All as
+   first said), Replace All's one-change diffs (20%), and barrier before/after texts (27%).
+
+**Part 1 — fixed:** the last child takes the map by move; only extra siblings at a fork get a copy
+(`HistoryService.cpp:1232`). Same traversal, same answers. ~2.05 s → ~1.35 s per open. ctest 791/791 (54 `[history]` cases).
+**Part 2 (a) — fixed (user, 2026-11-01: *"I'd like to do all three (a), (b), and (c)"*):** `util/Json.cpp` is compiled `-O2` in
+every build, Debug included, except MSVC (`/RTC1` cannot combine with `/O2`) (`ScriviCore/CMakeLists.txt`). Every other
+file stays Debug. ~1.35 s → ~0.25 s per open. ctest 791/791. (b) records that store changes and (c) compaction are
+[SP-200] (design [`Scrivi_History_Load_Design_v0_1.md`]).
+**Parts 3 and 4 — found on the generated 25,000-event history** (`scrivi_make_test_history`: 60,151 log lines, 49 MB,
+906 branches; its open was 16.7 s before parts 1–2 and still 11.4 s after):
+3. **Every `setPrimary` record rebuilt the head cache** at open (`applyPrimaryOverride`), a whole-history walk each — 906
+   of them. The heads follow root→current through parent links, which a fork's primary child never changes: the rebuild
+   is removed (`HistoryService.cpp:1261`). 11.4 s → 0.72 s.
+4. **At capacity, EVERY new event re-walked the whole history twice** (`evictToCapacity`): a head-cache rebuild (removed —
+   promotion folds into the floor exactly what the walk adds back) and the walk to find the root's child toward current
+   (skipped when the root has one child). ~16 ms → ~0.3 ms per recorded event, and the Mac records on the main thread.
+**Tests:** ctest 792/792 — new `[I-0332]` (`HistoryServiceTests.cpp`): 40 events at capacity 5 across two scenes and a
+branch that falls off; every head, every undo and, at the root, the floor equal the texts typed. A mutation in a copy (the
+fold into the floor dropped) fails it (2 assertions); its first version did NOT catch that mutation (undo reads backwards
+from the heads, so only the floor check sees it) and was extended. Mac interop 328/328, Linux smokes 38/38.
+**Part 5 — found in [SP-200]:** the load's consistency check copied every scene's text at each fork of the tree — the
+whole manuscript per branch. It and SP-200's expansion now share one walk that restores instead of copying
+(`HistoryService::walkWithTexts`); 626 → 331 ms on the generated history.
+**Fixture:** `/Volumes/SCRIVI-OTHE/Scrivi-Dumas-Fixture/dumas-prose-timelines-history.scrivi` (130 MB). ⚠️ It keeps dumas's
+`projectID`, as the other dumas copies do, so it shares the Mac's saved Timeline view and Spotlight domain with them.
+
+---
+
+## I-0331
+
+**Title:** The Mac runs the undo history on the main thread (open, and the History card's tree)
+**Status:** ✅ Verified 2026-11-01 (user, 2026-11-01: *"The re-check passed, no history calls on main."* The log: `scrivi_history_open` on `[worker]`, no `scrivi_history_get_tree` or `scrivi_list_pending_edges` lines)
+**Platform:** `[Apple]` (Mac and iOS: shared code) and `[ScriviCore]`
+**Severity:** High. A main-thread block of ~1.9 s on most scene changes and 1.8–2.6 s at every open.
+**Sprint:** [SP-197]
+**Date Identified:** 2026-11-01, from the console of [SP-197]'s Mac live pass (dumas-prose-timelines on the removable drive):
+`[main] core: scrivi_history_get_tree 1857–1887 ms, 0 file ops` after most scene changes, and `[main] core: scrivi_history_open
+1840–2593 ms, 5 file ops` at each open. The user reported no freeze. User: *"why does scrivi_history_open run on the main
+thread? … We should strive to call it only when absolutely necessary."*
+
+**Root cause:**
+1. **The open:** `ProjectSession.finishLoad` called `HistoryCapture.open()` and `validateScenes` on the main actor. Linux
+   already does both on its load worker (`EditorShell.cpp:614`). The open itself is called once per project open, which is
+   needed; the call count was not the problem.
+2. **The tree:** the History card keyed its reload on the scene AND the history revision (`HistoryCard.swift:71`), so every
+   scene change re-fetched the tree, on the main actor. The tree is the project's window around the current node, the same for
+   every scene; the card filters it by scene itself.
+3. **Its cost:** `HistoryService::getTree` rebased the change offset (I-0107) of EVERY node on the spine against every later
+   node, O(spine²), though it returns at most 200 nodes.
+
+**Resolution:**
+1. `loadAsync`'s worker opens the history and validates the scenes (`HistoryCapture.openOffMain`, `HistoryCapture.swift:97`;
+   called at `ProjectSession.swift:227`); the main actor only adopts the result (`adoptOpened`, `:356`). The deprecated
+   synchronous `load(at:)` keeps the main-actor path.
+2. The card reloads on the history and its revision only (`HistoryCard.swift:66`), and `HistoryCapture.tree` reads off the
+   main actor (`HistoryCapture.swift:285`).
+3. `getTree` rebases only the nodes it returns (`HistoryService.cpp:826`), the same math per node.
+**Verification:** interop test `historyOffMain` (`ScriviInteropTests.swift:8582`): no `scrivi_history_open`,
+`scrivi_history_validate_scene` or `scrivi_history_get_tree` on the main thread; fails on a mutation in a copy (the main-actor
+open restored). ctest 791/791 (the I-0107 rebase tests unchanged), Mac interop 328/328, iOS 17/17. ⚠️ No timing test of
+`getTree` on a long history; the 1.9 s figure is to be re-measured in a live pass. `scrivi_history_open`'s 1.8 s replay
+itself is unchanged, only moved off the main thread.
+
+---
+
+## I-0330
+
+**Title:** The pending-edge sweep walked the whole manuscript on every app activation
+**Status:** ✅ Verified 2026-11-01 (user, 2026-11-01: *"The re-check passed, no history calls on main."* The log: `scrivi_history_open` on `[worker]`, no `scrivi_history_get_tree` or `scrivi_list_pending_edges` lines)
+**Platform:** `[ScriviCore]` and `[Apple]`
+**Severity:** Medium. Background work (T-0523 moved it off the main thread), but 2,538 file operations per activation over a slow
+volume, holding the project's lock: the Inspector's read waited up to 382 ms behind it.
+**Sprint:** [SP-197]
+**Date Identified:** 2026-11-01, from the console of [SP-197]'s Mac live pass: `[worker] core (background):
+scrivi_list_pending_edges 371–409 ms, 2538 file ops` on every switch back into the app. User: *"Is it necessary that
+scrivi_list_pending_edges does 2538 file operations? Isn't the edge data already loaded into memory by then?"*
+
+**Root cause:** `EndpointResolver::resolve` learned which IDs are scenes by walking the manuscript (every scene sidecar), once
+per call since [I-0324], though the open project's index already holds every scene in memory. A scene endpoint also missed the
+object index first, which forced that index's rebuild from disk. And the Mac's world-warning strip ran the sweep on every
+activation and editor appearance, though it uses the result only to count links into UNAVAILABLE worlds
+(`WorldWarningView.swift:76`): with every world present the answer was discarded.
+
+**Resolution:**
+1. `SceneLocator::listSceneTitles` (`Services.hpp:218`, default "no hint"); the ABI's locator answers from the warm project
+   index (`scrivi_c_api.cpp:699`). The resolver checks scenes from memory first and walks only when there is no index
+   (`EndpointResolver.cpp:18`).
+2. The strip skips the sweep when no bound world is unavailable (`WorldWarningView.swift:76`, `:116`).
+**Verification:** ctest `[I-0330]` (`ObjectCApiTests.cpp:1304`, through `scrivi_*`): the sweep's file operations 12 → 12 from 1 to
+21 scenes; a mutation in a copy (the index lookup off) reads 18 → 58 and fails. ctest 791/791, Mac interop 328/328, iOS 17/17,
+Linux smokes 38/38 (no Linux caller of the sweep). ⏳ User: a live pass log with no `scrivi_list_pending_edges` on activation
+while every world is present.
+
+---
 
 ## I-0328
 

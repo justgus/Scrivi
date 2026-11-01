@@ -236,7 +236,9 @@ QList<QJsonObject> structuralPayloads(const QString& projectDir)
         for (const QByteArray& line : f.readAll().split('\n')) {
             const QJsonObject rec = QJsonDocument::fromJson(line).object();
             if (rec.value(QStringLiteral("kind")).toString() == QStringLiteral("structural")) {
-                out.append(QJsonDocument::fromJson(rec.value(QStringLiteral("structuralPayload")).toString().toUtf8()).object());
+                // [T-0645] the log stores the payload as JSON; a log from before it, as a string.
+                const QJsonValue p = rec.value(QStringLiteral("structuralPayload"));
+                out.append(p.isObject() ? p.toObject() : QJsonDocument::fromJson(p.toString().toUtf8()).object());
             }
         }
     }

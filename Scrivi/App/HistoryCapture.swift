@@ -94,6 +94,30 @@ final class HistoryCapture {
         }
     }
 
+    /// [I-0331]: `open()` + `validateScenes` for the load worker, off the main actor. Returns whether the history opened;
+    /// the session then calls `adoptOpened()` on the main actor.
+    nonisolated static func openOffMain(engine: ScriviEngine, projectRootPath: String,
+                                        scenes: [(id: String, text: String)]) -> Bool {
+        do {
+            _ = try engine.historyOpen(projectRootPath: projectRootPath)
+        } catch {
+            print("[Scrivi] historyOpen failed: \(error)")   // best-effort, as `open()`
+            return false
+        }
+        for scene in scenes {
+            _ = try? engine.historyValidateScene(
+                projectRootPath: projectRootPath, sceneID: scene.id, currentDiskText: scene.text)
+        }
+        return true
+    }
+
+    /// [I-0331]: the history was opened by `openOffMain`; take the core's state as `open()` does.
+    func adoptOpened() {
+        guard !isOpen else { return }
+        isOpen = true
+        take(try? engine.captureState(projectRootPath: projectRootPath))
+    }
+
     // Validates each loaded scene's on-disk text against the head hash persisted at last close (§6.b). A scene edited
     // outside Scrivi between sessions gets an externalChange barrier + floor re-seed in the engine — never touching the
     // manuscript. Call once, right after open, with (sceneID, currentText) pairs.
@@ -258,11 +282,15 @@ final class HistoryCapture {
     // MARK: — History tree (EP-030 SP-092, T-0395)
 
     // A windowed projection of the history graph for the history card. nil when history is closed or the call fails.
-    func tree(aroundNodeID: String? = nil, maxNodes: Int = 0) -> HistoryTreeResult? {
+    // [I-0331]: read off the main actor.
+    func tree(aroundNodeID: String? = nil, maxNodes: Int = 0) async -> HistoryTreeResult? {
         guard isOpen else { return nil }
-        do {
-            return try engine.historyGetTree(projectRootPath: projectRootPath, aroundNodeID: aroundNodeID, maxNodes: maxNodes)
-        } catch { print("[Scrivi] historyGetTree failed: \(error)"); return nil }
+        let engine = engine, path = projectRootPath
+        return await Task.detached(priority: .userInitiated) {
+            do {
+                return try engine.historyGetTree(projectRootPath: path, aroundNodeID: aroundNodeID, maxNodes: maxNodes)
+            } catch { print("[Scrivi] historyGetTree failed: \(error)"); return nil }
+        }.value
     }
 
     // MARK: — Stale branches (T-0212, §5)

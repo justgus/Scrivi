@@ -104,6 +104,15 @@ public extension ScriviEngine {
         return try decodeC(raw)
     }
 
+    /// T-0647: how large and how connected the project is — scenes, chapters, links, history, each world's objects by
+    /// kind. Memory and one index file per world; call it off the main thread all the same.
+    func getProjectMetrics(projectRootPath: String) throws -> ProjectMetrics {
+        let raw = projectRootPath.withCString { prp in
+            scrivi_get_project_metrics(prp)
+        }
+        return try decodeC(raw)
+    }
+
     // MARK: — Object discovery (SP-098 T-0378)
 
     /// Objects in the project, optionally filtered by kind. Backs the picker,
@@ -429,6 +438,48 @@ public struct ListPendingEdgesResult: Decodable, Sendable {
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         pending = try c.decodeIfPresent([PendingEdgeView].self, forKey: .pending) ?? []
+    }
+}
+
+/// T-0647: `scrivi_get_project_metrics`. An empty list arrives as an absent key.
+public struct ProjectMetrics: Decodable, Sendable, Equatable {
+    public struct Links: Decodable, Sendable, Equatable { public let total: Int; public let world: Int }
+    public struct History: Decodable, Sendable, Equatable { public let open: Bool; public let steps: Int?; public let bytes: Int? }
+    public struct KindCount: Decodable, Sendable, Equatable { public let kind: String; public let count: Int }
+    public struct World: Decodable, Sendable, Equatable {
+        public let worldID: String
+        public let displayName: String
+        public let status: String
+        public let fromCache: Bool
+        public let total: Int
+        public let kinds: [KindCount]
+
+        private enum CodingKeys: String, CodingKey { case worldID, displayName, status, fromCache, total, kinds }
+        public init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            worldID = try c.decode(String.self, forKey: .worldID)
+            displayName = try c.decode(String.self, forKey: .displayName)
+            status = try c.decode(String.self, forKey: .status)
+            fromCache = try c.decode(Bool.self, forKey: .fromCache)
+            total = try c.decode(Int.self, forKey: .total)
+            kinds = try c.decodeIfPresent([KindCount].self, forKey: .kinds) ?? []
+        }
+    }
+
+    public let sceneCount: Int
+    public let chapterCount: Int
+    public let links: Links
+    public let history: History
+    public let worlds: [World]
+
+    private enum CodingKeys: String, CodingKey { case sceneCount, chapterCount, links, history, worlds }
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        sceneCount = try c.decode(Int.self, forKey: .sceneCount)
+        chapterCount = try c.decode(Int.self, forKey: .chapterCount)
+        links = try c.decode(Links.self, forKey: .links)
+        history = try c.decode(History.self, forKey: .history)
+        worlds = try c.decodeIfPresent([World].self, forKey: .worlds) ?? []
     }
 }
 

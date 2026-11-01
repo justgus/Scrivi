@@ -73,6 +73,9 @@ Key documents:
   ✅ Core finding: **bars are `VStack` siblings throughout**, where macOS 26+ provides `safeAreaBar`
   and `NSSplitViewItemAccessoryViewController` — ⚠️ and the project window has **no `NSToolbar` at all**
   while asking SwiftUI for `.navigationTitle`.
+- `docs/Scrivi_History_Load_Design_v0_1.md` — ⚠️ **DRAFT** (SP-200, EP-052 AC11): the undo history's open costs what the
+  LIVE history costs — (c) compaction to `log-(N+1).jsonl` (builds the history design's §6.b, never implemented) and (b)
+  records that store changes, not whole texts. ✅ (a) done: `util/Json.cpp` is compiled `-O2` even in Debug (not MSVC).
 - `docs/Scrivi_iOS_Manuscript_Design_v0_1.md` — the manuscript on iOS (EP-055): ✅ Q1 = (c) — what a keystroke stores
   (`ManuscriptEditRules`) and the model sync (`ManuscriptSceneSync`) are SHARED in `ManuscriptEditing.swift`; the Mac and iOS
   hosts only apply them. ⚠️ A change to the write path goes THERE, never into one host.

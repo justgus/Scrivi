@@ -140,6 +140,7 @@ public:
     // core reads cannot freeze the UI -- measured at 1m42s against a dead share.
     struct ReloadPayload;
     void applyReload(const ReloadPayload& payload);
+    void applyMetrics(const ReloadPayload& payload);   // T-0647
 
 private:
     // The tabs, in Apple's DISPLAY order. Index order here IS the on-screen
@@ -285,6 +286,8 @@ private:
     QLabel* propChars_    = nullptr;
     QLabel* propCreated_  = nullptr;
     QLabel* propModified_ = nullptr;
+    QLabel* propLinks_    = nullptr;   // T-0647: the scene's links
+    QLabel* propProject_  = nullptr;   // T-0647: the Project and World sections
     QLabel* propStatus_   = nullptr;
 
     // Guards the programmatic population of the Writing tab, so filling the

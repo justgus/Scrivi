@@ -147,6 +147,7 @@ public:
         const scrivi::AbsolutePath& projectRoot, const scrivi::SceneID& sceneID) override;
     std::optional<SceneHint> locateScene(
         const scrivi::AbsolutePath& projectRoot, const scrivi::SceneID& sceneID) override;
+    std::optional<SceneTitles> listSceneTitles(const scrivi::AbsolutePath& projectRoot) override;
 };
 
 static RegistrySceneLocator& registrySceneLocator() {
@@ -693,6 +694,19 @@ std::optional<scrivi::SceneLocator::SceneHint> RegistrySceneLocator::locateScene
         }
     });
     return out;
+}
+
+std::optional<scrivi::SceneLocator::SceneTitles> RegistrySceneLocator::listSceneTitles(
+    const scrivi::AbsolutePath& projectRoot) {
+    std::optional<SceneTitles> out;
+    auto services = abiServices();
+    services.sceneLocator = nullptr;
+    withProjectIndex(projectRoot, services, [&](const scrivi::manuscript::ProjectIndex& idx) {
+        out.emplace();
+        out->reserve(idx.sceneCount());
+        for (const auto& loc : idx.scenesInOrder()) { out->emplace_back(loc.sceneID.value, loc.title); }
+    });
+    return out;   // ⚠️ nullopt ⇒ "no hint" — the caller walks
 }
 
 // UTF-8-scalar-safe v7-style ID minter for history nodes/sessions. Kept local
@@ -1663,6 +1677,100 @@ const char* scrivi_list_pending_edges(const char* projectRootPath)
         item.setString("worldStatus",       p.worldStatus);
         doc.appendToArray("pending", std::move(item));
     }
+    return heap(okEnvelope(std::move(doc)));
+}
+
+// T-0647 (SP-200): the Properties tab's Project and World sections. See scrivi.h.
+const char* scrivi_get_project_metrics(const char* projectRootPath)
+{
+    SCRIVI_PROJECT_READ(projectRootPath);
+    const std::string root = S(projectRootPath);
+    auto svc = abiServices();
+    scrivi::util::JsonDoc doc;
+
+    // Scenes and chapters: the warm project index (built once at open), never a walk.
+    std::int64_t scenes = 0;
+    std::set<std::string> chapters;
+    withProjectIndex(root, svc, [&](const scrivi::manuscript::ProjectIndex& idx) {
+        scenes = static_cast<std::int64_t>(idx.sceneCount());
+        for (const auto& loc : idx.scenesInOrder()) chapters.insert(loc.chapterID.value);
+    });
+    doc.setInt64("sceneCount", scenes);
+    doc.setInt64("chapterCount", static_cast<std::int64_t>(chapters.size()));
+
+    // Worlds: each bound world's own index (one file), or the binding's cached index while the world is away.
+    scrivi::worlds::WorldStore ws{svc};
+    scrivi::objects::ObjectIndex index{svc};
+    scrivi::worlds::WorldStore::BindingCache bindingCache;
+    std::set<std::string> worldObjects;
+    auto ids = ws.listBoundWorldIDs(root);
+    for (const auto& worldID : ids.ok() ? ids.value() : std::vector<std::string>{}) {
+        const auto res = ws.resolve(root, worldID, &bindingCache);
+        std::map<scrivi::ObjectKind, std::int64_t> counts;
+        bool fromCache = true;
+        std::string name;
+        if (res.status == scrivi::worlds::WorldStatus::available) {
+            bool indeterminate = false;
+            if (auto entries = index.loadWorldIndex(res.packagePath, &indeterminate); entries.ok() && !indeterminate) {
+                fromCache = false;
+                name = res.world.displayName;
+                for (const auto& e : entries.value()) { ++counts[e.kind]; worldObjects.insert(e.objectID.value); }
+            }
+        }
+        if (fromCache) {
+            if (auto b = ws.loadBinding(root, worldID, &bindingCache); b.ok()) {
+                name = b.value().displayName;
+                for (const auto& e : b.value().cachedIndex) {
+                    if (auto k = scrivi::objectKindFromName(e.kind)) ++counts[*k];
+                    worldObjects.insert(e.objectID);
+                }
+            }
+        }
+        scrivi::util::JsonDoc w;
+        w.setString("worldID", worldID);
+        w.setString("displayName", name);
+        w.setString("status", scrivi::worlds::worldStatusName(res.status));
+        w.setBool("fromCache", fromCache);
+        std::int64_t total = 0;
+        for (const auto kind : scrivi::kAllStorableKinds) {   // the core's kind order; never a restated list
+            const auto it = counts.find(kind);
+            if (it == counts.end() || it->second == 0) continue;
+            scrivi::util::JsonDoc k;
+            k.setString("kind", scrivi::objectKindName(kind));
+            k.setInt64("count", it->second);
+            w.appendToArray("kinds", std::move(k));
+            total += it->second;
+        }
+        w.setInt64("total", total);
+        doc.appendToArray("worlds", std::move(w));
+    }
+
+    // Links: the relationship log, read once; a link is a world link when either end is a bound world's object.
+    std::int64_t links = 0, worldLinks = 0;
+    if (auto edges = scrivi::objects::RelationshipStore{svc}.load(root); edges.ok()) {
+        for (const auto& e : edges.value()) {
+            ++links;
+            if (worldObjects.contains(e.fromID) || worldObjects.contains(e.toID)) ++worldLinks;
+        }
+    }
+    scrivi::util::JsonDoc l;
+    l.setInt64("total", links);
+    l.setInt64("world", worldLinks);
+    doc.setSubDoc("links", std::move(l));
+
+    // History: the open store's own counts — memory only.
+    scrivi::util::JsonDoc h;
+    {
+        auto& reg = historyRegistry();
+        std::lock_guard<std::mutex> lock(reg.mutex);
+        const auto it = reg.byRoot.find(root);
+        h.setBool("open", it != reg.byRoot.end());
+        if (it != reg.byRoot.end()) {
+            h.setInt64("steps", it->second->service().eventCount());
+            h.setInt64("bytes", it->second->segmentBytes());
+        }
+    }
+    doc.setSubDoc("history", std::move(h));
     return heap(okEnvelope(std::move(doc)));
 }
 
@@ -3816,14 +3924,8 @@ const char* scrivi_history_open(const char* projectRootPath) {
         historyDirFor(root), &s.fileSystem, &s.clock);
 
     bool loaded = false;
-    // openOrCreate replays the on-disk log (finalizeLoad / applyLoadedEviction →
-    // applyForward). A mismatched/stale diff used to throw here and crash the app;
-    // applyForward/applyReverse are now clamp-safe, and `guarded` is the belt-and-
-    // suspenders firewall so any residual throw becomes an error envelope instead of
-    // terminating the process (I-0065). History is best-effort on the Swift side.
-    store->openOrCreate(mintHistoryID("ses"), nowTimestamp(), loaded);
-    // EP-052 (T-0624): from here the log's appends and checkpoints are written by the project's write queue, in order,
-    // so a capture call never waits on the disk.
+    // EP-052 (T-0624): the log's appends and checkpoints are written by the project's write queue, in order, so a capture
+    // call never waits on the disk. T-0400: connected BEFORE the open, so a compaction at open is queued too.
     {
         auto* queue = &scrivi::abi::projectLockEntry(projectRootPath).queue;
         scrivi::FileSystem* fs = &s.fileSystem;
@@ -3832,6 +3934,12 @@ const char* scrivi_history_open(const char* projectRootPath) {
             else { queue->enqueueHistoryState(fs, path, text); }
         });
     }
+    // openOrCreate replays the on-disk log (finalizeLoad / applyLoadedEviction →
+    // applyForward). A mismatched/stale diff used to throw here and crash the app;
+    // applyForward/applyReverse are now clamp-safe, and `guarded` is the belt-and-
+    // suspenders firewall so any residual throw becomes an error envelope instead of
+    // terminating the process (I-0065). History is best-effort on the Swift side.
+    store->openOrCreate(mintHistoryID("ses"), nowTimestamp(), loaded);
 
     auto& svc = store->service();
     svc.setCapacity(store->settings().capacityEvents);
@@ -4220,6 +4328,8 @@ const char* scrivi_history_close(const char* projectRootPath) {
             c->second.flush(sink, "flush");
         }
         it->second->recordClose();  // [I-0299]: an open can then tell a clean end from a crash
+        // T-0400: compacted at close when worth it, so the next open reads the live tree only (queued, in order).
+        it->second->compactIfWorthIt(it->second->service().sessionID());
         it->second->checkpoint();   // final checkpoint before discarding
         reg.byRoot.erase(it);
     }

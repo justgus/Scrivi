@@ -54,7 +54,7 @@ private struct HistoryCardBody: View {
         // sceneID alone the card went stale the moment an event was committed —
         // the tree lives in HistoryCapture/ScriviCore, neither of which the view
         // can observe, so nothing invalidated it until the project was reopened.
-        .task(id: reloadKey) { reload() }
+        .task(id: reloadKey) { await reload() }
     }
 
     // I-0108: purge and its confirmation moved OUT of this card to Project Settings,
@@ -62,13 +62,12 @@ private struct HistoryCardBody: View {
     // staleness threshold). Two destructive surfaces for one irreversible operation was
     // the duplication that made the project-wide list look like a filter bug here.
 
-    /// Identity for the reload task (I-0105): the scene AND the history revision, so
-    /// the tree is re-fetched both when the writer moves to another scene and when an
-    /// edit is committed in the current one. The caret is deliberately NOT part of this
-    /// — caret movement only changes which row is bolded, which is pure render, and
-    /// re-fetching on every arrow key would be gratuitous engine traffic.
+    /// Identity for the reload task (I-0105): the history and its revision, so the tree is re-fetched when an edit is
+    /// committed. ⚠️ [I-0331]: NOT the scene — the tree is the whole project's window around the current node, the same
+    /// for every scene; a scene change only re-filters it (`orderedNodes`), which is pure render. Keying on the scene
+    /// re-fetched it on every scroll past a scene. The caret is not part of it either: it only changes the bold row.
     private var reloadKey: String {
-        "\(context.sceneID)#\(context.historyRevision)"
+        "\(context.history.map { ObjectIdentifier($0).hashValue } ?? 0)#\(context.historyRevision)"
     }
 
     // MARK: — Tree
@@ -176,7 +175,7 @@ private struct HistoryCardBody: View {
     private func select(_ node: HistoryTreeNode, in tree: HistoryTreeResult) {
         guard !node.onPrimarySpine, !node.parentID.isEmpty else { return }
         context.history?.selectBranch(forkNodeID: node.parentID, childEventID: node.eventID)
-        reload()
+        Task { await reload() }
     }
 
     // MARK: — Stale branches
@@ -216,9 +215,9 @@ private struct HistoryCardBody: View {
 
     // MARK: — Helpers
 
-    private func reload() {
+    private func reload() async {
         guard let history = context.history else { return }
-        guard let t = history.tree() else {
+        guard let t = await history.tree() else {
             loadFailed = true
             return
         }

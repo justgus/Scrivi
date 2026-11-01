@@ -3,7 +3,9 @@
 #include "scrivi/scrivi.h"
 #include "util/Json.hpp"
 
+#include <algorithm>
 #include <atomic>
+#include <vector>
 #include <filesystem>
 #include <fstream>
 #include <sstream>
@@ -1365,5 +1367,299 @@ TEST_CASE("C ABI: an event recorded while the log is unwritable is written once 
         REQUIRE(r.getBool("moved"));
         REQUIRE(r.arrayItem("changes", 0).getString("newText") == expected);
     }
+    scrivi_free(scrivi_history_close(ROOT));
+}
+
+// ---------------------------------------------------------------------------
+// T-0400 (SP-200) — compaction: the live tree written to log-(N+1).jsonl, state.json moved to it, the old segment removed
+// at the next open (design `Scrivi_History_Load_Design_v0_1.md` §2). Through scrivi_*.
+// ---------------------------------------------------------------------------
+
+namespace {
+
+namespace stdfs = std::filesystem;
+
+std::vector<std::string> segmentsOf(const std::string& root) {
+    std::vector<std::string> out;
+    std::error_code ec;
+    for (const auto& e : stdfs::directory_iterator(stdfs::path(root) / "history", ec)) {
+        const auto name = e.path().filename().string();
+        if (name.rfind("log-", 0) == 0 && e.path().extension() == ".jsonl") out.push_back(name);
+    }
+    std::sort(out.begin(), out.end());
+    return out;
+}
+
+std::string activeSegmentOf(const std::string& root) {
+    std::ifstream in(stdfs::path(root) / "history" / "state.json");
+    std::stringstream ss; ss << in.rdbuf();
+    return parseJson(ss.str()).value().getString("activeLogSegment");
+}
+
+void setActiveSegment(const std::string& root, const std::string& name) {
+    const auto path = stdfs::path(root) / "history" / "state.json";
+    std::ifstream in(path);
+    std::stringstream ss; ss << in.rdbuf();
+    in.close();
+    auto parsed = parseJson(ss.str());
+    JsonDoc st = std::move(parsed.value());
+    st.setString("activeLogSegment", name);
+    std::ofstream(path) << st.dump(2);
+}
+
+// Everything the tree card and undo see: the whole tree, as JSON — with each node's children sorted. ⚠️ ANY reload orders
+// a fork's children by eventID (`finalizeLoad`), and two IDs minted in the same millisecond are not in creation order; this
+// test forks within one millisecond (a writer cannot). Which child is primary is recorded and compared.
+std::string treeOf(const char* root) {
+    const auto t = okResult(scrivi_history_get_tree(root, R"({"maxNodes":100000})"));
+    std::string out = t.getString("rootID") + "|" + t.getString("currentNodeID") + "|" + std::to_string(t.getInt("totalNodeCount"));
+    for (std::size_t i = 0; i < t.arraySize("nodes"); ++i) {
+        auto n = t.arrayItem("nodes", i);
+        auto kids = n.getStringArray("childIDs");
+        std::sort(kids.begin(), kids.end());
+        std::string k;
+        for (const auto& c : kids) k += c + ",";
+        n.setString("childIDs", k);
+        out += "\n" + n.dump(-1);
+    }
+    return out;
+}
+
+// A history past capacity — more than 2,000 dead records — with forks, a branch re-selected, a barrier carrying a text,
+// and an edit group across two scenes. Returns the texts ten undos produce from the end, then redoes them.
+std::vector<std::string> buildLongHistory(const char* root) {
+    scrivi_free(scrivi_history_open(root));
+    { JsonDoc s; s.setInt("capacityEvents", 50); scrivi_free(scrivi_history_set_settings(root, s.dump().c_str())); }
+    std::string a = "Alpha.", b = "Beta.";
+    scrivi_free(scrivi_history_seed_scene(root, "scene_a", a.c_str()));
+    scrivi_free(scrivi_history_seed_scene(root, "scene_b", b.c_str()));
+    for (int i = 0; i < 2500; ++i) {
+        std::string& t = (i % 3) ? a : b;
+        const char* scene = (i % 3) ? "scene_a" : "scene_b";
+        const auto before = static_cast<int64_t>(t.size());
+        t += " s" + std::to_string(i) + ".";
+        scrivi_free(scrivi_history_record_event(root, scene, t.c_str(),
+                                                recordParams("typing", before, static_cast<int64_t>(t.size())).c_str()));
+    }
+    // A fork near the end, the OTHER branch re-selected, then back on it.
+    auto u = okResult(scrivi_history_undo(root));
+    REQUIRE(u.getBool("moved"));
+    const std::string undone = u.arrayItem("changes", 0).getString("newText");
+    a = undone;   // the last event was in scene_a (2499 % 3 != 0)
+    a += " fork.";
+    okResult(scrivi_history_record_event(root, "scene_a", a.c_str(),
+                                         recordParams("typing", static_cast<int64_t>(undone.size()),
+                                                      static_cast<int64_t>(a.size())).c_str()));
+    auto back = okResult(scrivi_history_undo(root));
+    const std::string fork = back.getSubDoc("forkAhead").getString("nodeID");
+    REQUIRE_FALSE(fork.empty());
+    const auto kids = back.getSubDoc("forkAhead");
+    // The child with the LOWER eventID: a reload's default primary is the highest, so only the recorded choice keeps it.
+    std::string other;
+    for (std::size_t i = 0; i < kids.arraySize("children"); ++i) {
+        const auto id = kids.arrayItem("children", i).getString("eventID");
+        if (other.empty() || id < other) other = id;
+    }
+    scrivi_free(scrivi_history_select_branch(root, fork.c_str(), other.c_str()));
+    okResult(scrivi_history_redo(root));
+    // A barrier that rewrote scene_b, and an edit group across both scenes.
+    {
+        JsonDoc p; p.setString("barrierKind", "structural"); p.setString("note", "test");
+        JsonDoc texts; b = "Rewritten."; texts.setString("scene_b", b); p.setSubDoc("sceneTexts", std::move(texts));
+        okResult(scrivi_history_record_barrier(root, p.dump().c_str()));
+    }
+    const std::string a2 = a + " g.", b2 = b + " g.";
+    okResult(scrivi_history_record_event(root, "scene_a", a2.c_str(), recordParamsInGroup("replace", 0, 0, "grp").c_str()));
+    okResult(scrivi_history_record_event(root, "scene_b", b2.c_str(), recordParamsInGroup("replace", 0, 0, "grp").c_str()));
+    for (int i = 0; i < 3; ++i) {
+        const auto before = static_cast<int64_t>(a.size());
+        okResult(scrivi_history_record_event(root, "scene_a", (a2 + " t" + std::to_string(i)).c_str(),
+                                             recordParams("typing", before, before).c_str()));
+    }
+    std::vector<std::string> texts;
+    for (int i = 0; i < 10; ++i) {
+        auto r = okResult(scrivi_history_undo(root));
+        if (!r.getBool("moved")) break;
+        for (std::size_t c = 0; c < r.arraySize("changes"); ++c) texts.push_back(r.arrayItem("changes", c).getString("newText"));
+    }
+    for (int i = 0; i < 10; ++i) scrivi_free(scrivi_history_redo(root));
+    return texts;
+}
+
+std::vector<std::string> undoTexts(const char* root) {
+    std::vector<std::string> texts;
+    for (int i = 0; i < 10; ++i) {
+        auto r = okResult(scrivi_history_undo(root));
+        if (!r.getBool("moved")) break;
+        for (std::size_t c = 0; c < r.arraySize("changes"); ++c) texts.push_back(r.arrayItem("changes", c).getString("newText"));
+    }
+    return texts;
+}
+
+}  // namespace
+
+TEST_CASE("[T-0400] a long history is compacted at close and reopens as the same tree", "[HistoryCApi][T-0400]") {
+    HistoryRoot ROOT_; const char* ROOT = ROOT_.c();
+    const auto expectedUndo = buildLongHistory(ROOT);
+    const std::string treeBefore = treeOf(ROOT);
+    const auto bytesBefore = readHistoryLog(ROOT).size();
+    scrivi_free(scrivi_history_close(ROOT));
+
+    // Compacted at close: the new segment is whole and named; the old one waits for the next open.
+    CHECK(activeSegmentOf(ROOT_.path) == "log-000002.jsonl");
+    CHECK(segmentsOf(ROOT_.path) == std::vector<std::string>{"log-000001.jsonl", "log-000002.jsonl"});
+
+    scrivi_free(scrivi_history_open(ROOT));
+    CHECK(segmentsOf(ROOT_.path) == std::vector<std::string>{"log-000002.jsonl"});
+    const auto bytesAfter = readHistoryLog(ROOT).size();
+    INFO("log " << bytesBefore << " -> " << bytesAfter << " bytes");
+    CHECK(bytesAfter * 5 < bytesBefore);
+    CHECK(treeOf(ROOT) == treeBefore);
+    CHECK(undoTexts(ROOT) == expectedUndo);
+    scrivi_free(scrivi_history_close(ROOT));
+}
+
+TEST_CASE("[T-0400] a crash at any step of a compaction reopens as the same tree", "[HistoryCApi][T-0400]") {
+    HistoryRoot ROOT_; const char* ROOT = ROOT_.c();
+    const auto expectedUndo = buildLongHistory(ROOT);
+    const std::string treeBefore = treeOf(ROOT);
+    scrivi_free(scrivi_history_close(ROOT));
+    REQUIRE(segmentsOf(ROOT_.path).size() == 2);
+
+    SECTION("the new segment written, state.json not yet moved: the old segment is read, the new one removed") {
+        setActiveSegment(ROOT_.path, "log-000001.jsonl");
+        scrivi_free(scrivi_history_open(ROOT));
+        CHECK(segmentsOf(ROOT_.path) == std::vector<std::string>{"log-000001.jsonl"});
+    }
+    SECTION("state.json moved, the old segment not yet removed: the new one is read, the old one removed") {
+        scrivi_free(scrivi_history_open(ROOT));
+        CHECK(segmentsOf(ROOT_.path) == std::vector<std::string>{"log-000002.jsonl"});
+    }
+    SECTION("state.json unreadable: the newest segment is read") {
+        stdfs::remove(stdfs::path(ROOT_.path) / "history" / "state.json");
+        scrivi_free(scrivi_history_open(ROOT));
+        CHECK(segmentsOf(ROOT_.path) == std::vector<std::string>{"log-000002.jsonl"});
+    }
+    CHECK(treeOf(ROOT) == treeBefore);
+    CHECK(undoTexts(ROOT) == expectedUndo);
+    scrivi_free(scrivi_history_close(ROOT));
+}
+
+TEST_CASE("[T-0400] a short history is not compacted", "[HistoryCApi][T-0400]") {
+    HistoryRoot ROOT_; const char* ROOT = ROOT_.c();
+    scrivi_free(scrivi_history_open(ROOT));
+    scrivi_free(scrivi_history_seed_scene(ROOT, "scene_a", "A"));
+    scrivi_free(scrivi_history_record_event(ROOT, "scene_a", "AB", recordParams("typing", 1, 2).c_str()));
+    scrivi_free(scrivi_history_close(ROOT));
+    scrivi_free(scrivi_history_open(ROOT));
+    scrivi_free(scrivi_history_close(ROOT));
+    CHECK(segmentsOf(ROOT_.path) == std::vector<std::string>{"log-000001.jsonl"});
+}
+
+TEST_CASE("[T-0645] a structural payload is logged as JSON, and a log that stored it as a string still opens",
+          "[HistoryCApi][T-0645]") {
+    HistoryRoot ROOT_; const char* ROOT = ROOT_.c();
+    scrivi_free(scrivi_history_open(ROOT));
+    scrivi_free(scrivi_history_record_event(ROOT, "scene_a", "before", recordParams("typing", 0, 6).c_str()));
+    JsonDoc payload;
+    payload.setString("op", "rangeCut");
+    payload.setString("rangeJSON", R"({"scenes":[{"sceneID":"scene_a","text":"a \"quoted\" line"}]})");
+    JsonDoc bp;
+    bp.setString("barrierKind", "rangeCut");
+    bp.setSubDoc("structuralPayload", std::move(payload));
+    scrivi_free(scrivi_history_record_barrier(ROOT, bp.dump().c_str()));
+    scrivi_free(scrivi_history_close(ROOT));
+
+    const auto logPath = stdfs::path(ROOT_.path) / "history" / "log-000001.jsonl";
+    std::string log = readHistoryLog(ROOT);
+    CHECK(log.find(R"("structuralPayload":{)") != std::string::npos);
+
+    auto payloadAfterReopen = [&] {
+        scrivi_free(scrivi_history_open(ROOT));
+        auto r = okResult(scrivi_history_undo(ROOT));
+        scrivi_free(scrivi_history_redo(ROOT));   // back across it, so the next reopen starts at the same place
+        scrivi_free(scrivi_history_close(ROOT));
+        return r.getSubDoc("structuralInverse").getSubDoc("payload").getString("rangeJSON");
+    };
+    CHECK(payloadAfterReopen() == R"({"scenes":[{"sceneID":"scene_a","text":"a \"quoted\" line"}]})");
+
+    // The shape a log written before T-0645 has: the payload as a STRING.
+    std::string old;
+    {
+        std::ifstream in(logPath);
+        for (std::string line; std::getline(in, line);) {
+            auto parsed = parseJson(line);
+            JsonDoc d = std::move(parsed.value());
+            if (d.getString("kind") == "structural") {
+                const std::string p = d.getSubDoc("structuralPayload").dump(0);
+                d.setString("structuralPayload", p);
+            }
+            old += d.dump(-1) + "\n";
+        }
+    }
+    std::ofstream(logPath) << old;
+    REQUIRE(readHistoryLog(ROOT).find(R"("structuralPayload":"{)") != std::string::npos);
+    CHECK(payloadAfterReopen() == R"({"scenes":[{"sceneID":"scene_a","text":"a \"quoted\" line"}]})");
+}
+
+TEST_CASE("[T-0643] a Replace All is logged as its changes and undoes exactly after a reopen", "[HistoryCApi][T-0643]") {
+    HistoryRoot ROOT_; const char* ROOT = ROOT_.c();
+    std::string before;
+    for (int i = 0; i < 80; ++i) before += "The count rode out of the gate before dawn, and the road was empty. ";
+    std::string after = before;
+    for (std::size_t p = after.find("the"); p != std::string::npos; p = after.find("the", p + 4)) after.replace(p, 3, "that");
+    scrivi_free(scrivi_history_open(ROOT));
+    scrivi_free(scrivi_history_seed_scene(ROOT, "scene_a", before.c_str()));
+    okResult(scrivi_history_record_event(ROOT, "scene_a", after.c_str(), recordParams("replace", 0, 0).c_str()));
+    scrivi_free(scrivi_history_close(ROOT));
+
+    const std::string log = readHistoryLog(ROOT);
+    CHECK(log.find(R"("hunks":[)") != std::string::npos);
+
+    scrivi_free(scrivi_history_open(ROOT));
+    auto u = okResult(scrivi_history_undo(ROOT));
+    CHECK(u.arrayItem("changes", 0).getString("newText") == before);
+    auto r = okResult(scrivi_history_redo(ROOT));
+    CHECK(r.arrayItem("changes", 0).getString("newText") == after);
+    scrivi_free(scrivi_history_close(ROOT));
+}
+
+TEST_CASE("[T-0644] a structural edit's texts are logged as changes and read back exactly after a reopen",
+          "[HistoryCApi][T-0644]") {
+    HistoryRoot ROOT_; const char* ROOT = ROOT_.c();
+    std::string seed = "UNIQUE-MARKER opens the scene. ";
+    for (int i = 0; i < 100; ++i) seed += "The count rode out of the gate before dawn. ";
+    const std::string edited = seed + "He did not look back.";
+    const std::string after = "A new first line. " + edited;   // what the op left in the scene
+
+    scrivi_free(scrivi_history_open(ROOT));
+    scrivi_free(scrivi_history_seed_scene(ROOT, "S", seed.c_str()));
+    okResult(scrivi_history_record_event(ROOT, "S", edited.c_str(), recordParams("typing", 0, 0).c_str()));
+    {
+        JsonDoc p, texts, before, payload;
+        p.setString("barrierKind", "structuredPaste");
+        texts.setString("S", after);
+        before.setString("S", edited);   // = the history's head: stored as a name only
+        payload.setString("op", "structuredPaste");
+        p.setSubDoc("sceneTexts", std::move(texts));
+        p.setSubDoc("sceneTextsBefore", std::move(before));
+        p.setSubDoc("structuralPayload", std::move(payload));
+        okResult(scrivi_history_record_barrier(ROOT, p.dump().c_str()));
+    }
+    scrivi_free(scrivi_history_close(ROOT));
+
+    const std::string log = readHistoryLog(ROOT);
+    CHECK(log.find(R"("sceneTextDiffs")") != std::string::npos);
+    CHECK(log.find(R"("sceneTextsBeforeSame":["S"])") != std::string::npos);
+    std::size_t copies = 0;
+    for (auto p = log.find("UNIQUE-MARKER"); p != std::string::npos; p = log.find("UNIQUE-MARKER", p + 1)) ++copies;
+    CHECK(copies == 1);   // the seed's floor only — not again in the barrier's after and before texts
+
+    scrivi_free(scrivi_history_open(ROOT));
+    // The next edit diffs against what the op left: undoing it gives exactly that.
+    okResult(scrivi_history_record_event(ROOT, "S", (after + "!").c_str(), recordParams("typing", 0, 0).c_str()));
+    CHECK(okResult(scrivi_history_undo(ROOT)).arrayItem("changes", 0).getString("newText") == after);
+    CHECK(okResult(scrivi_history_undo(ROOT)).contains("structuralInverse"));   // across the op
+    CHECK(okResult(scrivi_history_undo(ROOT)).arrayItem("changes", 0).getString("newText") == seed);
     scrivi_free(scrivi_history_close(ROOT));
 }

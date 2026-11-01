@@ -2069,6 +2069,7 @@ public final class ScriviEngine: @unchecked Sendable {
     public func listEdgesFor(projectRootPath: String, endpointID: String) throws -> ListEdgesResult { try unavailable() }
     public func loadSceneInspector(projectRootPath: String, sceneID: String, includeCitations: Bool) throws -> SceneInspectorRead { try unavailable() }
     public func listPendingEdges(projectRootPath: String) throws -> ListPendingEdgesResult { try unavailable() }
+    public func getProjectMetrics(projectRootPath: String) throws -> ProjectMetrics { try unavailable() }
     public func listObjects(projectRootPath: String, kind: String = "") throws -> ListObjectsResult { try unavailable() }
     public func listOrphanedObjects(projectRootPath: String) throws -> ListObjectsResult { try unavailable() }
     public func promoteObject(projectRootPath: String, objectID: String, targetKind: String, worldID: String = "") throws -> PromoteObjectResult { try unavailable() }

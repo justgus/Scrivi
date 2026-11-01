@@ -88,7 +88,37 @@ yet re-passed.
 4. **File ▸ Close Project**, reopen it from the landing window, then **File ▸ Quit** and relaunch. Both times the
    Timeline comes back at the same zoom and place.
 
+## SP-200 AC5 — the history opens fast and reads back the same · ✅ Mac passed 2026-11-01
+
+→ [`Sprint-SP-200.md`](Sprint-SP-200.md). The first open of each project compacts its history (`history/log-000002.jsonl`
+appears beside `log-000001.jsonl`, which the next open removes).
+
+1. Open **dumas-prose-timelines** over the share. Note how long until the manuscript can be typed into.
+2. Type a sentence, then **Edit ▸ Undo** and **Edit ▸ Redo**: the sentence goes and comes back.
+3. Select across two scenes and **Edit ▸ Cut**, then **Edit ▸ Undo**: both scenes read as before.
+4. **Edit ▸ Find and Replace…**: replace `the` with `thee`, **Replace All**, then **Edit ▸ Undo**: every `the` is back.
+5. **File ▸ Close Project**, reopen it, and **Edit ▸ Undo** twice more: the steps before the reopen undo as they did.
+6. Repeat 1–5 on **dumas-prose-timelines-history** (25,000 history steps) — it should open as quickly.
+
+## SP-200 AC6 — T-0647: the Properties tab's metrics · ✅ Mac passed 2026-11-01
+
+→ [`Sprint-SP-200.md`](Sprint-SP-200.md)
+
+1. With dumas-prose-timelines open, **View ▸ Show Inspector**, then the **Properties** tab. Click a scene that has
+   objects linked in its Worldbuilding tab.
+2. The Scene section shows **Links** with the number of objects listed in that scene's Worldbuilding tab.
+3. Below it, **Project**: Scenes, Chapters, Links, World links, and History ("N steps · N MB"). Scenes reads 1,175 or so.
+4. Then one **World — <name>** section per world the project uses (none if it uses no world): Objects, then a row per
+   kind (Character, Location, …).
+5. Click another scene: the Scene numbers change, the Project and World numbers stay. The window never waits.
+6. If a world is on a drive you can pull: pull it and click another scene. Its section reads **"(unavailable; last
+   known)"** and still shows the counts.
+
 ---
+
+*Last Updated: 2026-11-01 (SP-200 AC6 added; Mac pass recorded.)*
+
+*Last Updated: 2026-11-01 (SP-200 AC5 added.)*
 
 *Last Updated: 2026-11-01 (SP-197 Mac pass recorded.)*
 

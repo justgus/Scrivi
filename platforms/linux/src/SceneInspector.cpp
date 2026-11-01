@@ -18,6 +18,7 @@
 #include <QJsonObject>
 #include <QLabel>
 #include <QLineEdit>
+#include <QLocale>
 #include <QMenu>
 #include <QSet>
 #include <QTabWidget>
@@ -278,13 +279,20 @@ QWidget* SceneInspector::buildPropertiesTab()
     propChars_    = makeValue();
     propCreated_  = makeValue();
     propModified_ = makeValue();
+    propLinks_    = makeValue();
 
     form->addRow(tr("Title"),         propTitle_);
     form->addRow(tr("Words"),         propWords_);
     form->addRow(tr("Characters"),    propChars_);
     form->addRow(tr("Created"),       propCreated_);
     form->addRow(tr("Last modified"), propModified_);
+    form->addRow(tr("Links"),         propLinks_);
     outer->addLayout(form);
+
+    // T-0647: Project, then one section per bound world — the same sections as Apple's.
+    propProject_ = makeValue();
+    propProject_->setTextFormat(Qt::RichText);
+    outer->addWidget(propProject_);
     outer->addStretch(1);
 
     propStatus_ = new QLabel(tab);
@@ -364,6 +372,7 @@ struct SceneInspector::ReloadPayload {
     QVariantMap objectsResult;
     QVariantMap worldsResult;
     QVariantMap notesResult;
+    QVariantMap metricsResult;   // T-0647; empty when the call failed (the last figures stay)
     bool edgesFailed   = true;
     bool objectsFailed = true;
     bool worldsFailed  = true;
@@ -445,6 +454,7 @@ void SceneInspector::startRead()
             part("objects", p.objectsResult, p.objectsFailed);
             part("worlds",  p.worldsResult,  p.worldsFailed);
             part("notes",   p.notesResult,   p.notesFailed);
+            p.metricsResult = bridge->getProjectMetrics(root);   // T-0647: same worker, after the scene's read
             return p;
         },
         [this, scene, root, generation](const ReloadPayload& p) {
@@ -465,6 +475,7 @@ void SceneInspector::startRead()
             if (tree_ != nullptr) { tree_->setEnabled(true); }
             applyReload(p);
             applyNotes(p.notesResult, p.notesFailed);
+            applyMetrics(p);
         },
         [this, scene, generation]() {
             readInFlight_ = false;   // shortcut: the parked worker may still hold the lock; the next read waits behind it
@@ -985,6 +996,56 @@ void SceneInspector::applyNotes(const QVariantMap& notes, bool failed, const QSt
     if (propStatus_) { propStatus_->clear(); }
 
     loadingNotes_ = false;
+}
+
+void SceneInspector::applyMetrics(const ReloadPayload& p)
+{
+    if (propLinks_ && !p.edgesFailed) {
+        propLinks_->setText(QLocale().toString(p.edgesResult.value(QStringLiteral("edges")).toList().size()));
+    }
+    if (!propProject_ || p.metricsResult.isEmpty()) { return; }
+    const QLocale loc;
+    const QVariantMap& m = p.metricsResult;
+    auto num = [&loc](const QVariant& v) { return loc.toString(v.toLongLong()); };
+    QString html;
+    auto section = [&html](const QString& title, const QList<QPair<QString, QString>>& rows) {
+        html += QStringLiteral("<p><b>%1</b></p><table>").arg(title.toHtmlEscaped());
+        for (const auto& [label, value] : rows) {
+            html += QStringLiteral("<tr><td>%1&nbsp;&nbsp;</td><td>%2</td></tr>")
+                        .arg(label.toHtmlEscaped(), value.toHtmlEscaped());
+        }
+        html += QStringLiteral("</table>");
+    };
+    const QVariantMap links = m.value(QStringLiteral("links")).toMap();
+    QList<QPair<QString, QString>> rows = {
+        {tr("Scenes"),      num(m.value(QStringLiteral("sceneCount")))},
+        {tr("Chapters"),    num(m.value(QStringLiteral("chapterCount")))},
+        {tr("Links"),       num(links.value(QStringLiteral("total")))},
+        {tr("World links"), num(links.value(QStringLiteral("world")))},
+    };
+    const QVariantMap history = m.value(QStringLiteral("history")).toMap();
+    if (history.value(QStringLiteral("open")).toBool()) {
+        rows.append({tr("History"), tr("%1 steps · %2").arg(num(history.value(QStringLiteral("steps"))),
+                                                              loc.formattedDataSize(history.value(QStringLiteral("bytes")).toLongLong(),
+                                                                                    1, QLocale::DataSizeSIFormat))});
+    }
+    section(tr("Project"), rows);
+    for (const QVariant& wv : m.value(QStringLiteral("worlds")).toList()) {
+        const QVariantMap w = wv.toMap();
+        QString name = w.value(QStringLiteral("displayName")).toString();
+        if (name.isEmpty()) { name = w.value(QStringLiteral("worldID")).toString(); }
+        const QString title = w.value(QStringLiteral("fromCache")).toBool()
+            ? tr("World — %1 (unavailable; last known)").arg(name) : tr("World — %1").arg(name);
+        QList<QPair<QString, QString>> kinds = {{tr("Objects"), num(w.value(QStringLiteral("total")))}};
+        for (const QVariant& kv : w.value(QStringLiteral("kinds")).toList()) {
+            const QVariantMap k = kv.toMap();
+            QString kind = k.value(QStringLiteral("kind")).toString();
+            if (!kind.isEmpty()) { kind[0] = kind[0].toUpper(); }
+            kinds.append({kind, num(k.value(QStringLiteral("count")))});
+        }
+        section(title, kinds);
+    }
+    propProject_->setText(html);
 }
 
 void SceneInspector::setWritingEnabled(bool on)

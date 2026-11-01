@@ -48,6 +48,10 @@ struct ScenePropertiesView: View {
 
     @State private var notes: SceneNotesResult?
     @State private var loadFailed = false
+    /// T-0647: the scene's own links (nil: not read).
+    @State private var sceneLinks: Int?
+    /// T-0647: the project's and its worlds' figures, read off the main actor.
+    @State private var metrics: ProjectMetrics?
 
     var body: some View {
         Group {
@@ -61,6 +65,12 @@ struct ScenePropertiesView: View {
                         section("Scene", properties(for: notes).filter { $0.id.hasPrefix("scene.") })
                         section("Authorship", properties(for: notes).filter { $0.id.hasPrefix("author.") })
                         section("Metrics", properties(for: notes).filter { $0.id.hasPrefix("metric.") })
+                        if let metrics {
+                            section("Project", projectProperties(metrics))
+                            ForEach(metrics.worlds, id: \.worldID) { world in
+                                section(worldTitle(world), worldProperties(world))
+                            }
+                        }
                     }
                     .padding(12)
                 }
@@ -69,7 +79,10 @@ struct ScenePropertiesView: View {
             }
         }
         .opacity(waiting ? 0.45 : 1)
-        .task(id: "\(sceneID ?? "")#\(reader?.readCount ?? 0)#\(reader?.failure != nil)") { load() }
+        .task(id: "\(sceneID ?? "")#\(reader?.readCount ?? 0)#\(reader?.failure != nil)") {
+            load()
+            await loadMetrics()
+        }
     }
 
     /// SP-197 Q2: the last scene's properties, dimmed, while this scene's read is out.
@@ -105,7 +118,34 @@ struct ScenePropertiesView: View {
                           value: "\(n.wordCount)", editability: .derived),
             SceneProperty(id: "metric.characters", label: "Characters",
                           value: "\(n.characterCount)", editability: .derived),
+        ] + (sceneLinks.map { [SceneProperty(id: "metric.links", label: "Links",
+                                             value: $0.formatted(), editability: .derived)] } ?? [])
+    }
+
+    private func projectProperties(_ m: ProjectMetrics) -> [SceneProperty] {
+        var rows = [
+            SceneProperty(id: "project.scenes", label: "Scenes", value: m.sceneCount.formatted(), editability: .derived),
+            SceneProperty(id: "project.chapters", label: "Chapters", value: m.chapterCount.formatted(), editability: .derived),
+            SceneProperty(id: "project.links", label: "Links", value: m.links.total.formatted(), editability: .derived),
+            SceneProperty(id: "project.worldLinks", label: "World links", value: m.links.world.formatted(), editability: .derived),
         ]
+        if m.history.open, let steps = m.history.steps, let bytes = m.history.bytes {
+            rows.append(SceneProperty(id: "project.history", label: "History",
+                                      value: "\(steps.formatted()) steps · \(ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .file))",
+                                      editability: .derived))
+        }
+        return rows
+    }
+
+    private func worldTitle(_ w: ProjectMetrics.World) -> String {
+        let name = w.displayName.isEmpty ? w.worldID : w.displayName
+        return w.fromCache ? "World — \(name) (unavailable; last known)" : "World — \(name)"
+    }
+
+    private func worldProperties(_ w: ProjectMetrics.World) -> [SceneProperty] {
+        [SceneProperty(id: "world.\(w.worldID).total", label: "Objects", value: w.total.formatted(), editability: .derived)]
+            + w.kinds.map { SceneProperty(id: "world.\(w.worldID).\($0.kind)", label: $0.kind.capitalized,
+                                          value: $0.count.formatted(), editability: .derived) }
     }
 
     // MARK: — Rendering
@@ -144,6 +184,7 @@ struct ScenePropertiesView: View {
                 case .success(let n): notes = n; loadFailed = false
                 case .failure:        loadFailed = true
                 }
+                sceneLinks = try? read.parts.edges.get().edges.count
             } else if reader.failure?.sceneID == sceneID {
                 loadFailed = true
             }
@@ -151,9 +192,21 @@ struct ScenePropertiesView: View {
         }
         do {
             notes = try engine.getSceneNotes(projectRootPath: projectRootPath, sceneID: sceneID)
+            sceneLinks = try? engine.listEdgesFor(projectRootPath: projectRootPath, endpointID: sceneID).edges.count
             loadFailed = false
         } catch {
             loadFailed = true
+        }
+    }
+
+    /// T-0647: refreshed whenever the scene's read lands. A failed read keeps the last figures.
+    private func loadMetrics() async {
+        guard let projectRootPath else { return }
+        let engine = engine
+        if let m = await Task.detached(priority: .utility, operation: {
+            try? engine.getProjectMetrics(projectRootPath: projectRootPath)
+        }).value {
+            metrics = m
         }
     }
 

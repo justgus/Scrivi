@@ -110,7 +110,23 @@ public:
 
     std::int64_t lastSeq() const { return lastSeq_; }
 
+    // T-0400 (SP-200, design `Scrivi_History_Load_Design_v0_1.md` §2): writes the live tree to `log-(N+1).jsonl` and moves
+    // `state.json` to it when the active segment is worth compacting (Q1: more than 2,000 records not in the live tree,
+    // or more than 10,000 written since the last compaction). Called at open (after the load) and at close.
+    // `sessionID` is the session the compacted segment records as the last one (closed).
+    // Returns true if it compacted.
+    bool compactIfWorthIt(const std::string& sessionID);
+    // The same, unconditionally (tests).
+    void compact(const std::string& sessionID);
+    const std::string& activeSegment() const { return activeSegment_; }
+    // T-0647: the bytes of the active segment, kept as it is read, appended to and compacted — what the next open reads.
+    std::int64_t segmentBytes() const { return segmentBytes_; }
+
 private:
+    // One log line for `node`, stamped `seq` (persistEvent and compact share it).
+    std::string eventLine(const EventNode& node, std::int64_t seq) const;
+    // The segment `state.json` names, or the highest-numbered `log-*.jsonl` present; other segments are removed (§2.2).
+    void resolveActiveSegment();
     AbsolutePath logPath() const;
     AbsolutePath statePath() const;
     void appendLine(const std::string& jsonLine);
@@ -124,6 +140,10 @@ private:
     std::int64_t lastSeq_ = 0;
     std::string  activeSegment_ = "log-000001.jsonl";
     int recordsSinceCheckpoint_ = 0;
+    // T-0400: records in the active segment, and how many of them its compaction wrote (0 if never compacted).
+    std::int64_t segmentRecords_ = 0;
+    std::int64_t compactedRecords_ = 0;
+    std::int64_t segmentBytes_ = 0;   // T-0647
     // Records whose append failed (volume gone), written ahead of the next (I-0268).
     std::string unwrittenLines_;
     Writer writer_;

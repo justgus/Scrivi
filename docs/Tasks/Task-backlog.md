@@ -28,7 +28,6 @@ status changes on its own layer.
 | T-0118 | Scroll bar fidelity — per-scene character-ratio thumb position and size | EP-011 | 🔵 Backlog |
 | T-0197 | Enable Core Spotlight donation on iOS/iPadOS (+ iOS deep-link/bookmark consumer); visionOS when backend links | EP-017 (deferred from T-0190) | 🔵 Backlog |
 | T-0249 | `[Linux]` Manuscript navigation gestures — Page Forward/Backward + jump to absolute manuscript start/end | EP-022 (unscheduled) | 🔵 Backlog |
-| T-0400 | `[ScriviCore]` History log-segment rotation | EP-019 (deferred) | 🟢 **Nice to have** — no sprint assigned |
 | **T-0459** | ⚠️ **`[Cross]` Per-citation reference markers on the `cites` EDGE** — surface the edge `note`, and ⚠️ **move `page` off the source object** | **EP-032** | 🔵 **Backlog** — ⚠️ **found by live use, SP-120** |
 | **T-0472** | ⚠️ **`[Linux]` Surface for custom relationship types** — build the UI that calls `scrivi_upsert_relation_type`. ⚠️ **The endpoint is fully implemented and has NEVER had a caller on any platform** | **EP-037** | 🔵 **Backlog** — ⚠️ **user ruling 2026-08-25: a REAL FEATURE owed a surface, not dead code**; ⚠️ **moved EP-035 → EP-037 by the three-way split** |
 | **T-0473** | ⚠️ **`[Apple]` Timeline endpoint parity** — reach `resolve_timeline_project_times`, `set_timeline_epoch_offset`, `set_world_epoch_offset`. ⚠️ **Unreached on Apple; bridged on Linux by SP-121** | ⚠️ **None — no Epic** | 🔵 **Backlog** — ⚠️ **user ruling 2026-08-25: tracked, NOT scheduled** |
@@ -245,17 +244,6 @@ SP-102's live runs produced eight Issues. Step 1 doubles as **AC1's re-verificat
 ⚠️ **Back up the rig first** — `~/Desktop/the-stairs-of-tintagael.scrivi` +
 `/Volumes/Scrivi Worlds/Eskandar.scrivworld` hold **real writing work**. Findings are **filed, not fixed**.
 ⚠️ **May surface T-0416** (seeded relation types never reach existing projects) as a live blocker.
-
-### T-0400 — `[ScriviCore]` History log-segment rotation
-
-**Epic:** EP-019 (deferred) · **Status:** 🟢 **Nice to have** (user ruling 2026-08-11) — not a
-blocker; no sprint assigned.
-
-`activeSegment_` is hard-fixed to `log-000001.jsonl` (`HistoryStore.hpp:114`); nothing rotates it, so
-a project accumulates one unbounded segment (a real project is already ~3.4 MB). Capacity/eviction
-bounds the **tree**, not the **log**. The reader already honours `activeLogSegment` from `state.json`,
-so rotation is **additive, with no format change**. Documented as not-implemented in package-structure
-§16a. Raised by T-0217; deliberately **not** folded into a verification sprint.
 
 ### T-0416 — ⚠️ Seeded relation-type vocabulary does not reach existing projects
 
@@ -751,3 +739,4 @@ reachable again (at its next open, or when the drive returns while the app runs)
 - **Order:** scene saves and history appends first; structural jobs ([SP-196]) when they are queued too. A structural job
   in the held queue cannot be skipped, since the jobs behind it depend on it.
 - ⚠️ The local store holds manuscript text outside the project package.
+

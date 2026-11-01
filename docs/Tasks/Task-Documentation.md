@@ -686,7 +686,7 @@ archive files reconstructed after the fact from secondary sources.
 | T-0397 | `[Cross]` **Whitespace-kind labels in history** — new `whitespaceKind` tree field (`"newline:2"`) → `whitespaceLabel` (`"⏎ new paragraph"`); `preview`… | SP-093 | EP-019 | ✅ Verified 2026-08-10 [`Task-verified-0396-0398.md`](Verified/Task-verified-0396-0398.md) |
 | T-0398 | `[Cross]` **Distinguish added vs. deleted text in history rows** — `minus.circle` glyph + orange tint + "Deleted …" label prefix; `removedLength` carr… | SP-093 | EP-019 | ✅ Verified | [`Task-verified-0396-0398.md`](Verified/Task-verified-0396-0398.md) |
 | T-0399 | `[Apple]` **Card soft-failure isolation** — framework backstop in `CardBodyBoundary` + throwing `makeContent` (default forwards) + failing-card test f… | SP-101 | EP-030 | ✅ Verified | [`Task-verified-0399.md`](Verified/Task-verified-0399.md) |
-| T-0400 | `[ScriviCore]` **History log-segment rotation** — `activeSegment_` is hard-fixed to `log-000001.jsonl` (`HistoryStore.hpp:114`); nothing rotates it, s… | — | EP-019 | 🔵 Backlog | — |
+| T-0400 | `[ScriviCore]` **History log-segment rotation → (c) compaction** — design `Scrivi_History_Load_Design_v0_1.md` §2 | SP-200 | **EP-052** (was EP-019) | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
 | T-0401 | Index rebuild + corruption coverage (missing / corrupt / stale) — Doc 1 AC2 | SP-095 | EP-031 | ✅ Verified | [`Task-verified-0370-0406.md`](Verified/Task-verified-0370-0406.md) |
 | T-0402 | ⚠️ Endpoint-kind resolution via `ObjectIndex` — replaces §5.2's broken ID-prefix rule; amends Doc 1 | SP-096 | EP-031 | ✅ Verified | [`Task-verified-0370-0406.md`](Verified/Task-verified-0370-0406.md) |
 | T-0403 | ⚠️ `FileSystem::createFileExclusive` — exclusive-create primitive Doc 3 §6.5 assumes but that does not exist | SP-097 | EP-031 | ✅ Verified | [`Task-verified-0370-0406.md`](Verified/Task-verified-0370-0406.md) |
@@ -796,6 +796,11 @@ archive files reconstructed after the fact from secondary sources.
 | T-0640 | `[Cross]` Zoom to the current scene | SP-199 | **EP-055** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
 | T-0641 | `[Cross]` A time scale along the top of the Timeline | SP-199 | **EP-055** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
 | T-0642 | `[Apple]` The Timeline stays where the pinch leaves it | SP-199 | **EP-055** | ✅ Verified | [`Verified/Task-verified-0642.md`](Verified/Task-verified-0642.md) |
+| T-0643 | `[ScriviCore]` History load b1: a diff is a list of hunks | SP-200 | **EP-052** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
+| T-0644 | `[ScriviCore]` History load b2: barrier texts stored as changes | SP-200 | **EP-052** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
+| T-0645 | `[ScriviCore]` History load b3: the structural payload stored as JSON | SP-200 | **EP-052** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
+| T-0646 | `[Cross]` History load: measurements and Mac and rig live passes | SP-200 | **EP-052** | 🟢 Active | [`Task-active.md`](Task-active.md) |
+| T-0647 | `[Cross]` Properties tab: scene links, Project and World metrics | SP-200 | **EP-052** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
 | T-0592 | `[Apple]` E2-S3: formatting commands + lists + Option-Return | 🟡 **SP-163** | **EP-046** | ✅ **Verified 2026-10-06** | [`Task-verified-0592.md`](Verified/Task-verified-0592.md) |
 | T-0591 | `[Apple]` Balance emphasis across SCENE boundaries (cross-scene cut/copy/paste) | 🟡 **SP-163** | **EP-046** | ✅ **Verified 2026-10-06** | [`Task-verified-0591.md`](Verified/Task-verified-0591.md) |
 | T-0590 | `[Apple]` E2-S2: bold and italic + span reveal + the split rule | ✅ **SP-162** | **EP-046** | ✅ **Verified 2026-10-05** | [`Task-verified-0590.md`](Verified/Task-verified-0590.md) |

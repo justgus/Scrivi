@@ -8,7 +8,9 @@
 #include <functional>
 #include <optional>
 #include <cstdint>
+#include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace scrivi {
@@ -209,6 +211,11 @@ public:
     };
     virtual std::optional<SceneHint> locateScene(const AbsolutePath& projectRoot,
                                                  const SceneID&      sceneID) = 0;
+
+    // [I-0330] Every scene's {sceneID, title} in manuscript order, from memory. Same contract: std::nullopt means
+    // "no hint" and the caller walks the manuscript itself.
+    using SceneTitles = std::vector<std::pair<std::string, std::string>>;
+    virtual std::optional<SceneTitles> listSceneTitles(const AbsolutePath& /*projectRoot*/) { return std::nullopt; }
 };
 
 enum class LogLevel : std::uint8_t { debug, info, warning, error };

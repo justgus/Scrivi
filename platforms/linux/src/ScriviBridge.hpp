@@ -565,6 +565,8 @@ public:
     Q_INVOKABLE QVariantMap listObjects(const QString& projectRootPath, const QString& kindOrNull);
     Q_INVOKABLE QVariantMap listOrphanedObjects(const QString& projectRootPath);
     Q_INVOKABLE QVariantMap listPendingEdges(const QString& projectRootPath);
+    // T-0647: scenes, chapters, links, history and each bound world's objects by kind.
+    Q_INVOKABLE QVariantMap getProjectMetrics(const QString& projectRootPath);
     Q_INVOKABLE QVariantMap listRelationTypes(const QString& projectRootPath);
     Q_INVOKABLE QVariantMap listWorlds(const QString& projectRootPath);
     Q_INVOKABLE QVariantMap openObject(const QString& projectRootPath, const QString& objectKind, const QString& objectID, const QString& worldID);

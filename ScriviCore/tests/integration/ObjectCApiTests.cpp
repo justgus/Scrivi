@@ -13,6 +13,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include "scrivi/ObjectTypes.hpp"
 #include "scrivi/scrivi.h"
 #include "util/Json.hpp"
 // ⚠️ [I-0222]: the error `detail` prefix is DERIVED from the one place that
@@ -26,6 +27,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iterator>
+#include <map>
 #include <string>
 #include <vector>
 #include <unistd.h>   // getpid: ctest runs each test case in its own process
@@ -1298,4 +1300,95 @@ TEST_CASE("[I-0324] the cost of a card's edge listing does not grow with how man
     INFO("edge listing " << two << " -> " << twenty);
     // Eighteen more edges are eighteen more log lines, read in the same calls; a walk per scene endpoint was ~50 calls.
     CHECK(twenty - two <= 4);
+}
+
+// ---------------------------------------------------------------------------
+// [I-0330] — the pending-edge sweep takes the scenes from the open project's index: no manuscript walk, so its cost does
+// not grow with the manuscript (dumas: 2,538 file operations on every switch back into the app).
+// ---------------------------------------------------------------------------
+
+TEST_CASE("[I-0330] the pending-edge sweep's cost does not grow with the number of scenes", "[integration][I-0330]") {
+    CApiFixture fix;
+    const auto vance = fix.makeObject("character", "Vance");
+    okResult(scrivi_create_edge(fix.root(), vance.c_str(), fix.firstSceneID.c_str(), "appears-in", ""));
+    // The second call of each pair is measured: a write drops the index, and the first call after it rebuilds it.
+    auto cost = [&] {
+        okResult(scrivi_list_pending_edges(fix.root()));
+        return fileOpsOf(envelope(scrivi_list_pending_edges(fix.root())));
+    };
+    const auto one = cost();
+    std::string after = fix.firstSceneID;
+    for (int i = 0; i < 20; ++i) {
+        after = okResult(scrivi_create_scene(fix.root(), fix.appSupport(), fix.projectID.c_str(),
+                                             fix.firstChapterID.c_str(), after.c_str(), "",
+                                             "identity-001", "persona-001", "Test Author"))
+                    .getString("sceneID");
+    }
+    const auto twentyOne = cost();
+    INFO("pending-edge sweep " << one << " -> " << twentyOne);
+    // A walk reads each scene's sidecar: twenty more scenes were twenty or more more file operations.
+    CHECK(twentyOne == one);
+}
+
+// ---------------------------------------------------------------------------
+// T-0647 (SP-200) — the Properties tab's Project and World numbers, through scrivi_*.
+// ---------------------------------------------------------------------------
+
+TEST_CASE("[T-0647] project metrics: scenes, chapters, links, world kinds and history", "[integration][T-0647]") {
+    CApiFixture fix;
+    const auto second = okResult(scrivi_create_scene(fix.root(), fix.appSupport(), fix.projectID.c_str(),
+                                                     fix.firstChapterID.c_str(), fix.firstSceneID.c_str(), "",
+                                                     "identity-001", "persona-001", "Test Author")).getString("sceneID");
+    const auto vance = fix.makeObject("character", "Vance");
+    const auto mira = fix.makeObject("character", "Mira");
+    const auto keep = fix.makeObject("location", "The Keep");
+    const auto source = fix.makeObject("source", "Chronicle");   // project-scoped
+    okResult(scrivi_create_edge(fix.root(), vance.c_str(), fix.firstSceneID.c_str(), "appears-in", ""));
+    okResult(scrivi_create_edge(fix.root(), mira.c_str(), vance.c_str(), "sibling-of", ""));
+    (void)keep;
+    okResult(scrivi_create_edge(fix.root(), source.c_str(), second.c_str(), "cites", ""));
+    (void)second;
+
+    auto kindIndex = [](const std::string& name) {   // position in the core's own kind order
+        std::size_t i = 0;
+        for (const auto k : scrivi::kAllStorableKinds) { if (scrivi::objectKindName(k) == name) return i; ++i; }
+        return i;
+    };
+    auto check = [&](const JsonDoc& m, bool fromCache) {
+        CHECK(m.getInt64("sceneCount") == 2);
+        CHECK(m.getInt64("chapterCount") == 1);
+        CHECK(m.getSubDoc("links").getInt64("total") == 3);
+        CHECK(m.getSubDoc("links").getInt64("world") == 2);   // the source↔scene link has no world end
+        REQUIRE(m.arraySize("worlds") == 1);
+        const auto w = m.arrayItem("worlds", 0);
+        CHECK(w.getBool("fromCache") == fromCache);
+        CHECK(w.getInt64("total") == 3);
+        std::map<std::string, std::int64_t> kinds;
+        std::size_t last = 0;
+        for (std::size_t i = 0; i < w.arraySize("kinds"); ++i) {
+            const auto k = w.arrayItem("kinds", i);
+            kinds[k.getString("kind")] = k.getInt64("count");
+            CHECK(kindIndex(k.getString("kind")) >= last);   // in the core's kind order
+            last = kindIndex(k.getString("kind"));
+        }
+        CHECK(kinds == std::map<std::string, std::int64_t>{{"character", 2}, {"location", 1}});
+    };
+
+    auto m = okResult(scrivi_get_project_metrics(fix.root()));
+    check(m, false);
+    CHECK_FALSE(m.getSubDoc("history").getBool("open"));
+
+    okResult(scrivi_history_open(fix.root()));
+    okResult(scrivi_history_seed_scene(fix.root(), fix.firstSceneID.c_str(), ""));
+    okResult(scrivi_history_record_event(fix.root(), fix.firstSceneID.c_str(), "Hello.", R"({"kind":"typing"})"));
+    m = okResult(scrivi_get_project_metrics(fix.root()));
+    CHECK(m.getSubDoc("history").getBool("open"));
+    CHECK(m.getSubDoc("history").getInt64("steps") == 1);
+    CHECK(m.getSubDoc("history").getInt64("bytes") > 0);
+    scrivi_free(scrivi_history_close(fix.root()));
+
+    // The world away: the same counts, from the binding's cache.
+    fix.detachWorld("Default");
+    check(okResult(scrivi_get_project_metrics(fix.root())), true);
+    fix.reattachWorld("Default");
 }

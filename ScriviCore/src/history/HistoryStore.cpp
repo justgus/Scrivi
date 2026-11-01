@@ -5,6 +5,8 @@
 #include "util/Hash.hpp"
 
 #include <algorithm>
+#include <cstdio>
+#include <cstdlib>
 #include <sstream>
 
 namespace scrivi::history {
@@ -35,6 +37,86 @@ EventKind kindFromStr(const std::string& s) {
     return EventKind::Typing;
 }
 
+// A diff as JSON: one change in the v0.1 shape, several as `hunks` (T-0643).
+util::JsonDoc diffToJson(const Diff& d) {
+    auto hunk = [](std::size_t offset, const std::string& removed, const std::string& inserted) {
+        util::JsonDoc h;
+        h.setInt64("offsetUtf8", static_cast<std::int64_t>(offset));
+        h.setString("removed", removed);
+        h.setString("inserted", inserted);
+        return h;
+    };
+    if (d.more.empty()) return hunk(d.offsetUtf8, d.removed, d.inserted);
+    util::JsonDoc out;
+    out.appendToArray("hunks", hunk(d.offsetUtf8, d.removed, d.inserted));
+    for (const auto& h : d.more) out.appendToArray("hunks", hunk(h.offsetUtf8, h.removed, h.inserted));
+    return out;
+}
+
+Diff diffFromJson(const util::JsonDoc& j) {
+    Diff d;
+    if (const std::size_t n = j.arraySize("hunks"); n > 0) {
+        for (std::size_t i = 0; i < n; ++i) {
+            const util::JsonDoc h = j.arrayItem("hunks", i);
+            Diff::Hunk c{static_cast<std::size_t>(h.getInt64("offsetUtf8")), h.getString("removed"), h.getString("inserted")};
+            if (i == 0) {
+                d.offsetUtf8 = c.offsetUtf8;
+                d.removed = std::move(c.removed);
+                d.inserted = std::move(c.inserted);
+            } else {
+                d.more.push_back(std::move(c));
+            }
+        }
+        return d;
+    }
+    d.offsetUtf8 = static_cast<std::size_t>(j.getInt64("offsetUtf8"));
+    d.removed  = j.getString("removed");
+    d.inserted = j.getString("inserted");
+    return d;
+}
+
+// T-0644 (b2): a barrier's texts — each scene as a change where the node has one, else whole (v0.1's shape).
+void writeBarrierTexts(const EventNode& n, util::JsonDoc& b) {
+    util::JsonDoc texts, diffs, before, beforeDiffs;
+    bool anyText = false, anyDiff = false, anyBefore = false, anyBeforeDiff = false;
+    for (const auto& [sceneID, text] : n.sceneTexts) {
+        if (auto d = n.sceneTextDiffs.find(sceneID); d != n.sceneTextDiffs.end()) {
+            diffs.setSubDoc(sceneID, diffToJson(d->second)); anyDiff = true;
+        } else {
+            texts.setString(sceneID, text); anyText = true;
+        }
+    }
+    std::vector<std::string> same;
+    for (const auto& [sceneID, text] : n.sceneTextsBefore) {
+        if (n.sceneTextsBeforeSame.contains(sceneID)) {
+            same.push_back(sceneID);
+        } else if (auto d = n.sceneTextsBeforeDiffs.find(sceneID); d != n.sceneTextsBeforeDiffs.end()) {
+            beforeDiffs.setSubDoc(sceneID, diffToJson(d->second)); anyBeforeDiff = true;
+        } else {
+            before.setString(sceneID, text); anyBefore = true;
+        }
+    }
+    if (anyText) b.setSubDoc("sceneTexts", std::move(texts));
+    if (anyDiff) b.setSubDoc("sceneTextDiffs", std::move(diffs));
+    if (anyBefore) b.setSubDoc("sceneTextsBefore", std::move(before));
+    if (anyBeforeDiff) b.setSubDoc("sceneTextsBeforeDiffs", std::move(beforeDiffs));
+    for (const auto& sid : same) b.appendStringToArray("sceneTextsBeforeSame", sid);
+}
+
+void readBarrierTexts(const util::JsonDoc& b, EventNode& node) {
+    const util::JsonDoc texts = b.getSubDoc("sceneTexts");   // [I-0287]; absent in older logs
+    for (const std::string& sid : texts.objectKeys()) node.sceneTexts[sid] = texts.getString(sid);
+    const util::JsonDoc prior = b.getSubDoc("sceneTextsBefore");   // [I-0293]
+    for (const std::string& sid : prior.objectKeys()) node.sceneTextsBefore[sid] = prior.getString(sid);
+    const util::JsonDoc diffs = b.getSubDoc("sceneTextDiffs");   // T-0644: expanded in finalizeLoad
+    for (const std::string& sid : diffs.objectKeys()) node.sceneTextDiffs[sid] = diffFromJson(diffs.getSubDoc(sid));
+    const util::JsonDoc priorDiffs = b.getSubDoc("sceneTextsBeforeDiffs");
+    for (const std::string& sid : priorDiffs.objectKeys()) {
+        node.sceneTextsBeforeDiffs[sid] = diffFromJson(priorDiffs.getSubDoc(sid));
+    }
+    for (const auto& sid : b.getStringArray("sceneTextsBeforeSame")) node.sceneTextsBeforeSame.insert(sid);
+}
+
 } // namespace
 
 HistoryStore::HistoryStore(AbsolutePath historyDir, FileSystem* fs, Clock* clock)
@@ -50,6 +132,8 @@ AbsolutePath HistoryStore::statePath() const {
 
 void HistoryStore::appendLine(const std::string& jsonLine) {
     if (!fs_) return;
+    ++segmentRecords_;   // T-0400
+    segmentBytes_ += static_cast<std::int64_t>(jsonLine.size()) + 1;   // T-0647
     if (writer_) {
         writer_(logPath(), jsonLine + '\n', true);
         if (++recordsSinceCheckpoint_ >= 200) {
@@ -78,6 +162,7 @@ bool HistoryStore::openOrCreate(const std::string& newSessionID,
                                 const std::string& nowTimestamp, bool& outLoaded) {
     outLoaded = false;
     if (fs_) { fs_->createDirectories(historyDir_); }
+    resolveActiveSegment();   // T-0400: the segment state.json names, not always log-000001
 
     // Try to load an existing log by replaying its records.
     bool haveLog = false;
@@ -86,7 +171,7 @@ bool HistoryStore::openOrCreate(const std::string& newSessionID,
         auto existsR = fs_->exists(logPath());
         if (existsR.ok() && existsR.value()) {
             auto readR = fs_->readTextFile(logPath());
-            if (readR.ok()) { logText = readR.value(); haveLog = true; }
+            if (readR.ok()) { logText = readR.value(); haveLog = true; segmentBytes_ = static_cast<std::int64_t>(logText.size()); }
         }
     }
 
@@ -120,6 +205,10 @@ bool HistoryStore::openOrCreate(const std::string& newSessionID,
         bool lastSessionRecordsClose = false;
         bool lastSessionClosed = false;
 
+        // T-0400: how many records the segment holds, and how many its compaction wrote (`ctl:compacted`).
+        std::int64_t totalRecords = 0;
+        std::int64_t compactedRecords = 0;
+
         std::istringstream ss(logText);
         std::string line;
         while (std::getline(ss, line)) {
@@ -129,6 +218,7 @@ bool HistoryStore::openOrCreate(const std::string& newSessionID,
                 // Torn final line (partial write) — stop; everything before is intact.
                 break;
             }
+            ++totalRecords;
             const util::JsonDoc& d = parsedR.value();
             const std::string rec = d.getString("rec");
             const std::int64_t seq = d.getInt64("seq");
@@ -168,8 +258,7 @@ bool HistoryStore::openOrCreate(const std::string& newSessionID,
                     util::JsonDoc b = d.getSubDoc("barrier");
                     node.barrierKind = b.getString("barrierKind");
                     node.barrierNote = b.getString("note");
-                    const util::JsonDoc texts = b.getSubDoc("sceneTexts");   // [I-0287]; absent in older logs
-                    for (const std::string& sid : texts.objectKeys()) node.sceneTexts[sid] = texts.getString(sid);
+                    readBarrierTexts(b, node);
                     if (node.barrierKind == "externalChange") lastExternalBarrierID = node.eventID;   // [I-0288]
                 } else if (node.kind == EventKind::Structural) {
                     // Reversible structural node (T-0356): the barrier-style label plus the
@@ -177,17 +266,16 @@ bool HistoryStore::openOrCreate(const std::string& newSessionID,
                     util::JsonDoc b = d.getSubDoc("barrier");
                     node.barrierKind = b.getString("barrierKind");
                     node.barrierNote = b.getString("note");
-                    node.structuralPayload = d.getString("structuralPayload");
-                    // [I-0293]; both absent in older logs.
-                    const util::JsonDoc texts = b.getSubDoc("sceneTexts");
-                    for (const std::string& sid : texts.objectKeys()) node.sceneTexts[sid] = texts.getString(sid);
-                    const util::JsonDoc prior = b.getSubDoc("sceneTextsBefore");
-                    for (const std::string& sid : prior.objectKeys()) node.sceneTextsBefore[sid] = prior.getString(sid);
+                    node.structuralPayload = d.getString("structuralPayload");   // a log before T-0645
+                    if (node.structuralPayload.empty()) {
+                        if (const auto payload = d.getSubDoc("structuralPayload"); !payload.objectKeys().empty()) {
+                            node.structuralPayload = payload.dump(0);   // the core's own form (`scrivi_c_api.cpp`)
+                        }
+                    }
+                    readBarrierTexts(b, node);   // [I-0293]; absent in older logs
                 } else {
                     util::JsonDoc diff = d.getSubDoc("diff");
-                    node.diff.offsetUtf8 = static_cast<std::size_t>(diff.getInt64("offsetUtf8"));
-                    node.diff.removed  = diff.getString("removed");
-                    node.diff.inserted = diff.getString("inserted");
+                    node.diff = diffFromJson(diff);   // one change, or several (T-0643)
                     node.bufferID = d.getString("bufferID");  // cut-into-buffer tag; "" when absent
                     node.groupID = d.getString("groupID");    // edit group (I-0270); "" when absent
                 }
@@ -216,6 +304,11 @@ bool HistoryStore::openOrCreate(const std::string& newSessionID,
                     // Branch-aware eviction (§4.1): a non-primary subtree dropped.
                     // Applied after finalizeLoad() so the subtree doesn't resurrect.
                     purgedBranchRoots.push_back(d.getString("branchRootEventID"));
+                } else if (op == "root") {
+                    // T-0400: a compacted segment names its root — an event whose diff the floors already hold.
+                    rootID = d.getString("nodeID");
+                } else if (op == "compacted") {
+                    compactedRecords = d.getInt64("records");
                 } else if (op == "evict") {
                     // Root promotion (§4.1): the root advanced to this node.
                     // Applied by applyLoadedEviction() AFTER finalizeLoad(), which
@@ -305,6 +398,10 @@ bool HistoryStore::openOrCreate(const std::string& newSessionID,
             // re-assigning maxSeq here would roll it backwards and reissue numbers.
             lastSeq_ = std::max(lastSeq_, maxSeq);
             outLoaded = true;
+            segmentRecords_   = totalRecords;
+            compactedRecords_ = compactedRecords;
+            // T-0400: before this session's first record, so the compacted segment is followed by it.
+            compactIfWorthIt(loadedSessionID);
             // Record the session start so subsequent events carry it.
             persistCtl("session", "");
             return true;
@@ -332,10 +429,10 @@ void HistoryStore::persistFloor(const std::string& sceneID, const std::string& t
     appendLine(d.dump(-1));
 }
 
-void HistoryStore::persistEvent(const EventNode& node) {
+std::string HistoryStore::eventLine(const EventNode& node, std::int64_t seq) const {
     util::JsonDoc d;
     d.setString("rec", "event");
-    d.setInt64("seq", ++lastSeq_);
+    d.setInt64("seq", seq);
     d.setString("eventID", node.eventID);
     d.setString("parentID", node.parentID.value_or(""));
     d.setString("kind", kindToStr(node.kind));
@@ -349,11 +446,7 @@ void HistoryStore::persistEvent(const EventNode& node) {
         b.setString("barrierKind", node.barrierKind);
         b.setString("note", node.barrierNote);
         // [I-0287] — written only when the op rewrote scene text, so other barriers keep their on-disk shape.
-        if (!node.sceneTexts.empty()) {
-            util::JsonDoc texts;
-            for (const auto& [sceneID, text] : node.sceneTexts) texts.setString(sceneID, text);
-            b.setSubDoc("sceneTexts", std::move(texts));
-        }
+        writeBarrierTexts(node, b);   // T-0644: as changes where it can
         d.setSubDoc("barrier", std::move(b));
     } else if (node.kind == EventKind::Structural) {
         // Reversible structural node (T-0356): the barrier-style label plus the opaque
@@ -362,23 +455,16 @@ void HistoryStore::persistEvent(const EventNode& node) {
         b.setString("barrierKind", node.barrierKind);
         b.setString("note", node.barrierNote);
         // [I-0293] — written only when present, so a node without them keeps its on-disk shape.
-        if (!node.sceneTexts.empty()) {
-            util::JsonDoc texts;
-            for (const auto& [sceneID, text] : node.sceneTexts) texts.setString(sceneID, text);
-            b.setSubDoc("sceneTexts", std::move(texts));
-        }
-        if (!node.sceneTextsBefore.empty()) {
-            util::JsonDoc prior;
-            for (const auto& [sceneID, text] : node.sceneTextsBefore) prior.setString(sceneID, text);
-            b.setSubDoc("sceneTextsBefore", std::move(prior));
-        }
+        writeBarrierTexts(node, b);   // T-0644: as changes where it can
         d.setSubDoc("barrier", std::move(b));
-        d.setString("structuralPayload", node.structuralPayload);
+        // T-0645 (b3): as JSON, not a string the log escapes again (38% of dumas's log). Read as either, forever.
+        if (auto payload = util::parseJson(node.structuralPayload); payload.ok() && payload.value().isObject()) {
+            d.setSubDoc("structuralPayload", std::move(payload.value()));
+        } else {
+            d.setString("structuralPayload", node.structuralPayload);
+        }
     } else {
-        util::JsonDoc diff;
-        diff.setInt64("offsetUtf8", static_cast<std::int64_t>(node.diff.offsetUtf8));
-        diff.setString("removed", node.diff.removed);
-        diff.setString("inserted", node.diff.inserted);
+        util::JsonDoc diff = diffToJson(node.diff);   // one change in the v0.1 shape, several as `hunks` (T-0643)
         d.setSubDoc("diff", std::move(diff));
         // Cut-into-buffer provenance (Trade T3) — written only when tagged, so
         // ordinary events keep their existing on-disk shape.
@@ -390,7 +476,11 @@ void HistoryStore::persistEvent(const EventNode& node) {
             d.setString("groupID", node.groupID);
         }
     }
-    appendLine(d.dump(-1));
+    return d.dump(-1);
+}
+
+void HistoryStore::persistEvent(const EventNode& node) {
+    appendLine(eventLine(node, ++lastSeq_));
 }
 
 void HistoryStore::persistPersisted(const std::string& sceneID, const std::string& sha256) {
@@ -542,6 +632,147 @@ void HistoryStore::checkpoint() {
     } else {
         fs_->atomicWriteTextFile(statePath(), d.dump(2));
     }
+}
+
+// ---------------------------------------------------------------------------
+// T-0400 — compaction (design `Scrivi_History_Load_Design_v0_1.md` §2; the history design's §6.b, never built before).
+// ---------------------------------------------------------------------------
+
+void HistoryStore::resolveActiveSegment() {
+    if (!fs_) return;
+    std::string named;
+    if (auto st = fs_->readTextFile(statePath()); st.ok()) {
+        if (auto parsed = util::parseJson(st.value()); parsed.ok()) named = parsed.value().getString("activeLogSegment");
+    }
+    auto listed = fs_->listDirectory(historyDir_);
+    if (!listed.ok()) return;
+    std::vector<std::string> segments;
+    for (const auto& path : listed.value()) {
+        const std::string name = util::filename(path);
+        if (name.starts_with("log-") && name.ends_with(".jsonl")) segments.push_back(name);
+    }
+    if (segments.empty()) return;   // a fresh history: log-000001
+    std::sort(segments.begin(), segments.end());
+    // ⚠️ state.json moves to a new segment only AFTER that segment is complete (§2.2), so the one it names is whole; with
+    // no readable state.json, the newest segment is.
+    activeSegment_ = std::find(segments.begin(), segments.end(), named) != segments.end() ? named : segments.back();
+    // Any other segment is one a compaction replaced, or one written before a crash moved state.json to it.
+    for (const auto& name : segments) {
+        if (name != activeSegment_) (void)fs_->removeFile(util::join(historyDir_, name));
+    }
+}
+
+bool HistoryStore::compactIfWorthIt(const std::string& sessionID) {
+    if (!fs_ || !service_) return false;
+    std::int64_t forks = 0;
+    for (const auto& [id, node] : service_->nodes()) { if (node.childIDs.size() >= 2) ++forks; }
+    // What a compaction would write (§2.1): the live nodes, floors, fork primaries, hashes and a few control records.
+    const std::int64_t live = static_cast<std::int64_t>(service_->nodes().size() + service_->floorTexts().size())
+                            + forks + static_cast<std::int64_t>(loadedHeadHashes_.size()) + 6;
+    // Q1 (ruled 2026-11-01). ⚠️ "10,000 in all" is counted since the LAST compaction: a live tree of 20,000 events always
+    // holds more than 10,000 records, and recompacting it at every open and close would rewrite it for nothing.
+    if (segmentRecords_ - live <= 2000 && segmentRecords_ - compactedRecords_ <= 10000) return false;
+    compact(sessionID);
+    return true;
+}
+
+void HistoryStore::compact(const std::string& sessionID) {
+    if (!fs_ || !service_) return;
+    const HistoryService& svc = *service_;
+    std::string text;
+    std::int64_t records = 0;
+    auto add = [&](const util::JsonDoc& d) { text += d.dump(-1); text += '\n'; ++records; };
+    auto ctl = [&](const std::string& op) {
+        util::JsonDoc d;
+        d.setString("rec", "ctl");
+        d.setInt64("seq", ++lastSeq_);
+        d.setString("op", op);
+        d.setString("timestamp", clock_ ? clock_->nowUTC() : std::string{});
+        return d;
+    };
+
+    // 1. The last session, closed: replay then judges the NEXT session by its own records ([I-0299]).
+    { auto d = ctl("session"); d.setString("sessionID", sessionID); d.setBool("closesRecorded", true); add(d); }
+    add(ctl("close"));
+    // 2. The floors.
+    for (const auto& [sceneID, floor] : svc.floorTexts()) {
+        util::JsonDoc d;
+        d.setString("rec", "floor");
+        d.setInt64("seq", ++lastSeq_);
+        d.setString("sceneID", sceneID);
+        d.setString("reason", "compacted");
+        d.setString("text", floor);
+        d.setString("sha256", util::sha256Hex(floor));
+        add(d);
+    }
+    // 3. The live nodes, parents before children. A root promoted by eviction is written as an event with no parent and
+    //    named by `ctl:root`; its diff is already in the floors, and replay never applies the root's.
+    const auto& nodes = svc.nodes();
+    if (svc.rootID() != "evt_root") {
+        text += eventLine(nodes.at(svc.rootID()), ++lastSeq_);
+        text += '\n';
+        ++records;
+        auto d = ctl("root");
+        d.setString("nodeID", svc.rootID());
+        add(d);
+    }
+    std::vector<std::string> stack(nodes.at(svc.rootID()).childIDs.rbegin(), nodes.at(svc.rootID()).childIDs.rend());
+    while (!stack.empty()) {
+        const EventNode& n = nodes.at(stack.back());
+        stack.pop_back();
+        text += eventLine(n, ++lastSeq_);
+        text += '\n';
+        ++records;
+        stack.insert(stack.end(), n.childIDs.rbegin(), n.childIDs.rend());
+    }
+    // 4. Fork primaries; 5. the current node.
+    for (const auto& [id, node] : nodes) {
+        if (node.childIDs.size() < 2 || !node.primaryChildID.has_value()) continue;
+        auto d = ctl("setPrimary");
+        d.setString("forkNodeID", id);
+        d.setString("childEventID", *node.primaryChildID);
+        add(d);
+    }
+    { auto d = ctl("undo"); d.setString("nodeID", svc.currentNodeID()); add(d); }
+    // 6. The bytes each scene last had on disk ([I-0299]); a save this session wins.
+    std::map<std::string, std::string> hashes = loadedHeadHashes_;
+    for (const auto& [sceneID, sha] : persistedDiskHashes_) hashes[sceneID] = sha;
+    for (const auto& [sceneID, sha] : hashes) {
+        util::JsonDoc d;
+        d.setString("rec", "persisted");
+        d.setInt64("seq", ++lastSeq_);
+        d.setString("sceneID", sceneID);
+        d.setString("sha256", sha);
+        add(d);
+    }
+    // 7. Forensic; replay reads only `records`, to know what has been written since.
+    {
+        auto d = ctl("compacted");
+        d.setString("fromSegment", activeSegment_);
+        d.setInt64("liveNodes", static_cast<std::int64_t>(nodes.size()));
+        d.setInt64("droppedRecords", std::max<std::int64_t>(0, segmentRecords_ - records));
+        d.setInt64("records", records + 1);
+        add(d);
+    }
+
+    // §2.2: the new segment whole (temp + rename), THEN state.json moved to it; the old one is removed at the next open.
+    const int n = std::atoi(activeSegment_.substr(4, 6).c_str());
+    char name[32];
+    std::snprintf(name, sizeof name, "log-%06d.jsonl", n + 1);
+    const AbsolutePath next = util::join(historyDir_, name);
+    if (writer_) {
+        writer_(next, text, false);
+    } else if (!fs_->atomicWriteTextFile(next, text).ok()) {
+        return;   // the old segment is still whole and still named: nothing lost
+    }
+    const std::string old = activeSegment_;
+    activeSegment_ = name;
+    unwrittenLines_.clear();   // held back for the old segment; the compacted one holds them
+    segmentRecords_ = records;
+    compactedRecords_ = records;
+    segmentBytes_ = static_cast<std::int64_t>(text.size());
+    checkpoint();
+    if (!writer_) (void)fs_->removeFile(util::join(historyDir_, old));
 }
 
 void HistoryStore::noteScenePersisted(const std::string& sceneID, const std::string& diskText) {

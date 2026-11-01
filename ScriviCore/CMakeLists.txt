@@ -145,6 +145,13 @@ if(APPLE)
     target_link_libraries(ScriviCore PRIVATE "-framework Security" "-framework CoreFoundation")
 endif()
 
+# [I-0332] (a), ruled 2026-11-01: the JSON parser is compiled OPTIMISED even in a Debug build — every other file stays Debug.
+# Opening the undo history parses its whole log, and nlohmann's lexer unoptimised was ~90% of a 1.35 s open on dumas
+# (0.25 s optimised). ⚠️ Not on MSVC: its Debug runtime checks (/RTC1) cannot be combined with /O2.
+if(NOT MSVC)
+    set_source_files_properties(src/util/Json.cpp PROPERTIES COMPILE_OPTIONS "-O2")
+endif()
+
 target_link_libraries(ScriviCore
     PRIVATE
         nlohmann_json::nlohmann_json
@@ -175,4 +182,10 @@ if(SCRIVI_BUILD_TOOLS)
     # slow mount). ⚠️ NOT a test — it asserts nothing.
     add_executable(scrivi_make_test_world tools/scrivi_make_test_world.cpp)
     target_link_libraries(scrivi_make_test_world PRIVATE ScriviCore)
+
+    # [I-0331] — copies a project and drives a LONG undo history into the copy through scrivi_*, so the history's open,
+    # tree and undo can be measured on one a writer could have. ⚠️ NOT a test. Uses the core's internal Json wrapper.
+    add_executable(scrivi_make_test_history tools/scrivi_make_test_history.cpp)
+    target_link_libraries(scrivi_make_test_history PRIVATE ScriviCore)
+    target_include_directories(scrivi_make_test_history PRIVATE src)
 endif()

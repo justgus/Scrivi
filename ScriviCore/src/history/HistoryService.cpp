@@ -2,6 +2,10 @@
 
 #include <algorithm>
 #include <array>
+#include <cctype>
+#include <optional>
+#include <string_view>
+#include <vector>
 #include <cstdio>
 #include <ctime>
 #include <deque>      // getTree — breadth-first descendant walk (T-0394)
@@ -60,8 +64,9 @@ std::size_t floorToBoundary(const std::string& s, std::size_t i) {
 
 // Computes a minimal diff turning `oldText` into `newText`: trim the common
 // prefix and common suffix (on scalar boundaries), leaving the changed middle.
-// Design §3.a.
-Diff computeDiff(const std::string& oldText, const std::string& newText) {
+// Design §3.a. T-0643 (b1, design `Scrivi_History_Load_Design_v0_1.md` Q3): a changed middle over 4 KB is split into
+// separate changes when a bounded diff finds at most 64 — a Replace All across a long scene.
+Diff singleChange(const std::string& oldText, const std::string& newText) {
     // Common prefix length (byte-wise), then floored to a scalar boundary.
     std::size_t prefix = 0;
     const std::size_t maxPrefix = std::min(oldText.size(), newText.size());
@@ -91,6 +96,126 @@ Diff computeDiff(const std::string& oldText, const std::string& newText) {
     return d;
 }
 
+constexpr std::size_t kSplitAboveBytes = 4096;   // Q3
+constexpr std::size_t kMaxHunks        = 64;     // Q3
+constexpr std::size_t kMergeGapBytes   = 8;      // changes this close are one
+constexpr int         kMaxEditDistance = 1000;   // in words: the diff's trace is ~distance² ints
+
+// A changed span: a[a0, a1) becomes b[b0, b1). Between two spans the bytes are equal in both texts.
+struct Span { std::size_t a0, a1, b0, b1; };
+
+// Words: a run of letters, digits or non-ASCII bytes (so a UTF-8 character is never split), or any other single byte.
+std::vector<std::string_view> words(std::string_view t) {
+    auto inWord = [](unsigned char c) { return c >= 0x80 || std::isalnum(c); };
+    std::vector<std::string_view> out;
+    for (std::size_t i = 0; i < t.size();) {
+        std::size_t j = i + 1;
+        if (inWord(static_cast<unsigned char>(t[i]))) {
+            while (j < t.size() && inWord(static_cast<unsigned char>(t[j]))) ++j;
+        }
+        out.push_back(t.substr(i, j - i));
+        i = j;
+    }
+    return out;
+}
+
+// Myers' O(ND) diff of a and b by WORD (design Q3, by word rather than by character: a Replace All of 300 short words
+// is ~600 word edits, ~1,800 character edits): the changed byte spans in order, or nothing past kMaxEditDistance.
+std::optional<std::vector<Span>> myersSpans(std::string_view at, std::string_view bt) {
+    const auto a = words(at), b = words(bt);
+    std::vector<std::size_t> aOff{0}, bOff{0};   // byte offset of each word, and of the end
+    for (const auto& w : a) aOff.push_back(aOff.back() + w.size());
+    for (const auto& w : b) bOff.push_back(bOff.back() + w.size());
+    const int n = static_cast<int>(a.size()), m = static_cast<int>(b.size()), off = kMaxEditDistance + 1;
+    std::vector<int> v(2 * static_cast<std::size_t>(off) + 1, 0);
+    std::vector<std::vector<int>> trace;   // trace[d] = v before step d
+    int found = -1;
+    for (int d = 0; d <= kMaxEditDistance && found < 0; ++d) {
+        trace.push_back(v);
+        for (int k = -d; k <= d; k += 2) {
+            int x = (k == -d || (k != d && v[off + k - 1] < v[off + k + 1])) ? v[off + k + 1] : v[off + k - 1] + 1;
+            int y = x - k;
+            while (x < n && y < m && a[static_cast<std::size_t>(x)] == b[static_cast<std::size_t>(y)]) { ++x; ++y; }
+            v[off + k] = x;
+            if (x >= n && y >= m) { found = d; break; }
+        }
+    }
+    if (found < 0) return std::nullopt;
+    std::vector<Span> spans;   // in words, collected last-first
+    int x = n, y = m;
+    for (int d = found; d > 0; --d) {
+        const auto& pv = trace[static_cast<std::size_t>(d)];
+        const int k = x - y;
+        const bool down = (k == -d || (k != d && pv[off + k - 1] < pv[off + k + 1]));   // down = an insertion
+        const int pk = down ? k + 1 : k - 1;
+        const int px = pv[off + pk], py = px - pk;
+        const auto ux = static_cast<std::size_t>(px), uy = static_cast<std::size_t>(py);
+        const Span e = down ? Span{ux, ux, uy, uy + 1} : Span{ux, ux + 1, uy, uy};
+        if (!spans.empty() && spans.back().a0 == e.a1 && spans.back().b0 == e.b1) {
+            spans.back().a0 = e.a0;   // no equal words between: one span
+            spans.back().b0 = e.b0;
+        } else {
+            spans.push_back(e);
+        }
+        x = px;
+        y = py;
+    }
+    std::reverse(spans.begin(), spans.end());
+    for (auto& s : spans) s = Span{aOff[s.a0], aOff[s.a1], bOff[s.b0], bOff[s.b1]};   // words → bytes
+    return spans;
+}
+
+Diff computeDiff(const std::string& oldText, const std::string& newText) {
+    Diff single = singleChange(oldText, newText);
+    if (single.removed.size() + single.inserted.size() <= kSplitAboveBytes) return single;
+    auto found = myersSpans(single.removed, single.inserted);
+    if (!found || found->empty()) return single;
+    const std::string& a = single.removed;
+    const std::string& b = single.inserted;
+    // Merge spans within kMergeGapBytes (the bytes between two spans are equal in both texts, so a merged span is the
+    // first's start to the second's end in both).
+    std::vector<Span> spans;
+    for (const Span& s : *found) {
+        if (!spans.empty() && s.a0 <= spans.back().a1 + kMergeGapBytes) {
+            spans.back().a1 = s.a1;
+            spans.back().b1 = s.b1;
+        } else {
+            spans.push_back(s);
+        }
+    }
+    // Q3: at most kMaxHunks — merge across the smallest gaps.
+    while (spans.size() > kMaxHunks) {
+        std::size_t best = 0;
+        for (std::size_t i = 1; i + 1 < spans.size(); ++i) {
+            if (spans[i + 1].a0 - spans[i].a1 < spans[best + 1].a0 - spans[best].a1) best = i;
+        }
+        spans[best].a1 = spans[best + 1].a1;
+        spans[best].b1 = spans[best + 1].b1;
+        spans.erase(spans.begin() + static_cast<std::ptrdiff_t>(best) + 1);
+    }
+    if (spans.size() < 2) return single;
+    Diff d;
+    for (std::size_t i = 0; i < spans.size(); ++i) {
+        const Span& s = spans[i];
+        Diff::Hunk h{single.offsetUtf8 + s.a0, a.substr(s.a0, s.a1 - s.a0), b.substr(s.b0, s.b1 - s.b0)};
+        if (i == 0) {
+            d.offsetUtf8 = h.offsetUtf8;
+            d.removed = std::move(h.removed);
+            d.inserted = std::move(h.inserted);
+        } else {
+            d.more.push_back(std::move(h));
+        }
+    }
+    return d;
+}
+
+// Every change of `d` in order, as (offset in the OLD text, removed, inserted).
+template <typename Fn>
+void forEachChange(const Diff& d, Fn&& fn) {
+    fn(d.offsetUtf8, d.removed, d.inserted);
+    for (const auto& h : d.more) fn(h.offsetUtf8, h.removed, h.inserted);
+}
+
 // Applies a diff forward: old scene text → new scene text.
 //
 // Defensive against a diff that does not match `oldText` — e.g. a persisted history
@@ -102,27 +227,37 @@ Diff computeDiff(const std::string& oldText, const std::string& newText) {
 // best-effort result instead of terminating the process (I-0065). The offset and the
 // removed span are clamped into `oldText`; the tail is whatever remains after them.
 std::string applyForward(const std::string& oldText, const Diff& d) {
-    const std::size_t off  = std::min(d.offsetUtf8, oldText.size());
-    const std::size_t cut  = std::min(off + d.removed.size(), oldText.size());
     std::string out;
-    out.reserve(off + d.inserted.size() + (oldText.size() - cut));
-    out.append(oldText, 0, off);
-    out.append(d.inserted);
-    out.append(oldText, cut, std::string::npos);
+    std::size_t pos = 0;   // in oldText
+    forEachChange(d, [&](std::size_t offset, const std::string& removed, const std::string& inserted) {
+        const std::size_t off = std::min(std::max(offset, pos), oldText.size());
+        const std::size_t cut = std::min(off + removed.size(), oldText.size());
+        out.append(oldText, pos, off - pos);
+        out.append(inserted);
+        pos = cut;
+    });
+    out.append(oldText, pos, std::string::npos);
     return out;
 }
 
 // Applies a diff in reverse: new scene text → old scene text. Same clamping as
 // applyForward (I-0065): the offset and the inserted span are clamped into `newText`
 // so a mismatched/stale diff yields a best-effort result rather than throwing.
+// T-0643: each change's offset in the NEW text is its old offset plus what the changes before it added.
 std::string applyReverse(const std::string& newText, const Diff& d) {
-    const std::size_t off = std::min(d.offsetUtf8, newText.size());
-    const std::size_t cut = std::min(off + d.inserted.size(), newText.size());
     std::string out;
-    out.reserve(off + d.removed.size() + (newText.size() - cut));
-    out.append(newText, 0, off);
-    out.append(d.removed);
-    out.append(newText, cut, std::string::npos);
+    std::size_t pos = 0;           // in newText
+    std::int64_t shift = 0;        // new - old, from the changes before
+    forEachChange(d, [&](std::size_t offset, const std::string& removed, const std::string& inserted) {
+        const auto inNew = static_cast<std::size_t>(std::max<std::int64_t>(0, static_cast<std::int64_t>(offset) + shift));
+        const std::size_t off = std::min(std::max(inNew, pos), newText.size());
+        const std::size_t cut = std::min(off + inserted.size(), newText.size());
+        out.append(newText, pos, off - pos);
+        out.append(removed);
+        pos = cut;
+        shift += static_cast<std::int64_t>(inserted.size()) - static_cast<std::int64_t>(removed.size());
+    });
+    out.append(newText, pos, std::string::npos);
     return out;
 }
 
@@ -139,10 +274,46 @@ void applyBarrierTexts(const EventNode& n, std::map<std::string, std::string>& t
 // the node is an orphan of a deleted/changed scene (I-0065 / I-0066). applyForward
 // clamps such a diff to a best-effort result; this predicate is how load-time
 // pruning *detects* it so the bad node can be dropped rather than silently mangled.
+// T-0644 (b2): fills `n`'s persisted forms from its full texts, against `heads` (the history's text at its parent). A
+// scene with no head keeps its full text. One change per scene (`singleChange`): an op rewrites a region, and the word
+// diff's cost is not wanted at every load.
+void persistableBarrierTexts(EventNode& n, const std::map<std::string, std::string>& heads) {
+    for (const auto& [sceneID, text] : n.sceneTexts) {
+        if (auto h = heads.find(sceneID); h != heads.end() && !n.sceneTextDiffs.contains(sceneID)) {
+            n.sceneTextDiffs[sceneID] = singleChange(h->second, text);
+        }
+    }
+    for (const auto& [sceneID, text] : n.sceneTextsBefore) {
+        auto h = heads.find(sceneID);
+        if (h == heads.end() || n.sceneTextsBeforeSame.contains(sceneID) || n.sceneTextsBeforeDiffs.contains(sceneID)) continue;
+        if (h->second == text) n.sceneTextsBeforeSame.insert(sceneID);
+        else n.sceneTextsBeforeDiffs[sceneID] = singleChange(h->second, text);
+    }
+}
+
+// T-0644: the reverse, at load — the full texts from the persisted forms, against `heads` at the parent.
+void expandBarrierTexts(EventNode& n, const std::map<std::string, std::string>& heads) {
+    auto base = [&](const std::string& sceneID) {
+        auto h = heads.find(sceneID);
+        return h != heads.end() ? h->second : std::string{};
+    };
+    for (const auto& [sceneID, d] : n.sceneTextDiffs) n.sceneTexts.try_emplace(sceneID, applyForward(base(sceneID), d));
+    for (const auto& sceneID : n.sceneTextsBeforeSame) n.sceneTextsBefore.try_emplace(sceneID, base(sceneID));
+    for (const auto& [sceneID, d] : n.sceneTextsBeforeDiffs) {
+        n.sceneTextsBefore.try_emplace(sceneID, applyForward(base(sceneID), d));
+    }
+}
+
 bool diffMatches(const std::string& oldText, const Diff& d) {
-    if (d.offsetUtf8 > oldText.size()) return false;
-    if (d.offsetUtf8 + d.removed.size() > oldText.size()) return false;
-    return oldText.compare(d.offsetUtf8, d.removed.size(), d.removed) == 0;
+    bool ok = true;
+    std::size_t pos = 0;
+    forEachChange(d, [&](std::size_t offset, const std::string& removed, const std::string&) {
+        if (!ok) return;
+        ok = offset >= pos && offset <= oldText.size() && offset + removed.size() <= oldText.size()
+          && oldText.compare(offset, removed.size(), removed) == 0;
+        pos = offset + removed.size();
+    });
+    return ok;
 }
 
 // Max bytes of a fork-child preview shown in the popover (§10 T2). Truncated on a
@@ -306,6 +477,7 @@ RecordResult HistoryService::recordBarrier(const BarrierParams& p, std::string e
     // [I-0293]: a structural node too, with what each existing scene held BEFORE the op (undo crosses it).
     node.sceneTexts = p.sceneTexts;
     if (node.kind == EventKind::Structural) node.sceneTextsBefore = p.sceneTextsBefore;
+    persistableBarrierTexts(node, headText_);   // T-0644: against the heads BEFORE the op
     applyBarrierTexts(node, headText_);
     // A scene the op brings into history gets its floor here, as a first-edit seed would have made it — so the save
     // path's hash covers it and an outside edit to it is still detected. A scene that existed before a structural op
@@ -794,56 +966,6 @@ TreeWindow HistoryService::getTree(const std::string& aroundNodeID, int maxNodes
     //
     // Side branches are deliberately not rebased: their text is not in the current
     // document at all, so no caret position corresponds to them.
-    std::map<std::string, std::size_t> rebasedOffset;
-    {
-        // The spine, oldest → newest, so each node can be transformed through the
-        // edits that follow it in the order they actually happened.
-        std::vector<std::string> spineOldestFirst;
-        for (std::string id = currentNodeID_; !id.empty();) {
-            auto it = nodes_.find(id);
-            if (it == nodes_.end()) break;
-            spineOldestFirst.push_back(id);
-            if (!it->second.parentID.has_value()) break;
-            id = *it->second.parentID;
-        }
-        std::reverse(spineOldestFirst.begin(), spineOldestFirst.end());
-
-        for (std::size_t i = 0; i < spineOldestFirst.size(); ++i) {
-            auto it = nodes_.find(spineOldestFirst[i]);
-            if (it == nodes_.end()) continue;
-            const EventNode& node = it->second;
-            if (!carriesDiff(node.kind) || node.sceneID.empty()) continue;
-
-            std::int64_t pos = static_cast<std::int64_t>(node.diff.offsetUtf8);
-
-            // Transform through each SUBSEQUENT edit in the same scene.
-            for (std::size_t j = i + 1; j < spineOldestFirst.size(); ++j) {
-                auto jt = nodes_.find(spineOldestFirst[j]);
-                if (jt == nodes_.end()) continue;
-                const EventNode& later = jt->second;
-                if (!carriesDiff(later.kind) || later.sceneID != node.sceneID) continue;
-
-                const std::int64_t lOff = static_cast<std::int64_t>(later.diff.offsetUtf8);
-                const std::int64_t lIns = static_cast<std::int64_t>(later.diff.inserted.size());
-                const std::int64_t lDel = static_cast<std::int64_t>(later.diff.removed.size());
-
-                // Strictly after this node's position → no effect on it.
-                if (lOff > pos) continue;
-
-                // A removal spanning this position collapses it back to the cut point;
-                // otherwise the net change applies in full.
-                if (lDel > 0 && lOff + lDel > pos) {
-                    pos = lOff;
-                } else {
-                    pos += lIns - lDel;
-                }
-                if (pos < 0) pos = 0;
-            }
-
-            rebasedOffset[node.eventID] = static_cast<std::size_t>(pos);
-        }
-    }
-
     // Collect outward from the anchor: ancestors first (the writer's spine is the most
     // valuable context), then descendants breadth-first.
     std::vector<std::string> ordered;
@@ -872,6 +994,66 @@ TreeWindow HistoryService::getTree(const std::string& aroundNodeID, int maxNodes
     }
 
     if (static_cast<int>(ordered.size()) > cap) { ordered.resize(static_cast<std::size_t>(cap)); }
+
+    // [I-0331]: rebased for the returned window only. Every node over the whole spine was O(spine²): 1.9 s on dumas.
+    const std::set<std::string> inWindow(ordered.begin(), ordered.end());
+    std::map<std::string, std::size_t> rebasedOffset;
+    {
+        // The spine, oldest → newest, so each node can be transformed through the
+        // edits that follow it in the order they actually happened.
+        std::vector<std::string> spineOldestFirst;
+        for (std::string id = currentNodeID_; !id.empty();) {
+            auto it = nodes_.find(id);
+            if (it == nodes_.end()) break;
+            spineOldestFirst.push_back(id);
+            if (!it->second.parentID.has_value()) break;
+            id = *it->second.parentID;
+        }
+        std::reverse(spineOldestFirst.begin(), spineOldestFirst.end());
+
+        for (std::size_t i = 0; i < spineOldestFirst.size(); ++i) {
+            auto it = nodes_.find(spineOldestFirst[i]);
+            if (it == nodes_.end()) continue;
+            const EventNode& node = it->second;
+            if (!carriesDiff(node.kind) || node.sceneID.empty()) continue;
+            if (!inWindow.count(node.eventID)) continue;   // [I-0331]: only what is returned
+
+            std::int64_t pos = static_cast<std::int64_t>(node.diff.offsetUtf8);
+
+            // Transform through each SUBSEQUENT edit in the same scene.
+            for (std::size_t j = i + 1; j < spineOldestFirst.size(); ++j) {
+                auto jt = nodes_.find(spineOldestFirst[j]);
+                if (jt == nodes_.end()) continue;
+                const EventNode& later = jt->second;
+                if (!carriesDiff(later.kind) || later.sceneID != node.sceneID) continue;
+
+                // T-0643: through each of the later edit's changes in order; `shift` is what the changes before added.
+                std::int64_t shift = 0;
+                bool collapsed = false;
+                forEachChange(later.diff, [&](std::size_t offset, const std::string& removed, const std::string& inserted) {
+                    if (collapsed) return;
+                    const auto lOff = static_cast<std::int64_t>(offset);
+                    const auto lIns = static_cast<std::int64_t>(inserted.size());
+                    const auto lDel = static_cast<std::int64_t>(removed.size());
+                    // Strictly after this node's position → no effect on it.
+                    if (lOff > pos) return;
+                    // A removal spanning this position collapses it back to the cut point;
+                    // otherwise the net change applies in full.
+                    if (lDel > 0 && lOff + lDel > pos) {
+                        pos = lOff + shift;
+                        collapsed = true;
+                    } else {
+                        shift += lIns - lDel;
+                    }
+                });
+                if (!collapsed) pos += shift;
+                if (pos < 0) pos = 0;
+            }
+
+            rebasedOffset[node.eventID] = static_cast<std::size_t>(pos);
+        }
+    }
+
 
     out.nodes.reserve(ordered.size());
     for (const std::string& id : ordered) {
@@ -991,10 +1173,14 @@ int HistoryService::evictToCapacity(EvictionDetail& detail) {
         // The child that must survive: the one on the root→current path. If the
         // current pointer IS the root, there is nothing safe to promote — DEFER
         // (the current state must always remain reachable; §5).
-        const std::string keepChildID = rootChildTowardCurrent();
+        EventNode& root = nodeRef(rootID_);
+        // [I-0332]: a root with ONE child (a history's old end is nearly always linear) leads to current unless current IS
+        // the root; only a fork at the root needs the walk from current, which is O(history).
+        const std::string keepChildID = (root.childIDs.size() == 1 && currentNodeID_ != rootID_)
+                                            ? root.childIDs.front()
+                                            : rootChildTowardCurrent();
         if (keepChildID.empty()) break;
 
-        EventNode& root = nodeRef(rootID_);
         // Auto-purge every OTHER child subtree hanging off the root — a branch
         // dies when its branch point falls off the history limit (§5). Collect
         // first (mutating childIDs while iterating is unsafe).
@@ -1021,7 +1207,9 @@ int HistoryService::evictToCapacity(EvictionDetail& detail) {
         detail.promotedRoots.push_back(keepChildID);   // record for ctl:evict
         ++evicted;
     }
-    if (evicted > 0) rebuildHeadCache();
+    // [I-0332]: no head-cache rebuild. Promoting the root folds its diff (or barrier texts) into the floor — what the walk
+    // root→current would add back — and the purged branches are off that path, so every head is unchanged. The rebuild was
+    // a whole-history walk on EVERY event once the history is at capacity (~16 ms per sentence at 25,000 events).
     return evicted;
 }
 
@@ -1044,9 +1232,55 @@ void HistoryService::addLoadedNode(EventNode node) {
 void HistoryService::setPointers(std::string rootID, std::string currentNodeID,
                                  std::string sessionID) {
     rootID_        = std::move(rootID);
+    // T-0400: a compacted segment names its own root (`ctl:root`); the constructor's anchor is then not part of the tree.
+    if (rootID_ != "evt_root") nodes_.erase("evt_root");
     currentNodeID_ = std::move(currentNodeID);
     sessionID_     = std::move(sessionID);
     undoSession_   = sessionID_;
+}
+
+template <typename Before>
+void HistoryService::walkWithTexts(Before before) {
+    std::map<std::string, std::string> text = floorTexts_;
+    struct Step { std::string id; bool exit = false; std::vector<std::pair<std::string, std::optional<std::string>>> saved; };
+    std::vector<Step> stack;
+    stack.push_back({rootID_});
+    while (!stack.empty()) {
+        Step step = std::move(stack.back());
+        stack.pop_back();
+        if (step.exit) {
+            for (auto it = step.saved.rbegin(); it != step.saved.rend(); ++it) {
+                if (it->second) text[it->first] = std::move(*it->second);
+                else text.erase(it->first);
+            }
+            continue;
+        }
+        auto nit = nodes_.find(step.id);
+        if (nit == nodes_.end()) continue;
+        Step exit{step.id, true, {}};
+        if (step.id != rootID_) {
+            if (!before(nit->second, text)) continue;
+            nit = nodes_.find(step.id);
+            if (nit == nodes_.end()) continue;
+            const EventNode& n = nit->second;
+            auto save = [&](const std::string& sceneID) {
+                auto t = text.find(sceneID);
+                exit.saved.emplace_back(sceneID, t != text.end() ? std::optional<std::string>(t->second) : std::nullopt);
+            };
+            if (n.kind == EventKind::Barrier || n.kind == EventKind::Structural) {
+                for (const auto& [sceneID, _] : n.sceneTexts) save(sceneID);
+            }
+            if (carriesDiff(n.kind)) save(n.sceneID);
+            applyBarrierTexts(n, text);
+            if (carriesDiff(n.kind)) {
+                auto& t = text[n.sceneID];
+                t = applyForward(t, n.diff);
+            }
+        }
+        const std::vector<std::string> kids = nit->second.childIDs;
+        stack.push_back(std::move(exit));
+        for (auto k = kids.rbegin(); k != kids.rend(); ++k) stack.push_back({*k});
+    }
 }
 
 void HistoryService::finalizeLoad(const std::vector<std::string>& currentTrail) {
@@ -1095,6 +1329,16 @@ void HistoryService::finalizeLoad(const std::vector<std::string>& currentTrail) 
             if (nodes_.contains(*it)) { currentNodeID_ = *it; break; }
         }
     }
+    // T-0644 (b2): a barrier stored as changes gets its full texts back, and one stored whole (an older log) gets its
+    // changes, so a compaction writes it in the new shape. Before the head rebuild and the eviction replay, which read
+    // the full texts.
+    walkWithTexts([](EventNode& n, const std::map<std::string, std::string>& texts) {
+        if (n.kind == EventKind::Barrier || n.kind == EventKind::Structural) {
+            expandBarrierTexts(n, texts);
+            persistableBarrierTexts(n, texts);
+        }
+        return true;
+    });
     rebuildHeadCache();
 }
 
@@ -1172,58 +1416,33 @@ std::vector<std::string> HistoryService::pruneInconsistentNodes() {
     // whose diff does not match its scene's text at that point cannot have been
     // produced from it (orphan of a deleted/changed scene, or corrupt record) — drop
     // it and its whole subtree, and do not recurse into it. childIDs must already be
-    // derived (finalizeLoad ran). We iterate a work stack of (nodeID, per-scene text
-    // snapshot) so sibling branches each see the correct pre-fork state.
-    struct Frame { std::string id; std::map<std::string, std::string> text; };
-    std::vector<Frame> stack;
-    stack.push_back({rootID_, floorTexts_});
-
-    while (!stack.empty()) {
-        Frame frame = std::move(stack.back());
-        stack.pop_back();
-
-        auto nit = nodes_.find(frame.id);
-        if (nit == nodes_.end()) continue;      // already erased via a parent
-        const EventNode& node = nit->second;
-
-        // Apply this node's diff to its scene (the root/barriers/structural carry none),
-        // after validating it. A mismatch on a non-root textual node → prune the subtree.
-        if (node.eventID != rootID_) {
-            applyBarrierTexts(node, frame.text);   // [I-0287]: later diffs are against the barrier's texts
-        }
-        if (node.eventID != rootID_ && carriesDiff(node.kind)) {
-            auto& sceneText = frame.text[node.sceneID];
-            if (!diffMatches(sceneText, node.diff)) {
-                // Detach from parent so no stale child ref survives, then erase the
-                // subtree. Record every erased eventID (subtree included) for the log.
-                if (node.parentID.has_value()) {
-                    auto pit = nodes_.find(*node.parentID);
-                    if (pit != nodes_.end()) {
-                        auto& kids = pit->second.childIDs;
-                        kids.erase(std::remove(kids.begin(), kids.end(), node.eventID),
-                                   kids.end());
-                        if (pit->second.primaryChildID.has_value() &&
-                            *pit->second.primaryChildID == node.eventID) {
-                            pit->second.primaryChildID =
-                                kids.empty() ? std::optional<std::string>{} : kids.back();
-                        }
-                    }
+    // derived (finalizeLoad ran). `walkWithTexts` gives each branch the pre-fork state ([I-0332]).
+    walkWithTexts([&](EventNode& node, std::map<std::string, std::string>& text) {
+        // Validate this node's diff against its scene's text at the parent (the root/barriers/structural carry none).
+        // A mismatch on a textual node → prune the subtree.
+        if (!carriesDiff(node.kind)) return true;
+        auto t = text.find(node.sceneID);
+        if (diffMatches(t != text.end() ? t->second : std::string{}, node.diff)) return true;
+        // Detach from parent so no stale child ref survives, then erase the
+        // subtree. Record every erased eventID (subtree included) for the log.
+        if (node.parentID.has_value()) {
+            auto pit = nodes_.find(*node.parentID);
+            if (pit != nodes_.end()) {
+                auto& kids = pit->second.childIDs;
+                kids.erase(std::remove(kids.begin(), kids.end(), node.eventID), kids.end());
+                if (pit->second.primaryChildID.has_value() && *pit->second.primaryChildID == node.eventID) {
+                    pit->second.primaryChildID = kids.empty() ? std::optional<std::string>{} : kids.back();
                 }
-                // Record just this subtree ROOT — one ctl:purge replays the whole
-                // subtree drop. eraseSubtree removes the root + all descendants.
-                droppedRoots.push_back(node.eventID);
-                anyDropped = true;
-                eraseSubtree(node.eventID);
-                continue;   // do not recurse into an erased subtree
             }
-            sceneText = applyForward(sceneText, node.diff);
         }
-
-        // Recurse into children with this node's (now-advanced) per-scene text.
-        for (const std::string& childID : node.childIDs) {
-            stack.push_back({childID, frame.text});
-        }
-    }
+        // Record just this subtree ROOT — one ctl:purge replays the whole
+        // subtree drop. eraseSubtree removes the root + all descendants.
+        const std::string id = node.eventID;
+        droppedRoots.push_back(id);
+        anyDropped = true;
+        eraseSubtree(id);
+        return false;   // do not recurse into an erased subtree
+    });
 
     if (anyDropped) {
         // The current pointer may have been inside a dropped subtree — walk it back
@@ -1245,9 +1464,9 @@ void HistoryService::applyPrimaryOverride(const std::string& forkNodeID,
         std::find(fork.childIDs.begin(), fork.childIDs.end(), childEventID) != fork.childIDs.end();
     if (!isChild) return;
     fork.primaryChildID = childEventID;
-    // The override may change which branch is on the root→current path only when
-    // it affects a node on that path; rebuild the head cache to stay consistent.
-    rebuildHeadCache();
+    // [I-0332]: no head-cache rebuild. The heads follow root→current through parentIDs (`rebuildHeadCache`), which a
+    // fork's primary child never changes — it only decides where REDO goes. The rebuild here was a whole-history walk per
+    // `setPrimary` record at every open: 11 s of a 25,000-event history's open with 906 branches.
 }
 
 } // namespace scrivi::history
