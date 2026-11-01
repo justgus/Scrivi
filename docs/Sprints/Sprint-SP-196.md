@@ -45,7 +45,7 @@ platforms' own structural workers are gone (W7h).
 - [x] AC1 — `[Apple]` Every structural edit through the queue; no structural worker of its own
 - [x] AC2 — `[Linux]` The same, in this Sprint
 - [x] AC3 — Gesture cues as v0.2 Q5 (EP-052 AC10)
-- [ ] AC4 — ✅ **Mac and rig live passes (user):** the structural steps and their undo over the share, none freezing — ✅ Mac (user, 2026-10-27: *"mac live pass passes."*); ⏳ rig
+- [ ] AC4 — ✅ **Mac and rig live passes (user):** the structural steps and their undo over the share, none freezing — ✅ Mac (user, 2026-10-27: *"mac live pass passes."*); ⏳ rig → steps held in [`Rig-Live-Pass-Held.md`](Rig-Live-Pass-Held.md)
 
 ## Progress log
 

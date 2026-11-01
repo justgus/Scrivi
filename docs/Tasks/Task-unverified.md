@@ -13,6 +13,36 @@ in the backlog carrying a 🟠 status.
 
 
 
+## 🟠 T-0641 — `[Cross]` A time scale along the top of the Timeline
+
+**Epic:** [EP-055] · **Status:** 🟠 **Implemented - Not Verified** (2026-10-31) — ✅ Apple: iPad and Mac live pass (user, 2026-11-01: *"All these steps passed on both iPad and the Mac."*); ⏳ Linux rig live pass · **Sprint:** [SP-199] (🟡 Active) → [`../Sprints/Sprint-SP-199.md`](../Sprints/Sprint-SP-199.md) · **Date Requested:** 2026-10-31
+
+**What (user):** ticks for decades, years, months, weeks, days, hours as the zoom allows, as a reference for where a scene
+sits in time and as a sign of movement while scrolling across empty stretches. **Ruling (2026-10-31):** labels are offsets
+from Story Open (no calendar, Timeline design principle 5).
+**Done (Apple):** `TimelineScale` (`TimelineStripView.swift:3712`) picks the smallest step from 1 min to 1,000 years that keeps
+labels 90 pt apart and labels each tick "Day 3 14:00", "Day 3", "Week 7", "Month 15" or "Year 2", counted from 1 at Story Open
+(month = 30 days, year = 365, the Time Delta Picker's units). Drawn as a 16 pt row under the header (`:1840`), in the dots' x
+mapping. Checks: iOS 17/17 (`TimelineScaleTests` 3 new), Mac interop 327/327, Mac build, `check-layout-convergence.sh` clean.
+**Linux (2026-11-01):** `TimelinePanel::scaleTicks` / `scaleLabel` (`platforms/linux/src/TimelinePanel.cpp:729`), the same steps
+and labels as Apple, painted as a 16 px row along the top of the strip (`:948`), above the bands; the strip's minimum height
+80 → 96. Checks: `timeline_cluster_smoke` (the cases of Apple's `TimelineScaleTests`), Linux smokes 38/38 (Docker, Qt 6.4,
+offscreen, non-root). ⏳ Rig live pass.
+
+## 🟠 T-0640 — `[Cross]` Zoom to the current scene
+
+**Epic:** [EP-055] · **Status:** 🟠 **Implemented - Not Verified** (2026-10-31) — ✅ Apple: iPad and Mac live pass (user, 2026-11-01: *"All these steps passed on both iPad and the Mac."*); ⏳ Linux rig live pass · **Sprint:** [SP-199] (🟡 Active) → [`../Sprints/Sprint-SP-199.md`](../Sprints/Sprint-SP-199.md) · **Date Requested:** 2026-10-31
+
+**What (user):** a small Timeline button that zooms in until single dots show and centres on the scene the Manuscript and
+Navigator have selected. **Ruling (2026-10-31):** zoom until nearby dots separate.
+**Done (Apple):** a `scope` button in the Timeline header (disabled with no current scene). `zoomToCurrentScene`
+(`TimelineStripView.swift:1827`) finds the nearest other main-row item and zooms so it sits a twelfth of the window away
+(capped by the existing `maxZoom`), then centres on `loader.viewportSceneID`. Checks: iOS 17/17 (`TimelineScaleTests` 3 new), Mac interop 327/327, Mac build, `check-layout-convergence.sh` clean.
+**Linux (2026-11-01):** a `◎` button left of the +/− control (`platforms/linux/src/TimelinePanel.cpp:51`), disabled with no
+active scene; `TimelinePanel::zoomToActiveScene` (`:695`) is Apple's rule (nearest other project-row dot a twelfth of the
+window away, zoom capped at 500), centres the active scene and saves the view (T-0338). Checks: `timeline_cluster_smoke`
+(a clustered scene separates and is centred; the view is saved), Linux smokes 38/38. ⏳ Rig live pass.
+
 ## 🟠 T-0637 — `[Apple]` EP-055 S2: the iOS gestures and the Timeline grabber, with routes that need no gesture
 
 **Epic:** [EP-055] (AC6, AC8) · **Status:** 🟠 **Implemented - Not Verified** (2026-10-31) — ⏳ the simulator live passes · **Sprint:** [SP-199] (🟡 Active) → [`../Sprints/Sprint-SP-199.md`](../Sprints/Sprint-SP-199.md) · **Date Requested:** 2026-10-31

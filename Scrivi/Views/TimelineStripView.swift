@@ -806,6 +806,8 @@ struct TimelineStripView: View {
     var model: TimelineViewModel
     var engine: ScriviEngine
     var projectRootPath: String
+    /// T-0639: keys the saved zoom and position (per project, per device).
+    var projectID: String = ""
     var authorshipRef: AuthorshipRef?
     // T-0173: shared selection state. `loader.viewportSceneID` is the single source of truth
     // for the currently-selected scene across the Navigator, manuscript, and this timeline.
@@ -978,6 +980,7 @@ struct TimelineStripView: View {
             Divider()
             panelHeader
             rejectedImportsBanner
+            timelineScale
             GeometryReader { geo in
                 let panelW = geo.size.width
                 let usable = panelW - 32
@@ -1366,6 +1369,19 @@ struct TimelineStripView: View {
                 .onChange(of: loader?.viewportSceneID) { _, newID in
                     if let id = newID { revealScene(id) }
                 }
+                // T-0639: the zoom and position come back as the writer left them (Linux T-0338's shape).
+                .onChange(of: projectID, initial: true) { _, pid in
+                    if let saved = TimelineViewStateStore.load(projectID: pid) {
+                        zoomFactor = saved.zoom
+                        scrollOffsetFraction = saved.scroll
+                    }
+                }
+                .onChange(of: zoomFactor) { _, z in
+                    TimelineViewStateStore.save(projectID: projectID, zoom: z, scroll: scrollOffsetFraction)
+                }
+                .onChange(of: scrollOffsetFraction) { _, f in
+                    TimelineViewStateStore.save(projectID: projectID, zoom: zoomFactor, scroll: f)
+                }
                 // Pinch-to-zoom (FR-009): MagnifyGesture adjusts zoomFactor.
                 // magnifyGestureScale live-tracks during pinch; zoomFactor is committed on end.
                 .simultaneousGesture(
@@ -1374,14 +1390,11 @@ struct TimelineStripView: View {
                             state = value.magnification
                         }
                         .onEnded { value in
-                            let newZoom = max(1.0, min(maxZoom, zoomFactor * value.magnification))
-                            // Recentre the visible window so the current visible centre stays fixed.
-                            let oldSpan = CGFloat(model.spanMs) / effectiveZoom
-                            let newSpan = CGFloat(model.spanMs) / newZoom
-                            let centreFraction = scrollOffsetFraction + 0.5 * oldSpan / CGFloat(model.spanMs)
-                            let newStart = centreFraction - 0.5 * newSpan / CGFloat(model.spanMs)
-                            scrollOffsetFraction = max(0, min(1, newStart))
-                            zoomFactor = newZoom
+                            // The viewport stays exactly as the pinch left it (SP-199 live pass): during the pinch the
+                            // window is drawn from `scrollOffsetFraction` at the live zoom, so committing the zoom alone
+                            // keeps it. ⚠️ The old recentre measured the PRE-pinch window (the gesture state had already
+                            // reset), so the view jumped somewhere else on release.
+                            zoomFactor = max(1.0, min(maxZoom, zoomFactor * value.magnification))
                         }
                 )
                 // Scroll-wheel capture: pan (horizontal) when zoomed, zoom (vertical/⌘) via trackpad (FR-009).
@@ -1424,6 +1437,17 @@ struct TimelineStripView: View {
                 .foregroundStyle(.secondary)
                 .padding(.leading, 12)
             Spacer()
+            // T-0640: zoom until the current scene and its neighbours are single dots, centred on it.
+            Button { zoomToCurrentScene() } label: {
+                Image(systemName: "scope")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.borderless)
+            .help("Zoom to Current Scene")
+            .accessibilityLabel("Zoom to Current Scene")
+            .disabled(loader?.viewportSceneID == nil)
+            .padding(.trailing, 6)
             timelineMenu
                 .padding(.trailing, 4)
             structureMenu
@@ -1786,12 +1810,58 @@ struct TimelineStripView: View {
         let vSpan = visibleSpanMs()
         let vMin  = visibleMinMs()
         if dot.offsetMs >= vMin && dot.offsetMs <= vMin + vSpan { return }
-        // Centre the dot in the visible window.
-        let desiredMin = dot.offsetMs - vSpan / 2
+        centre(onMs: dot.offsetMs)
+    }
+
+    /// Scrolls so `ms` sits in the middle of the visible window at the current zoom.
+    private func centre(onMs ms: Int64) {
+        let vSpan = visibleSpanMs()
         let slack = CGFloat(model.spanMs) - CGFloat(vSpan)
         guard slack > 0 else { return }
-        let fraction = CGFloat(desiredMin - model.minOffsetMs) / slack
+        let fraction = CGFloat(ms - vSpan / 2 - model.minOffsetMs) / slack
         scrollOffsetFraction = max(0, min(1, fraction))
+    }
+
+    /// T-0640: zooms until the nearest other main-row item sits about a twelfth of the window away from the current
+    /// scene, so the two draw as separate dots, then centres on the scene.
+    private func zoomToCurrentScene() {
+        guard let id = loader?.viewportSceneID,
+              let dot = model.dots.first(where: { $0.sceneID == id }) else { return }
+        var gap = Int64.max
+        for o in model.dots.map(\.offsetMs) + model.historicalEvents.map(\.offsetMs) where o != dot.offsetMs {
+            gap = min(gap, abs(o - dot.offsetMs))
+        }
+        let window = gap == .max ? model.spanMs : gap * 12
+        zoomFactor = max(1.0, min(maxZoom, CGFloat(model.spanMs) / CGFloat(max(window, 1))))
+        centre(onMs: dot.offsetMs)
+    }
+
+    /// T-0641: the tick scale along the top of the Timeline, in the same x mapping as the dots.
+    private var timelineScale: some View {
+        GeometryReader { geo in
+            let usable = geo.size.width - 32
+            let vMin = visibleMinMs(), vSpan = visibleSpanMs()
+            let ticks = TimelineScale.ticks(visibleMinMs: vMin, visibleSpanMs: vSpan, usable: usable)
+            ZStack(alignment: .topLeading) {
+                ForEach(ticks, id: \.ms) { t in
+                    let x = 16 + CGFloat(t.ms - vMin) / CGFloat(vSpan) * usable
+                    Rectangle()
+                        .fill(.secondary)
+                        .frame(width: 1, height: 5)
+                        .offset(x: x, y: 11)
+                    Text(t.label)
+                        .font(.system(size: 9))
+                        .foregroundStyle(.secondary)
+                        .fixedSize()
+                        .offset(x: x + 3, y: 0)
+                }
+            }
+            .accessibilityElement()
+            .accessibilityLabel(ticks.isEmpty ? "Time scale"
+                                : "Time scale, \(ticks.first!.label) to \(ticks.last!.label)")
+        }
+        .frame(height: 16)
+        .clipped()
     }
 
     private func offsetMs(fromPanelX x: CGFloat, usable: CGFloat) -> Int64 {
@@ -3614,6 +3684,72 @@ struct BandPointerProbeView: NSViewRepresentable {
     }
 }
 #endif
+
+// MARK: — Saved view (T-0639)
+
+/// The Timeline's zoom and position per project, on THIS device only (user ruling 2026-10-31): kept in UserDefaults,
+/// never in the package, so zooming neither syncs nor writes to the project. Linux keeps the same pair in an INI.
+enum TimelineViewStateStore {
+    private static func key(_ projectID: String) -> String { "scrivi.timeline.\(projectID).view" }
+
+    static func load(projectID: String) -> (zoom: CGFloat, scroll: CGFloat)? {
+        guard !projectID.isEmpty,
+              let a = UserDefaults.standard.array(forKey: key(projectID)) as? [Double], a.count == 2 else { return nil }
+        return (CGFloat(a[0]), CGFloat(a[1]))
+    }
+
+    static func save(projectID: String, zoom: CGFloat, scroll: CGFloat) {
+        guard !projectID.isEmpty else { return }
+        UserDefaults.standard.set([Double(zoom), Double(scroll)], forKey: key(projectID))
+    }
+}
+
+// MARK: — Time scale (T-0641)
+
+/// Ticks for the top of the Timeline. ⚠️ There is no calendar (Timeline design principle 5): ticks are offsets from
+/// the epoch, counted from 1 ("Day 1" starts at Story Open), with the month as 30 days and the year as 365, the same
+/// units as the Time Delta Picker.
+enum TimelineScale {
+    struct Tick: Equatable { let ms: Int64; let label: String }
+
+    private static let minute: Int64 = 60_000, hour = 60 * minute, day = 24 * hour
+    private static let week = 7 * day, month = 30 * day, year = 365 * day
+    static let steps: [Int64] = [minute, 5 * minute, 15 * minute, 30 * minute, hour, 2 * hour, 3 * hour, 6 * hour,
+                                 12 * hour, day, 2 * day, week, 2 * week, month, 3 * month, 6 * month, year, 2 * year,
+                                 5 * year, 10 * year, 25 * year, 50 * year, 100 * year, 250 * year, 500 * year,
+                                 1000 * year]
+
+    /// The ticks inside the visible window, the smallest step that keeps labels `minSpacing` points apart.
+    static func ticks(visibleMinMs: Int64, visibleSpanMs: Int64, usable: CGFloat, minSpacing: CGFloat = 90) -> [Tick] {
+        guard visibleSpanMs > 0, usable > 0 else { return [] }
+        let msPerPoint = Double(visibleSpanMs) / Double(usable)
+        let step = steps.first { Double($0) / msPerPoint >= Double(minSpacing) } ?? steps.last!
+        var k = floorDiv(visibleMinMs, step)
+        var out: [Tick] = []
+        while k * step <= visibleMinMs + visibleSpanMs, out.count < 200 {
+            if k * step >= visibleMinMs { out.append(Tick(ms: k * step, label: label(ms: k * step, step: step))) }
+            k += 1
+        }
+        return out
+    }
+
+    static func label(ms: Int64, step: Int64) -> String {
+        func nth(_ unit: Int64) -> Int64 { let k = floorDiv(ms, unit); return k >= 0 ? k + 1 : k }
+        if step < day {
+            let intoDay = ms - floorDiv(ms, day) * day
+            return String(format: "Day %lld %02lld:%02lld", nth(day), intoDay / hour, intoDay % hour / minute)
+        }
+        if step < week  { return "Day \(nth(day))" }
+        if step < month { return "Week \(nth(week))" }
+        if step < year  { return "Month \(nth(month))" }
+        return "Year \(nth(year))"
+    }
+
+    private static func floorDiv(_ a: Int64, _ b: Int64) -> Int64 {
+        let q = a / b
+        return (a % b != 0 && (a < 0) != (b < 0)) ? q - 1 : q
+    }
+}
 
 // MARK: — Human-readable duration
 

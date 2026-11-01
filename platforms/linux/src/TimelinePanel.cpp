@@ -17,12 +17,14 @@
 
 #include <algorithm>
 #include <cmath>
+#include <iterator>
+#include <limits>
 
 namespace {
 // Geometry. The strip is short; dots sit on a horizontal baseline centred
 // vertically. Insets keep the first/last dot off the panel edges. Matches the
 // spirit of Apple's TimelineStripView spacing (not pixel-identical).
-constexpr int    kMinHeight    = 80;
+constexpr int    kMinHeight    = 96;   // 80 + the T-0641 scale row
 constexpr double kSideInset    = 28.0;   // left/right padding for the baseline
 constexpr double kDotRadius    = 6.0;
 constexpr double kHitRadius    = 12.0;   // generous click/hover target
@@ -32,6 +34,7 @@ constexpr double kImportedRowHeight = 26.0;   // height per imported-timeline ro
 // (layoutControls): kBtn(20) + kMargin(4). Content (imported rows, baseline) must stay
 // ABOVE this so the lowest imported row isn't hidden behind the scrollbar (I-0090).
 constexpr double kBottomControlsHeight = 24.0;
+constexpr double kScaleHeight = 16.0;   // the T-0641 tick row along the top
 
 constexpr qint64 kMsPerSecond = 1000;
 constexpr qint64 kMsPerMinute = 60 * kMsPerSecond;
@@ -43,6 +46,15 @@ TimelinePanel::TimelinePanel(QWidget* parent) : QWidget(parent)
 {
     setMinimumHeight(kMinHeight);
     setMouseTracking(true);   // hover tooltips without a pressed button
+
+    // T-0640: zoom to the active scene, left of the +/- control.
+    zoomSceneBtn_ = new QToolButton(this);
+    zoomSceneBtn_->setText(QStringLiteral("◎"));
+    zoomSceneBtn_->setToolTip(tr("Zoom to Current Scene"));
+    zoomSceneBtn_->setAccessibleName(tr("Zoom to Current Scene"));
+    zoomSceneBtn_->setFocusPolicy(Qt::NoFocus);
+    zoomSceneBtn_->setEnabled(false);
+    connect(zoomSceneBtn_, &QToolButton::clicked, this, &TimelinePanel::zoomToActiveScene);
 
     // --- SP-083 zoom control (bottom-right): + on the left, − on the right ---
     // Plain-click buttons = the guaranteed VNC-safe zoom path (a Mac Magic
@@ -85,9 +97,10 @@ void TimelinePanel::layoutControls()
     // + on the left, − on the right (user spec).
     zoomInBtn_->setGeometry(width() - 2 * kBtn - kMargin - 2, y, kBtn, kBtn);
     zoomOutBtn_->setGeometry(width() - kBtn - kMargin, y, kBtn, kBtn);
+    zoomSceneBtn_->setGeometry(width() - 3 * kBtn - kMargin - 4, y, kBtn, kBtn);
     // Scrollbar runs along the bottom, left of the buttons.
     hScroll_->setGeometry(kMargin, height() - kBtn - kMargin,
-                          width() - 2 * kBtn - 3 * kMargin - 4, kBtn - 6);
+                          width() - 3 * kBtn - 3 * kMargin - 6, kBtn - 6);
 }
 
 void TimelinePanel::syncScrollBar()
@@ -165,7 +178,7 @@ double TimelinePanel::projectRowY() const
     // baseline sits a touch above centre, clear of the controls.
     const int visibleCount = static_cast<int>(visibleImportedRowIndices().size());
     const double reserved = visibleCount * kImportedRowHeight + kBottomControlsHeight;
-    const double top = bandLabelRowHeight();
+    const double top = kScaleHeight + bandLabelRowHeight();
     return top + (height() - top - reserved) / 2.0;
 }
 
@@ -536,6 +549,7 @@ void TimelinePanel::setActiveScene(const QString& sceneID)
         return;
     }
     activeSceneID_ = sceneID;
+    zoomSceneBtn_->setEnabled(!sceneID.isEmpty());
     update();
 }
 
@@ -678,6 +692,77 @@ void TimelinePanel::zoomAbout(double factor, double anchorX)
     emit viewStateChanged(zoom_, panFraction_);   // persist (T-0338)
 }
 
+void TimelinePanel::zoomToActiveScene()
+{
+    const auto it = std::find_if(dots_.cbegin(), dots_.cend(),
+                                 [this](const Dot& d) { return d.sceneID == activeSceneID_; });
+    if (activeSceneID_.isEmpty() || it == dots_.cend()) {
+        return;
+    }
+    const qint64 at = it->offsetMs;
+    qint64 gap = std::numeric_limits<qint64>::max();
+    for (const Dot& d : dots_) {
+        if (d.offsetMs != at) { gap = std::min(gap, std::abs(d.offsetMs - at)); }
+    }
+    for (const HistDot& h : histDots_) {
+        if (h.offsetMs != at) { gap = std::min(gap, std::abs(h.offsetMs - at)); }
+    }
+    const double span = static_cast<double>(maxMs_ - minMs_);
+    const double window = gap == std::numeric_limits<qint64>::max() ? span : 12.0 * static_cast<double>(gap);
+    zoom_ = std::clamp(span / std::max(1.0, window), 1.0, 500.0);
+    panFraction_ = static_cast<double>(at - minMs_) / span - 0.5 / zoom_;
+    clampPan();
+    syncScrollBar();
+    update();
+    emit zoomChanged();
+    emit viewStateChanged(zoom_, panFraction_);   // persist (T-0338)
+}
+
+namespace {
+qint64 floorDiv(qint64 a, qint64 b)
+{
+    const qint64 q = a / b;
+    return (a % b != 0 && (a < 0) != (b < 0)) ? q - 1 : q;
+}
+} // namespace
+
+QList<TimelinePanel::Tick> TimelinePanel::scaleTicks(qint64 visibleMinMs, qint64 visibleSpanMs, double usable,
+                                                     double minSpacing)
+{
+    constexpr qint64 m = kMsPerMinute, h = kMsPerHour, d = kMsPerDay, w = 7 * d, mo = 30 * d, y = 365 * d;
+    static constexpr qint64 kSteps[] = {m, 5 * m, 15 * m, 30 * m, h, 2 * h, 3 * h, 6 * h, 12 * h, d, 2 * d, w, 2 * w,
+                                        mo, 3 * mo, 6 * mo, y, 2 * y, 5 * y, 10 * y, 25 * y, 50 * y, 100 * y,
+                                        250 * y, 500 * y, 1000 * y};
+    QList<Tick> out;
+    if (visibleSpanMs <= 0 || usable <= 0) {
+        return out;
+    }
+    const double msPerPx = static_cast<double>(visibleSpanMs) / usable;
+    qint64 step = kSteps[std::size(kSteps) - 1];
+    for (qint64 s : kSteps) {
+        if (static_cast<double>(s) / msPerPx >= minSpacing) { step = s; break; }
+    }
+    for (qint64 k = floorDiv(visibleMinMs, step); k * step <= visibleMinMs + visibleSpanMs && out.size() < 200; ++k) {
+        if (k * step >= visibleMinMs) { out.append({k * step, scaleLabel(k * step, step)}); }
+    }
+    return out;
+}
+
+QString TimelinePanel::scaleLabel(qint64 ms, qint64 step)
+{
+    const auto nth = [ms](qint64 unit) { const qint64 k = floorDiv(ms, unit); return k >= 0 ? k + 1 : k; };
+    if (step < kMsPerDay) {
+        const qint64 intoDay = ms - floorDiv(ms, kMsPerDay) * kMsPerDay;
+        return QStringLiteral("Day %1 %2:%3").arg(nth(kMsPerDay))
+            .arg(intoDay / kMsPerHour, 2, 10, QLatin1Char('0'))
+            .arg(intoDay % kMsPerHour / kMsPerMinute, 2, 10, QLatin1Char('0'));
+    }
+    if (step < 7 * kMsPerDay)   { return QStringLiteral("Day %1").arg(nth(kMsPerDay)); }
+    if (step < 30 * kMsPerDay)  { return QStringLiteral("Week %1").arg(nth(7 * kMsPerDay)); }
+    if (step < 365 * kMsPerDay) { return QStringLiteral("Month %1").arg(nth(30 * kMsPerDay)); }
+    return QStringLiteral("Year %1").arg(nth(365 * kMsPerDay));
+}
+
 void TimelinePanel::setViewState(double zoom, double panFraction)
 {
     // Apply persisted state without re-emitting viewStateChanged (that would echo a save).
@@ -813,7 +898,7 @@ void TimelinePanel::paintEvent(QPaintEvent* /*event*/)
     // Translucent colored proportional slices + a label near the top; a subtle
     // separator at each border. Painted first so dots + baseline sit on top.
     if (!bands_.isEmpty()) {
-        const double top    = 1.0;
+        const double top    = kScaleHeight;   // the scale row sits above the bands (T-0641)
         const double bottom = height() - 1.0;
         for (int i = 0; i < bands_.size(); ++i) {
             const double left  = bandLeftX(i);
@@ -856,8 +941,26 @@ void TimelinePanel::paintEvent(QPaintEvent* /*event*/)
             const double dotX = xForOffset(dots_.at(pressedDot_).offsetMs);
             painter.setPen(QPen(hi, 1.5, Qt::DashLine));
             painter.drawLine(QPointF(dotX, cy),
-                             QPointF(dragPos_.x(), bandLabelRowHeight() + 2.0));
+                             QPointF(dragPos_.x(), kScaleHeight + bandLabelRowHeight() + 2.0));
         }
+    }
+
+    // --- T-0641 time scale along the top, in the dots' x mapping ----------
+    {
+        const double usable = std::max(1.0, width() - 2.0 * kSideInset);
+        const qint64 vMin = offsetForX(kSideInset);
+        const qint64 vSpan = std::max<qint64>(1, offsetForX(width() - kSideInset) - vMin);
+        QFont small = painter.font();
+        small.setPointSizeF(std::max(6.0, small.pointSizeF() - 2.0));
+        painter.save();
+        painter.setFont(small);
+        painter.setPen(pal.color(QPalette::Disabled, QPalette::Text));
+        for (const Tick& t : scaleTicks(vMin, vSpan, usable)) {
+            const double x = xForOffset(t.ms);
+            painter.drawLine(QPointF(x, kScaleHeight - 5.0), QPointF(x, kScaleHeight));
+            painter.drawText(QPointF(x + 3.0, kScaleHeight - 5.0), t.label);
+        }
+        painter.restore();
     }
 
     // Baseline (a faint horizontal rule, theme-aware).

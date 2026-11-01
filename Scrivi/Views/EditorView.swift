@@ -484,6 +484,7 @@ private struct ManuscriptEditorView: View {
                         model: tlModel,
                         engine: env.engine,
                         projectRootPath: prp,
+                        projectID: session.openProjectResult?.projectID ?? "",
                         authorshipRef: env.authorshipRef,
                         loader: loader,
                         // ⚠️ I-0209 — set SELECTION + REVEAL, not the one-shot trigger.

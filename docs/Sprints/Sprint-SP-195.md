@@ -85,7 +85,7 @@ it cannot land. Both platforms' own ordering code is gone (W6).
 - [x] AC4 — `[Linux]` Replace All shows its progress (EP-052 AC7)
 - [x] AC5 — Close and quit wait for the queue on both; a held queue asks (Mac: [T-0570]; Linux: as Q3 rules)
 - [ ] AC6 — ✅ **Rig live pass (user)** over the share: undo of a Replace All on dumas does not freeze; typing never waits; a
-  pulled drive keeps its edits and they land when it returns (EP-052 AC6)
+  pulled drive keeps its edits and they land when it returns (EP-052 AC6) → steps held in [`Rig-Live-Pass-Held.md`](Rig-Live-Pass-Held.md)
 - [x] AC7 — ✅ **Mac live pass (user)**, the same steps
 
 ## Progress log

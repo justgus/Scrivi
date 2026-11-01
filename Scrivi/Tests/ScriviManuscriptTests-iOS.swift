@@ -241,3 +241,31 @@ struct PanelSwipeTests {
         #expect(PanelSwipe.actions(startX: 5, endX: 990, width: w, compact: true).isEmpty)
     }
 }
+
+@Suite("Timeline time scale (T-0641)")
+struct TimelineScaleTests {
+    private let hour: Int64 = 3_600_000, day: Int64 = 86_400_000
+
+    @Test func labelsCountFromOneAtTheEpoch() {
+        #expect(TimelineScale.label(ms: 0, step: day) == "Day 1")
+        #expect(TimelineScale.label(ms: 2 * day, step: day) == "Day 3")
+        #expect(TimelineScale.label(ms: -day, step: day) == "Day -1")
+        #expect(TimelineScale.label(ms: 2 * day + 14 * hour, step: hour) == "Day 3 14:00")
+        #expect(TimelineScale.label(ms: 365 * day, step: 365 * day) == "Year 2")
+    }
+
+    @Test func ticksAreSpacedAndInsideTheWindow() {
+        // One day across 900 pt: 90 pt apart needs a 2.4 h step, so 3 h ticks.
+        let ticks = TimelineScale.ticks(visibleMinMs: hour / 2, visibleSpanMs: day, usable: 900)
+        #expect(ticks.first?.ms == 3 * hour)
+        #expect(zip(ticks, ticks.dropFirst()).allSatisfy { $1.ms - $0.ms == 3 * hour })
+        #expect(ticks.allSatisfy { $0.ms >= hour / 2 && $0.ms <= hour / 2 + day })
+    }
+
+    @Test func aHugeSpanStillGetsLabels() {
+        // ~240 years (the Dumas fixture's framed span) across 1,000 pt.
+        let ticks = TimelineScale.ticks(visibleMinMs: 0, visibleSpanMs: 240 * 365 * day, usable: 1000)
+        #expect(!ticks.isEmpty && ticks.count < 20)
+        #expect(ticks.first?.label == "Year 1")
+    }
+}

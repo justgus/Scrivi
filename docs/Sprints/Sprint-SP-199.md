@@ -10,7 +10,7 @@ created: 2026-10-31
 
 **Status:** 🟡 **ACTIVE 2026-10-31.** It comes before [SP-198]'s iPhone and Duo passes (user, 2026-10-31: *"We shouldn't do either
 one of those until we have implemented the capability to hide the Navigator and inspector and timeline."*).
-**Carries:** [T-0636], [T-0637], [T-0638] (🟠) → [`../Tasks/Task-unverified.md`](../Tasks/Task-unverified.md).
+**Carries:** [T-0636], [T-0637], [T-0638], [T-0639], [T-0640], [T-0641], [T-0642] (🟠) → [`../Tasks/Task-unverified.md`](../Tasks/Task-unverified.md).
 **Epic:** [EP-055] (AC6, AC8) → [`../Epics/Epic-active.md`](../Epics/Epic-active.md).
 **Design:** [`../Scrivi_iOS_Manuscript_Design_v0_1.md`](../Scrivi_iOS_Manuscript_Design_v0_1.md) §8.
 **Goal:** at compact width the writer sees only the Manuscript and moves Navigator ↔ Manuscript ↔ Inspector; at regular width
@@ -44,9 +44,24 @@ system places them.
 - [ ] AC3 — ⏳ (built 2026-10-31; Scene and Chapter disabled on iOS until structural edits) [T-0638] The Mac's toolbar buttons (Scene, Chapter, Worlds, Project Settings) on iOS at the default placement. Each
       button is either enabled and working, or visibly disabled where its action is not wired on iOS yet.
 - [x] AC4 — ✅ 2026-10-31: iOS 14/14, Mac interop 327/327. The iOS tests stay green and the Mac is unchanged (`scripts/run-interop-tests.sh`, N > 0).
+- [ ] AC6 — [T-0639]–[T-0642] Timeline navigation: the zoom and position come back, a zoom-to-current-scene button, a time
+      scale, and no jump after a pinch. ✅ iPad and Mac (user, 2026-11-01); T-0639 and T-0642 verified. ✅ Linux built for
+      T-0640 and T-0641 (2026-11-01); ⏳ rig live pass → [`Rig-Live-Pass-Held.md`](Rig-Live-Pass-Held.md).
 - [ ] AC5 — Live passes on the iPad, iPhone and iPhone Duo simulators, then [SP-198]'s held iPhone and Duo passes.
 
-*Last Updated: 2026-10-31 (T-0636, T-0637 → 🟠; AC4 ✅.)*
+## Progress log
+
+### 🟠 2026-11-01 — AC6: Apple passed; T-0640 and T-0641 on Linux
+- User: *"All these steps passed on both iPad and the Mac."* T-0639 and T-0642 (Apple only) → ✅ Verified, archived.
+- Linux: the `◎` zoom-to-current-scene button beside +/− and the tick row along the top of the strip, Apple's rules
+  (`TimelinePanel.cpp`). Linux already restores zoom and position (T-0338) and has no pinch. `timeline_cluster_smoke`
+  carries Apple's scale cases and a zoom-to-scene check; smokes 38/38 (Docker, Qt 6.4, offscreen, non-root).
+
+- ⏳ Rig steps → [`Rig-Live-Pass-Held.md`](Rig-Live-Pass-Held.md) (SP-199 AC6).
+
+*Last Updated: 2026-11-01 (AC6: Apple passed, T-0639 and T-0642 verified; T-0640 and T-0641 built on Linux, rig steps held.)*
+
+*Last Updated: 2026-10-31 (T-0639–T-0642 filed from the live pass, 🟠; AC6 added.)*
 
 *Last Updated: 2026-10-31 (T-0638 → 🟠; Mac 327/327, iOS 12/12.)*
 

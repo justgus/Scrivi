@@ -79,9 +79,23 @@ moved. Spotlight never runs on the main thread: one serial queue, per-scene re-i
   file operations for click, select, scroll, navigator and the Inspector following (EP-052 AC8)
 - [x] AC3 — `[Linux]` The same (EP-052 AC8), in this Sprint
 - [x] AC4 — `[Apple]` Spotlight on one serial background queue, per-scene, behind the saves; a close cancels it (EP-052 AC9)
-- [ ] AC5 — ✅ **Mac and rig live passes (user)** over the share, as plan step 4
+- [ ] AC5 — ✅ **Mac and rig live passes (user)** over the share, as plan step 4 — ✅ Mac (user, 2026-11-01, removable drive); ⏳ rig → steps held in [`Rig-Live-Pass-Held.md`](Rig-Live-Pass-Held.md)
 
 ## Progress log
+
+### 🟠 2026-11-01 — AC5 Mac live pass PASSED (rig still held)
+- User: *"There were no issues."* Steps A–D (scroll and click with the Inspector open, Navigator and Timeline clicks,
+  ⌘Tab after typing, close and reopen). dumas-prose-timelines on the **removable drive** (some latency), not the low-latency
+  loop share, which needs the rig.
+- **Q4, measured (Xcode console, `[SCRIVI-SPAN]`):** `scrivi_load_scene_inspector` 140–155 ms, 48–54 file ops, on every
+  scene. Lock wait is usually 0; it reaches 210–382 ms when the read queues behind `scrivi_list_pending_edges`
+  (371–409 ms, 2,538 file ops) and `scrivi_list_worlds`, which run together after a scene change. A read that waited
+  that long took over 400 ms in total, so "Loading…" could show briefly.
+- **Seen in the same log, not part of AC5's steps:** `scrivi_history_get_tree` runs on the **main** thread for
+  1,857–1,887 ms (0 file ops) on most scene changes, then `scrivi_history_list_stale_branches` (5 ms). The caller is the
+  History card's `reload()` (`HistoryCard.swift:219`), which asks for the whole tree (`maxNodes` 0). `scrivi_history_open`
+  also runs on main for 1.8–2.6 s at open, and `scrivi_list_worlds` waits on the lock on main for up to 346 ms. The user
+  reported no freeze. ⏳ Not yet filed; awaiting the user's call.
 
 ### 🟠 2026-10-28 — [I-0324] (+ [I-0316]) filed and fixed: real scene links made dumas unopenable
 - User: *"Ok all your recommendations"* (world data Q1–Q3), then *"file the issue and fix it"*.

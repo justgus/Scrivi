@@ -18,6 +18,7 @@
 
 #include <QApplication>
 
+#include <cmath>
 #include <cstdio>
 
 #include "TimelinePanel.hpp"
@@ -152,6 +153,62 @@ int main(int argc, char* argv[])
         panel.setImportedTimelines({row});
         panel.storyTimeWindow(lo, hi);
         check(lo == sceneLo && hi == sceneHi, "I-0211: hiding the row narrows the frame back to the scenes");
+    }
+
+    // T-0641 — the time scale (the same cases as Apple's TimelineScaleTests).
+    {
+        constexpr qint64 kHour = 3600000LL, kDay = 86400000LL;
+        check(TimelinePanel::scaleLabel(0, kDay) == QStringLiteral("Day 1"), "scale: Story Open is Day 1");
+        check(TimelinePanel::scaleLabel(2 * kDay, kDay) == QStringLiteral("Day 3"), "scale: two days on is Day 3");
+        check(TimelinePanel::scaleLabel(-kDay, kDay) == QStringLiteral("Day -1"), "scale: the day before is Day -1");
+        check(TimelinePanel::scaleLabel(2 * kDay + 14 * kHour, kHour) == QStringLiteral("Day 3 14:00"),
+              "scale: hour ticks carry the time");
+        check(TimelinePanel::scaleLabel(365 * kDay, 365 * kDay) == QStringLiteral("Year 2"), "scale: a year on is Year 2");
+
+        // One day across 900 px: 90 px apart needs a 2.4 h step, so 3 h ticks, all inside the window.
+        const auto ticks = TimelinePanel::scaleTicks(kHour / 2, kDay, 900);
+        check(!ticks.isEmpty() && ticks.first().ms == 3 * kHour, "scale: the first tick is 03:00");
+        bool spaced = true, inside = true;
+        for (int i = 0; i < ticks.size(); ++i) {
+            if (i > 0 && ticks.at(i).ms - ticks.at(i - 1).ms != 3 * kHour) { spaced = false; }
+            if (ticks.at(i).ms < kHour / 2 || ticks.at(i).ms > kHour / 2 + kDay) { inside = false; }
+        }
+        check(spaced, "scale: ticks are 3 h apart");
+        check(inside, "scale: every tick is inside the window");
+
+        // ~240 years (the Dumas fixture's framed span) across 1,000 px.
+        const auto huge = TimelinePanel::scaleTicks(0, 240 * 365 * kDay, 1000);
+        check(!huge.isEmpty() && huge.size() < 20 && huge.first().label == QStringLiteral("Year 1"),
+              "scale: a huge span still gets a few labels");
+    }
+
+    // T-0640 — zoom to the active scene: its neighbours separate and it sits mid-strip.
+    {
+        constexpr qint64 kDay = 86400000LL;
+        QList<TimelinePanel::Dot> dots;
+        // B mid-span, so centring it is not clamped by an edge.
+        dots << scene(QStringLiteral("A"), 0)
+             << scene(QStringLiteral("B"), 180 * kDay)
+             << scene(QStringLiteral("C"), 182 * kDay)
+             << scene(QStringLiteral("Z"), 1 * kYear);
+        panel.setTimeline(QStringLiteral("Story Open"), dots);
+        panel.setHistoricalEvents({});
+        panel.setImportedTimelines({});
+        panel.setViewState(1.0, 0.0);
+        check(panel.aggregateCountForTest() == 1, "zoom-to-scene: B starts clustered");
+
+        double savedZoom = 0, savedPan = -1;
+        QObject::connect(&panel, &TimelinePanel::viewStateChanged, [&](double z, double p) { savedZoom = z; savedPan = p; });
+        panel.setActiveScene(QStringLiteral("B"));
+        panel.zoomToActiveScene();
+        check(panel.aggregateCountForTest() == 0, "zoom-to-scene: B and C are single dots");
+        qint64 lo = 0, hi = 0;
+        panel.storyTimeWindow(lo, hi);
+        const double bFrac = double(180 * kDay - lo) / double(hi - lo);
+        const double centre = panel.panFraction() + 0.5 / panel.zoomFactor();
+        check(std::abs(centre - bFrac) < 1e-6, "zoom-to-scene: B is centred");
+        check(savedZoom == panel.zoomFactor() && savedPan == panel.panFraction(),
+              "zoom-to-scene: the new view is saved (T-0338)");
     }
 
     if (failures > 0) {

@@ -139,6 +139,17 @@ public:
     // scrollbar + the − button.
     double zoomFactor() const { return zoom_; }
 
+    // T-0640 (Apple's `zoomToCurrentScene`): zoom until the nearest other project-row dot sits a twelfth of the window
+    // away from the active scene, so the two draw apart, then centre on it. No-op with no active scene.
+    void zoomToActiveScene();
+
+    // T-0641 (Apple's `TimelineScale`): the ticks along the top. ⚠️ No calendar (Timeline design principle 5): offsets
+    // from the epoch counted from 1 ("Day 1" starts at Story Open), month = 30 days, year = 365 (the picker's units).
+    struct Tick { qint64 ms = 0; QString label; };
+    static QList<Tick> scaleTicks(qint64 visibleMinMs, qint64 visibleSpanMs, double usable,
+                                  double minSpacing = 90.0);
+    static QString scaleLabel(qint64 ms, qint64 step);
+
     // The current story-time window [min, max] over all dots (T-0342). Used by the
     // epoch-offset dialog to preview which imported events fall inside vs clipped.
     void storyTimeWindow(qint64& minMs, qint64& maxMs) const { minMs = minMs_; maxMs = maxMs_; }
@@ -397,6 +408,7 @@ private:
     // +/- zoom control (T-0334, bottom-right) + a horizontal scrollbar shown when
     // zoomed. Lay out in resizeEvent; syncScrollBar() keeps the bar's range/value in
     // step with zoom_/panFraction_.
+    QToolButton* zoomSceneBtn_ = nullptr;   // T-0640
     QToolButton* zoomInBtn_  = nullptr;
     QToolButton* zoomOutBtn_ = nullptr;
     QScrollBar*  hScroll_    = nullptr;

@@ -8,6 +8,7 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 - **Sprint-active.md** — The currently active Sprint(s); normally one, but parallel sprints across different Epics are permitted
 - **Closed/Sprint-SP-XXX.md** — Archived closed Sprints, one file each
+- **Rig-Live-Pass-Held.md** — every Linux rig live pass waiting for the rig, one section per Sprint AC; a section leaves when its pass is recorded
 
 ## Active Sprints
 

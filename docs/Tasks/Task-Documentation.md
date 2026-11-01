@@ -792,6 +792,10 @@ archive files reconstructed after the fact from secondary sources.
 | T-0636 | `[Apple]` Panels by size class: the compact stack and the regular split | SP-199 | **EP-055** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
 | T-0637 | `[Apple]` The iOS gestures and the Timeline grabber, with routes that need no gesture | SP-199 | **EP-055** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
 | T-0638 | `[Apple]` The Mac's toolbar buttons on iOS, at the system's placement | SP-199 | **EP-055** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
+| T-0639 | `[Apple]` The Timeline's zoom and position come back next time | SP-199 | **EP-055** | ✅ Verified | [`Verified/Task-verified-0639.md`](Verified/Task-verified-0639.md) |
+| T-0640 | `[Cross]` Zoom to the current scene | SP-199 | **EP-055** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
+| T-0641 | `[Cross]` A time scale along the top of the Timeline | SP-199 | **EP-055** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
+| T-0642 | `[Apple]` The Timeline stays where the pinch leaves it | SP-199 | **EP-055** | ✅ Verified | [`Verified/Task-verified-0642.md`](Verified/Task-verified-0642.md) |
 | T-0592 | `[Apple]` E2-S3: formatting commands + lists + Option-Return | 🟡 **SP-163** | **EP-046** | ✅ **Verified 2026-10-06** | [`Task-verified-0592.md`](Verified/Task-verified-0592.md) |
 | T-0591 | `[Apple]` Balance emphasis across SCENE boundaries (cross-scene cut/copy/paste) | 🟡 **SP-163** | **EP-046** | ✅ **Verified 2026-10-06** | [`Task-verified-0591.md`](Verified/Task-verified-0591.md) |
 | T-0590 | `[Apple]` E2-S2: bold and italic + span reveal + the split rule | ✅ **SP-162** | **EP-046** | ✅ **Verified 2026-10-05** | [`Task-verified-0590.md`](Verified/Task-verified-0590.md) |
