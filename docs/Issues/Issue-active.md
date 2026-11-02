@@ -8,6 +8,8 @@ Issues awaiting **user verification**. An Issue leaves this file only when the u
 
 | ID | Title | Severity | Sprint | Status |
 | -- | ----- | -------- | ------ | ------ |
+| **I-0333** | `[Apple]` ⚠️ **Replace All across 1,174 scenes holds the window: 6 s on dumas-prose-timelines, 18.6 s on dumas-prose-timelines-history (`apply=13427 ms`).** Found 2026-11-01 in [SP-200]'s Mac live pass log (not that Sprint's code). → [details](#i-0333) | High | [SP-201] | 🟠 Resolved - Not Verified (Mac and Linux; the window held 6 s → ~0.6 s at the start and ~1.4 s at the end, measured on a 84,480-match manuscript) |
+| **I-0334** | `[Apple]` ⚠️ **Main-thread core calls waited up to 15 s for the project lock behind Replace All's queued saves.** Found 2026-11-01 in [SP-200]'s Mac live pass log. → [details](#i-0334) | High | [SP-201] | 🟠 Resolved - Not Verified (the world read and the layout write left the main thread, Mac; the layout write left the GUI thread, Linux) |
 | **I-0332** | `[ScriviCore]` ⛔ **Opening a project's undo history costs ~2 s on dumas (34 MB log) and grows with the history: a whole-manuscript copy per history node, and an unoptimised parse of the log.** Measured 2026-11-01 for the user's long-history work. → [details](#i-0332) | High | [SP-197], [SP-200] | 🟠 Resolved - Not Verified (dumas 2.05 s → 0.2 s; 25,000 events 16.7 s → 0.7 s; a sentence at capacity 16 → 0.3 ms); the rest is [SP-200] |
 | **I-0331** | `[Apple]` ⛔ **The Mac runs the undo history on the main thread: the History card re-read the whole tree on every scene change (~1.9 s each on dumas), and the open replayed the log there (1.8–2.6 s).** Found in the SP-197 Mac live pass log, 2026-11-01. → [details](#i-0331) | High | [SP-197] | ✅ **Verified** (user, 2026-11-01: Mac re-check) |
 | **I-0330** | `[ScriviCore]` `[Apple]` ⛔ **The pending-edge sweep walked the whole manuscript (2,538 file operations on dumas) on every switch back into the app, and its answer is discarded unless a world is away.** Found in the SP-197 Mac live pass log, 2026-11-01. → [details](#i-0330) | Medium | [SP-197] | ✅ **Verified** (user, 2026-11-01: Mac re-check) |
@@ -772,6 +774,63 @@ follows.)*
 *2026-08-15 (docs cleanup — 48 verified Issues archived to decade files, 4 closed Issues
 archived; 6 stale full entries (I-0064, I-0067–I-0071) reconciled against their authoritative table rows.
 10 `Resolved - Not Verified` Issues remain active.)*
+
+## I-0333
+
+**Title:** Replace All across the whole manuscript holds the window for seconds
+**Status:** 🟠 Resolved - Not Verified (2026-11-01, [SP-201])
+**Sprint:** [SP-201]
+**Platform:** `[Apple]` (the Mac; ✅ Linux's Replace All already had the fix's shape and gets the same window)
+**Severity:** High. A writer's Replace All on a long manuscript freezes the window; a large op may take time only with
+visible progress (user, 2026-10-17).
+**Date Identified:** 2026-11-01, in [SP-200]'s Mac live pass log (step 4: replace `the` with `thee`, Replace All).
+**Measured:** 1,174 scenes changed. dumas-prose-timelines: the window held ~6 s. dumas-prose-timelines-history (the
+generated 25,000-step history): 18.6 s, of which `apply=13427 ms`.
+**Cause (measured 2026-11-01, SP-201 step 1):** `applyReplacements` made, for EACH match, on the main thread: a core call
+(`scrivi_markdown_balanced_edit`) that was sent the match's WHOLE scene, a snap that rebuilt its block analysis, and a
+storage edit. On a 1.76 MB manuscript of 110 scenes (84,480 matches) that was 42 s: 37 s the core calls, 2.9 s the snap.
+On dumas's own 1,175 scenes (41,296 matches) the core calls were 1.6 s of `apply=4067 ms`.
+**Fix (Linux's shape, `EditorShell.cpp`):**
+1. The core is sent only the blocks an edit touches (`ScriviEngine.markdownEditWindow`, `ScriviEngine.swift:3752`;
+   `ScriviBridge::markdownEditWindow`, `ScriviBridge.cpp:1928`) — the core's `balancedEdit` reads nothing else. Every caller
+   on both platforms gains: 37 s → 3.7 s on the 110-scene test; 1.6 s → 1.05 s on dumas.
+2. Mac `Coordinator.replaceAll` (`ManuscriptTextView.swift:2171`): the matches are snapped once (one block lookup for the
+   whole pass) and grouped by scene on the main thread; each scene's text is computed OFF it (`replaced`, `:2252`); the
+   scenes go in back to front in ~50 ms slices, one storage edit per slice, with *"Replacing N of M…"* in the progress row
+   (`ViewportSceneLoader.beginLocalEdit`/`endLocalEdit`, `:623`, `:635` — the structural edits' busy state: read-only,
+   undo waits its turn, a close waits for the edit and then its saves). One undo step, as before.
+**Measured after (84,480 matches, 110 scenes):** main thread 573 ms (snap) + 109 ms (apply) + 1,248 ms (the one history
+record), the window answering between; the texts computed off it in 2.4 s. Before: 42 s in one block.
+**Tests:** `BalancedEditWindowTests` (`ScriviInteropTests.swift:4189`): windowed == whole scene in >20,000 cases (>1,000
+reaching the balancing); a mutation cutting the window at single newlines fails it (1,810 cases). `replaceAllCoreCallsOffMain`
+(`:7975`): 121 matches make <20 main-thread core calls (a mutation computing on the main thread fails it). Linux
+`format_smoke`: the same equivalence through `ScriviBridge`.
+⏳ dumas on the Mac and the rig (live passes); the generated history's ~3× (not re-measured: the harness cannot build 1,175
+scenes in one chapter — see the Sprint).
+
+## I-0334
+
+**Title:** The main thread waits for the project lock behind queued saves
+**Status:** 🟠 Resolved - Not Verified (2026-11-01, [SP-201])
+**Sprint:** [SP-201]
+**Platform:** `[Apple]` (seen on the Mac; [EP-052]'s write queue is shared with Linux)
+**Severity:** High. The main thread is for UI only (user, 2026-10-26); a main-thread call that waits on the lock freezes
+the window for as long as the queue holds it.
+**Date Identified:** 2026-11-01, in [SP-200]'s Mac live pass log, after the Replace All of [I-0333].
+**Measured:** main-thread core calls that waited up to 15 s for the lock (`lockWaitMs`) while Replace All's 1,174 saves drained
+through the write queue.
+**Cause (the Mac's log, 2026-11-01, `[SCRIVI-SPAN] [main] core:` lines):** `scrivi_list_worlds` — 36 waits, up to
+16,352 ms — from `AppEnvironment.reconnectWorlds` → `activateWorlds`, run when the writer comes back to Scrivi; and
+`scrivi_put_inspector_layout` (519 ms), the layout's save. Both on the main thread, both needing the disk lock the queued
+saves held.
+**Fix:** `reconnectWorlds` reads the worlds off the main actor, in the same task as (and before) the pending sweep and the
+cards' re-read, so [I-0123]'s order holds (`activateWorldsOffMain`, `AppEnvironment.swift:483`). The layout's writes run in
+order on a serial queue (`InspectorLayoutStore.swift:446`); a close waits for them (`waitForSaves`). Linux's layout store
+the same (`InspectorLayoutStore.cpp:214`; a load and destruction wait); Linux already read worlds off the GUI thread.
+**Tests:** `reconnectAndLayoutOffMain` (`ScriviInteropTests.swift:8657`): no `scrivi_list_worlds` or
+`scrivi_put_inspector_layout` on the main thread; a mutation putting `activateWorlds` back fails it.
+⚠️ Not changed: other main-thread `listWorlds` callers that run on a writer's click (the object pickers, the Worlds sheet,
+the detail sheet) — none waited in the log.
 
 ## I-0332
 

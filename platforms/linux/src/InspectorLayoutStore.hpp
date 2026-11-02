@@ -2,6 +2,9 @@
 
 #include <QJsonObject>
 #include <QString>
+#include <QThreadPool>
+
+#include <memory>
 
 // InspectorLayoutStore — the inspector layout, THROUGH ScriviCore
 // (EP-041 / SP-142, T-0537). Originally EP-035 / SP-126, T-0486.
@@ -110,6 +113,10 @@ public:
     [[nodiscard]] bool navigatorHidden() const;
     void setNavigatorHidden(bool hidden);
 
+    // ✅ [I-0334] (SP-201, Apple's shape): writes run in order OFF the GUI thread. Blocks until they have landed — a load
+    // (a project switch or close) waits for them, and so does destruction.
+    void waitForSaves() const;
+
 private:
     // One boolean key, patched in place (absent ⇒ false; no write for a no-op).
     [[nodiscard]] bool hiddenKey(const char* key) const;
@@ -125,4 +132,6 @@ private:
     QJsonObject document_;  // ⚠️ THE WHOLE DOCUMENT — see "patch, never reconstruct"
     bool        loaded_ = false;
     bool        unreadable_ = false;
+    // One thread: the writes land in the order they were made.
+    mutable std::unique_ptr<QThreadPool> writes_;
 };

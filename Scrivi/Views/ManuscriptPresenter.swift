@@ -518,8 +518,10 @@ final class ManuscriptPresenter: NSObject, NSTextContentStorageDelegate, NSTextS
     }
 
     /// `body` on the scene text holding `r`, with `r` made scene-relative; nil when there is no such scene.
-    func inScene<T>(_ ts: NSAttributedString, _ r: NSRange, _ body: (String, NSRange, Int) throws -> T?) -> T? {
-        guard let scene = sceneRange(in: ts, containing: r) else { return nil }
+    /// `window`: a stretch of the scene to pass instead of the whole of it (the caller found the scene already).
+    func inScene<T>(_ ts: NSAttributedString, _ r: NSRange, window: NSRange? = nil,
+                    _ body: (String, NSRange, Int) throws -> T?) -> T? {
+        guard let scene = window ?? sceneRange(in: ts, containing: r) else { return nil }
         let text = (ts.string as NSString).substring(with: scene)
         do {
             return try body(text, NSRange(location: r.location - scene.location, length: r.length), scene.location)
@@ -534,7 +536,10 @@ final class ManuscriptPresenter: NSObject, NSTextContentStorageDelegate, NSTextS
     /// `keepsOwnFormatting`: Scrivi's own copy being pasted keeps ITS styles instead of taking the caret's ([SP-163]).
     func balancedEdit(in ts: NSAttributedString, replacing range: NSRange,
                       with replacement: String, keepsOwnFormatting: Bool = false) -> (range: NSRange, replacement: String, caret: Int)? {
-        inScene(ts, range) { text, local, base in
+        // [I-0333]: only the blocks the edit touches are cut out and sent — never the whole scene.
+        guard let scene = sceneRange(in: ts, containing: range) else { return nil }
+        let w = ScriviEngine.markdownEditWindow(ts.string as NSString, around: range, within: scene)
+        return inScene(ts, range, window: w) { text, local, base in
             try ScriviEngine.markdownBalancedEdit(scene: text, range: local, replacement: replacement,
                                                   keepsOwnFormatting: keepsOwnFormatting)
                 .map { (NSRange(location: base + $0.range.location, length: $0.range.length), $0.replacement, base + $0.caret) }

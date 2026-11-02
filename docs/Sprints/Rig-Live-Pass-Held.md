@@ -114,7 +114,21 @@ appears beside `log-000001.jsonl`, which the next open removes).
 6. If a world is on a drive you can pull: pull it and click another scene. Its section reads **"(unavailable; last
    known)"** and still shows the counts.
 
+## SP-201 AC6 — I-0333, I-0334: Replace All without holding the window
+
+→ [`Sprint-SP-201.md`](Sprint-SP-201.md)
+
+1. Open **dumas-prose-timelines** over the share. **Edit ▸ Find and Replace…** (Ctrl+Alt+F): find `the`, replace with
+   `thee`, **Replace All**. The row counts (*"Replacing 12,000 of 41,296"*), the window stays usable, and it ends with every
+   `the` replaced. Note the time from the log (`replace all: worker finished in … ms`).
+2. **Edit ▸ Undo** once: every `thee` is `the` again.
+3. While the saves are still being written (the row says so), hide and show the Inspector (**View ▸ Show Inspector**,
+   Ctrl+Alt+I) twice. The window never waits.
+4. **File ▸ Close Project**, reopen it: the Inspector is shown or hidden as you left it, and the text reads as after step 2.
+
 ---
+
+*Last Updated: 2026-11-01 (SP-201 AC6 added.)*
 
 *Last Updated: 2026-11-01 (SP-200 AC6 added; Mac pass recorded.)*
 

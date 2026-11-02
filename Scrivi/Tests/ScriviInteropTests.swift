@@ -2779,6 +2779,7 @@ struct ObjectCardConfigurationTests {
 
         // Mutate a key this build DOES own, then save.
         store.setInspectorHidden(true)
+        store.waitForSaves()   // [I-0334]: written off the main thread
 
         let reread = try JSONSerialization.jsonObject(with: Data(contentsOf: url))
             as? [String: Any]
@@ -2822,6 +2823,7 @@ struct ObjectCardConfigurationTests {
         #expect(store.document.timelineHidden == false, "an absent key must read as visible")
 
         store.setTimelineHidden(true)
+        store.waitForSaves()   // [I-0334]: written off the main thread
         let reread = try JSONSerialization.jsonObject(with: Data(contentsOf: url))
             as? [String: Any]
         #expect(reread?["timelineHidden"] as? Bool == true, "the choice must be written")
@@ -2835,6 +2837,7 @@ struct ObjectCardConfigurationTests {
         // persists and leaves `timelineHidden` alone.
         #expect(relaunched.document.navigatorHidden == false, "an absent key must read as shown")
         relaunched.setNavigatorHidden(true)
+        relaunched.waitForSaves()   // [I-0334]: written off the main thread
         let third = try JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any]
         #expect(third?["navigatorHidden"] as? Bool == true)
         #expect(third?["timelineHidden"] as? Bool == true, "the timeline choice must survive")
@@ -2886,6 +2889,7 @@ struct ObjectCardConfigurationTests {
 
         store.setInspectorHidden(true)
         store.setSelectedTab(.writing)
+        store.waitForSaves()   // [I-0334]: written off the main thread
 
         let back = try JSONSerialization.jsonObject(with: Data(contentsOf: url))
             as? [String: Any]
@@ -2915,6 +2919,7 @@ struct ObjectCardConfigurationTests {
         // preserve. ⚠️ This is the path where `rawDocument` is nil — it must still save.
         let store = InspectorLayoutStore(engine: ScriviEngine(), projectRootPath: dir.path)
         store.setInspectorHidden(true)
+        store.waitForSaves()   // [I-0334]: written off the main thread
 
         let url = dir.appendingPathComponent("inspector-layout.json")
         #expect(FileManager.default.fileExists(atPath: url.path),
@@ -4178,6 +4183,70 @@ struct ManuscriptFormatCorpusTests {
 /// AppKit's OWN key dispatch (`keyDown` → `interpretKeyEvents` → the action), ⚠️ never by
 /// calling `insertNewline` directly (`feedback_test_through_the_real_dispatch`: T-0579's tests
 /// named the override's input themselves and passed while AppKit took another route).
+/// [I-0333] (SP-201) — the balanced edit is sent only the blocks it touches. ✅ It must answer EXACTLY as the whole scene
+/// would, for every place and every kind of edit: a difference here is different bytes on disk.
+@Suite("A balanced edit sees only its blocks — and answers as the whole scene does ([I-0333])")
+struct BalancedEditWindowTests {
+    static let scene = #"""
+    # A heading with **bold**
+
+    d\'Artagnan rode **a yellow horse
+    with a hard break\
+    still bold** and *then italic* on\.
+
+    - a list *item*
+    - another **item**
+
+    1. one
+    2. two
+
+    Mr\. Dantes said _no_ and __yes__ \*not\* a marker.
+    \#not a heading
+    """# + "\n  \n" + #"""
+    After a blank line with spaces, ***both*** and **bold *nested* bold**.
+
+    Last block, *unclosed and **bold**
+    """#
+
+    @Test("every start, five lengths, seven replacements: windowed == whole scene")
+    func windowedMatchesWhole() throws {
+        let ns = Self.scene as NSString
+        let replacements = ["x", "", "**", "*", "\n\n", " ", "*y* **z**"]
+        var compared = 0, balanced = 0
+        for a in 0...ns.length {
+            for len in [0, 1, 3, 12, 40] where a + len <= ns.length {
+                let r = NSRange(location: a, length: len)
+                for t in replacements {
+                    for own in [false, true] {
+                        let whole = try ScriviEngine.markdownBalancedEditInScene(scene: Self.scene, range: r, replacement: t,
+                                                                                keepsOwnFormatting: own)
+                        let windowed = try ScriviEngine.markdownBalancedEdit(scene: Self.scene, range: r, replacement: t,
+                                                                            keepsOwnFormatting: own)
+                        #expect(windowed == whole, "range \(r) replacement \(t.debugDescription) own \(own)")
+                        compared += 1
+                        if whole != nil { balanced += 1 }
+                    }
+                }
+            }
+        }
+        #expect(compared > 20_000)
+        #expect(balanced > 1_000, "the cases must reach the balancing, not only the plain answer: \(balanced)")
+    }
+
+    @Test("the window is the touched blocks, bounded by blank lines")
+    func window() {
+        let s = "one\n\ntwo two\n\nthree" as NSString
+        #expect(ScriviEngine.markdownEditWindow(s, around: NSRange(location: 6, length: 2)) == NSRange(location: 5, length: 9))
+        #expect(ScriviEngine.markdownEditWindow(s, around: NSRange(location: 0, length: 0)) == NSRange(location: 0, length: 5))
+        #expect(ScriviEngine.markdownEditWindow(s, around: NSRange(location: 16, length: 3)) == NSRange(location: 14, length: 5))
+        #expect(ScriviEngine.markdownEditWindow(s, around: NSRange(location: 2, length: 6)) == NSRange(location: 0, length: 14))
+        // Within a scene's bounds (the presenter's case): never past them, even with no blank line inside.
+        let m = "zz\n\nab cd\n\nyy" as NSString
+        #expect(ScriviEngine.markdownEditWindow(m, around: NSRange(location: 7, length: 1), within: NSRange(location: 4, length: 5))
+                    == NSRange(location: 4, length: 5))
+    }
+}
+
 @Suite("Return and Backspace (EP-045 AC5/AC6)")
 @MainActor
 struct ReturnAndBackspaceTests {
@@ -7770,6 +7839,8 @@ struct UndoAfterStructuralOpTests {
         #expect(edits.count == 3)
 
         h.c.replaceAll(edits)
+        #expect(!h.tv.isEditable && h.loader.structuralProgress != nil, "[I-0333] busy at once: read-only, the row shows")
+        try await h.landed()
         #expect(h.loader.segments.map(\.text) == ["Alpha dog", "Bravo", "Charlie dog and dog", "Delta Pre", "Echo"])
         #expect(h.tv.isEditable, "the manuscript stays editable while the writes run")
         #expect(h.loader.scenesWritingOffMain == 2, "two scenes are being written")
@@ -7899,6 +7970,37 @@ struct UndoAfterStructuralOpTests {
         #expect(r.loader.segments.map(\.text) == ["Alpha", "BravoX", "Charlie"], "the typing reached the files")
     }
 
+    /// [I-0333] (SP-201) — Replace All made one core call per match ON THE MAIN THREAD (41,300 on dumas: the window held 6 s).
+    @Test("[I-0333] Replace All's main-thread core calls do not grow with its matches; the text is balanced as before")
+    func replaceAllCoreCallsOffMain() async throws {
+        let body = String(repeating: "the **cat** and the *cat*; the cat\\. ", count: 20)
+        let h = try await harness([body, "Bravo cat", body])
+        let text = h.tv.string as NSString
+        var edits: [(NSRange, String)] = []
+        var at = 0
+        while true {
+            let r = text.range(of: "cat", range: NSRange(location: at, length: text.length - at))
+            if r.location == NSNotFound { break }
+            edits.insert((r, "d*g"), at: 0)
+            at = NSMaxRange(r)
+        }
+        #expect(edits.count == 121)
+        // Counted in a task-local sink: only THIS Replace All's main-thread calls (its own tasks inherit it; suites running
+        // beside it do not), and none made off the main thread.
+        let sink = StructuralCallSink()
+        StructuralCallAccounting.$sink.withValue(sink) { h.c.replaceAll(edits) }
+        let during = sink.counts.withLock { $0.own }
+        #expect(during < 5, "main-thread core calls while snapping and grouping: \(during)")
+        try await h.landed()
+        let landed = sink.counts.withLock { $0.own }
+        #expect(landed < 20, "main-thread core calls in all: \(landed) for \(edits.count) matches")
+        let piece = String(repeating: #"the **d\*g** and the *d\*g*; the d\*g\. "#, count: 20)
+        #expect(h.loader.segments.map(\.text) == [piece, #"Bravo d\*g"#, piece], "escaped, bold and italic kept")
+        h.c.performUndo()
+        try await h.landed()
+        #expect(h.loader.segments.map(\.text) == [body, "Bravo cat", body], "one undo step")
+    }
+
     /// SP-198 live pass, 2026-10-30: dumas had lost `## ` from every heading starting "The" — a Replace All of a match at a
     /// heading's first presented character took the hidden prefix with it.
     @Test("Replace All of a match at a heading's start keeps the heading")
@@ -7914,6 +8016,7 @@ struct UndoAfterStructuralOpTests {
             at = NSMaxRange(m)
         }
         h.c.replaceAll(edits)
+        try await h.landed()
         #expect(h.loader.segments[0].text == "## the claim\n\nthey said.")
     }
 
@@ -8550,6 +8653,28 @@ struct StructuralCutTests {
 @Suite("Main thread: no file operation for the caret, the scroll or the Inspector (SP-197)")
 @MainActor
 struct MainThreadNoFileOpsTests {
+    /// [I-0334] (SP-201) — coming back to Scrivi read the worlds on the main thread, which waited 16 s for the project's lock
+    /// behind a Replace All's saves; a layout change wrote on it.
+    @Test("[I-0334] coming back to the app, and a layout change, make no core call on the main thread")
+    func reconnectAndLayoutOffMain() async throws {
+        let h = try await UndoAfterStructuralOpTests().harness(["One", "Two"])
+        h.env.openProjects.register(h.session)
+        defer { h.env.openProjects.deregister(projectID: h.projectID) }
+        let root = h.root.path
+        try await Task.sleep(for: .milliseconds(300))
+        mainThreadCoreCalls.withLock { $0 = [] }
+        let revision = h.session.worldRevision
+        h.env.reconnectWorlds()
+        h.session.inspectorLayout?.setInspectorHidden(true)
+        for _ in 0..<200 where h.session.worldRevision == revision { try await Task.sleep(for: .milliseconds(10)) }
+        h.session.inspectorLayout?.waitForSaves()
+        let calls = mainThreadCoreCalls.withLock { c in defer { c = nil }; return c ?? [] }.filter { $0.project == root }
+        let named = Set(calls.map(\.endpoint))
+        #expect(!named.contains("scrivi_list_worlds"), "worlds read on the main thread: \(calls.map(\.endpoint))")
+        #expect(!named.contains("scrivi_put_inspector_layout"), "layout written on the main thread")
+        #expect(h.session.worldRevision != revision, "the cards were still told to re-read, after the worlds")
+    }
+
     @Test("click, select, scroll, navigator and the Inspector following: 0 file operations on the main thread")
     func gestures() async throws {
         let bodies = (0..<12).map { "Scene \($0). He wrote at speed, for serial publication." }

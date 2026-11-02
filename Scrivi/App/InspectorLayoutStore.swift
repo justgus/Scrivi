@@ -180,6 +180,9 @@ struct ResolvedStack {
     /// `feedback_look_for_existing_pattern_first`; there is no `ScriviEngine.shared`
     /// in this app and inventing one would be a second way to reach the core.
     private let engine: ScriviEngine
+    /// ✅ [I-0334] (SP-201): the layout's writes, in order, off the main thread — one waited 519 ms there for the project's
+    /// lock behind queued saves. `waitForSaves` is the close's (and a test's) wait.
+    @ObservationIgnored private let writes = DispatchQueue(label: "scrivi.inspector-layout.writes")
 
     /// The file exactly as it was read, including every key this build does not
     /// understand (T-0536, [I-0215]).
@@ -439,7 +442,13 @@ struct ResolvedStack {
             // ⚠️ ATOMICITY IS THE CORE'S JOB NOW (EP-041 ruling): it writes a temp
             // and renames, the same discipline this method used to implement itself.
             // ⛔ Do not reintroduce a write here — that is the [I-0197] bypass.
-            try engine.putInspectorLayout(projectRootPath: root, documentJson: json)
+            let engine = engine
+            writes.async { [weak self] in
+                do { try engine.putInspectorLayout(projectRootPath: root, documentJson: json) } catch {
+                    let message = "Could not save inspector-layout.json (\(error.localizedDescription))."
+                    Task { @MainActor in self?.loadError = message }
+                }
+            }
             // T-0536: the file on disk is now what we just merged, so the retained
             // copy must track it. Without this a SECOND save in the same session
             // would merge against the state at load and could resurrect a top-level
@@ -449,4 +458,7 @@ struct ResolvedStack {
             loadError = "Could not save inspector-layout.json (\(error.localizedDescription))."
         }
     }
+
+    /// Blocks until every queued layout write has landed.
+    func waitForSaves() { writes.sync {} }
 }

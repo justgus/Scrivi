@@ -65,6 +65,7 @@ QJsonObject makeDefaultDocument()
 
 void InspectorLayoutStore::load(ScriviBridge* bridge, const QString& projectRootPath)
 {
+    waitForSaves();   // the previous project's layout reaches its file first
     bridge_ = bridge;
     projectRootPath_ = projectRootPath;
     document_ = QJsonObject{};
@@ -202,6 +203,22 @@ bool InspectorLayoutStore::save() const
     // ⛔ Do not reintroduce a write — that is the [I-0197] bypass.
     const QString json =
         QString::fromUtf8(QJsonDocument(document_).toJson(QJsonDocument::Compact));
-    bridge_->putInspectorLayout(projectRootPath_, json);
-    return !bridge_->lastCallFailed();
+    // ✅ [I-0334]: off the GUI thread — on it, a write waited for the project's lock behind queued saves. Errors reach
+    // the shell's bridge through the worker bridge's relay.
+    if (!writes_) {
+        writes_ = std::make_unique<QThreadPool>();
+        writes_->setMaxThreadCount(1);
+    }
+    const WorkerBridge::Handle handle = WorkerBridge::handleFor(bridge_);
+    const QString root = projectRootPath_;
+    writes_->start([handle, root, json] {
+        WorkerBridge bridge(handle);
+        bridge->putInspectorLayout(root, json);
+    });
+    return true;
+}
+
+void InspectorLayoutStore::waitForSaves() const
+{
+    if (writes_) { writes_->waitForDone(); }
 }

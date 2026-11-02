@@ -51,6 +51,8 @@ over a newer one, which have already drifted once ([I-0304] against [I-0259]).
   [SP-200] (🟡 Active), design [`../Scrivi_History_Load_Design_v0_1.md`](../Scrivi_History_Load_Design_v0_1.md).
 **Rough span (v0.2 Q7):** 4 Sprints (S2 split in two, ruled 2026-10-26, [SP-195] Q2): S1 ScriviCore (AC0–AC3), S2a every save queued (AC4–AC7), S2b structural edits queued + cues (AC4, AC5, AC10),
 S3 Apple + Linux reads off the main thread + Spotlight (AC8, AC9). Each ends with a live pass over the loop share.
+**Also under this Epic:** [SP-201] (🟡 Active) — [I-0333] Replace All holds the window, [I-0334] main-thread lock waits
+behind queued saves (AC4, AC6, AC8).
 **Backlog, not yet an AC:** [T-0628] keep a held queue on local disk and push it when the project returns (user, 2026-10-26).
 **Out of scope:** world writes (concurrency design D6), two processes on one project, the speed of the structural
 operations themselves.

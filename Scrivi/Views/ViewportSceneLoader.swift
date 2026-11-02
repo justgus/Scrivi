@@ -617,6 +617,30 @@ struct SceneSegment: Identifiable {
         return true
     }
 
+    /// ✅ [I-0333] (SP-201) A Replace All: the same busy state as a structural edit — the editor read-only, undo waiting its
+    /// turn, the row (`label`, then `progress`) — for an edit computed off the main actor and applied by the caller. Saves are
+    /// held until `endLocalEdit`. False, doing nothing, while another is in flight.
+    func beginLocalEdit(_ label: String) -> Bool {
+        guard !structuralInFlight else { return false }
+        structuralInFlight = true
+        structuralGeneration += 1
+        structuralProgress = label
+        return true
+    }
+
+    func localEditProgress(_ text: String) { if structuralInFlight { structuralProgress = text } }
+
+    /// `queueSaves` runs once saves are allowed again and BEFORE the waiters, so a close that waited on the edit also waits
+    /// for its writes (as `startStructural`'s `done`).
+    func endLocalEdit(queueSaves: () -> Void = {}) {
+        structuralInFlight = false
+        structuralProgress = nil
+        queueSaves()
+        let waiters = structuralWaiters
+        structuralWaiters = []
+        for w in waiters { whenOffMainWritesLand(w) }   // and then for the saves just queued
+    }
+
     /// ✅ [SP-191] (design P3): apply a range operation's DELTA to the scene list — the model of record — instead of
     /// re-opening the project. Every scene it names is placed after its `afterSceneID` with its new chapter, paths and (when
     /// written) text; the removed ones leave. Returns the run that changed — where it sat before and where it sits now,

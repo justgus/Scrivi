@@ -1925,17 +1925,30 @@ std::optional<MarkdownEdit> ScriviBridge::markdownListReturnEdit(const QString& 
     return markdownCommandEdit(scrivi_markdown_list_return_edit(scene.toUtf8().constData(), caret));
 }
 
+std::pair<int, int> ScriviBridge::markdownEditWindow(const QString& scene, int start, int end)
+{
+    const qsizetype back = start >= 2 ? scene.lastIndexOf(QStringLiteral("\n\n"), start - 2) : -1;
+    const qsizetype fwd = scene.indexOf(QStringLiteral("\n\n"), end);
+    return {back < 0 ? 0 : int(back) + 2, fwd < 0 ? int(scene.size()) : int(fwd) + 2};
+}
+
 std::optional<MarkdownEdit> ScriviBridge::markdownBalancedEdit(const QString& scene, int start, int end,
                                                                const QString& replacement, bool keepsOwnFormatting)
 {
-    const auto r = markdownResult(scrivi_markdown_balanced_edit(scene.toUtf8().constData(), start, end - start,
+    // ✅ [I-0333] (SP-201, as Apple's `ScriviEngine.markdownBalancedEdit`): the core reads only the blocks the edit
+    // touches, so only those are sent — a Replace All sent every match its whole scene.
+    const auto [w0, w1] = markdownEditWindow(scene, start, end);
+    const QString window = scene.mid(w0, w1 - w0);
+    const auto r = markdownResult(scrivi_markdown_balanced_edit(window.toUtf8().constData(), start - w0, end - start,
                                                                 replacement.toUtf8().constData(), keepsOwnFormatting ? 1 : 0));
     if (!r || r->value(QStringLiteral("plain")).toBool()) {
         return std::nullopt;
     }
-    const int caret = r->value(QStringLiteral("caret")).toInt();
-    return MarkdownEdit{markdownRange(r->value(QStringLiteral("range"))), r->value(QStringLiteral("replacement")).toString(),
-                        {caret, caret}};
+    const int caret = r->value(QStringLiteral("caret")).toInt() + w0;
+    MarkdownRange range = markdownRange(r->value(QStringLiteral("range")));
+    range.start += w0;
+    range.end += w0;
+    return MarkdownEdit{range, r->value(QStringLiteral("replacement")).toString(), {caret, caret}};
 }
 
 std::pair<QString, QString> ScriviBridge::markdownBalancedCopy(const QString& scene, int start, int end)

@@ -440,7 +440,8 @@ import os
         bufferService = nil
 
         // Drop the layout store before the visibility toggle can fire its didSet against
-        // a closing project (writes are already flushed — each mutation saves eagerly).
+        // a closing project — once its queued writes have landed ([I-0334]: they run off the main thread).
+        inspectorLayout?.waitForSaves()
         inspectorLayout = nil
 
         // ⚠️ [I-0233] — RELEASE THE CORE'S INDEX FOR THIS PROJECT.

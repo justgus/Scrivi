@@ -601,6 +601,9 @@ public:
     static std::optional<MarkdownEdit> markdownListReturnEdit(const QString& scene, int caret);
     // The balanced form of replacing [start, end) by `replacement`; nullopt = the plain edit is already balanced.
     // The result's `selection` is the caret after it (empty).
+    // [I-0333] The stretch [first, second) of `scene` holding every block [start, end) touches: from just after the last
+    // blank line ("\n\n") before it to just after the first one after it — the scene's ends otherwise.
+    static std::pair<int, int> markdownEditWindow(const QString& scene, int start, int end);
     static std::optional<MarkdownEdit> markdownBalancedEdit(const QString& scene, int start, int end,
                                                             const QString& replacement, bool keepsOwnFormatting);
     // {source, presented} of a copy of [start, end).

@@ -1786,7 +1786,21 @@ extension ScriviEngine {
     }
 
     /// The balanced form of replacing `range` by `replacement` (stored form); nil when the edit as typed is already balanced.
+    /// ✅ [I-0333]: the core reads only the blocks the edit touches, so it is sent those blocks (`markdownEditWindow`), not
+    /// the whole scene — a Replace All of 41,300 matches sent each match its scene (4 s on dumas).
     public static func markdownBalancedEdit(scene: String, range: NSRange, replacement: String,
+                                            keepsOwnFormatting: Bool) throws -> MarkdownBalancedEdit? {
+        let ns = scene as NSString
+        let w = markdownEditWindow(ns, around: range)
+        return try markdownBalancedEditInScene(scene: ns.substring(with: w),
+                                               range: NSRange(location: range.location - w.location, length: range.length),
+                                               replacement: replacement, keepsOwnFormatting: keepsOwnFormatting)
+            .map { MarkdownBalancedEdit(range: NSRange(location: $0.range.location + w.location, length: $0.range.length),
+                                        replacement: $0.replacement, caret: $0.caret + w.location) }
+    }
+
+    /// `markdownBalancedEdit` on the text given, as given (the test compares the two).
+    static func markdownBalancedEditInScene(scene: String, range: NSRange, replacement: String,
                                             keepsOwnFormatting: Bool) throws -> MarkdownBalancedEdit? {
         struct R: Decodable { let plain: Bool; let range: MarkdownRangeJSON?; let replacement: String?; let caret: Int? }
         let r: R = try decodeC(scene.withCString { s in replacement.withCString { t in
@@ -3730,3 +3744,17 @@ public struct MarkdownAnalysisResult: Decodable, Sendable {
 }
 
 // ScriviError, Envelope, ErrorPayload are in ScriviError.swift.
+
+extension ScriviEngine {
+    /// [I-0333] The stretch of `text` (within `bounds`, a scene) holding every block `r` touches: from just after the last
+    /// blank line (`\n\n`) before it to just after the first one after it — the bounds otherwise. A block never crosses a
+    /// blank line, and the core's balanced edit reads only the blocks the edit touches (`markdown/Editing.cpp`).
+    static func markdownEditWindow(_ text: NSString, around r: NSRange, within bounds: NSRange? = nil) -> NSRange {
+        let b = bounds ?? NSRange(location: 0, length: text.length)
+        let back = text.range(of: "\n\n", options: .backwards, range: NSRange(location: b.location, length: r.location - b.location))
+        let start = back.location == NSNotFound ? b.location : NSMaxRange(back)
+        let end = NSMaxRange(r)
+        let fwd = text.range(of: "\n\n", range: NSRange(location: end, length: NSMaxRange(b) - end))
+        return NSRange(location: start, length: (fwd.location == NSNotFound ? NSMaxRange(b) : NSMaxRange(fwd)) - start)
+    }
+}

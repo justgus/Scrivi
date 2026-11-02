@@ -479,6 +479,18 @@ import UniformTypeIdentifiers
         #endif
     }
 
+    /// `activateWorlds`, its core read off the main actor ([I-0334]). `WorldBookmarkStore` is lock-guarded.
+    private static func activateWorldsOffMain(for session: ProjectSession) async {
+        #if os(macOS)
+        guard let root = session.projectRootPath else { return }
+        let engine = session.engine
+        await Task.detached(priority: .userInitiated) {
+            guard let worlds = try? engine.listWorlds(projectRootPath: root).worlds else { return }
+            WorldBookmarkStore.activateAll(worldIDs: worlds.map(\.worldID))
+        }.value
+        #endif
+    }
+
     /// Re-acquires world access for **every open project**, then refreshes their
     /// pending reports (I-0123).
     ///
@@ -518,20 +530,22 @@ import UniformTypeIdentifiers
             // ⚠️ [T-0570] — the PROJECT first: its drive coming back is what lets the
             // kept edits be saved, and its going is what the red banner reports.
             session.refreshProjectAvailability()
-            activateWorlds(for: session)
             // T-0523 / [I-0207] half (b): the pending-edge sweep is the expensive part
-            // and it now runs OFF the main thread. `activateWorlds` above stays
-            // synchronous and FIRST — [I-0123] exists because the sandbox grant must be
+            // and it runs OFF the main thread. ✅ [I-0334] (SP-201): so does `activateWorlds`'s
+            // `listWorlds` — on the main thread it waited 16 s for the project's lock
+            // behind a Replace All's saves when the writer came back to Scrivi. It stays
+            // FIRST, in the same task — [I-0123] exists because the sandbox grant must be
             // re-taken before anything tries to read the package.
             let s = session
             Task { @MainActor in
+                await Self.activateWorldsOffMain(for: s)
                 await s.worldWarning.reloadAsync(engine: s.engine,
                                                  projectRootPath: s.projectRootPath ?? "")
+                // I-0128: tell the inspector cards to re-read. They key on sceneID, which
+                // does not change when a drive comes back, so without this the writer had
+                // to switch scenes before her objects relinked on screen.
+                s.bumpWorldRevision()
             }
-            // I-0128: tell the inspector cards to re-read. They key on sceneID, which
-            // does not change when a drive comes back, so without this the writer had
-            // to switch scenes before her objects relinked on screen.
-            session.bumpWorldRevision()
         }
     }
 

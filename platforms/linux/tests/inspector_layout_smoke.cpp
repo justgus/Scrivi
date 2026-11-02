@@ -143,6 +143,8 @@ int main(int argc, char* argv[])
 
         store.setSelectedTab(QStringLiteral("writing"));
 
+        store.waitForSaves();   // [I-0334]: written off the GUI thread
+
         const QJsonObject after = readFile(path);
 
         // The one key we changed.
@@ -202,6 +204,8 @@ int main(int argc, char* argv[])
 
         store.setInspectorHidden(true);
 
+        store.waitForSaves();   // [I-0334]: written off the GUI thread
+
         const QJsonObject after = readFile(path);
         check(after.value(QStringLiteral("inspectorHidden")).toBool() == true,
               "inspectorHidden was PERSISTED — the writer's choice survives a quit");
@@ -233,6 +237,7 @@ int main(int argc, char* argv[])
         // a write to the open path of every project — the [I-0234] class.
         const QJsonObject beforeNoop = readFile(path);
         reread.setInspectorHidden(true);   // already true
+        reread.waitForSaves();   // [I-0334]: written off the GUI thread
         check(readFile(path) == beforeNoop,
               "setting the SAME value writes nothing");
     }
@@ -253,7 +258,10 @@ int main(int argc, char* argv[])
         check(!store.navigatorHidden(), "absent navigatorHidden reads as SHOWN");
 
         store.setTimelineHidden(true);
+
+        store.waitForSaves();   // [I-0334]: written off the GUI thread
         store.setNavigatorHidden(true);
+        store.waitForSaves();   // [I-0334]: written off the GUI thread
 
         const QJsonObject after = readFile(path);
         check(after.value(QStringLiteral("timelineHidden")).toBool() == true,
@@ -275,7 +283,9 @@ int main(int argc, char* argv[])
 
         const QJsonObject beforeNoop = readFile(path);
         reread.setTimelineHidden(true);
+        reread.waitForSaves();   // [I-0334]: written off the GUI thread
         reread.setNavigatorHidden(true);
+        reread.waitForSaves();   // [I-0334]: written off the GUI thread
         check(readFile(path) == beforeNoop, "setting the SAME values writes nothing");
     }
 
@@ -321,6 +331,8 @@ int main(int argc, char* argv[])
               "a missing layout file yields Apple's ruled default");
 
         store.setSelectedTab(QStringLiteral("properties"));
+
+        store.waitForSaves();   // [I-0334]: written off the GUI thread
         InspectorLayoutStore reread;
         reread.load(&bridge, root);
         check(reread.selectedTab() == QLatin1String("properties"),
@@ -336,6 +348,7 @@ int main(int argc, char* argv[])
         InspectorLayoutStore store;
         store.load(&bridge, root);
         store.setSelectedTab(QStringLiteral("worldbuilding"));
+        store.waitForSaves();   // [I-0334]: written off the GUI thread
 
         QFile f(path);
         f.open(QIODevice::ReadOnly);

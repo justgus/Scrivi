@@ -24,6 +24,10 @@
 #include "ManuscriptPresenter.hpp"
 #include "SceneDocument.hpp"
 #include "ScriviBridge.hpp"
+#include "scrivi/scrivi.h"
+
+#include <QJsonDocument>
+#include <QJsonObject>
 
 namespace {
 
@@ -276,6 +280,55 @@ int main(int argc, char** argv)
         h.select(1, 4, 11);
         h.type(QStringLiteral("X"));
         same(h.body(1), QStringLiteral("**boX**d"), QStringLiteral("typing over a span edge keeps it balanced"));
+    }
+
+    // ── [I-0333] (SP-201): the balanced edit is sent only its blocks — it answers EXACTLY as the whole scene does ──
+    {
+        const QString scene = QStringLiteral(
+            "# A heading with **bold**\n\n"
+            "d\\'Artagnan rode **a yellow horse\nwith a hard break\\\nstill bold** and *then italic* on\\.\n\n"
+            "- a list *item*\n- another **item**\n\n1. one\n2. two\n\n"
+            "Mr\\. Dantes said _no_ and __yes__ \\*not\\* a marker.\n\\#not a heading\n  \n"
+            "After a blank line with spaces, ***both*** and **bold *nested* bold**.\n\n"
+            "Last block, *unclosed and **bold**");
+        // The whole scene, straight through the C ABI: what the wrapper answered before the window.
+        auto whole = [&](int s, int e, const QString& t, bool own) -> std::optional<MarkdownEdit> {
+            const char* raw = scrivi_markdown_balanced_edit(scene.toUtf8().constData(), s, e - s, t.toUtf8().constData(),
+                                                            own ? 1 : 0);
+            const QJsonObject r = QJsonDocument::fromJson(QByteArray(raw)).object().value(QStringLiteral("result")).toObject();
+            scrivi_free(raw);
+            if (r.value(QStringLiteral("plain")).toBool(true)) { return std::nullopt; }
+            const QJsonObject g = r.value(QStringLiteral("range")).toObject();
+            const int loc = g.value(QStringLiteral("location")).toInt();
+            const int caret = r.value(QStringLiteral("caret")).toInt();
+            return MarkdownEdit{{loc, loc + g.value(QStringLiteral("length")).toInt()},
+                                r.value(QStringLiteral("replacement")).toString(), {caret, caret}};
+        };
+        const QStringList replacements = {QStringLiteral("x"), QString(), QStringLiteral("**"), QStringLiteral("*"),
+                                          QStringLiteral("\n\n"), QStringLiteral(" "), QStringLiteral("*y* **z**")};
+        int compared = 0, balanced = 0, differ = 0;
+        for (int a = 0; a <= scene.size(); ++a) {
+            for (const int len : {0, 1, 3, 12, 40}) {
+                if (a + len > scene.size()) { continue; }
+                for (const QString& t : replacements) {
+                    for (const bool own : {false, true}) {
+                        const auto w = ScriviBridge::markdownBalancedEdit(scene, a, a + len, t, own);
+                        const auto x = whole(a, a + len, t, own);
+                        const bool same = w.has_value() == x.has_value()
+                            && (!w || (w->range == x->range && w->replacement == x->replacement
+                                       && w->selection.start == x->selection.start));
+                        if (!same && ++differ <= 3) {
+                            check(false, QStringLiteral("windowed != whole at %1+%2 %3").arg(a).arg(len).arg(t));
+                        }
+                        ++compared;
+                        if (x) { ++balanced; }
+                    }
+                }
+            }
+        }
+        check(differ == 0, QStringLiteral("windowed == whole scene in every case (%1 differ)").arg(differ));
+        check(compared > 20000 && balanced > 1000,
+              QStringLiteral("the cases reach the balancing: %1 compared, %2 balanced").arg(compared).arg(balanced));
     }
 
     if (failures == 0) {

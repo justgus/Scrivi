@@ -2162,48 +2162,107 @@ struct ManuscriptTextView: NSViewRepresentable {
                     entries.map(\.text).joined(separator: "\n\n"))
         }
 
-        /// ✅ [SP-164] Q2: Replace All is ONE undoable step, even across scenes — the replacements are applied with history
-        /// capture suppressed, then recorded as ONE grouped edit (as [I-0270]'s cross-scene delete is). `edits` run back to
-        /// front (storage ranges, unescaped replacement text).
+        /// ✅ [SP-164] Q2: Replace All is ONE undoable step, even across scenes — recorded as ONE grouped edit (as [I-0270]'s
+        /// cross-scene delete is). `edits` run back to front (storage ranges, unescaped replacement text).
+        /// ✅ [I-0333] (SP-201, Linux's shape, `EditorShell.cpp`): it froze the window 6 s on dumas (41,300 matches), one core
+        /// call and one storage edit per match on the main thread. Now: the matches are snapped and grouped by scene here; each
+        /// scene's new text is computed OFF the main actor; the scenes go in back to front in slices of ~50 ms with the count in
+        /// the progress row. The editor is read-only meanwhile and an undo waits its turn (the structural edits' busy state).
         func replaceAll(_ edits: [(NSRange, String)]) {
-            guard let tv = textView as? ManuscriptNSTextView, !edits.isEmpty else { return }
-            ensureBoundaries(tv)
-            let touched = Set(edits.compactMap { segmentIndex(for: $0.0.location) })
-            var before: [Int: String] = [:]
-            for i in touched where sceneBoundaries.indices.contains(i) {
-                before[i] = (tv.string as NSString).substring(with: sceneBoundaries[i])
-            }
-            let t0 = Date()
-            guard let capture = parent.session.historyCapture else {
+            guard let tv = textView as? ManuscriptNSTextView, !edits.isEmpty, let storage = tv.textStorage else { return }
+            guard let capture = parent.session.historyCapture, let presenter = tv.presenter else {
                 tv.applyReplacements(edits)
                 return
             }
-            capture.flush(trigger: "replace")
-            capture.withApplying { tv.applyReplacements(edits) }
-            let tApplied = Date()
-            ensureBoundaries(tv)
             let loader = parent.loader
-            var grouped: [HistoryCapture.GroupedSceneEdit] = []
-            for i in touched.sorted() where sceneBoundaries.indices.contains(i) && loader.segments.indices.contains(i) {
-                let after = (tv.string as NSString).substring(with: sceneBoundaries[i])
-                let seg = loader.segments[i]
-                loader.updateText(after, at: i)
-                grouped.append(.init(sceneID: seg.sceneID, textBefore: before[i] ?? after,
-                                     textAfter: after, caret: 0))
-                let firstLine = ManuscriptPresenter.presentedFirstLine(of: after)
-                loader.updateLiveTitle(firstLine, forSceneID: seg.sceneID)
+            guard loader.beginLocalEdit("Replacing…") else { NSSound.beep(); return }
+            let t0 = Date()
+            tv.isEditable = false
+            ensureBoundaries(tv)
+            let ns = storage.string as NSString
+            let runAt = ManuscriptEditRules.runLookup(presenter, storage)   // once: nothing changes the storage in this pass
+            var byScene: [Int: [(NSRange, String)]] = [:]
+            for (r, typed) in edits {
+                var range = r
+                if range.length > 0, let pair = MarkdownEscapes.snapSelection(range, in: ns, runAt: runAt) { range = pair }
+                guard let i = segmentIndex(for: range.location), sceneBoundaries.indices.contains(i),
+                      loader.segments.indices.contains(i), NSMaxRange(range) <= NSMaxRange(sceneBoundaries[i]) else { continue }
+                byScene[i, default: []].append((NSRange(location: range.location - sceneBoundaries[i].location, length: range.length),
+                                                MarkdownEscapes.escape(typed)))
             }
-            capture.recordGroupedEdit(grouped, kind: "replace")
-            let tRecorded = Date()
-            // ✅ EP-052 ([SP-195]): the touched scenes — ONLY those holding a match — are queued, written off the main
-            // thread; the manuscript stays editable (v0.1 Q3 (a)) and the editor shows progress meanwhile.
-            if let ref = parent.env.authorshipRef {
-                loader.saveScenesOffMain(touched, engine: parent.env.engine, ref: ref)
+            // Back to front, so each scene's storage range is still where `sceneBoundaries` says when it is replaced.
+            let jobs = byScene.keys.sorted(by: >).map { i in (index: i, before: ns.substring(with: sceneBoundaries[i]), edits: byScene[i]!) }
+            let selection = tv.selectedRange()
+            capture.flush(trigger: "replace")
+            let tSnapped = Date()
+            Task { @MainActor [weak self] in
+                let after = await Task.detached(priority: .userInitiated) { jobs.map { Self.replaced($0.before, $0.edits) } }.value
+                let tComputed = Date()
+                guard let self, let tv = self.textView, let storage = tv.textStorage else { return loader.endLocalEdit() }
+                let total = edits.count
+                var k = 0, replaced = 0
+                var grouped: [HistoryCapture.GroupedSceneEdit] = []
+                var touched: [Int] = []
+                while k < jobs.count {
+                    let slice = Date()
+                    capture.withApplying {
+                        // One storage edit per slice: what reacts to an edit (the presenter, the AX map) runs once for it.
+                        storage.beginEditing()
+                        defer { storage.endEditing() }
+                        while k < jobs.count, Date().timeIntervalSince(slice) < 0.05 {
+                            let job = jobs[k], text = after[k]
+                            k += 1
+                            replaced += job.edits.count
+                            guard text != job.before, self.sceneBoundaries.indices.contains(job.index),
+                                  loader.segments.indices.contains(job.index) else { continue }
+                            storage.replaceCharacters(in: self.sceneBoundaries[job.index],
+                                                      with: NSAttributedString(string: text, attributes: presenter.typography.bodyAttributes))
+                            let seg = loader.segments[job.index]
+                            loader.updateText(text, at: job.index)
+                            loader.updateLiveTitle(ManuscriptPresenter.presentedFirstLine(of: text), forSceneID: seg.sceneID)
+                            grouped.append(.init(sceneID: seg.sceneID, textBefore: job.before, textAfter: text, caret: 0))
+                            touched.append(job.index)
+                        }
+                    }
+                    loader.localEditProgress("Replacing \(replaced.formatted()) of \(total.formatted())…")
+                    if k < jobs.count { await Task.yield(); try? await Task.sleep(for: .milliseconds(1)) }
+                }
+                self.ensureBoundaries(tv)
+                let tApplied = Date()
+                capture.recordGroupedEdit(grouped.reversed(), kind: "replace")
+                let tRecorded = Date()
+                tv.setSelectedRange(NSRange(location: min(selection.location, storage.length), length: 0))
+                tv.isEditable = true
+                // ✅ EP-052 ([SP-195]): the touched scenes — ONLY those holding a match — are queued, written off the main
+                // thread, as the busy state ends (saves are held while it lasts).
+                let env = self.parent.env
+                loader.endLocalEdit {
+                    if let ref = env.authorshipRef { loader.saveScenesOffMain(touched, engine: env.engine, ref: ref) }
+                }
+                self.parent.session.timelineModel?.updateDotTitles(liveTitles: loader.liveTitles, allScenes: loader.allScenes)
+                NSLog(String(format: "[SCRIVI-FIND] replaceAll %d edits / %d scenes: snap=%.0f ms  compute=%.0f ms (off main)  apply=%.0f ms  history=%.0f ms",
+                             total, jobs.count, tSnapped.timeIntervalSince(t0) * 1000, tComputed.timeIntervalSince(tSnapped) * 1000,
+                             tApplied.timeIntervalSince(tComputed) * 1000, tRecorded.timeIntervalSince(tApplied) * 1000))
+                self.runDeferredSteps()
             }
-            parent.session.timelineModel?.updateDotTitles(liveTitles: loader.liveTitles, allScenes: loader.allScenes)
-            NSLog(String(format: "[SCRIVI-FIND] replaceAll %d edits / %d scenes: apply=%.0f ms  history=%.0f ms",
-                         edits.count, touched.count, tApplied.timeIntervalSince(t0) * 1000,
-                         tRecorded.timeIntervalSince(tApplied) * 1000))
+        }
+
+        /// One scene's text with `edits` (back to front, scene-relative, stored form) made, each kept balanced. Off the main
+        /// actor: the core reads, nothing here touches the view.
+        nonisolated static func replaced(_ scene: String, _ edits: [(NSRange, String)]) -> String {
+            let text = NSMutableString(string: scene)
+            for (r, t) in edits {
+                let w = ScriviEngine.markdownEditWindow(text, around: r)
+                let local = NSRange(location: r.location - w.location, length: r.length)
+                if let e = try? ScriviEngine.markdownBalancedEditInScene(scene: text.substring(with: w), range: local, replacement: t,
+                                                                         keepsOwnFormatting: false) {
+                    text.replaceCharacters(in: NSRange(location: w.location + e.range.location, length: e.range.length),
+                                           with: e.replacement)
+                } else {
+                    text.replaceCharacters(in: r, with: t)
+                }
+            }
+            return text as String
         }
 
         /// The selected part of each scene `sel` overlaps, in storage order — what `fragmentSpans` sends ScriviCore.
