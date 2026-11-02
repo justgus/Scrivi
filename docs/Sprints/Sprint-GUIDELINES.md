@@ -74,6 +74,8 @@ are still built in the SAME Sprint; only the Linux **live pass** is verified sep
    rig's release — for every EP-057 Task **except** what only the rig can show: **x86_64**, the **NVIDIA GPU stack**,
    and the **real network path** (the VM's 5 ms netem is an approximation). Record it as *"VM, build N"*; a Task whose
    AC is one of those three stays held for the rig.
+   ✅ **An AC about behaviour over the share is FUNCTIONAL** (user, 2026-11-02: *"it counts as functional."*) — it runs on
+   the VM; a time the VM records is an approximation of the rig's, never the rig's number.
 
 ## Authorization Rules
 

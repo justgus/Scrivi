@@ -631,9 +631,15 @@ void ScriviWindow::showEditor(const QString& projectPath, const QString& title,
 
 void ScriviWindow::showLanding()
 {
-    // ✅ [I-0305]: Close Project releases the project below, so it waits for background work first — then flushes what
-    // landed dirty and closes.
-    if (waitForBackgroundWork([this] { flushEditor(); showLanding(); })) {
+    // ✅ [I-0305]: Close Project releases the project below, so it waits for background work first — then saves what
+    // landed dirty and closes. ⛔ [I-0335]: NOT `flushEditor()` — its resume-place stamp queues a save every time, so the
+    // wait never ended (the dialog flashed forever). The stamp queued before this wait has landed; a dirty save converges.
+    if (waitForBackgroundWork([this] {
+            if (editor_ != nullptr) {
+                editor_->saveDirtyScenes();
+            }
+            showLanding();
+        })) {
         return;
     }
     // ⚠️ [SP-146] T-0561 — AN EDITOR-ONLY WINDOW HAS NO LANDING PAGE TO SHOW.

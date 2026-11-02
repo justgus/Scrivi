@@ -276,6 +276,25 @@ int main(int argc, char** argv)
     check(disk(bridge, A, 0) == QStringLiteral("dog one") && disk(bridge, A, 2) == QStringLiteral("dog three"),
           QStringLiteral("§3 the writes are on disk (%1 / %2)").arg(disk(bridge, A, 0), disk(bridge, A, 2)));
 
+    // ── §3b [I-0335] File ▸ Close Project, through the menu's own action, ENDS — its own resume-place save is waited for once,
+    //    not re-queued after every wait (it looped forever, the dialog flashing, on the Linux VM) ─────────────────────────
+    {
+        QPointer<ScriviWindow> wc = openWindow(env, A);
+        QAction* closeProject = nullptr;
+        for (QAction* a : wc->findChildren<QAction*>()) {
+            if (a->text() == QStringLiteral("Close Project")) {
+                closeProject = a;
+            }
+        }
+        check(closeProject != nullptr, QStringLiteral("§3b precondition: the Close Project action exists"));
+        if (closeProject != nullptr) {
+            closeProject->trigger();
+        }
+        check(waitFor([&] { return wc == nullptr || !wc->isVisible(); }),
+              QStringLiteral("§3b Close Project closed the window (it looped behind the wait dialog before [I-0335])"));
+        check(waitFor([&] { return waitDialog() == nullptr; }), QStringLiteral("§3b … and the wait dialog is gone"));
+    }
+
     // ── §4 [I-0305] Quit waits for every window's work, behind ONE dialog ──────────────────────────────────────────────
     QPointer<ScriviWindow> wa2 = openWindow(env, A);
     QPointer<ScriviWindow> wb = openWindow(env, B);

@@ -26,15 +26,21 @@ Every Linux rig live pass that is waiting for the rig, in one place, so they can
 → [`Sprint-SP-195.md`](Sprint-SP-195.md)
 ⚠️ Last attempt (2026-10-26) was blocked: the share could not be remounted with the project open (`umount`: *"target is
 busy"*). Before step 4, run `fuser -vm /mnt/scrivi-net` on the rig and record what it names.
+⚠️ **Open dumas-prose-timelines from the SCRIVI-OTHE drive's share — `/mnt/scrivi-other`**, not `/mnt/scrivi-net` (that one is
+the Mac's own disk, which cannot be pulled). Stopping a share on the Mac means deleting and re-creating it in System Settings,
+so the drive is ejected or pulled instead (user, 2026-11-02). ⚠️ While the drive is out, the share serves the Mac's ROOT
+folder in its place — expected; nothing should be written there.
 
 1. Type a few sentences into any scene, quickly. The text never waits or stutters.
 2. **Edit ▸ Find and Replace…** (Ctrl+Alt+F). Find `the`, replace with `teh`, **Replace All**. The progress row counts
    (*"Replacing 312 of 2,048"*), the view follows, the window stays usable. Then **Edit ▸ Undo**. No freeze, and the
    text reads as before.
 3. Type a sentence into one scene and remember it.
-4. Pull the drive behind the share (or stop the share on the Mac). Type another sentence. Typing does not wait.
+4. Eject or pull the SCRIVI-OTHE drive on the Mac. Type another sentence. Typing does not wait.
 5. **File ▸ Close Project.** The dialog *"Some changes can't be saved"* appears. Choose **Cancel**: the window stays open.
-6. Reconnect the drive and remount the share. Within a few seconds the held save lands (log: the queued save written).
+6. Reconnect the drive, then remount the share (VM: Claude runs
+   `SCRIVI_RIG=scrivi-vm ./scripts/mount-shares-on-rig.sh --only ScriviOther`). Within a few seconds the held save lands
+   (log: the queued save written).
 7. Close the project and reopen it. Both sentences are there.
 
 ## T-0649 · SP-196 AC4 — structural edits through the queue · ✅ Mac passed 2026-10-27
@@ -128,6 +134,8 @@ appears beside `log-000001.jsonl`, which the next open removes).
 4. **File ▸ Close Project**, reopen it: the Inspector is shown or hidden as you left it, and the text reads as after step 2.
 
 ---
+
+*Last Updated: 2026-11-02 (T-0648: open from the SCRIVI-OTHE share; eject or pull, never stop the share — user.)*
 
 *Last Updated: 2026-11-02 (became EP-057's step book; each section headed by its Task, T-0648–T-0655.)*
 

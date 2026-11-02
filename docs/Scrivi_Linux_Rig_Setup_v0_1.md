@@ -678,7 +678,7 @@ platform's rig work.**
 | Platform | Rig | Status |
 | -------- | --- | ------ |
 | **Linux** | `oathkeeper` (Ubuntu 26.04.1) | ✅ **Built, green, app launches** (2026-08-29) |
-| **Linux (VM)** | `scrivi-vm` (Ubuntu 26.04.1 arm64, UTM on the Mac) | ✅ **Built, smokes 38/38, app launches**; ctest 803/804 — the 1 a racy test, fixed on the Mac, not yet re-run here (2026-11-02) — §9 |
+| **Linux (VM)** | `scrivi-vm` (Ubuntu 26.04.1 arm64, UTM on the Mac) | ✅ **Built, ctest 804/804 (`-j6`, ×3), smokes 38/38, app launches** — build 1.0.314 (`225470d`), 2026-11-02 — §9 |
 | **Windows** | — | ⚠️ **Not started.** ✅ **It must EXECUTE §§1–6, not re-derive them** |
 | **macOS** | the workstation | ✅ Existing |
 | **iPad / iPhone / visionOS** | — | ⚠️ Not started |
@@ -734,6 +734,11 @@ Same as §4–§5: `git clone https://github.com/justgus/Scrivi.git ~/Dev/Scrivi
 - `SCRIVI_RIG=scrivi-vm ./scripts/mount-shares-on-rig.sh --setup-creds` (once, the **Mac** password, in the Mac's
   Terminal), then `SCRIVI_RIG=scrivi-vm ./scripts/mount-shares-on-rig.sh` — `/mnt/scrivi-net`, `/mnt/scrivi-worlds`,
   `/mnt/scrivi-other`, the same mount points as the rig. The VM resolves `Flitwick-5.local` to `192.168.64.1`.
+- ⚠️ **An EJECTED drive's share serves the Mac's ROOT folder** (`Applications`, `System`, `Users`…) in its place, and the
+  mount still reads MOUNTED (seen 2026-11-02 on `/mnt/scrivi-other`). After the drive returns, **remount** it
+  (`SCRIVI_RIG=scrivi-vm ./scripts/mount-shares-on-rig.sh --only ScriviOther`) and check the listing before trusting it.
+- ✅ **To take a project's location away, eject or pull the drive** — never stop the share: on macOS that means deleting the
+  share in System Settings ▸ Sharing ▸ File Sharing ⓘ and re-creating it (user, 2026-11-02).
 - ✅ **5 ms one way on SMB only** — `scrivi-smb-delay.service` (systemd, enabled at boot): a `prio` qdisc on `enp0s1` with
   `netem delay 5ms` on band 3 and a `u32` filter for `dport 445`. Measured TCP connect to the Mac's port 445: **~2.0 ms →
   ~6.8 ms**; SSH and ping untouched (0.4 ms). This is the Docker share's figure (`reference: 5 ms ≈ the rig`), so a timing

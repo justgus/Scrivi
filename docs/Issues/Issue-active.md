@@ -8,8 +8,9 @@ Issues awaiting **user verification**. An Issue leaves this file only when the u
 
 | ID | Title | Severity | Sprint | Status |
 | -- | ----- | -------- | ------ | ------ |
-| **I-0333** | `[Apple]` ⚠️ **Replace All across 1,174 scenes holds the window: 6 s on dumas-prose-timelines, 18.6 s on dumas-prose-timelines-history (`apply=13427 ms`).** Found 2026-11-01 in [SP-200]'s Mac live pass log (not that Sprint's code). → [details](#i-0333) | High | [SP-201] | 🟠 Resolved - Not Verified — ✅ Mac live pass (user, 2026-11-01); ⏳ the Linux half (rig) |
-| **I-0334** | `[Apple]` ⚠️ **Main-thread core calls waited up to 15 s for the project lock behind Replace All's queued saves.** Found 2026-11-01 in [SP-200]'s Mac live pass log. → [details](#i-0334) | High | [SP-201] | 🟠 Resolved - Not Verified — ✅ Mac live pass (user, 2026-11-01); ⏳ the Linux half (rig: the layout write) |
+| **I-0335** | `[Linux]` ⛔ **Close Project never finishes: the "Please wait — saving updates…" dialog flashes forever and one scene is rewritten ~3 times a second.** Found 2026-11-02 on the Linux VM, [T-0648] (EP-057). → [details](#i-0335) | High | — | 🟠 Resolved - Not Verified — ⏳ the VM pass ([T-0648] step 5) |
+| **I-0333** | `[Apple]` ⚠️ **Replace All across 1,174 scenes holds the window: 6 s on dumas-prose-timelines, 18.6 s on dumas-prose-timelines-history (`apply=13427 ms`).** Found 2026-11-01 in [SP-200]'s Mac live pass log (not that Sprint's code). → [details](#i-0333) | High | [SP-201] | 🟠 Resolved - Not Verified — ✅ Mac live pass (user, 2026-11-01); ➡️ the Linux half → [T-0655] ([EP-057]) |
+| **I-0334** | `[Apple]` ⚠️ **Main-thread core calls waited up to 15 s for the project lock behind Replace All's queued saves.** Found 2026-11-01 in [SP-200]'s Mac live pass log. → [details](#i-0334) | High | [SP-201] | 🟠 Resolved - Not Verified — ✅ Mac live pass (user, 2026-11-01); ➡️ the Linux half → [T-0655] ([EP-057]) |
 | **I-0332** | `[ScriviCore]` ⛔ **Opening a project's undo history costs ~2 s on dumas (34 MB log) and grows with the history: a whole-manuscript copy per history node, and an unoptimised parse of the log.** Measured 2026-11-01 for the user's long-history work. → [details](#i-0332) | High | [SP-197], [SP-200] | 🟠 Resolved - Not Verified (dumas 2.05 s → 0.2 s; 25,000 events 16.7 s → 0.7 s; a sentence at capacity 16 → 0.3 ms); the rest is [SP-200] |
 | **I-0331** | `[Apple]` ⛔ **The Mac runs the undo history on the main thread: the History card re-read the whole tree on every scene change (~1.9 s each on dumas), and the open replayed the log there (1.8–2.6 s).** Found in the SP-197 Mac live pass log, 2026-11-01. → [details](#i-0331) | High | [SP-197] | ✅ **Verified** (user, 2026-11-01: Mac re-check) |
 | **I-0330** | `[ScriviCore]` `[Apple]` ⛔ **The pending-edge sweep walked the whole manuscript (2,538 file operations on dumas) on every switch back into the app, and its answer is discarded unless a world is away.** Found in the SP-197 Mac live pass log, 2026-11-01. → [details](#i-0330) | Medium | [SP-197] | ✅ **Verified** (user, 2026-11-01: Mac re-check) |
@@ -774,6 +775,35 @@ follows.)*
 *2026-08-15 (docs cleanup — 48 verified Issues archived to decade files, 4 closed Issues
 archived; 6 stale full entries (I-0064, I-0067–I-0071) reconciled against their authoritative table rows.
 10 `Resolved - Not Verified` Issues remain active.)*
+
+## I-0335
+
+**Title:** Close Project loops forever behind "Please wait — saving updates…"
+**Status:** 🟠 Resolved - Not Verified (2026-11-02) — ⏳ the user's VM pass: [T-0648] step 5 (Close Project ends)
+**Platform:** `[Linux]` only — ✅ checked: Apple's close saves, stamps once and waits once (`Scrivi/App/ProjectSession.swift:496`)
+**Severity:** High. The window can never close; only killing the app ends it. The scene text on disk was not harmed.
+**Date Identified:** 2026-11-02, the first EP-057 pass on the Linux VM ([T-0648]), build 1.0.314 (`225470d`). The user
+opened dumas-prose-timelines from `/mnt/scrivi-net` (the Mac's disk), then **File ▸ Close Project**. The dialog appeared and
+disappeared continuously for over 20 minutes.
+**Observed (VM, read-only, then SIGTERM — it stopped cleanly):** two worker threads alternate `scrivi_wait_for_writes`
+(~135 ms each, from 12:14:34 on); strace over 4 s: 12 writes each of `chapter-5/001-opening-scene.md` and its `.meta.json`,
+13 of `workspace-state.json`. The `.md` bytes were identical every time; only the meta changed. Evidence:
+`scrivi-vm:~/evidence-2026-11-02/` (`scrivi.log`, `strace.txt`).
+**Root cause (from reading the code, not yet proven by a test):** `ScriviWindow::showLanding()`
+(`platforms/linux/src/ScriviWindow.cpp:636`) waits for background work and then runs `flushEditor(); showLanding();`.
+`flushEditor()` always ends with `EditorShell::stampWritingSurface()` (`EditorShell.cpp:1865`), which **enqueues a save
+unconditionally** — even with nothing dirty — so background work is in progress again and `showLanding()` waits again,
+forever. The Close Project action (`ScriviWindow.cpp:169`) calls `flushEditor()` first, which starts the loop.
+**Resolution:** after the wait, `showLanding()` saves only what is dirty (`saveDirtyScenes()`, which converges) and does not
+stamp again — the stamp queued before the wait has landed (`platforms/linux/src/ScriviWindow.cpp:634–644`). The window's X and
+Quit were never affected: `closeEvent` flushes AFTER its wait, so nothing re-arms it.
+**Files Affected:** `platforms/linux/src/ScriviWindow.cpp`; test `platforms/linux/tests/background_wait_smoke.cpp` §3b (Close
+Project through the menu's own `QAction`, nothing in flight: the window must close and the dialog go).
+**Verification (VM, a scratch copy `~/Dev/Scrivi-wip`, the clean checkout untouched):** §3b FAILED without the fix (and §4 saw
+the looping dialog: 2 dialogs); with it `background-wait-ok` 3/3; ctest `-j6` 804/804; smokes 38/38.
+**Also seen:** a leftover `chapter-5/001-opening-scene.md.tmp` (identical to the `.md`) from the interrupted write.
+
+---
 
 ## I-0333
 
