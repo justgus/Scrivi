@@ -737,6 +737,9 @@ Same as §4–§5: `git clone https://github.com/justgus/Scrivi.git ~/Dev/Scrivi
 - ⚠️ **An EJECTED drive's share serves the Mac's ROOT folder** (`Applications`, `System`, `Users`…) in its place, and the
   mount still reads MOUNTED (seen 2026-11-02 on `/mnt/scrivi-other`). After the drive returns, **remount** it
   (`SCRIVI_RIG=scrivi-vm ./scripts/mount-shares-on-rig.sh --only ScriviOther`) and check the listing before trusting it.
+  ⚠️ **After the drive came back, the stale mount once listed ANOTHER share's contents** (ScriviLinux's `appsupport projects
+  worlds` under `/mnt/scrivi-other`, 2026-11-02) while `/proc/fs/cifs/DebugData` still named `ScriviOther`. Only an unmount and
+  a fresh mount fixes it; a listing check is the only reliable test.
 - ✅ **To take a project's location away, eject or pull the drive** — never stop the share: on macOS that means deleting the
   share in System Settings ▸ Sharing ▸ File Sharing ⓘ and re-creating it (user, 2026-11-02).
 - ✅ **5 ms one way on SMB only** — `scrivi-smb-delay.service` (systemd, enabled at boot): a `prio` qdisc on `enp0s1` with

@@ -8,6 +8,7 @@ Issues awaiting **user verification**. An Issue leaves this file only when the u
 
 | ID | Title | Severity | Sprint | Status |
 | -- | ----- | -------- | ------ | ------ |
+| **I-0336** | `[Linux]` ⛔ **Close Project released the project BEFORE asking "Some changes can't be saved": Cancel kept a window whose project was already closed — its held save never landed, its history was closed.** Found 2026-11-02 on the Linux VM, [T-0648] steps 5–6 (EP-057). → [details](#i-0336) | High | — | 🟠 Resolved - Not Verified — ⏳ the VM pass ([T-0648] steps 5–6) |
 | **I-0335** | `[Linux]` ⛔ **Close Project never finishes: the "Please wait — saving updates…" dialog flashes forever and one scene is rewritten ~3 times a second.** Found 2026-11-02 on the Linux VM, [T-0648] (EP-057). → [details](#i-0335) | High | — | 🟠 Resolved - Not Verified — ⏳ the VM pass ([T-0648] step 5) |
 | **I-0333** | `[Apple]` ⚠️ **Replace All across 1,174 scenes holds the window: 6 s on dumas-prose-timelines, 18.6 s on dumas-prose-timelines-history (`apply=13427 ms`).** Found 2026-11-01 in [SP-200]'s Mac live pass log (not that Sprint's code). → [details](#i-0333) | High | [SP-201] | 🟠 Resolved - Not Verified — ✅ Mac live pass (user, 2026-11-01); ➡️ the Linux half → [T-0655] ([EP-057]) |
 | **I-0334** | `[Apple]` ⚠️ **Main-thread core calls waited up to 15 s for the project lock behind Replace All's queued saves.** Found 2026-11-01 in [SP-200]'s Mac live pass log. → [details](#i-0334) | High | [SP-201] | 🟠 Resolved - Not Verified — ✅ Mac live pass (user, 2026-11-01); ➡️ the Linux half → [T-0655] ([EP-057]) |
@@ -775,6 +776,34 @@ follows.)*
 *2026-08-15 (docs cleanup — 48 verified Issues archived to decade files, 4 closed Issues
 archived; 6 stale full entries (I-0064, I-0067–I-0071) reconciled against their authoritative table rows.
 10 `Resolved - Not Verified` Issues remain active.)*
+
+## I-0336
+
+**Title:** Close Project releases the project before it asks — Cancel leaves a window with no project
+**Status:** 🟠 Resolved - Not Verified (2026-11-02) — ⏳ the user's VM pass: [T-0648] steps 5–6 (Cancel keeps the project; the
+held save lands when the drive returns)
+**Platform:** `[Linux]` only — ✅ checked: the Mac's Close Project asks `windowShouldClose` first, then closes
+(`Scrivi/App/ProjectWindowManager.swift:246`, from [I-0306] — the same defect, fixed there)
+**Severity:** High. After Cancel the writer keeps typing into a window whose project is closed: the held edit never lands
+and undo history is no longer recorded; quitting then loses the edit.
+**Date Identified:** 2026-11-02, build 1.0.315 (`7254231`), [T-0648] on the VM: SCRIVI-OTHE ejected, a sentence typed,
+**File ▸ Close Project** → *"Some changes can't be saved"* → **Cancel** → drive back, share remounted: the warning never cleared.
+The log: `scrivi_history_close` at the moment of Close Project (13:00:30), BEFORE the question; afterwards the core's writer
+thread sat idle (no retries — its queue had gone with the project).
+**Root cause:** `ScriviWindow::showLanding()` (the Close Project path for a project window) called
+`editor_->releaseProject()` and only then `close()`, whose `closeEvent` asks `confirmDiscardingHeld`. The window's X asked
+first, so [I-0322]'s §1b test (which used the X) never saw it.
+**Resolution:** `showLanding()` calls `close()` first and returns if it was refused; `closeEvent` releases the project when
+the close goes ahead (`platforms/linux/src/ScriviWindow.cpp:651–660`).
+**Files Affected:** `platforms/linux/src/ScriviWindow.cpp`; test `platforms/linux/tests/background_wait_smoke.cpp` §1b (Close
+Project through its own action, Cancel: the project is still open and its history alive; the held save then lands).
+**Verification (VM scratch copy):** the new §1b check FAILED without the fix (*"its project is still open"*); with it
+`background-wait-ok` 3/3, ctest `-j6` 804/804, smokes 38/38.
+**Also seen (not this defect):** after the drive came back, the VM's `/mnt/scrivi-other` listed the **ScriviLinux** share's
+contents (`appsupport projects worlds`) while the kernel named `ScriviOther`; a fresh mount fixed it. Recorded in
+`Scrivi_Linux_Rig_Setup_v0_1.md` §9.3.
+
+---
 
 ## I-0335
 

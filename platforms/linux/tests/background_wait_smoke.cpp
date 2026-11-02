@@ -150,6 +150,17 @@ bool waitFor(const std::function<bool()>& cond, int ms = 10000)
     return cond();
 }
 
+// File ▸ Close Project, the menu's own action.
+QAction* closeProjectAction(ScriviWindow* w)
+{
+    for (QAction* a : w->findChildren<QAction*>()) {
+        if (a->text() == QStringLiteral("Close Project")) {
+            return a;
+        }
+    }
+    return nullptr;
+}
+
 QProgressDialog* waitDialog()
 {
     for (QWidget* w : QApplication::topLevelWidgets()) {
@@ -212,6 +223,15 @@ int main(int argc, char** argv)
     wa->close();
     QApplication::processEvents();
     check(asked == 1 && wa != nullptr && wa->isVisible(), QStringLiteral("§1b Cancel kept the window open"));
+    // [I-0336] File ▸ Close Project asks the same, BEFORE it lets the project go: after Cancel the held save must still land
+    // (below). It released the project first, so the queue went with it and the save never landed.
+    if (QAction* close = closeProjectAction(wa); close != nullptr) {
+        close->trigger();
+    }
+    QApplication::processEvents();
+    check(asked == 2 && wa != nullptr && wa->isVisible(), QStringLiteral("§1b Close Project asked too; Cancel kept the window"));
+    check(env.openProjects().isOpen(A.id) && wa->editorShell()->history() != nullptr,
+          QStringLiteral("§1b … and its project is still open (it was released before the question)"));
     EditorShell::confirmHook = nullptr;
 
     setWritable(sceneDir(A, 1), true);
@@ -280,12 +300,7 @@ int main(int argc, char** argv)
     //    not re-queued after every wait (it looped forever, the dialog flashing, on the Linux VM) ─────────────────────────
     {
         QPointer<ScriviWindow> wc = openWindow(env, A);
-        QAction* closeProject = nullptr;
-        for (QAction* a : wc->findChildren<QAction*>()) {
-            if (a->text() == QStringLiteral("Close Project")) {
-                closeProject = a;
-            }
-        }
+        QAction* closeProject = closeProjectAction(wc);
         check(closeProject != nullptr, QStringLiteral("§3b precondition: the Close Project action exists"));
         if (closeProject != nullptr) {
             closeProject->trigger();

@@ -650,13 +650,14 @@ void ScriviWindow::showLanding()
     // ⚠️ `AppEnvironment::projectWindowClosing()` shows Landing when the last one
     // goes, so closing here is safe: ⛔ the app never quits implicitly.
     if (landing_ == nullptr) {
-        if (editor_ != nullptr) {
-            editor_->releaseProject();
+        // ⛔ [I-0336]: never release the project before `close()` — `closeEvent` asks about a held queue FIRST, and on
+        // Cancel the window stays with its project; it releases the project itself when the close goes ahead.
+        if (!close()) {
+            return;
         }
         if (env_ != nullptr) {
             env_->showLanding();
         }
-        close();
         return;
     }
 
