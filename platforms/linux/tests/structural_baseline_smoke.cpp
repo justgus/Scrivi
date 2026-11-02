@@ -93,7 +93,7 @@ struct Rig {
         if (!ok || editor == nullptr) { return false; }
         shell->show();
         shell->activateWindow();
-        QTest::qWaitForWindowActive(shell.get());
+        if (!QTest::qWaitForWindowActive(shell.get())) { return false; }   // key clicks need the window active
         editor->setFocus();
         QApplication::processEvents();
         return true;
@@ -289,7 +289,7 @@ int main(int argc, char* argv[])
         prev = made;
     }
     if (!r.load()) {
-        std::printf("FAIL: the project did not load\n");
+        std::printf("FAIL: the project did not load, or its window never became active\n");
         return 1;
     }
     armConfirmer(r.shell.get());
