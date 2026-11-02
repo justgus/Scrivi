@@ -114,7 +114,7 @@ appears beside `log-000001.jsonl`, which the next open removes).
 6. If a world is on a drive you can pull: pull it and click another scene. Its section reads **"(unavailable; last
    known)"** and still shows the counts.
 
-## SP-201 AC6 — I-0333, I-0334: Replace All without holding the window
+## SP-201 AC6 — I-0333, I-0334: Replace All without holding the window · ✅ Mac passed 2026-11-01
 
 → [`Sprint-SP-201.md`](Sprint-SP-201.md)
 

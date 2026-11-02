@@ -8,8 +8,8 @@ Issues awaiting **user verification**. An Issue leaves this file only when the u
 
 | ID | Title | Severity | Sprint | Status |
 | -- | ----- | -------- | ------ | ------ |
-| **I-0333** | `[Apple]` ⚠️ **Replace All across 1,174 scenes holds the window: 6 s on dumas-prose-timelines, 18.6 s on dumas-prose-timelines-history (`apply=13427 ms`).** Found 2026-11-01 in [SP-200]'s Mac live pass log (not that Sprint's code). → [details](#i-0333) | High | [SP-201] | 🟠 Resolved - Not Verified (Mac and Linux; the window held 6 s → ~0.6 s at the start and ~1.4 s at the end, measured on a 84,480-match manuscript) |
-| **I-0334** | `[Apple]` ⚠️ **Main-thread core calls waited up to 15 s for the project lock behind Replace All's queued saves.** Found 2026-11-01 in [SP-200]'s Mac live pass log. → [details](#i-0334) | High | [SP-201] | 🟠 Resolved - Not Verified (the world read and the layout write left the main thread, Mac; the layout write left the GUI thread, Linux) |
+| **I-0333** | `[Apple]` ⚠️ **Replace All across 1,174 scenes holds the window: 6 s on dumas-prose-timelines, 18.6 s on dumas-prose-timelines-history (`apply=13427 ms`).** Found 2026-11-01 in [SP-200]'s Mac live pass log (not that Sprint's code). → [details](#i-0333) | High | [SP-201] | 🟠 Resolved - Not Verified — ✅ Mac live pass (user, 2026-11-01); ⏳ the Linux half (rig) |
+| **I-0334** | `[Apple]` ⚠️ **Main-thread core calls waited up to 15 s for the project lock behind Replace All's queued saves.** Found 2026-11-01 in [SP-200]'s Mac live pass log. → [details](#i-0334) | High | [SP-201] | 🟠 Resolved - Not Verified — ✅ Mac live pass (user, 2026-11-01); ⏳ the Linux half (rig: the layout write) |
 | **I-0332** | `[ScriviCore]` ⛔ **Opening a project's undo history costs ~2 s on dumas (34 MB log) and grows with the history: a whole-manuscript copy per history node, and an unoptimised parse of the log.** Measured 2026-11-01 for the user's long-history work. → [details](#i-0332) | High | [SP-197], [SP-200] | 🟠 Resolved - Not Verified (dumas 2.05 s → 0.2 s; 25,000 events 16.7 s → 0.7 s; a sentence at capacity 16 → 0.3 ms); the rest is [SP-200] |
 | **I-0331** | `[Apple]` ⛔ **The Mac runs the undo history on the main thread: the History card re-read the whole tree on every scene change (~1.9 s each on dumas), and the open replayed the log there (1.8–2.6 s).** Found in the SP-197 Mac live pass log, 2026-11-01. → [details](#i-0331) | High | [SP-197] | ✅ **Verified** (user, 2026-11-01: Mac re-check) |
 | **I-0330** | `[ScriviCore]` `[Apple]` ⛔ **The pending-edge sweep walked the whole manuscript (2,538 file operations on dumas) on every switch back into the app, and its answer is discarded unless a world is away.** Found in the SP-197 Mac live pass log, 2026-11-01. → [details](#i-0330) | Medium | [SP-197] | ✅ **Verified** (user, 2026-11-01: Mac re-check) |
@@ -778,7 +778,8 @@ archived; 6 stale full entries (I-0064, I-0067–I-0071) reconciled against thei
 ## I-0333
 
 **Title:** Replace All across the whole manuscript holds the window for seconds
-**Status:** 🟠 Resolved - Not Verified (2026-11-01, [SP-201])
+**Status:** 🟠 Resolved - Not Verified (2026-11-01, [SP-201]) — ✅ Mac live pass (user, 2026-11-01: *"the Mac live pass steps all
+passed."*); ⏳ the Linux half on the rig
 **Sprint:** [SP-201]
 **Platform:** `[Apple]` (the Mac; ✅ Linux's Replace All already had the fix's shape and gets the same window)
 **Severity:** High. A writer's Replace All on a long manuscript freezes the window; a large op may take time only with
@@ -811,7 +812,8 @@ scenes in one chapter — see the Sprint).
 ## I-0334
 
 **Title:** The main thread waits for the project lock behind queued saves
-**Status:** 🟠 Resolved - Not Verified (2026-11-01, [SP-201])
+**Status:** 🟠 Resolved - Not Verified (2026-11-01, [SP-201]) — ✅ Mac live pass (user, 2026-11-01: *"the Mac live pass steps all
+passed."*); ⏳ the Linux half on the rig
 **Sprint:** [SP-201]
 **Platform:** `[Apple]` (seen on the Mac; [EP-052]'s write queue is shared with Linux)
 **Severity:** High. The main thread is for UI only (user, 2026-10-26); a main-thread call that waits on the lock freezes

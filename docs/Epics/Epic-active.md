@@ -162,7 +162,8 @@ access (Files, iCloud Drive, external drives on iPad); iPad multi-window; a phon
 - [ ] AC3 — The manuscript works with the on-screen keyboard and a hardware keyboard on iPad, iPhone and the Duo, using the
       system's default behaviour and layout (Q8): nothing device- or keyboard-specific
 - [ ] AC4 — An iOS test target, run on the simulator, covering the manuscript's behaviour
-- [ ] AC5 — Structural edits, undo/redo and Find in the manuscript on iOS
+- [ ] AC5 — Structural edits, undo/redo and Find in the manuscript on iOS — ⚠️ not yet on iOS (user, 2026-11-01): **Find and
+      Replace**, and **Go to Scene / Chapter / Manuscript Begin and End**
 - [ ] AC6 — Navigator, inspector, timeline, worlds and detail sheets on iPad
 - [ ] AC7 — Projects opened from, and kept on, the places the testers use (Q2), surviving app relaunch
 - [ ] AC8 — The phone surface, per Q1's feature set

@@ -1,6 +1,6 @@
 # Active Sprints
 
-🟡 **[SP-201] ACTIVE 2026-11-01** `[Cross]` [EP-052] → [`Sprint-SP-201.md`](Sprint-SP-201.md) — Replace All without holding the window ([I-0333]); no main-thread lock waits behind queued saves ([I-0334]). I-0333, I-0334 🟠 Resolved - Not Verified; ✅ AC1–AC5 (Q1–Q2 ruled as implemented); ⏳ AC6 (Mac and rig live passes).
+🟡 **[SP-201] ACTIVE 2026-11-01** `[Cross]` [EP-052] → [`Sprint-SP-201.md`](Sprint-SP-201.md) — Replace All without holding the window ([I-0333]); no main-thread lock waits behind queued saves ([I-0334]). I-0333, I-0334 🟠 Resolved - Not Verified; ✅ AC1–AC5 (Q1–Q2 ruled as implemented); AC6: ✅ Mac live pass (user, 2026-11-01); ⏳ the rig live pass.
 
 🟡 **[SP-200] ACTIVE 2026-11-01** `[ScriviCore]` [EP-052] AC11 → [`Sprint-SP-200.md`](Sprint-SP-200.md) — history load: (c) compaction to `log-(N+1).jsonl`, then (b) records that store changes, not whole texts. Design Q1–Q4 ruled. Tasks: T-0400, T-0643–T-0646.
 
