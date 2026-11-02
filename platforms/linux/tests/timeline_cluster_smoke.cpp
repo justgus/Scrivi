@@ -2,8 +2,8 @@
 // (SP-084, T-0349, AC6b). No real mouse/paint — drives TimelinePanel's clustering pass
 // directly via its test hooks (aggregateCountForTest / largestAggregateSizeForTest).
 //
-// The clustering pass groups project-row members (scene + historical dots) whose
-// SCREEN-x are within one dot-diameter at the current zoom (FR-032), so:
+// The clustering pass cuts the story into equal story-time slices, as many as aggregates
+// fit across the zoomed width ([I-0338], Apple's [I-0208] rule), so:
 //   1. Several dots at (nearly) the same story-time collapse into ONE aggregate whose
 //      member count = the number of co-located dots.
 //   2. Zooming in far enough spreads their pixels past the threshold → the aggregate
@@ -209,6 +209,36 @@ int main(int argc, char* argv[])
         check(std::abs(centre - bFrac) < 1e-6, "zoom-to-scene: B is centred");
         check(savedZoom == panel.zoomFactor() && savedPan == panel.panFraction(),
               "zoom-to-scene: the new view is saved (T-0338)");
+    }
+
+    // [I-0338] — a dense story (dumas: 1,175 scenes) never chains into ONE aggregate (R2), zooming in never makes the largest
+    // aggregate larger (R3), and zoom to scene leaves the active scene a single dot.
+    {
+        constexpr qint64 kHour = 3600000LL;
+        QList<TimelinePanel::Dot> dots;
+        for (int k = 0; k < 1175; ++k) {
+            dots << scene(QStringLiteral("S%1").arg(k), k * kHour);   // ~1 px apart at zoom 1: the old rule chained them all
+        }
+        panel.setTimeline(QStringLiteral("Story Open"), dots);
+        panel.setViewState(1.0, 0.0);
+        const int atOne = panel.aggregateCountForTest();
+        check(atOne >= 20, "I-0338: 1,175 dense scenes form many aggregates at zoom 1, not one");
+        int largest = panel.largestAggregateSizeForTest();
+        bool monotonic = true;
+        for (double z : {2.0, 5.0, 20.0, 100.0}) {
+            panel.setViewState(z, 0.0);
+            const int now = panel.largestAggregateSizeForTest();
+            monotonic = monotonic && now <= largest;
+            largest = now;
+        }
+        check(monotonic, "I-0338: zooming in never makes the largest aggregate larger (R3)");
+        panel.setActiveScene(QStringLiteral("S600"));
+        panel.zoomToActiveScene();
+        bool single = true;
+        for (int a = 0; a < panel.aggregateCountForTest(); ++a) {
+            single = single && !panel.aggregateHoldsSceneForTest(a, 600);
+        }
+        check(single, "I-0338: zoom to scene leaves the active scene a single dot in a dense story");
     }
 
     if (failures > 0) {

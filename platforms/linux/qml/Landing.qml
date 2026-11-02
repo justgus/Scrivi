@@ -153,6 +153,17 @@ Item {
         return name.replace(/\.scrivi$/, "")
     }
 
+    // A warm grey with a little depth (user, 2026-11-02): on Wayland GNOME draws no window shadow for Qt's frame, so Landing
+    // and a project window in the system's window colour could not be told apart. The pages draw no background over it.
+    readonly property bool darkScheme: Application.styleHints.colorScheme === Qt.ColorScheme.Dark
+    Rectangle {
+        anchors.fill: parent
+        gradient: Gradient {
+            GradientStop { position: 0.0; color: window.darkScheme ? "#45403b" : "#ece7e0" }
+            GradientStop { position: 1.0; color: window.darkScheme ? "#2e2a27" : "#d8d1c7" }
+        }
+    }
+
     StackView {
         id: stack
         anchors.fill: parent
@@ -226,6 +237,7 @@ Item {
         id: landingPage
 
         Page {
+            background: null   // the window's warm gradient shows through
             // Mirrors the window-level error so the label below can bind to it.
             readonly property string errorText: window.landingError
 

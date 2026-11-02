@@ -15,6 +15,7 @@
 #include "EditorShell.hpp"
 #include "ManuscriptEditor.hpp"
 #include "SceneInspector.hpp"
+#include <QLabel>
 #include "ScriviBridge.hpp"
 
 #include <QAbstractButton>
@@ -642,14 +643,17 @@ int main(int argc, char* argv[])
     // No event is processed between the ten scene changes, so the first read cannot land before the last change.
     {
         std::atomic<int> reads{0};
+        std::atomic<int> metrics{0};
         ScriviBridge::workerCoreCallObserver() = [&](const ScriviBridge::GuiCoreCall& c) {
             if (c.endpoint == QLatin1String("scrivi_load_scene_inspector")) { ++reads; }
+            if (c.endpoint == QLatin1String("scrivi_get_project_metrics")) { ++metrics; }
         };
         auto* inspector = r.shell->findChild<SceneInspector*>();
         check(inspector != nullptr, QStringLiteral("SP-197 rig: the shell has an Inspector"));
         if (inspector != nullptr) {
             QTest::qWait(500);   // the earlier gestures' reads land first
             reads = 0;
+            metrics = 0;
             const auto& segs = r.shell->sceneDocument().segments();
             for (int i = 0; i < 10; ++i) { inspector->setScene(segs.at(i % 2).sceneID); }
             QTest::qWait(1500);
@@ -658,6 +662,12 @@ int main(int argc, char* argv[])
                   QStringLiteral("SP-197 rig: ten scene changes make one read and one for the last (%1 reads)").arg(reads.load()));
             auto* tree = inspector->findChild<QTreeWidget*>();
             check(tree != nullptr && tree->isEnabled(), QStringLiteral("SP-197 rig: the last scene's read landed (cards enabled)"));
+            // [I-0337]: the project's figures are read on their own once the cards fill, never with every scene's read.
+            check(metrics.load() >= 1 && metrics.load() <= reads.load(),
+                  QStringLiteral("I-0337: the project metrics are read after the cards (%1 metrics, %2 reads)")
+                      .arg(metrics.load()).arg(reads.load()));
+            auto* cue = inspector->findChild<QLabel*>(QStringLiteral("inspectorReadCue"));
+            check(cue != nullptr && cue->isHidden(), QStringLiteral("I-0337: the read cue is gone once the read lands"));
         }
         ScriviBridge::workerCoreCallObserver() = nullptr;
     }

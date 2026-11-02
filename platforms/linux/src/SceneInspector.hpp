@@ -267,6 +267,10 @@ private:
     bool readInFlight_ = false;
     bool rereadWanted_ = false;
     void startRead();
+    void readMetrics();   // [I-0337]: after the cards fill, never before
+    bool metricsInFlight_ = false;   // one at a time: each holds the project's lock ~1.4 s over the share
+    QLabel* readCue_ = nullptr;   // [I-0337]: "Loading…" above the tabs, so every tab shows it (Apple: on every card)
+    void setReadCue(const QString& text);
 
     QTabWidget*  tabs_    = nullptr;
     QTreeWidget* tree_    = nullptr;   // Worldbuilding: the scene's objects

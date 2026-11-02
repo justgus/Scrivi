@@ -287,12 +287,11 @@ double TimelinePanel::memberX(const ClusterMember& m) const
 
 QList<TimelinePanel::Aggregate> TimelinePanel::computeClusters() const
 {
-    // Gather all project-row members (scene + historical dots) as a flat list, sorted by
-    // story-time. Then greedily group runs whose screen-x are within one dot-diameter of
-    // the run's first member — a co-located cluster (FR-032). A run of ≥2 becomes an
-    // Aggregate; singletons are left to render normally. Because the threshold is a
-    // SCREEN distance through xForOffset, zooming in widens the pixel gaps and a cluster
-    // naturally resolves into singletons (zoom-resolve, FR-032).
+    // ✅ [I-0338] Apple's [I-0208] rule (`TimelineStripView.buildClusters`; Scrivi_Timeline_Clustering_Design_v0_1.md R1–R3):
+    // the WHOLE story is cut into equal story-time slices, as many as aggregates fit across the zoomed width, and each slice
+    // holding ≥2 members is one aggregate at the slice's centre. ⚠️ It replaces proximity chaining, which was transitive: on
+    // dumas (1,175 scenes) every scene chained into ONE aggregate at any zoom, so Zoom to Current Scene could not separate it.
+    // The partition never reads the pan, so panning slides across it and never re-forms it (the user's ruling, [I-0208]).
     QList<ClusterMember> members;
     members.reserve(dots_.size() + histDots_.size());
     for (int i = 0; i < dots_.size(); ++i) {
@@ -306,34 +305,28 @@ QList<TimelinePanel::Aggregate> TimelinePanel::computeClusters() const
                   return a.offsetMs < b.offsetMs;
               });
 
+    // ⚠️ [I-0210]: the pitch is the aggregate's HIT size (`hitAggregate`'s core + 4, each side), never its drawn size, or
+    // neighbouring aggregates cover each other's hover area.
+    constexpr double kAggregateHit = 2.0 * (kDotRadius + 2.0 + 4.0);
+    constexpr double kBucketGap = 4.0;
+    const double usable = std::max(1.0, width() - 2.0 * kSideInset);
+    const qint64 sliceCount = std::max<qint64>(1, static_cast<qint64>(usable * zoom_ / (kAggregateHit + kBucketGap)));
+    const qint64 span = std::max<qint64>(maxMs_ - minMs_, 1);
+    const qint64 sliceMs = std::max<qint64>(span / sliceCount, 1);
+
     QList<Aggregate> aggregates;
-    // A run starts co-locating within one dot-diameter (FR-032). But once ≥2 members
-    // form an aggregate it renders LARGER (core + arc ring, ~kDotRadius+6 radius), so a
-    // nearby member/aggregate that would visually overlap the bigger mark must still be
-    // absorbed — otherwise two aggregates draw on top of each other (finding, T-0346).
-    // So once a run is a pair, the gap is measured against the LAST absorbed member with
-    // the wider AGGREGATE reach — a chain of co-located dots (and two aggregates that end
-    // up within an aggregate-diameter) all merge into one.
-    const double dotThreshold = 2.0 * kDotRadius;                 // singleton co-location
-    const double aggThreshold = (kDotRadius + 6.0) + kDotRadius;  // aggregate reach ∪ next dot
     int i = 0;
     while (i < members.size()) {
+        // Every member lies inside [minMs_, maxMs_], so the clamp only catches the last boundary member ([I-0208] round 3).
+        const qint64 slice = std::clamp<qint64>((members.at(i).offsetMs - minMs_) / sliceMs, 0, sliceCount - 1);
         int j = i + 1;
-        // Grow the run: each candidate is measured against the PREVIOUS member's x, using
-        // the dot diameter until the run is a pair, then the aggregate reach.
-        while (j < members.size()) {
-            const double prevX = memberX(members.at(j - 1));
-            const double threshold = (j - i >= 2) ? aggThreshold : dotThreshold;
-            if (std::abs(memberX(members.at(j)) - prevX) > threshold) {
-                break;
-            }
+        while (j < members.size()
+               && std::clamp<qint64>((members.at(j).offsetMs - minMs_) / sliceMs, 0, sliceCount - 1) == slice) {
             ++j;
         }
         if (j - i >= 2) {
             Aggregate agg;
-            // Centre the aggregate on the run's MIDDLE member's x so the mark sits over the
-            // cluster's visual centre rather than its left edge.
-            agg.centerOffsetMs = members.at(i + (j - i) / 2).offsetMs;
+            agg.centerOffsetMs = minMs_ + slice * sliceMs + sliceMs / 2;   // the slice's centre: it never drifts with membership
             for (int k = i; k < j; ++k) {
                 agg.members.append(members.at(k));
             }
@@ -388,8 +381,9 @@ void TimelinePanel::paintAggregate(QPainter& painter, const Aggregate& agg,
     f.setPointSizeF(std::max(6.0, f.pointSizeF() - 1.0));
     f.setBold(true);
     painter.setFont(f);
+    // [I-0338] unclipped, as Apple's `Text`: a 16 px box shows "1175" as "17".
     painter.drawText(QRectF(ax - core, cy - core, 2.0 * core, 2.0 * core),
-                     Qt::AlignCenter, QString::number(n));
+                     Qt::AlignCenter | Qt::TextDontClip, QString::number(n));
 }
 
 QPointF TimelinePanel::fanOutMemberPos(int slot, double ax, double cy) const

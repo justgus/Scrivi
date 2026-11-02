@@ -13,6 +13,7 @@ import Scrivi
 // passes them in, along with appSupportRoot.
 Page {
     id: root
+    background: null   // Landing's warm gradient shows through
 
     // Injected by the host (Landing.qml). Typed concretely (not `var`) so the
     // Connections block below can resolve the bridge's errorOccurred signal, and

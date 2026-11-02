@@ -8,6 +8,8 @@ Issues awaiting **user verification**. An Issue leaves this file only when the u
 
 | ID | Title | Severity | Sprint | Status |
 | -- | ----- | -------- | ------ | ------ |
+| **I-0338** | `[Linux]` ⚠️ **The timeline chained all 1,175 scenes into ONE aggregate and Zoom to Current Scene could not separate it: Linux still clustered by transitive proximity chaining, the defect [I-0208] fixed on Apple only.** Found 2026-11-02 on the Linux VM, [T-0652] (EP-057). → [details](#i-0338) | High | — | 🟠 Resolved - Not Verified |
+| **I-0337** | `[Linux]` ⚠️ **The Inspector's cards take 3–5 s to fill over the share, and no "Loading…" appears on the Writing or Properties tab: the cue was only on the Worldbuilding tab, and every scene's cards waited for a whole-project metrics count.** Found 2026-11-02 on the Linux VM, [T-0650] (EP-057). → [details](#i-0337) | Medium | — | 🟠 Resolved - Not Verified |
 | **I-0336** | `[Linux]` ⛔ **Close Project released the project BEFORE asking "Some changes can't be saved": Cancel kept a window whose project was already closed — its held save never landed, its history was closed.** Found 2026-11-02 on the Linux VM, [T-0648] steps 5–6 (EP-057). → [details](#i-0336) | High | — | 🟠 Resolved - Not Verified — ⏳ the VM pass ([T-0648] steps 5–6) |
 | **I-0335** | `[Linux]` ⛔ **Close Project never finishes: the "Please wait — saving updates…" dialog flashes forever and one scene is rewritten ~3 times a second.** Found 2026-11-02 on the Linux VM, [T-0648] (EP-057). → [details](#i-0335) | High | — | 🟠 Resolved - Not Verified — ⏳ the VM pass ([T-0648] step 5) |
 | **I-0333** | `[Apple]` ⚠️ **Replace All across 1,174 scenes holds the window: 6 s on dumas-prose-timelines, 18.6 s on dumas-prose-timelines-history (`apply=13427 ms`).** Found 2026-11-01 in [SP-200]'s Mac live pass log (not that Sprint's code). → [details](#i-0333) | High | [SP-201] | 🟠 Resolved - Not Verified — ✅ Mac live pass (user, 2026-11-01); ➡️ the Linux half → [T-0655] ([EP-057]) |
@@ -776,6 +778,71 @@ follows.)*
 *2026-08-15 (docs cleanup — 48 verified Issues archived to decade files, 4 closed Issues
 archived; 6 stale full entries (I-0064, I-0067–I-0071) reconciled against their authoritative table rows.
 10 `Resolved - Not Verified` Issues remain active.)*
+
+## I-0338
+
+**Title:** The Linux timeline chains every scene into one aggregate, so Zoom to Current Scene cannot separate the dots
+**Status:** 🟠 Resolved - Not Verified (2026-11-02) — ⏳ the user's VM pass: [T-0652] steps 1–2
+**Platform:** `[Linux]` — Apple fixed this in [I-0208] (verified 2026-09-14); Linux never got it
+**Component:** `TimelinePanel` (clustering, zoom to scene)
+**Severity:** High. At first load the whole story is one dot; [T-0640]'s ◎ zooms in but the dots never come apart.
+**Date Identified:** 2026-11-02, build 1.0.316 (`d43603c`), [T-0652] on the VM, dumas-prose-timelines-history (1,175 scenes)
+
+**Description (user):** *"After clicking the target button the timeline zoomed, but the dots failed to separate. At first load
+there was one aggregate dot. It should have been large enough to display the number 1175, but it only displayed the number 17.
+hovering over the dot produced a circle of aggregate dots, clipped to the timeline boundaries … way more than 17 dots. Possibly
+all 1175. We were definitely zoomed in, the ticks showed Week 1, Week 3, Week 5, Week 7 etc."*
+
+**Root cause (read in the code):** `TimelinePanel::computeClusters` (`platforms/linux/src/TimelinePanel.cpp:288`)
+grows a run while each member is within 18 px of the PREVIOUS one — the transitive chain [I-0208] defect (1) names. It also
+clusters members that are off the visible span, so a chain runs on past both edges. Dense enough, every scene joins one run at
+any zoom. `zoomToActiveScene` (`:696`) zooms until the nearest neighbour is 1/12 of the window (capped at 500×), which separates
+that neighbour from the scene but not the chain.
+
+**Resolution:** Apple's [I-0208] rule, ported (`Scrivi_Timeline_Clustering_Design_v0_1.md` R1–R3):
+`computeClusters` (`platforms/linux/src/TimelinePanel.cpp:288`) cuts the whole story into equal story-time slices, as many as
+aggregates fit across the zoomed width (pitch = the aggregate's HIT size + 4 px, per [I-0210]); each slice with ≥2 members is
+one aggregate at the slice's centre. The partition never reads the pan. The member count is drawn unclipped, as Apple's `Text`
+("1175" read "17").
+⚠️ **One difference from Apple, on purpose:** Apple drops aggregates whose centre is off screen; Linux keeps them (Qt clips
+the paint), because the hover fan-out holds an aggregate by its INDEX, and a visibility filter would renumber them on every
+pan.
+**Files Affected:** `platforms/linux/src/TimelinePanel.cpp`, `TimelinePanel.hpp`; test
+`platforms/linux/tests/timeline_cluster_smoke.cpp` (1,175 scenes an hour apart: many aggregates at zoom 1, the largest never
+grows with zoom, zoom to scene leaves the active scene single).
+**Verification (VM scratch copy):** the new checks FAILED with every member in one slice; with the fix, smokes 38/38, ctest
+`-j6` 804/804.
+
+**Related:** [I-0286] — the clipped fan-out ring the user also saw (backlog); not a duplicate, and it is still needed after the
+bucketing (a co-located cluster can be large at any zoom).
+
+---
+
+## I-0337
+
+**Title:** The Inspector shows no "Loading…" on the Writing or Properties tab, and its cards wait for the project's metrics
+**Status:** 🟠 Resolved - Not Verified (2026-11-02) — ⏳ the user's VM pass: [T-0650] steps 1–2
+**Platform:** `[Linux]` only — ✅ checked: the Mac draws "Loading…" on every card (`sceneReadGate`,
+`Scrivi/Views/Inspector/InspectorCard.swift:280`) and reads the metrics in their own task (`ScenePropertiesView.swift:203`)
+**Severity:** Medium. The writer sees dimmed cards for 3–5 s with nothing saying why.
+**Date Identified:** 2026-11-02, build 1.0.316 (`d43603c`), [T-0650] on the VM, dumas-prose-timelines-history on
+`/mnt/scrivi-other`: *"the cards take about 4-5 seconds to load. No 'Loading..' message appears anywhere."*
+The log, every scene: `scrivi_load_scene_inspector` ~1,800 ms (48 file ops), then `scrivi_get_project_metrics` ~1,400 ms
+(10 file ops) on the same worker, before the cards are applied.
+**Root cause:** (1) the 400 ms "Loading…" and the 5 s "Still reading" lines went to `status_`, which sits at the bottom of the
+Worldbuilding tab only; the Writing tab (the cards) and Properties never showed them. (2) T-0647 put
+`getProjectMetrics` into the scene read's worker, so the cards waited for a whole-project count.
+**Resolution:** a cue line above the tabs (`readCue_`, `platforms/linux/src/SceneInspector.cpp:105`), visible on every tab, carries
+both lines (`:412`, `:443`) and clears when the read lands or times out. The metrics are read on their own after the cards are
+applied, one at a time (`readMetrics`, `:510`); the scene's Links still fill with the cards.
+**Files Affected:** `platforms/linux/src/SceneInspector.cpp`, `SceneInspector.hpp`; test
+`platforms/linux/tests/structural_baseline_smoke.cpp` (SP-197 block: the metrics are read, at most once per scene read; the cue
+is gone once the read lands).
+**Verification (VM scratch copy):** smokes 38/38. ⚠️ No test shows the cards filling BEFORE the metrics land (the offscreen
+reads are too fast to tell apart); the VM pass is the check: cards ~1.8 s, the Properties tab's Project figures after.
+**Not changed:** the 1.8 s read itself (48 file operations over the share for one scene's Inspector).
+
+---
 
 ## I-0336
 

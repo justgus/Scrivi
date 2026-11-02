@@ -102,8 +102,14 @@ SceneInspector::SceneInspector(QWidget* parent) : QWidget(parent)
 
     connect(tabs_, &QTabWidget::currentChanged, this, &SceneInspector::onTabChanged);
 
+    readCue_ = new QLabel(this);
+    readCue_->setObjectName(QStringLiteral("inspectorReadCue"));
+    readCue_->setWordWrap(true);
+    readCue_->setVisible(false);
+
     auto* root = new QVBoxLayout(this);
     root->setContentsMargins(0, 0, 0, 0);
+    root->addWidget(readCue_);
     root->addWidget(tabs_);
 }
 
@@ -403,7 +409,7 @@ void SceneInspector::reload()
     setWritingEnabled(false);
     if (tree_ != nullptr) { tree_->setEnabled(false); }
     QTimer::singleShot(400, this, [this, generation] {
-        if (generation == reloadGeneration_) { setStatusLine(tr("Loading…"), false); }
+        if (generation == reloadGeneration_) { setReadCue(tr("Loading…")); }
     });
     if (readInFlight_) {
         rereadWanted_ = true;
@@ -434,7 +440,7 @@ void SceneInspector::startRead()
     // A slow read is waited for, never abandoned: the writer is told, and the cards fill when it lands.
     QTimer::singleShot(AsyncCall::kDefaultTimeoutMs, this, [this, generation] {
         if (readInFlight_ && generation == reloadGeneration_) {
-            setStatusLine(tr("Still reading this scene — the project may be on a slow or unreachable volume."), false);
+            setReadCue(tr("Still reading this scene — the project may be on a slow or unreachable volume."));
         }
     });
 
@@ -454,7 +460,6 @@ void SceneInspector::startRead()
             part("objects", p.objectsResult, p.objectsFailed);
             part("worlds",  p.worldsResult,  p.worldsFailed);
             part("notes",   p.notesResult,   p.notesFailed);
-            p.metricsResult = bridge->getProjectMetrics(root);   // T-0647: same worker, after the scene's read
             return p;
         },
         [this, scene, root, generation](const ReloadPayload& p) {
@@ -472,10 +477,12 @@ void SceneInspector::startRead()
             }
             reloadAttempts_ = 0;
             ++reloadGeneration_;   // the "Loading…" cue is moot
+            setReadCue({});
             if (tree_ != nullptr) { tree_->setEnabled(true); }
             applyReload(p);
             applyNotes(p.notesResult, p.notesFailed);
-            applyMetrics(p);
+            applyMetrics(p);   // the scene's Links now; the project's figures when readMetrics() lands
+            readMetrics();
         },
         [this, scene, generation]() {
             readInFlight_ = false;   // shortcut: the parked worker may still hold the lock; the next read waits behind it
@@ -483,6 +490,7 @@ void SceneInspector::startRead()
             if (scene != sceneID_ || generation != reloadGeneration_) { return; }
             ++reloadGeneration_;
             reloadAttempts_ = 0;
+            setReadCue({});
             if (tree_ != nullptr) { tree_->setEnabled(true); }
             applyNotes({}, true, tr("This scene's notes are taking longer than expected to read — the project may be "
                                     "on a disconnected or unreachable volume. Nothing has been lost."));
@@ -495,6 +503,37 @@ void SceneInspector::startRead()
             entries_.clear();
             rebuildTree();
         }, AsyncCall::kProjectOpenTimeoutMs);   // a backstop only: a slow read is waited for (above)
+}
+
+// [I-0337] T-0647's project figures, read on their own once the cards are filled: they used to ride the scene's read, so
+// every card waited for a whole-project count (1.4 s over the share). A stale answer is still the project's — it is applied.
+void SceneInspector::readMetrics()
+{
+    if (bridge_ == nullptr || projectRootPath_.isEmpty() || metricsInFlight_) { return; }
+    metricsInFlight_ = true;
+    const WorkerBridge::Handle bridgeHandle = WorkerBridge::handleFor(bridge_);
+    const QString root = projectRootPath_;
+    AsyncCall::run<ReloadPayload>(
+        this,
+        [bridgeHandle, root]() -> ReloadPayload {
+            WorkerBridge bridge(bridgeHandle);
+            ReloadPayload p;
+            p.metricsResult = bridge->getProjectMetrics(root);
+            return p;
+        },
+        [this, root](const ReloadPayload& p) {
+            metricsInFlight_ = false;
+            if (root == projectRootPath_) { applyMetrics(p); }   // edgesFailed stays true: the scene's Links are kept
+        },
+        [this] { metricsInFlight_ = false; }, AsyncCall::kProjectOpenTimeoutMs);
+}
+
+void SceneInspector::setReadCue(const QString& text)
+{
+    if (readCue_ == nullptr) { return; }
+    readCue_->setText(text);
+    readCue_->setVisible(!text.isEmpty());
+    ThemeColours::applyTextColour(readCue_, ThemeColours::deemphasised(readCue_->palette()));
 }
 
 void SceneInspector::applyReload(const ReloadPayload& payload)

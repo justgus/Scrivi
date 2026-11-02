@@ -113,9 +113,8 @@ public:
     };
 
     // A co-located group of ≥2 project-row members rendered as one aggregate dot
-    // (larger core + count + segmented arc, T-0347). `centerOffsetMs` is the group's
-    // representative story-time (the first member's — members are within one dot-diameter
-    // on screen, so any is fine for the shared X). Members are in story order.
+    // (larger core + count + segmented arc, T-0347). `centerOffsetMs` is the centre of the
+    // story-time slice the members share ([I-0338]: `computeClusters`). Members are in story order.
     struct Aggregate {
         qint64 centerOffsetMs = 0;
         QList<ClusterMember> members;
@@ -160,6 +159,12 @@ public:
     // Used only by timeline_cluster_smoke (co-located dots → one aggregate; a zoom that
     // separates them → zero aggregates). Public because the smoke is a separate binary.
     int aggregateCountForTest() const { return static_cast<int>(computeClusters().size()); }
+    bool aggregateHoldsSceneForTest(int aggregate, int sceneIndex) const {
+        const QList<Aggregate> aggs = computeClusters();
+        if (aggregate < 0 || aggregate >= aggs.size()) { return false; }
+        return std::any_of(aggs.at(aggregate).members.cbegin(), aggs.at(aggregate).members.cend(),
+                           [sceneIndex](const ClusterMember& m) { return m.isScene && m.index == sceneIndex; });
+    }
     int largestAggregateSizeForTest() const {
         int m = 0;
         for (const Aggregate& a : computeClusters()) {
