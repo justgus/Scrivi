@@ -678,9 +678,66 @@ platform's rig work.**
 | Platform | Rig | Status |
 | -------- | --- | ------ |
 | **Linux** | `oathkeeper` (Ubuntu 26.04.1) | ✅ **Built, green, app launches** (2026-08-29) |
+| **Linux (VM)** | `scrivi-vm` (Ubuntu 26.04.1 arm64, UTM on the Mac) | ✅ **Built, smokes 38/38, app launches**; ctest 803/804 — the 1 a racy test, fixed on the Mac, not yet re-run here (2026-11-02) — §9 |
 | **Windows** | — | ⚠️ **Not started.** ✅ **It must EXECUTE §§1–6, not re-derive them** |
 | **macOS** | the workstation | ✅ Existing |
 | **iPad / iPhone / visionOS** | — | ⚠️ Not started |
+
+
+## 9. ✅ The Linux VM on the Mac — `scrivi-vm` (EP-057, written as-run 2026-11-02)
+
+✅ **A pass on this VM counts for an EP-057 Task** (user, 2026-11-02), **except** an AC about **x86_64**, the **NVIDIA GPU
+stack**, or the **real network path** — those stay held for Oathkeeper. Record a VM pass as *"VM, build N"*. Rule:
+`Sprints/Sprint-GUIDELINES.md`, *"The rig pass never holds a Sprint open"*, item 6.
+
+| | **scrivi-vm** | Oathkeeper |
+| - | - | - |
+| Host | UTM 5.0.8, **Apple Virtualization** backend, on the Mac (M5 Max) | own hardware |
+| OS / arch | Ubuntu **26.04.1** Desktop, **aarch64** | Ubuntu 26.04.1, x86_64 |
+| CMake / GCC / Qt / OpenSSL | 4.2.3 / 15.2.0 / **6.10.2** / 3.5.5 — identical | same |
+| CPU / RAM / disk | 6 cores / 12 GB / 64 GB | — |
+| Graphics | ⚠️ **software rendering** (no 3D in Apple Virtualization; `ZINK: failed to choose pdev` in the log is expected) | RTX 3060 |
+| Network | UTM **Shared Network**: the VM is `192.168.64.2`, the Mac `192.168.64.1` | LAN |
+
+### 9.1 Building it (what was actually run)
+
+1. ISO: `cdimage.ubuntu.com/releases/26.04.1/release/ubuntu-26.04.1-desktop-arm64.iso`, checked against that folder's
+   `SHA256SUMS` (kept in `~/Downloads/ubuntu-26.04.1-arm64/`).
+2. UTM ▸ Create ▸ Virtualize ▸ Linux ▸ **Use Apple Virtualization**; 12288 MiB, 6 cores, 64 GiB; no shared directory.
+3. ⚠️ **Network must be SHARED, not Bridged.** Bridged gave the VM a LAN address (`192.168.1.192`) the Mac could ARP but
+   never reach — ping and SSH both failed. Shared Network fixed it at once.
+4. Installer defaults; user `justgus`. ⚠️ The installer names the machine `justgus-Apple-Virtualization-Generic-Platform`:
+   `sudo hostnamectl set-hostname scrivi-vm`.
+5. Packages: §3's list **plus `openssh-server cifs-utils`**, then `sudo systemctl enable --now ssh`. ⚠️ **Give these to the
+   user as SHORT lines, one command each** — a long line wraps when copied and runs as two broken commands.
+6. ✅ **Passwordless sudo — on the VM ONLY** (user, 2026-11-02): `/etc/sudoers.d/vm`. Oathkeeper keeps its password.
+7. SSH from the Mac: `ssh scrivi-vm` (`~/.ssh/config`; dedicated key `~/.ssh/id_ed25519_scrivivm`, installed with
+   `ssh-copy-id`). ⚠️ Shared Network assigns the address by DHCP — if `ssh scrivi-vm` stops working, check it first.
+
+### 9.2 Source, build, test, run
+
+Same as §4–§5: `git clone https://github.com/justgus/Scrivi.git ~/Dev/Scrivi` (public; no credentials), Debug, Ninja.
+⚠️ **The VM's checkout stays clean, like the rig's** — `git pull`, never edit there.
+
+- Build: 890 targets in **2 m 32 s**. ctest non-root `-j6`: **804** tests. Smokes **38/38** — ⚠️ `dumas_world_fixture.sh`
+  is a fixture generator (it needs a project argument), not a smoke; skip it in the loop.
+- ✅ **Its first `ctest -j6` found a racy test the Mac never showed** ([T-0400] crash section 1; fixed 2026-11-02, see
+  [SP-200]). The VM's smaller, loaded CPU reorders the write queue against the test thread — run ctest **in parallel** here.
+- Launcher: §5's recipe — `~/.local/share/applications/scrivi.desktop` + `~/Desktop/scrivi.desktop`, icon
+  `~/.local/share/icons/hicolor/512x512/apps/scrivi.png`, `gio set … metadata::trusted true` (needs
+  `DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus` over SSH). ✅ The user launches from the Desktop icon.
+- Over SSH the app can be put on the VM's own screen (it is the VM's only session, so nobody else's is disturbed):
+  `XDG_RUNTIME_DIR=/run/user/1000 WAYLAND_DISPLAY=wayland-0 setsid nohup …/scrivi_linux &`.
+
+### 9.3 The shares and the delay
+
+- `SCRIVI_RIG=scrivi-vm ./scripts/mount-shares-on-rig.sh --setup-creds` (once, the **Mac** password, in the Mac's
+  Terminal), then `SCRIVI_RIG=scrivi-vm ./scripts/mount-shares-on-rig.sh` — `/mnt/scrivi-net`, `/mnt/scrivi-worlds`,
+  `/mnt/scrivi-other`, the same mount points as the rig. The VM resolves `Flitwick-5.local` to `192.168.64.1`.
+- ✅ **5 ms one way on SMB only** — `scrivi-smb-delay.service` (systemd, enabled at boot): a `prio` qdisc on `enp0s1` with
+  `netem delay 5ms` on band 3 and a `u32` filter for `dport 445`. Measured TCP connect to the Mac's port 445: **~2.0 ms →
+  ~6.8 ms**; SSH and ping untouched (0.4 ms). This is the Docker share's figure (`reference: 5 ms ≈ the rig`), so a timing
+  taken here is an **approximation of the rig**, never the rig's number. Off: `sudo systemctl stop scrivi-smb-delay`.
 
 ---
 
@@ -693,3 +750,5 @@ has never been observed and needs a ruling.** ⚠️ **T-0479 must correct Porti
 document**, not from memory.*
 
 *v0.1 — 2026-08-29. Written as-run during SP-123.*
+
+*2026-11-02 — §9 added: the Linux VM on the Mac (`scrivi-vm`), as-run (EP-057).*

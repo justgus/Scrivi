@@ -52,6 +52,29 @@ At the end of a Sprint:
 3. **Update Sprint status to 🟠 Review**, then **✅ Closed** once retrospective is noted.
 4. **Write a brief retrospective** — What went well, what didn't, what to adjust.
 
+### ⚠️ The rig pass never holds a Sprint open (user, 2026-11-02)
+
+*[Every Cross Sprint from SP-195 to SP-201 sat open for weeks on a rig pass while the rig was away.]* Mac, iOS and Linux
+are still built in the SAME Sprint; only the Linux **live pass** is verified separately, in the standing Epic
+**[EP-057] Linux Rig Verification**.
+
+1. **The close gate for Linux work, without the rig:** the Docker build, ctest in the second image as **non-root**, and
+   the smokes through their `.sh` wrappers — plus the Docker SMB share (5 ms netem) where the AC is about timing — each
+   recorded in the Sprint's log with its counts. This is evidence, **not** a live pass, and the Sprint record says so.
+2. **At close, the rig AC moves out — it is never dropped.** File a `[Linux]` Task under EP-057 (*"Rig pass: SP-XXX
+   ACn — …"*), put its steps in [`Rig-Live-Pass-Held.md`](Rig-Live-Pass-Held.md) under that Task's ID, and amend the
+   AC to read *"rig pass → T-XXXX ([EP-057])"*. The AC then counts as met for the close.
+3. **Items split by half, explicitly.** A Task or Issue with a Linux half may be **Verified on its Mac pass only when
+   its Linux half is named in an EP-057 Task** (and the verification note says which half was verified). An item
+   that is Linux-only stays open until the rig. *[T-0512 was Verified with only one half shipped.]*
+4. **A rig failure is a NEW Issue** (Issue-GUIDELINES P2), linked from the EP-057 Task. The closed Sprint stays closed.
+5. **EP-057 is the only thing that waits for the rig.** One rig session runs its held Tasks on the latest build; each
+   result is recorded in its own Task.
+6. **A pass on the Linux VM on the Mac counts** (user, 2026-11-02: *"1 approved"*) — Ubuntu 26.04.1 arm64 in UTM, the
+   rig's release — for every EP-057 Task **except** what only the rig can show: **x86_64**, the **NVIDIA GPU stack**,
+   and the **real network path** (the VM's 5 ms netem is an approximation). Record it as *"VM, build N"*; a Task whose
+   AC is one of those three stays held for the rig.
+
 ## Authorization Rules
 
 ### What Claude CAN Do:

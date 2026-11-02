@@ -2,9 +2,10 @@
 
 Every Linux rig live pass that is waiting for the rig, in one place, so they can be run together when it is available.
 
-- **One section per Sprint AC.** Each Sprint's AC links here; the Sprint file keeps the AC and its result.
-- **When a section passes or fails,** record the result in its Sprint's progress log and **remove the section from this
-  file** (this file holds what is still to run, not history).
+- **The step book of [EP-057] Linux Rig Verification** (rule: `Sprint-GUIDELINES.md`, *"The rig pass never holds a
+  Sprint open"*). **One section per EP-057 Task**, headed by its Task ID; the Sprint it came from is named after it.
+- **When a section passes or fails,** record the result in **its Task** (a failure is a NEW Issue) and **remove the
+  section from this file** (this file holds what is still to run, not history). The Sprint it came from may be closed.
 - **New held steps go here,** never only in a Sprint file or only in the chat.
 
 ## Before any section
@@ -20,7 +21,7 @@ Every Linux rig live pass that is waiting for the rig, in one place, so they can
 
 ---
 
-## SP-195 AC6 — saves through the queue (EP-052 AC6) · ✅ Mac passed 2026-10-26
+## T-0648 · SP-195 AC6 — saves through the queue (EP-052 AC6) · ✅ Mac passed 2026-10-26
 
 → [`Sprint-SP-195.md`](Sprint-SP-195.md)
 ⚠️ Last attempt (2026-10-26) was blocked: the share could not be remounted with the project open (`umount`: *"target is
@@ -36,7 +37,7 @@ busy"*). Before step 4, run `fuser -vm /mnt/scrivi-net` on the rig and record wh
 6. Reconnect the drive and remount the share. Within a few seconds the held save lands (log: the queued save written).
 7. Close the project and reopen it. Both sentences are there.
 
-## SP-196 AC4 — structural edits through the queue · ✅ Mac passed 2026-10-27
+## T-0649 · SP-196 AC4 — structural edits through the queue · ✅ Mac passed 2026-10-27
 
 → [`Sprint-SP-196.md`](Sprint-SP-196.md) · Rig pass 2 (2026-10-27) got stuck after a split and its undo; the fix has not
 been re-passed. Each step's undo returns the manuscript to where it was, so no step leaves a fork for the next.
@@ -53,7 +54,7 @@ been re-passed. Each step's undo returns the manuscript to where it was, so no s
 7. Press Ctrl+Z twice quickly after any one step: the second waits its turn and nothing is cancelled.
 8. **File ▸ Quit.** It finishes without waiting forever; relaunch and the manuscript reads as before step 1.
 
-## SP-197 AC5 — reads off the main thread (Inspector, timeline) · ✅ Mac passed 2026-11-01
+## T-0650 · SP-197 AC5 — reads off the main thread (Inspector, timeline) · ✅ Mac passed 2026-11-01
 
 → [`Sprint-SP-197.md`](Sprint-SP-197.md) · Rig pass 1 (2026-10-27) failed: the Inspector's cards never enabled. Fix not
 yet re-passed.
@@ -65,7 +66,7 @@ yet re-passed.
    last scene clicked.
 4. Note how long the cards take to fill on a scene (from the log). That time is SP-197's Q4 measurement.
 
-## SP-198 / I-0326 — Replace All keeps headings (the Linux half)
+## T-0651 · SP-198 / I-0326 — Replace All keeps headings (the Linux half)
 
 → [`../Issues/Issue-active.md`](../Issues/Issue-active.md) (I-0326)
 
@@ -74,7 +75,7 @@ yet re-passed.
    is not lost).
 3. **Edit ▸ Undo.** The headings read "The" again.
 
-## SP-199 AC6 — T-0640, T-0641: Timeline zoom-to-scene and time scale · ✅ iPad and Mac passed 2026-11-01
+## T-0652 · SP-199 AC6 — T-0640, T-0641: Timeline zoom-to-scene and time scale · ✅ iPad and Mac passed 2026-11-01
 
 → [`Sprint-SP-199.md`](Sprint-SP-199.md)
 
@@ -88,7 +89,7 @@ yet re-passed.
 4. **File ▸ Close Project**, reopen it from the landing window, then **File ▸ Quit** and relaunch. Both times the
    Timeline comes back at the same zoom and place.
 
-## SP-200 AC5 — the history opens fast and reads back the same · ✅ Mac passed 2026-11-01
+## T-0653 · SP-200 AC5 — the history opens fast and reads back the same · ✅ Mac passed 2026-11-01
 
 → [`Sprint-SP-200.md`](Sprint-SP-200.md). The first open of each project compacts its history (`history/log-000002.jsonl`
 appears beside `log-000001.jsonl`, which the next open removes).
@@ -100,7 +101,7 @@ appears beside `log-000001.jsonl`, which the next open removes).
 5. **File ▸ Close Project**, reopen it, and **Edit ▸ Undo** twice more: the steps before the reopen undo as they did.
 6. Repeat 1–5 on **dumas-prose-timelines-history** (25,000 history steps) — it should open as quickly.
 
-## SP-200 AC6 — T-0647: the Properties tab's metrics · ✅ Mac passed 2026-11-01
+## T-0654 · SP-200 AC6 — T-0647: the Properties tab's metrics · ✅ Mac passed 2026-11-01
 
 → [`Sprint-SP-200.md`](Sprint-SP-200.md)
 
@@ -114,7 +115,7 @@ appears beside `log-000001.jsonl`, which the next open removes).
 6. If a world is on a drive you can pull: pull it and click another scene. Its section reads **"(unavailable; last
    known)"** and still shows the counts.
 
-## SP-201 AC6 — I-0333, I-0334: Replace All without holding the window · ✅ Mac passed 2026-11-01
+## T-0655 · SP-201 AC6 — I-0333, I-0334: Replace All without holding the window · ✅ Mac passed 2026-11-01
 
 → [`Sprint-SP-201.md`](Sprint-SP-201.md)
 
@@ -127,6 +128,8 @@ appears beside `log-000001.jsonl`, which the next open removes).
 4. **File ▸ Close Project**, reopen it: the Inspector is shown or hidden as you left it, and the text reads as after step 2.
 
 ---
+
+*Last Updated: 2026-11-02 (became EP-057's step book; each section headed by its Task, T-0648–T-0655.)*
 
 *Last Updated: 2026-11-01 (SP-201 AC6 added.)*
 

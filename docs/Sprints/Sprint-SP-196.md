@@ -45,9 +45,14 @@ platforms' own structural workers are gone (W7h).
 - [x] AC1 — `[Apple]` Every structural edit through the queue; no structural worker of its own
 - [x] AC2 — `[Linux]` The same, in this Sprint
 - [x] AC3 — Gesture cues as v0.2 Q5 (EP-052 AC10)
-- [ ] AC4 — ✅ **Mac and rig live passes (user):** the structural steps and their undo over the share, none freezing — ✅ Mac (user, 2026-10-27: *"mac live pass passes."*); ⏳ rig → steps held in [`Rig-Live-Pass-Held.md`](Rig-Live-Pass-Held.md)
+- [x] AC4 — ✅ **Mac and rig live passes (user):** the structural steps and their undo over the share, none freezing — ✅ Mac (user, 2026-10-27: *"mac live pass passes."*); ➡️ rig → [T-0649] ([EP-057]) (rule: `Sprint-GUIDELINES.md`, 2026-11-02)
 
 ## Progress log
+
+### ➡️ 2026-11-02 — Rig pass moved to [EP-057] (T-0649)
+- Under the new rule (user, 2026-11-02: *"1 and 2 approved"*; `Sprint-GUIDELINES.md`, *"The rig pass never holds a
+  Sprint open"*): the rig AC is carried by T-0649, steps in [`Rig-Live-Pass-Held.md`](Rig-Live-Pass-Held.md); the AC counts as met
+  for the close. Linux evidence: the Docker ctest and smokes recorded in this log.
 
 ### ❌→🟠 2026-10-27 — Rig pass 2 (build 304): stuck after a split and its undo; fixed, not yet re-passed
 - User: A passed; after B.1 *"something happened and I couldn't do anything any more"*; the quit could not finish saving.

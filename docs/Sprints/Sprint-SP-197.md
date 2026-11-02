@@ -79,9 +79,14 @@ moved. Spotlight never runs on the main thread: one serial queue, per-scene re-i
   file operations for click, select, scroll, navigator and the Inspector following (EP-052 AC8)
 - [x] AC3 — `[Linux]` The same (EP-052 AC8), in this Sprint
 - [x] AC4 — `[Apple]` Spotlight on one serial background queue, per-scene, behind the saves; a close cancels it (EP-052 AC9)
-- [ ] AC5 — ✅ **Mac and rig live passes (user)** over the share, as plan step 4 — ✅ Mac (user, 2026-11-01, removable drive); ⏳ rig → steps held in [`Rig-Live-Pass-Held.md`](Rig-Live-Pass-Held.md)
+- [x] AC5 — ✅ **Mac and rig live passes (user)** over the share, as plan step 4 — ✅ Mac (user, 2026-11-01, removable drive); ➡️ rig → [T-0650] ([EP-057]) (rule: `Sprint-GUIDELINES.md`, 2026-11-02)
 
 ## Progress log
+
+### ➡️ 2026-11-02 — Rig pass moved to [EP-057] (T-0650)
+- Under the new rule (user, 2026-11-02: *"1 and 2 approved"*; `Sprint-GUIDELINES.md`, *"The rig pass never holds a
+  Sprint open"*): the rig AC is carried by T-0650, steps in [`Rig-Live-Pass-Held.md`](Rig-Live-Pass-Held.md); the AC counts as met
+  for the close. Linux evidence: the Docker ctest and smokes recorded in this log.
 
 ### 🟠 2026-11-01 — [I-0332]: the history open, 2.05 s → 0.25 s on dumas
 - User: *"determine where the app slows down when the history gets large … figure out how to fix it."* Profiled

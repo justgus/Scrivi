@@ -69,9 +69,14 @@ Then main-thread core calls waited up to 15 s for the project lock (`lockWaitMs`
 - [x] AC4 — [I-0334] the two calls that waited no longer run on the main thread (test) — ⏳ live passes
 - [x] AC5 — tests that fail before the fixes (mutations in a copy of the repo); ctest 800/800, Mac interop 333/333,
   iOS 17/17, Linux smokes 38/38
-- [ ] AC6 — ✅ Mac live pass (user, 2026-11-01); ⏳ rig live pass (held in [`Rig-Live-Pass-Held.md`](Rig-Live-Pass-Held.md))
+- [x] AC6 — ✅ Mac live pass (user, 2026-11-01); ➡️ rig live pass → [T-0655] ([EP-057]) (rule: `Sprint-GUIDELINES.md`, 2026-11-02)
 
 ## Progress log
+
+### ➡️ 2026-11-02 — Rig pass moved to [EP-057] (T-0655)
+- Under the new rule (user, 2026-11-02: *"1 and 2 approved"*; `Sprint-GUIDELINES.md`, *"The rig pass never holds a
+  Sprint open"*): the rig AC is carried by T-0655, steps in [`Rig-Live-Pass-Held.md`](Rig-Live-Pass-Held.md); the AC counts as met
+  for the close. Linux evidence: the Docker ctest and smokes recorded in this log.
 
 ### 🟠 2026-11-01 — AC6 Mac live pass PASSED (rig still held)
 - User: *"the Mac live pass steps all passed."* Replace All `the` → `thee` on dumas, its undo, app switching and the

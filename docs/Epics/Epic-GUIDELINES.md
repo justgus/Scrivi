@@ -85,7 +85,9 @@ During delivery:
 When all planned Sprints are closed:
 
 1. ⚠️ **Run an AUDIT CHECK** — see [`../Audits/Audit-Guidelines.md`](../Audits/Audit-Guidelines.md).
-2. Review acceptance criteria — are all conditions met and verified?
+2. Review acceptance criteria — are all conditions met and verified? ⚠️ A rig AC is met once its pass is carried by a
+   Task under the standing Epic [EP-057] (Sprint-GUIDELINES *"The rig pass never holds a Sprint open"*). EP-057 itself
+   never completes; it holds whatever rig passes are waiting.
 3. Mark status 🟠 Complete.
 4. User reviews and explicitly approves closing the Epic.
 5. Move to `Closed/Epic-EP-XXX.md` and mark ✅ Closed.

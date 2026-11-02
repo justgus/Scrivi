@@ -314,6 +314,10 @@ the same defect as a lost archive, reached by a different route.
 *[This check found both a table advertising two missing entries and I-0118, Verified in three files with
 no archive entry anywhere.]*
 
+### An Issue with a Linux half verifies without the rig — only if the half is carried
+An Issue may be Verified on its Mac pass only when its Linux half is named in a rig Task under [EP-057]; a rig
+failure is a NEW Issue (P2). The rule lives once, in Sprint-GUIDELINES *"The rig pass never holds a Sprint open"*.
+
 ### Archive in the SAME STEP you verify
 From **whichever** file the Issue lives in — `Issue-active.md` **or** `Issue-backlog.md`. There is no
 `Issue-unverified.md`. *[Deferring it left I-0018 unarchived for weeks and I-0118 with no record at all.]*

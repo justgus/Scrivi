@@ -44,12 +44,25 @@ measure; its baseline is taken before T-0400 starts.
 - [x] AC3 — [T-0643], [T-0644], [T-0645] New records in the new shapes; old shapes read forever; the round-trip test of
   design §4 passes with every record kind
 - [x] AC4 — [T-0646] Open time and log size recorded before and after for dumas and the generated history
-- [ ] AC5 — ✅ ctest 799/799, Mac interop 328/328, iOS 17/17, Linux smokes 38/38; ✅ Mac live pass (user, 2026-11-01); ⏳ rig live pass → rig steps held in [`Rig-Live-Pass-Held.md`](Rig-Live-Pass-Held.md)
-- [ ] AC6 — [T-0647] The Properties tab shows the scene's links, a Project section and one World section per bound world,
-  read off the main thread with no scene, object or history file opened; ✅ Mac live pass (user, 2026-11-01); ⏳ rig live
-  pass → [`Rig-Live-Pass-Held.md`](Rig-Live-Pass-Held.md)
+- [x] AC5 — ✅ ctest 799/799, Mac interop 328/328, iOS 17/17, Linux smokes 38/38; ✅ Mac live pass (user, 2026-11-01); ➡️ rig live pass → [T-0653] ([EP-057]) (rule: `Sprint-GUIDELINES.md`, 2026-11-02)
+- [x] AC6 — [T-0647] The Properties tab shows the scene's links, a Project section and one World section per bound world,
+  read off the main thread with no scene, object or history file opened; ✅ Mac live pass (user, 2026-11-01); ➡️ rig live
+  pass → [T-0654] ([EP-057]) (rule: `Sprint-GUIDELINES.md`, 2026-11-02)
 
 ## Progress log
+
+### 🟠 2026-11-02 — The Linux VM's first ctest found a racy [T-0400] test (fixed)
+- On the new Linux VM (EP-057, Ubuntu 26.04.1 arm64), `ctest -j6` failed 803/804: *"a crash at any step of a compaction"*,
+  section 1, saw `{log-000001, log-000002}` where it expected `{log-000001}`. It passed alone 3/3. Cause: the open removes the
+  stale `log-000002`, then compacts the long `log-000001` again through the write queue; the check raced that queued write.
+- Fix (test only): `scrivi_wait_for_writes` after the open, then check the settled state — `log-000002` active, both
+  segments present (`HistoryCApiTests.cpp:1531`). Mac: `[T-0400]` 5/5, ctest `-j12` 800/800 twice. ⚠️ After the re-compaction
+  the stale segment's removal is no longer observable on its own; the tree and undo checks still prove the old one was read.
+
+### ➡️ 2026-11-02 — Rig pass moved to [EP-057] (T-0653, T-0654)
+- Under the new rule (user, 2026-11-02: *"1 and 2 approved"*; `Sprint-GUIDELINES.md`, *"The rig pass never holds a
+  Sprint open"*): the rig AC is carried by T-0653, T-0654, steps in [`Rig-Live-Pass-Held.md`](Rig-Live-Pass-Held.md); the AC counts as met
+  for the close. Linux evidence: the Docker ctest and smokes recorded in this log.
 
 ### 🟠 2026-11-01 — AC6 Mac live pass PASSED (rig still held)
 - User: *"All steps pass."* T-0647's six Mac steps on dumas-prose-timelines.

@@ -44,12 +44,17 @@ system places them.
 - [ ] AC3 — ⏳ (built 2026-10-31; Scene and Chapter disabled on iOS until structural edits) [T-0638] The Mac's toolbar buttons (Scene, Chapter, Worlds, Project Settings) on iOS at the default placement. Each
       button is either enabled and working, or visibly disabled where its action is not wired on iOS yet.
 - [x] AC4 — ✅ 2026-10-31: iOS 14/14, Mac interop 327/327. The iOS tests stay green and the Mac is unchanged (`scripts/run-interop-tests.sh`, N > 0).
-- [ ] AC6 — [T-0639]–[T-0642] Timeline navigation: the zoom and position come back, a zoom-to-current-scene button, a time
+- [x] AC6 — [T-0639]–[T-0642] Timeline navigation: the zoom and position come back, a zoom-to-current-scene button, a time
       scale, and no jump after a pinch. ✅ iPad and Mac (user, 2026-11-01); T-0639 and T-0642 verified. ✅ Linux built for
-      T-0640 and T-0641 (2026-11-01); ⏳ rig live pass → [`Rig-Live-Pass-Held.md`](Rig-Live-Pass-Held.md).
+      T-0640 and T-0641 (2026-11-01); ➡️ rig live pass → [T-0652] ([EP-057]) (rule: `Sprint-GUIDELINES.md`, 2026-11-02).
 - [ ] AC5 — Live passes on the iPad, iPhone and iPhone Duo simulators, then [SP-198]'s held iPhone and Duo passes.
 
 ## Progress log
+
+### ➡️ 2026-11-02 — Rig pass moved to [EP-057] (T-0652)
+- Under the new rule (user, 2026-11-02: *"1 and 2 approved"*; `Sprint-GUIDELINES.md`, *"The rig pass never holds a
+  Sprint open"*): the rig AC is carried by T-0652, steps in [`Rig-Live-Pass-Held.md`](Rig-Live-Pass-Held.md); the AC counts as met
+  for the close. Linux evidence: the Docker ctest and smokes recorded in this log.
 
 ### 🟠 2026-11-01 — AC6: Apple passed; T-0640 and T-0641 on Linux
 - User: *"All these steps passed on both iPad and the Mac."* T-0639 and T-0642 (Apple only) → ✅ Verified, archived.

@@ -61,6 +61,8 @@ The Task (T) system tracks planned improvements, new features, and requirement c
 1. **Provide Test Steps** - Clear instructions for user verification
 2. **User Testing** - Developer tests the enhancement
 3. **Verification** - Only user can mark as verified
+4. ⚠️ **A Task with a Linux half** may be Verified on its Mac pass only when that half is named in a rig Task under
+   [EP-057] — see Sprint-GUIDELINES *"The rig pass never holds a Sprint open"* (the rule lives there, once).
 
 ## Task Template Structure
 

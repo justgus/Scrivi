@@ -1,5 +1,33 @@
 # Active Epics
 
+## EP-057: `[Linux]` **Linux Rig Verification** — every Linux live pass waiting for the rig, held here and nowhere else
+
+**Status:** 🟡 **ACTIVE 2026-11-02**, standing (user, 2026-11-02: *"1 and 2 approved"* — a standing rig Epic, and the Mac
+pass plus Docker Linux evidence as the close gate). It never completes: it holds whatever rig passes are waiting.
+**Rule:** [`../Sprints/Sprint-GUIDELINES.md`](../Sprints/Sprint-GUIDELINES.md) — *"The rig pass never holds a Sprint open"*.
+**Steps:** [`../Sprints/Rig-Live-Pass-Held.md`](../Sprints/Rig-Live-Pass-Held.md), one section per Task below.
+
+**Why:** the rig is away for some time; every Cross Sprint was held open on its rig pass while Mac, iOS and Linux kept
+being built together. Development stays parallel; only the live pass on real Linux is verified here.
+
+**Acceptance criteria (per Task, not per Epic):** the Task's held steps pass on the rig — ✅ **or the Linux VM on the Mac**
+(user, 2026-11-02; not for x86_64, GPU or real-network ACs) — on a build that contains the work (Help ▸ About shows it), recorded in the Task; a failure is filed as a NEW Issue and linked from the Task.
+
+**Tasks** (🔵 Backlog until a rig session runs them):
+
+| Task | Rig pass | From |
+|---|---|---|
+| [T-0648] | Saves through the queue | [SP-195] AC6 · [T-0626] |
+| [T-0649] | Structural edits through the queue | [SP-196] AC4 · [T-0627] |
+| [T-0650] | Reads off the main thread (Inspector, timeline) | [SP-197] AC5 · [T-0629], [T-0630] |
+| [T-0651] | Replace All keeps headings | [SP-198] · [I-0326] (Linux half) |
+| [T-0652] | Timeline zoom-to-scene and time scale | [SP-199] AC6 · [T-0640], [T-0641] |
+| [T-0653] | The history opens fast and reads back the same | [SP-200] AC5 · [T-0646], [T-0400], [T-0643]–[T-0645] |
+| [T-0654] | The Properties tab's metrics | [SP-200] AC6 · [T-0647] |
+| [T-0655] | Replace All without holding the window | [SP-201] AC6 · [I-0333], [I-0334] |
+
+---
+
 ## EP-052: `[ScriviCore]` **Background Writes** — one ordered write queue per project, in the core
 
 **Status:** 🟡 **ACTIVE 2026-10-26** (user, 2026-10-26: *"close SP-188 and activate EP-052."*) — created 2026-10-15 (user: *"A new Epic."*, ruling Q5 of the design). S1 [SP-194] ✅ closed 2026-10-26 (AC0–AC3). S2a [SP-195] 🟡 active 2026-10-26; S2b [SP-196] 🟡 active 2026-10-27 (beside S2a, whose rig pass is open). S3 [SP-197] 🟡 active 2026-10-27.
@@ -35,7 +63,8 @@ over a newer one, which have already drifted once ([I-0304] against [I-0259]).
   queue; no project write on the main thread; the manuscript does not lock for a save (Q3); a failed write leaves its scene
   dirty; close and quit wait ([I-0305]'s dialog). W6's platform-side ordering code is removed.
 - [ ] **AC5 — `[Linux]` Adoption:** the same, in the same Sprint as AC4.
-- [ ] **AC6 — Rig:** undoing a Replace All on dumas over the share does not freeze the window, and typing never waits on a save.
+- [ ] **AC6 — Rig:** undoing a Replace All on dumas over the share does not freeze the window, and typing never waits on a save. ➡️ Carried by
+  [EP-057] ([T-0648]–[T-0650], [T-0653]–[T-0655]) under the rig rule (user, 2026-11-02); met for this Epic's close once its Sprints close.
 - [ ] **AC7 — `[Linux]` Replace All shows its progress** (moved from [SP-185] AC5, user 2026-10-22: *"Move AC5 to EP-052"*):
   [SP-185] Q3 as ruled 2026-10-17 — a real count (*"Replacing 312 of 2,048"*), and the view follows a few times a second,
   showing replacements land. To be designed against the queue (it changes Replace All's locked-editor shape).

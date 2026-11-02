@@ -51,7 +51,8 @@ Key documents:
   things that each blocked it once, including ⚠️ **Right-Shift+D silently disconnecting the session**),
   toolchain, build/test, running the app, and test data. ⚠️ **§7 (drive dismount) is DELIBERATELY EMPTY**
   — it is SP-124/T-0477's, and must be written from a real drive pull, not from documentation.
-  ⚠️ **The Windows rig must EXECUTE this, not re-derive it.**
+  ⚠️ **The Windows rig must EXECUTE this, not re-derive it.** ✅ **§9: the Linux VM on the Mac (`scrivi-vm`,
+  2026-11-02)** — a pass there counts for EP-057 except x86_64, GPU or real-network ACs; its checkout stays clean.
 - `docs/Scrivi_Timeline_Clustering_Design_v0_1.md` — ⚠️ **DRAFT.** The user's ruling on what timeline dot
   clustering must RESOLVE TO (extends Timeline Panel v0.3, which only says clustering exists).
   ✅ **R1** axis always spans the viewport · ✅ **R2** cluster COUNT is the controlled variable (as many

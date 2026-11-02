@@ -779,7 +779,7 @@ archived; 6 stale full entries (I-0064, I-0067–I-0071) reconciled against thei
 
 **Title:** Replace All across the whole manuscript holds the window for seconds
 **Status:** 🟠 Resolved - Not Verified (2026-11-01, [SP-201]) — ✅ Mac live pass (user, 2026-11-01: *"the Mac live pass steps all
-passed."*); ⏳ the Linux half on the rig
+passed."*); ➡️ the Linux half → [T-0655] ([EP-057], the rig); may be Verified on the Mac pass
 **Sprint:** [SP-201]
 **Platform:** `[Apple]` (the Mac; ✅ Linux's Replace All already had the fix's shape and gets the same window)
 **Severity:** High. A writer's Replace All on a long manuscript freezes the window; a large op may take time only with
@@ -813,7 +813,7 @@ scenes in one chapter — see the Sprint).
 
 **Title:** The main thread waits for the project lock behind queued saves
 **Status:** 🟠 Resolved - Not Verified (2026-11-01, [SP-201]) — ✅ Mac live pass (user, 2026-11-01: *"the Mac live pass steps all
-passed."*); ⏳ the Linux half on the rig
+passed."*); ➡️ the Linux half → [T-0655] ([EP-057], the rig); may be Verified on the Mac pass
 **Sprint:** [SP-201]
 **Platform:** `[Apple]` (seen on the Mac; [EP-052]'s write queue is shared with Linux)
 **Severity:** High. The main thread is for UI only (user, 2026-10-26); a main-thread call that waits on the lock freezes
@@ -1008,6 +1008,7 @@ scenes restored per copy, 0 skipped; one scene's two keystrokes (typing `##` and
 heading) were not replayed. Backups: `dumas-manuscript-before-repair-2026-10-30.tar.gz` beside each package. ⚠️ Sidecar
 `stats` were not recomputed; the next open records an `externalChange` barrier per scene (design §6.b), so undo stops there.
 ⏳ User: Replace All of a heading's first word on the Mac; a selection from a heading's start typed over.
+➡️ The Linux half → [T-0651] ([EP-057], the rig); this Issue may be Verified on the Mac steps alone.
 
 ---
 

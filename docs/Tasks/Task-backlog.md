@@ -38,6 +38,14 @@ status changes on its own layer.
 | T-0618 | `[Cross]` EP-053 S5: Mac and rig live passes over the share, timed | EP-053 ([SP-190], 🔵 Planning) | 🔵 Backlog |
 | T-0621 | `[Cross]` Explore a whole-manuscript history view (a tree, or a branching timeline) | ⚠️ None yet | 🔵 Backlog — exploration |
 | T-0628 | `[Cross]` EP-052: keep a held queue on local disk and push it when the project returns | EP-052 (unscheduled) | 🔵 Backlog |
+| T-0648 | `[Linux]` Rig pass: Saves through the queue | EP-057 (waits for the rig) | 🔵 Backlog |
+| T-0649 | `[Linux]` Rig pass: Structural edits through the queue | EP-057 (waits for the rig) | 🔵 Backlog |
+| T-0650 | `[Linux]` Rig pass: Reads off the main thread (Inspector, timeline) | EP-057 (waits for the rig) | 🔵 Backlog |
+| T-0651 | `[Linux]` Rig pass: Replace All keeps headings | EP-057 (waits for the rig) | 🔵 Backlog |
+| T-0652 | `[Linux]` Rig pass: Timeline zoom-to-scene and time scale | EP-057 (waits for the rig) | 🔵 Backlog |
+| T-0653 | `[Linux]` Rig pass: The history opens fast and reads back the same | EP-057 (waits for the rig) | 🔵 Backlog |
+| T-0654 | `[Linux]` Rig pass: The Properties tab's metrics | EP-057 (waits for the rig) | 🔵 Backlog |
+| T-0655 | `[Linux]` Rig pass: Replace All without holding the window | EP-057 (waits for the rig) | 🔵 Backlog |
 
 > ✅ **T-0477 – T-0479 LEFT this file 2026-08-31 when SP-124 was ACTIVATED**, per the standing rule that
 > active Tasks never sit in the backlog. ✅ **They are now VERIFIED (2026-09-10) and ARCHIVED** →
@@ -740,3 +748,90 @@ reachable again (at its next open, or when the drive returns while the app runs)
   in the held queue cannot be skipped, since the jobs behind it depend on it.
 - ⚠️ The local store holds manuscript text outside the project package.
 
+---
+
+## 🔵 T-0648 — `[Linux]` Rig pass: Saves through the queue
+
+**Epic:** [EP-057] · **Status:** 🔵 Backlog (waits for the rig) · **Sprint:** none · **Date Requested:** 2026-11-02 (moved
+out of [SP-195] AC6 under the rig rule, user 2026-11-02: *"1 and 2 approved"*)
+
+**What:** the Linux live pass for [T-0626], on the rig over the share. ✅ Mac passed; Linux's Docker evidence is in
+[SP-195]'s log. **Steps:** [`../Sprints/Rig-Live-Pass-Held.md`](../Sprints/Rig-Live-Pass-Held.md) — section *T-0648*.
+**Done when:** the steps pass on a build that contains the work (Help ▸ About), recorded here; a failure is a NEW Issue.
+
+---
+
+## 🔵 T-0649 — `[Linux]` Rig pass: Structural edits through the queue
+
+**Epic:** [EP-057] · **Status:** 🔵 Backlog (waits for the rig) · **Sprint:** none · **Date Requested:** 2026-11-02 (moved
+out of [SP-196] AC4 under the rig rule, user 2026-11-02: *"1 and 2 approved"*)
+
+**What:** the Linux live pass for [T-0627], on the rig over the share. ✅ Mac passed; Linux's Docker evidence is in
+[SP-196]'s log. **Steps:** [`../Sprints/Rig-Live-Pass-Held.md`](../Sprints/Rig-Live-Pass-Held.md) — section *T-0649*.
+**Done when:** the steps pass on a build that contains the work (Help ▸ About), recorded here; a failure is a NEW Issue.
+
+---
+
+## 🔵 T-0650 — `[Linux]` Rig pass: Reads off the main thread (Inspector, timeline)
+
+**Epic:** [EP-057] · **Status:** 🔵 Backlog (waits for the rig) · **Sprint:** none · **Date Requested:** 2026-11-02 (moved
+out of [SP-197] AC5 under the rig rule, user 2026-11-02: *"1 and 2 approved"*)
+
+**What:** the Linux live pass for [T-0629], [T-0630], on the rig over the share. ✅ Mac passed; Linux's Docker evidence is in
+[SP-197]'s log. **Steps:** [`../Sprints/Rig-Live-Pass-Held.md`](../Sprints/Rig-Live-Pass-Held.md) — section *T-0650*.
+**Done when:** the steps pass on a build that contains the work (Help ▸ About), recorded here; a failure is a NEW Issue.
+
+---
+
+## 🔵 T-0651 — `[Linux]` Rig pass: Replace All keeps headings
+
+**Epic:** [EP-057] · **Status:** 🔵 Backlog (waits for the rig) · **Sprint:** none · **Date Requested:** 2026-11-02 (moved
+out of [SP-198] under the rig rule, user 2026-11-02: *"1 and 2 approved"*)
+
+**What:** the Linux live pass for [I-0326] (its Linux half), on the rig over the share. ⏳ The Mac pass is the
+Issue's own (not yet run); Linux's evidence is `replace_smoke` (a heading seed scene), in the smokes. **Steps:** [`../Sprints/Rig-Live-Pass-Held.md`](../Sprints/Rig-Live-Pass-Held.md) — section *T-0651*.
+**Done when:** the steps pass on a build that contains the work (Help ▸ About), recorded here; a failure is a NEW Issue.
+
+---
+
+## 🔵 T-0652 — `[Linux]` Rig pass: Timeline zoom-to-scene and time scale
+
+**Epic:** [EP-057] · **Status:** 🔵 Backlog (waits for the rig) · **Sprint:** none · **Date Requested:** 2026-11-02 (moved
+out of [SP-199] AC6 under the rig rule, user 2026-11-02: *"1 and 2 approved"*)
+
+**What:** the Linux live pass for [T-0640], [T-0641], on the rig over the share. ✅ Mac passed; Linux's Docker evidence is in
+[SP-199]'s log. **Steps:** [`../Sprints/Rig-Live-Pass-Held.md`](../Sprints/Rig-Live-Pass-Held.md) — section *T-0652*.
+**Done when:** the steps pass on a build that contains the work (Help ▸ About), recorded here; a failure is a NEW Issue.
+
+---
+
+## 🔵 T-0653 — `[Linux]` Rig pass: The history opens fast and reads back the same
+
+**Epic:** [EP-057] · **Status:** 🔵 Backlog (waits for the rig) · **Sprint:** none · **Date Requested:** 2026-11-02 (moved
+out of [SP-200] AC5 under the rig rule, user 2026-11-02: *"1 and 2 approved"*)
+
+**What:** the Linux live pass for [T-0646], [T-0400], [T-0643]–[T-0645], on the rig over the share. ✅ Mac passed; Linux's Docker evidence is in
+[SP-200]'s log. **Steps:** [`../Sprints/Rig-Live-Pass-Held.md`](../Sprints/Rig-Live-Pass-Held.md) — section *T-0653*.
+**Done when:** the steps pass on a build that contains the work (Help ▸ About), recorded here; a failure is a NEW Issue.
+
+---
+
+## 🔵 T-0654 — `[Linux]` Rig pass: The Properties tab's metrics
+
+**Epic:** [EP-057] · **Status:** 🔵 Backlog (waits for the rig) · **Sprint:** none · **Date Requested:** 2026-11-02 (moved
+out of [SP-200] AC6 under the rig rule, user 2026-11-02: *"1 and 2 approved"*)
+
+**What:** the Linux live pass for [T-0647], on the rig over the share. ✅ Mac passed; Linux's Docker evidence is in
+[SP-200]'s log. **Steps:** [`../Sprints/Rig-Live-Pass-Held.md`](../Sprints/Rig-Live-Pass-Held.md) — section *T-0654*.
+**Done when:** the steps pass on a build that contains the work (Help ▸ About), recorded here; a failure is a NEW Issue.
+
+---
+
+## 🔵 T-0655 — `[Linux]` Rig pass: Replace All without holding the window
+
+**Epic:** [EP-057] · **Status:** 🔵 Backlog (waits for the rig) · **Sprint:** none · **Date Requested:** 2026-11-02 (moved
+out of [SP-201] AC6 under the rig rule, user 2026-11-02: *"1 and 2 approved"*)
+
+**What:** the Linux live pass for [I-0333], [I-0334], on the rig over the share. ✅ Mac passed; Linux's Docker evidence is in
+[SP-201]'s log. **Steps:** [`../Sprints/Rig-Live-Pass-Held.md`](../Sprints/Rig-Live-Pass-Held.md) — section *T-0655*.
+**Done when:** the steps pass on a build that contains the work (Help ▸ About), recorded here; a failure is a NEW Issue.

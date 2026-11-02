@@ -1,5 +1,7 @@
 # Unverified Tasks
 
+*Last Updated: 2026-11-02 (**T-0646 → 🟠** from `Task-active.md`; its rig pass → [T-0653] ([EP-057]).)*
+
 *Last Updated: 2026-11-01 (**T-0647** filed in SP-200 and implemented → 🟠.)*
 
 Tasks that are **implemented and awaiting user verification** before being archived to `Verified/`.
@@ -9,6 +11,25 @@ Tasks that are **implemented and awaiting user verification** before being archi
 ⚠️ This file must not disagree with [`Task-active.md`](Task-active.md) or
 [`Task-backlog.md`](Task-backlog.md). A Task implemented but unverified belongs **here** — not left
 in the backlog carrying a 🟠 status.
+
+---
+
+## 🟠 T-0646 — `[Cross]` History load: measurements and Mac and rig live passes
+
+**Epic:** [EP-052] (AC11) · **Status:** 🟠 Implemented - Not Verified · **Sprint:** [SP-200] (🟡 Active) →
+[`../Sprints/Sprint-SP-200.md`](../Sprints/Sprint-SP-200.md) · **Date Requested:** 2026-11-01
+
+**What:** the open's time and the log's bytes for dumas and the generated history (`scrivi_make_test_history`), before
+and after each Task; Mac and rig live passes opening both, with undo and redo across a structural edit and a Replace All.
+
+**Measured (2026-11-01, Debug, local disk):**
+| History | Log | `scrivi_history_open` |
+|---|---|---|
+| dumas-prose-timelines | 34 MB → **18.7 MB** (compaction alone: 22.6 MB) | 0.20 s → **0.16 s** (2.05 s this morning) |
+| dumas-prose-timelines-history (25,000 events) | 49 MB → **11.7 MB** (the evicted history gone) | 0.72 s → **0.33 s** (16.7 s this morning) |
+Equivalence on the real logs (a scratch harness, not in the repo): the tree and the first 300 undo texts are the same read
+from the original log and from the compacted, converted one (dumas differs only in the root anchor's timestamp, which every
+open restamps). ✅ Mac live pass (user, 2026-11-01: *"All steps pass."*). ➡️ The rig live pass → [T-0653] ([EP-057], 2026-11-02).
 
 ---
 

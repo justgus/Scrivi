@@ -84,8 +84,8 @@ it cannot land. Both platforms' own ordering code is gone (W6).
 - [x] AC3 — `[Linux]` The same (EP-052 AC5), in this Sprint
 - [x] AC4 — `[Linux]` Replace All shows its progress (EP-052 AC7)
 - [x] AC5 — Close and quit wait for the queue on both; a held queue asks (Mac: [T-0570]; Linux: as Q3 rules)
-- [ ] AC6 — ✅ **Rig live pass (user)** over the share: undo of a Replace All on dumas does not freeze; typing never waits; a
-  pulled drive keeps its edits and they land when it returns (EP-052 AC6) → steps held in [`Rig-Live-Pass-Held.md`](Rig-Live-Pass-Held.md)
+- [x] AC6 — ➡️ **Rig live pass → [T-0648] ([EP-057])** (rule: `Sprint-GUIDELINES.md`, 2026-11-02): undo of a Replace All on dumas does not freeze; typing never waits; a
+  pulled drive keeps its edits and they land when it returns (EP-052 AC6). Linux evidence here: ctest 784/784 (container, non-root), smokes 38/38
 - [x] AC7 — ✅ **Mac live pass (user)**, the same steps
 
 ## Progress log
@@ -163,3 +163,9 @@ it cannot land. Both platforms' own ordering code is gone (W6).
   the share is back, and the share cannot come back while Scrivi is open. Neither Scrivi's code nor the core keeps a
   file open between writes (grep: no watcher, lock file, `chdir` or long-lived stream), so what holds the mount is not yet
   known: `fuser -vm` / `lsof` on the rig names it.
+
+### ➡️ 2026-11-02 — Rig pass moved to [EP-057] (T-0648)
+- Under the new rule (user, 2026-11-02: *"1 and 2 approved"*; `Sprint-GUIDELINES.md`, *"The rig pass never holds a
+  Sprint open"*): the rig AC is carried by T-0648, steps in [`Rig-Live-Pass-Held.md`](Rig-Live-Pass-Held.md); the AC counts as met
+  for the close. Linux evidence: the Docker ctest and smokes recorded in this log.
+

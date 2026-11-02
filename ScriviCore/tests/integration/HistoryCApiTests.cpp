@@ -1529,7 +1529,11 @@ TEST_CASE("[T-0400] a crash at any step of a compaction reopens as the same tree
     SECTION("the new segment written, state.json not yet moved: the old segment is read, the new one removed") {
         setActiveSegment(ROOT_.path, "log-000001.jsonl");
         scrivi_free(scrivi_history_open(ROOT));
-        CHECK(segmentsOf(ROOT_.path) == std::vector<std::string>{"log-000001.jsonl"});
+        // The open removes the stale log-000002, then compacts the long log-000001 again through the write queue: wait
+        // for it, or the check races the queued write (passed idle, failed under ctest -j6 on the Linux VM).
+        scrivi_free(scrivi_wait_for_writes(ROOT, 0, -1));
+        CHECK(activeSegmentOf(ROOT_.path) == "log-000002.jsonl");
+        CHECK(segmentsOf(ROOT_.path) == std::vector<std::string>{"log-000001.jsonl", "log-000002.jsonl"});
     }
     SECTION("state.json moved, the old segment not yet removed: the new one is read, the old one removed") {
         scrivi_free(scrivi_history_open(ROOT));
