@@ -629,6 +629,11 @@ void EditorShell::load(const QString& projectPath,
             // timeline read older than it is discarded and re-read on the UI thread ([I-0285] AC4 — measured, smoke).
             // SP-173 / I-0285 (AC4): the timeline's data, read HERE and not on the UI thread; applied there only if the
             // project has not changed since (its revision).
+            // ✅ [I-0344] the Inspector's layout and the copy buffers, read here and not on the UI thread. ⚠️ BEFORE the
+            // timeline read, as the history: `scrivi_buffers_list` takes the project WRITE guard (it moves the revision).
+            out.inspectorLayout = bridge->getInspectorLayout(path);
+            out.inspectorLayoutFailed = bridge->lastCallFailed();
+            out.buffers = ScriviBridge::buffersList(path);
             out.timeline = EditorShell::fetchTimelineData(&*bridge, path);
             emit progress->progress(++done, total, sceneCount);
             loadLog("worker: timeline read");
@@ -776,7 +781,7 @@ void EditorShell::applyLoadedProject(const QString& projectPath,
     // (SP-125). Given here — after projectPath_ is set and before any scene is
     // promoted — so the panel never queries a stale root.
     if (inspector_ != nullptr) {
-        inspector_->setContext(bridge_, projectPath_);
+        inspector_->setContext(bridge_, projectPath_, payload.inspectorLayout, payload.inspectorLayoutFailed);
 
         // ⚠️ SP-145 / T-0553 ([I-0251]) — RESTORE the writer's pane choice for THIS
         // project. ✅ setContext() has just loaded the layout document, so the stored
@@ -940,7 +945,7 @@ void EditorShell::applyLoadedProject(const QString& projectPath,
         if (buffers_ != nullptr) {
             buffers_->deleteLater();
         }
-        buffers_ = new BufferService(projectPath, this);
+        buffers_ = new BufferService(projectPath, payload.buffers, this);
     }
     {
         // SP-173 (Q1): what the exclusive project lock cost this process so far — waits of 1 ms or more, all threads.

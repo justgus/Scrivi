@@ -484,6 +484,11 @@ private:
         // EP-048 S5a ([SP-182]): `project.json`'s title and `project-settings.json`, read in the worker.
         QString                    projectTitle;
         QVariantMap                settings;
+        // ✅ [I-0344] read in the worker too: the build on the UI thread read them from disk (0.6 s, and 1.8 s waiting for
+        // the project lock behind an Inspector read, on dumas over a share).
+        QVariantMap                inspectorLayout;
+        bool                       inspectorLayoutFailed = true;
+        QVariantMap                buffers;
     };
 
     // T-0500: stop the delayed reveal and hide the strip. ⚠️ Must run on EVERY

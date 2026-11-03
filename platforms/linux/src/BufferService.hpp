@@ -36,11 +36,14 @@ public:
     static const QStringList& slotIDs();
 
     explicit BufferService(const QString& projectRootPath, QObject* parent = nullptr);
+    // ✅ [I-0344] From `scrivi_buffers_list`'s result read on the load worker (no disk read on the main thread).
+    BufferService(const QString& projectRootPath, const QVariantMap& listed, QObject* parent = nullptr);
 
     [[nodiscard]] const QString& projectRootPath() const { return root_; }
 
     // Reloads the mirror from ScriviCore (the Mac may have written the file); emits `changed`.
     void refresh();
+    void apply(const QVariantMap& listed);   // `refresh`'s result handling
 
     // The non-empty slots, ascending by bufferID.
     [[nodiscard]] const QList<Slot>& filled() const { return slots_; }

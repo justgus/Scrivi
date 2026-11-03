@@ -21,9 +21,19 @@ BufferService::BufferService(const QString& projectRootPath, QObject* parent)
     refresh();
 }
 
+BufferService::BufferService(const QString& projectRootPath, const QVariantMap& listed, QObject* parent)
+    : QObject(parent), root_(projectRootPath)
+{
+    apply(listed);
+}
+
 void BufferService::refresh()
 {
-    const QVariantMap listed = ScriviBridge::buffersList(root_);
+    apply(ScriviBridge::buffersList(root_));
+}
+
+void BufferService::apply(const QVariantMap& listed)
+{
     // ✅ A success always carries `count` (0 for an empty list), so {} is a failed call — which keeps the previous
     // mirror, as Apple's `try?`. (⚠️ `buffers` itself is absent for an empty list: `project_envelope_empty_vs_failed`.)
     if (!listed.contains(QStringLiteral("count"))) {

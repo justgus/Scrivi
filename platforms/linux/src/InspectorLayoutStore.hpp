@@ -3,6 +3,7 @@
 #include <QJsonObject>
 #include <QString>
 #include <QThreadPool>
+#include <QVariantMap>
 
 #include <memory>
 
@@ -58,6 +59,10 @@ public:
     // ⛔ An unreadable one additionally leaves the damaged file untouched on disk:
     // the core does not overwrite it, and neither do we until the writer acts.
     void load(ScriviBridge* bridge, const QString& projectRootPath);
+    // ✅ [I-0344] The same, from `scrivi_get_inspector_layout`'s result read on the load worker (`failed` = the call
+    // failed). Used only for a project this store does not already hold — a reload of the same project may have a save
+    // still queued, so it reads again after waiting for it.
+    void load(ScriviBridge* bridge, const QString& projectRootPath, const QVariantMap& readOnWorker, bool failed);
 
     // True when the last load found a document the core could not parse. The
     // layout shown is defaults; ⚠️ the writer's real layout may be recoverable by
@@ -118,6 +123,7 @@ public:
     void waitForSaves() const;
 
 private:
+    void apply(ScriviBridge* bridge, const QString& projectRootPath, const QVariantMap& read, bool failed);
     // One boolean key, patched in place (absent ⇒ false; no write for a no-op).
     [[nodiscard]] bool hiddenKey(const char* key) const;
     void setHiddenKey(const char* key, bool hidden);

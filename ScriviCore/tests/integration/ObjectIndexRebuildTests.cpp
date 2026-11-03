@@ -195,3 +195,45 @@ TEST_CASE("[SP-173] ReadThroughCache::prefetch: prefetched files are served from
     REQUIRE(cache.atomicWriteTextFile(paths[0], "changed").ok());
     CHECK(cache.readTextFile(paths[0]).value() == "changed");   // a write after a prefetch still invalidates
 }
+
+// ✅ [I-0342] An open reads each scene sidecar ONCE, even when the relationship repair needs the project index. The repair
+// resolves every edge's endpoints, and a scene endpoint resolves through the index (I-0330), which the ABI's locator built
+// from DISK: two more reads of every sidecar, uncached — 2,352 network round trips on dumas over a share (~31 s of a 47 s
+// open). Measured through the C ABI, as the app calls it (a facade test cannot see the ABI's locator). ⚠️ The parallel
+// prefetch counts on its own threads' counters, so the call's `fileOps` is mostly what the CALLING thread did.
+TEST_CASE("[I-0342] an open with scene edges reads each sidecar once, not again for the index", "[I-0342][index][capi]") {
+    Dirs d;
+    const char* root = d.project.c_str();
+    const JsonDoc created =
+        okResult(scrivi_create_project(root, d.support.c_str(), "Once", "once", "identity-001", "persona-001", "Author"));
+    const std::string projectID = created.getString("projectID");
+    const JsonDoc opened = okResult(scrivi_open_project(root, d.support.c_str(), "identity-001"));
+    const std::string chapterID = opened.arrayItem("scenes", 0).getString("chapterID");
+    std::string after = opened.getSubDoc("activeScene").getString("sceneID");
+    const std::string firstScene = after;
+    constexpr int kScenes = 40;
+    for (int i = 1; i < kScenes; ++i) {
+        after = okResult(scrivi_create_scene(root, d.support.c_str(), projectID.c_str(), chapterID.c_str(), after.c_str(), "",
+                                             "identity-001", "persona-001", "Author"))
+                    .getString("sceneID");
+    }
+    // A project-scoped object linked to a scene: the repair resolves the scene endpoint through the index.
+    const std::string source =
+        okResult(scrivi_create_object(root, "source", "A source", "", "identity-001", "persona-001", "Author", ""))
+            .getString("objectID");
+    okResult(scrivi_create_edge(root, source.c_str(), firstScene.c_str(), "appears-in", ""));
+    scrivi_free(scrivi_close_project(root));
+    okResult(scrivi_open_project(root, d.support.c_str(), "identity-001"));   // any first-open repair is done here
+    scrivi_free(scrivi_close_project(root));
+
+    const char* raw = scrivi_open_project(root, d.support.c_str(), "identity-001");
+    REQUIRE(raw != nullptr);
+    auto parsed = parseJson(raw);
+    scrivi_free(raw);
+    REQUIRE(parsed.ok());
+    REQUIRE(parsed.value().getBool("ok"));
+    const std::int64_t fileOps = parsed.value().getSubDoc("trace").getInt64("fileOps", -1);
+    INFO("fileOps " << fileOps << " for " << kScenes << " scenes");
+    CHECK(fileOps >= 0);
+    CHECK(fileOps < kScenes);   // the index was built from the open's cache: no second pass over the sidecars
+}

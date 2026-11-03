@@ -351,7 +351,7 @@ int main(int argc, char* argv[])
         store.waitForSaves();   // [I-0334]: written off the GUI thread
 
         QFile f(path);
-        f.open(QIODevice::ReadOnly);
+        check(f.open(QIODevice::ReadOnly), "the corrupt layout file can still be opened");
         const QByteArray still = f.readAll();
         f.close();
         // ⚠️ Losing a layout is annoying; destroying the evidence of HOW it broke

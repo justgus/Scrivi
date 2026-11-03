@@ -11,7 +11,7 @@
 #endif
 #include <filesystem>
 #include <fstream>
-#include <sstream>
+#include <memory>
 #include <system_error>
 #include <vector>
 
@@ -175,16 +175,23 @@ Result<Utf8Text> LocalFileSystem::readTextFile(const AbsolutePath& path) {
                                           .path    = path,
                                           .detail  = errnoDetail(err)});
     }
-    std::ostringstream ss;
-    ss << in.rdbuf();
-    if (!in && !in.eof()) {
+    // ✅ [I-0341]: 1 MB reads. `ss << in.rdbuf()` copied through the stream's 8 KB buffer — one read() per 8 KB, and over an
+    // SMB share each read is a network round trip: the 36 MB undo history took 26 s on the Linux VM (0.33 s read sequentially
+    // in large blocks). A read larger than the stream's buffer goes straight to the kernel.
+    std::string text;
+    constexpr std::streamsize kBlock = std::streamsize{1} << 20;
+    const auto block = std::make_unique_for_overwrite<char[]>(kBlock);   // not zeroed: thousands of small files per open
+    while (in.read(block.get(), kBlock) || in.gcount() > 0) {
+        text.append(block.get(), static_cast<std::size_t>(in.gcount()));
+    }
+    if (in.bad()) {
         const int err = errno;
         return Result<Utf8Text>::failure({.code    = ErrorCode::ioError,
                                           .message = "read failed",
                                           .path    = path,
                                           .detail  = errnoDetail(err)});
     }
-    return Result<Utf8Text>::success(ss.str());
+    return Result<Utf8Text>::success(std::move(text));
 }
 
 Result<void> LocalFileSystem::atomicWriteTextFile(const AbsolutePath& path, std::string_view utf8Text) {

@@ -143,11 +143,19 @@ static std::unique_ptr<scrivi::SecureStore> makeSecureStore() {
 // a real traversal — ⚠️ it NEVER means "no such scene" (AC5a, I-0183).
 class RegistrySceneLocator final : public scrivi::SceneLocator {
 public:
+    // ✅ [I-0342]: the filesystem an index is BUILT through — the ABI's own by default. `scrivi_open_project` gives its open
+    // a locator over the open's read-through cache, so an index the open's passes ask for is built from what the open has
+    // already read (the relationship repair built it from disk: 2 of every 3 sidecar reads, ~31 s over the share).
+    explicit RegistrySceneLocator(scrivi::FileSystem* buildThrough = nullptr) : buildThrough_(buildThrough) {}
     std::optional<scrivi::RelativePath> locateSceneMeta(
         const scrivi::AbsolutePath& projectRoot, const scrivi::SceneID& sceneID) override;
     std::optional<SceneHint> locateScene(
         const scrivi::AbsolutePath& projectRoot, const scrivi::SceneID& sceneID) override;
     std::optional<SceneTitles> listSceneTitles(const scrivi::AbsolutePath& projectRoot) override;
+
+private:
+    scrivi::CoreServices buildServices() const;   // abiServices(), no locator, through `buildThrough_` when set
+    scrivi::FileSystem* buildThrough_ = nullptr;
 };
 
 static RegistrySceneLocator& registrySceneLocator() {
@@ -331,8 +339,10 @@ static const char* guarded(Fn&& fn) {
 // D1 + D2 (SP-173 / I-0285): every project endpoint opens with `SCRIVI_PROJECT_READ` or `SCRIVI_PROJECT_WRITE` — see
 // `ProjectLock.hpp`; `scripts/check-abi-project-guards.sh` (ctest) fails if one does not.
 // SP-173 (I-0285 AC3): how many files the core reads AT ONCE when it reads many (scene texts; the open's sidecars). On a
-// network share the cost is per-file latency, so a few readers divide it; measured on the rig with 8.
-static constexpr std::size_t kParallelReaders = 8;
+// network share the cost is per-file latency, so readers divide it.
+// ✅ [I-0343] 8 → 64. Measured 2026-11-02, the Linux VM over SMB, dumas's 1,176 scene texts (page cache dropped): 8 readers
+// 5,485 ms · 16 2,346 · 32 927 · 64 266. The platforms ask for texts 64 at a time, so each batch is about one round trip.
+static constexpr std::size_t kParallelReaders = 64;
 
 // EP-052 [SP-195] Q1 (a): a file endpoint behind a held write queue fails at once, rather than hang the window.
 static const char* heldQueueEnvelope(const char* root) {
@@ -670,13 +680,19 @@ static bool withProjectIndex(const std::string& projectRootPath,
     return true;
 }
 
-std::optional<scrivi::RelativePath> RegistrySceneLocator::locateSceneMeta(
-    const scrivi::AbsolutePath& projectRoot, const scrivi::SceneID& sceneID) {
-    std::optional<scrivi::RelativePath> out;
+scrivi::CoreServices RegistrySceneLocator::buildServices() const {
     auto services = abiServices();
     // ⚠️ Do NOT let the locator's own services carry a locator — that would recurse
     // through any core call made during a build.
     services.sceneLocator = nullptr;
+    if (buildThrough_ != nullptr) { services.fileSystem = buildThrough_; }
+    return services;
+}
+
+std::optional<scrivi::RelativePath> RegistrySceneLocator::locateSceneMeta(
+    const scrivi::AbsolutePath& projectRoot, const scrivi::SceneID& sceneID) {
+    std::optional<scrivi::RelativePath> out;
+    auto services = buildServices();
     withProjectIndex(projectRoot, services, [&](const scrivi::manuscript::ProjectIndex& idx) {
         if (auto loc = idx.findScene(sceneID)) { out = loc->metadataPath; }
     });
@@ -686,8 +702,7 @@ std::optional<scrivi::RelativePath> RegistrySceneLocator::locateSceneMeta(
 std::optional<scrivi::SceneLocator::SceneHint> RegistrySceneLocator::locateScene(
     const scrivi::AbsolutePath& projectRoot, const scrivi::SceneID& sceneID) {
     std::optional<SceneHint> out;
-    auto services = abiServices();
-    services.sceneLocator = nullptr;
+    auto services = buildServices();
     withProjectIndex(projectRoot, services, [&](const scrivi::manuscript::ProjectIndex& idx) {
         if (auto loc = idx.findScene(sceneID)) {
             out = SceneHint{loc->metadataPath, loc->contentPath};
@@ -699,8 +714,7 @@ std::optional<scrivi::SceneLocator::SceneHint> RegistrySceneLocator::locateScene
 std::optional<scrivi::SceneLocator::SceneTitles> RegistrySceneLocator::listSceneTitles(
     const scrivi::AbsolutePath& projectRoot) {
     std::optional<SceneTitles> out;
-    auto services = abiServices();
-    services.sceneLocator = nullptr;
+    auto services = buildServices();
     withProjectIndex(projectRoot, services, [&](const scrivi::manuscript::ProjectIndex& idx) {
         out.emplace();
         out->reserve(idx.sceneCount());
@@ -984,6 +998,8 @@ const char* scrivi_open_project(
         }
         openCache.prefetch(sidecars, singleton().fileSystem, kParallelReaders);
     }
+    RegistrySceneLocator openLocator{&openCache};   // [I-0342]: an index the open's passes need is built from the cache
+    openServices.sceneLocator = &openLocator;
     scrivi::ScriviCore openCore{openServices};
     auto r = openCore.openProject(req);
     if (!r.ok()) return heap(errorEnvelope(r.error()));

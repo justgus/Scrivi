@@ -5,6 +5,9 @@
 #include <QString>
 #include <QWidget>
 
+#include <optional>
+#include <utility>
+
 #include "InspectorLayoutStore.hpp"
 
 class QLabel;
@@ -90,6 +93,8 @@ public:
     // is open, before any scene is set. A null bridge or empty root leaves the
     // panel in its "no project" state rather than showing a bare empty list.
     void setContext(ScriviBridge* bridge, const QString& projectRootPath);
+    // ✅ [I-0344] The same, with the project's layout already read on the load worker (no disk read on the main thread).
+    void setContext(ScriviBridge* bridge, const QString& projectRootPath, const QVariantMap& layoutRead, bool layoutFailed);
 
     // ---- Persisted pane visibility (EP-043 / SP-145 T-0553, [I-0251]) -----
     //
@@ -202,6 +207,8 @@ private slots:
     void onTodoEdited();
 
 private:
+    void setContext(ScriviBridge* bridge, const QString& projectRootPath,
+                    const std::optional<std::pair<QVariantMap, bool>>& layoutRead);
     // One row as the panel renders it — the far endpoint of one of the scene's
     // edges, already resolved by the core.
     struct Entry {

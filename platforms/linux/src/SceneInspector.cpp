@@ -17,6 +17,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QLabel>
+#include <optional>
 #include <QLineEdit>
 #include <QLocale>
 #include <QMenu>
@@ -311,6 +312,18 @@ QWidget* SceneInspector::buildPropertiesTab()
 
 void SceneInspector::setContext(ScriviBridge* bridge, const QString& projectRootPath)
 {
+    setContext(bridge, projectRootPath, std::nullopt);
+}
+
+void SceneInspector::setContext(ScriviBridge* bridge, const QString& projectRootPath, const QVariantMap& layoutRead,
+                                bool layoutFailed)
+{
+    setContext(bridge, projectRootPath, std::make_optional(std::make_pair(layoutRead, layoutFailed)));
+}
+
+void SceneInspector::setContext(ScriviBridge* bridge, const QString& projectRootPath,
+                                const std::optional<std::pair<QVariantMap, bool>>& layoutRead)
+{
     bridge_          = bridge;
     projectRootPath_ = projectRootPath;
     // The scene is set separately, by whichever hook reports the active scene.
@@ -327,7 +340,11 @@ void SceneInspector::setContext(ScriviBridge* bridge, const QString& projectRoot
     // itself look like a writer choosing a tab, or opening a project would
     // rewrite the file with the value it just read — so the signal is blocked.
     // ✅ T-0537: THROUGH THE CORE. ⛔ The store no longer opens the file itself.
-    layout_.load(bridge_, projectRootPath);
+    if (layoutRead) {
+        layout_.load(bridge_, projectRootPath, layoutRead->first, layoutRead->second);
+    } else {
+        layout_.load(bridge_, projectRootPath);
+    }
     if (tabs_ != nullptr) {
         const QSignalBlocker block(tabs_);
         tabs_->setCurrentIndex(tabIndex(layout_.selectedTab()));

@@ -66,6 +66,27 @@ QJsonObject makeDefaultDocument()
 void InspectorLayoutStore::load(ScriviBridge* bridge, const QString& projectRootPath)
 {
     waitForSaves();   // the previous project's layout reaches its file first
+    if (!bridge || projectRootPath.isEmpty()) {
+        apply(bridge, projectRootPath, {}, true);   // nothing to read: reset
+        return;
+    }
+    const QVariantMap r = bridge->getInspectorLayout(projectRootPath);
+    apply(bridge, projectRootPath, r, bridge->lastCallFailed());
+}
+
+void InspectorLayoutStore::load(ScriviBridge* bridge, const QString& projectRootPath, const QVariantMap& readOnWorker,
+                                bool failed)
+{
+    if (projectRootPath == projectRootPath_) {
+        load(bridge, projectRootPath);   // the same project: its own queued save may be newer than the worker's read
+        return;
+    }
+    waitForSaves();   // the previous project's layout reaches its file first
+    apply(bridge, projectRootPath, readOnWorker, failed);
+}
+
+void InspectorLayoutStore::apply(ScriviBridge* bridge, const QString& projectRootPath, const QVariantMap& r, bool failed)
+{
     bridge_ = bridge;
     projectRootPath_ = projectRootPath;
     document_ = QJsonObject{};
@@ -76,8 +97,7 @@ void InspectorLayoutStore::load(ScriviBridge* bridge, const QString& projectRoot
         return;
     }
 
-    const QVariantMap r = bridge_->getInspectorLayout(projectRootPath);
-    if (bridge_->lastCallFailed()) {
+    if (failed) {
         // ⚠️ The CALL failed, not the document. Defaults in memory, and ⛔ `loaded_`
         // stays false so no setter can write over a layout we never saw.
         document_ = makeDefaultDocument();

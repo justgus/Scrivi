@@ -292,10 +292,21 @@ int main(int argc, char* argv[])
     }
     // A TITLED chapter, as dumas's: a split must not carry its title onto the new chapter, or the new one's back onto it.
     r.bridge.renameChapter(r.projectDir, first.value(QStringLiteral("chapterMetadataPath")).toString(), QStringLiteral("The Abbé"));
+    // ✅ [I-0344]: the load reads the Inspector's layout and the copy buffers on its worker — the UI thread's build read them
+    // from disk (0.6 s, then 1.8 s waiting for the project lock, on dumas over a share).
+    QStringList loadGuiReads;
+    ScriviBridge::guiCoreCallObserver() = [&](const ScriviBridge::GuiCoreCall& c) {
+        if (c.endpoint == QLatin1String("scrivi_get_inspector_layout") || c.endpoint == QLatin1String("scrivi_buffers_list")) {
+            loadGuiReads.append(c.endpoint);
+        }
+    };
     if (!r.load()) {
         std::printf("FAIL: the project did not load, or its window never became active\n");
         return 1;
     }
+    ScriviBridge::guiCoreCallObserver() = nullptr;
+    check(loadGuiReads.isEmpty(), QStringLiteral("I-0344: the load reads no layout or buffers on the UI thread (%1)")
+                                      .arg(loadGuiReads.join(QStringLiteral(", "))));
     armConfirmer(r.shell.get());
 
     // ✅ [I-0315]: the caret moving into the new scene writes NOTHING for the scene it left (the notes were not changed) —

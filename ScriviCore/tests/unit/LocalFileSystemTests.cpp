@@ -128,3 +128,22 @@ TEST_CASE("renamePath fails when the source does not exist",
     REQUIRE(r.error().code == scrivi::ErrorCode::invalidArgument);
     REQUIRE_FALSE(fs::exists(to));
 }
+
+// [I-0341] readTextFile reads in 1 MB blocks (one read() per 8 KB was a network round trip each over SMB: the 36 MB undo
+// history took 26 s on the Linux VM). Every size around a block boundary comes back byte for byte.
+TEST_CASE("readTextFile returns the whole file at every size around its read block",
+          "[FileSystem][readTextFile][I-0341]") {
+    TempDir tmp;
+    scrivi::platform::LocalFileSystem fsys;
+    constexpr std::size_t kBlock = std::size_t{1} << 20;
+    for (const std::size_t size : {std::size_t{0}, std::size_t{1}, std::size_t{8191}, kBlock - 1, kBlock, kBlock + 1,
+                                   3 * kBlock + 12345}) {
+        std::string text(size, '\0');
+        for (std::size_t i = 0; i < size; ++i) { text[i] = static_cast<char>('a' + (i * 7919) % 26); }
+        const fs::path file = tmp.path / ("f" + std::to_string(size) + ".txt");
+        writeFile(file, text);
+        auto r = fsys.readTextFile(file.string());
+        REQUIRE(r.ok());
+        REQUIRE(r.value() == text);
+    }
+}
