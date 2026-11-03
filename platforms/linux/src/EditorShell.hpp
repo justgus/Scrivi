@@ -513,6 +513,7 @@ private:
     // One `scrivi_enqueue_save_scenes` call: {segment index, caret anchor, caret focus, scroll} per scene.
     struct QueuedSaveEntry { int index; long long anchor; long long focus; double scroll; };
     bool enqueueSaves(const QList<QueuedSaveEntry>& entries);
+    QueuedSaveEntry saveEntryFor(int segmentIndex) const;   // the caret scene carries its caret and scroll
     // One waiter at a time, on a worker: `scrivi_wait_for_writes`, its outcomes applied on the GUI thread.
     void startWaiting();
     void applyWriteOutcomes(const QVariantMap& wait);
@@ -752,6 +753,7 @@ private:
     // shell is programmatically scrolling/selecting the viewport (navigator click,
     // caret move) so onScrolled doesn't re-promote/re-scroll off its own change.
     bool                programmaticViewportChange_ = false;
+    bool                applyingHistory_ = false;   // [I-0339]: an undo's scene edits — the caret/scroll hooks stay out
 
     // ⚠️ SP-145 / T-0553 ([I-0251]) — set while RESTORING the persisted pane
     // visibility at load, so `setInspectorVisible` records the value on the session
@@ -850,7 +852,6 @@ private:
     // The caret `byteOffset` UTF-8 bytes into `sceneID`'s body, the navigator following; false when the scene is not loaded.
     bool placeCaret(const QString& sceneID, qint64 byteOffset);
     // Replace segment `index`'s body with `text`, under `isApplying`; returns the document position of `caretUtf16`.
-    int replaceSceneBody(int index, const QString& text, int caretUtf16);
     // A structural barrier (§4.5), Apple's kinds and notes. ⚠️ AFTER the op: `sceneTexts` is what it left in each
     // scene it rewrote or created ([I-0287]).
     void recordBarrier(const QString& kind, const QString& note, const QHash<QString, QString>& sceneTexts = {});

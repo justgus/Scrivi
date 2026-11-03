@@ -122,13 +122,15 @@ struct Rig {
         for (const QVariant& v : scenes) {
             const QVariantMap m = v.toMap();
             disk.append(QStringList{m.value(QStringLiteral("sceneID")).toString(), m.value(QStringLiteral("chapterID")).toString(),
+                                    m.value(QStringLiteral("chapterTitle")).toString(),
                                     m.value(QStringLiteral("metadataPath")).toString(),
                                     m.value(QStringLiteral("contentPath")).toString(),
                                     t.value(m.value(QStringLiteral("sceneID")).toString())}.join(QLatin1Char('|')));
         }
         QStringList list;
         for (const SceneSegment& seg : shell->sceneDocument().segments()) {
-            list.append(QStringList{seg.sceneID, seg.chapterID, seg.metadataPath, seg.contentPath, seg.text}.join(QLatin1Char('|')));
+            list.append(QStringList{seg.sceneID, seg.chapterID, seg.chapterTitle, seg.metadataPath, seg.contentPath, seg.text}
+                            .join(QLatin1Char('|')));
         }
         check(list == disk, QStringLiteral("%1: the scene list is what is on disk\n  list: %2\n  disk: %3")
                                 .arg(what, list.join(QStringLiteral(" ; ")), disk.join(QStringLiteral(" ; "))));
@@ -288,6 +290,8 @@ int main(int argc, char* argv[])
         save(made, body);
         prev = made;
     }
+    // A TITLED chapter, as dumas's: a split must not carry its title onto the new chapter, or the new one's back onto it.
+    r.bridge.renameChapter(r.projectDir, first.value(QStringLiteral("chapterMetadataPath")).toString(), QStringLiteral("The Abbé"));
     if (!r.load()) {
         std::printf("FAIL: the project did not load, or its window never became active\n");
         return 1;

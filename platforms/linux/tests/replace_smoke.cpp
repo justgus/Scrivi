@@ -262,7 +262,16 @@ int main(int argc, char** argv)
 
     // ── §4 ONE undo step: Ctrl+Z restores every replaced scene, Ctrl+Shift+Z re-applies it ─────────────────────────────
     rig.editor->setFocus();
+    // ✅ [I-0339]: the undo queues its scenes' saves in ONE call, and no flush queues them again while they are in flight (an
+    // undo of a 1,175-scene Replace All re-queued every scene on every caret move: 146 s with the window held).
+    int saveCalls = 0;
+    ScriviBridge::guiCoreCallObserver() = [&](const ScriviBridge::GuiCoreCall& c) {
+        if (c.endpoint == QLatin1String("scrivi_enqueue_save_scenes")) { ++saveCalls; }
+    };
     rig.control(Qt::Key_Z);
+    rig.shell->saveDirtyScenes();
+    ScriviBridge::guiCoreCallObserver() = nullptr;
+    check(saveCalls == 1, QStringLiteral("§4 I-0339: the undo's saves are queued once, in one call (%1 calls)").arg(saveCalls));
     const QStringList undone{after.at(0), after.at(1), QStringLiteral("cat and **cat** too"), after.at(3), QStringLiteral("## cat")};
     check(rig.saved() == undone, QStringLiteral("§4 one Ctrl+Z undoes the whole Replace All: %1").arg(shown(rig.disk())));
     rig.control(Qt::Key_Z, Qt::ShiftModifier);

@@ -1500,7 +1500,7 @@ int EditorShell::storedOffset(int idx, int docPos) const
 void EditorShell::onCursorMoved()
 {
     const Span span("caret moved");
-    if (loading_) {
+    if (loading_ || applyingHistory_) {
         return;
     }
     // The caret owns *where you type*; scroll owns "which scene is active". But a
@@ -1520,8 +1520,8 @@ void EditorShell::onCursorMoved()
 void EditorShell::onScrolled()
 {
     const Span span("scrolled");
-    if (loading_ || programmaticViewportChange_) {
-        return;   // ignore our own programmatic scrolls (navigator click, caret move)
+    if (loading_ || programmaticViewportChange_ || applyingHistory_) {
+        return;   // ignore our own programmatic scrolls (navigator click, caret move, an undo's edits)
     }
     // The visible scene becomes active (T-0243). promoteActiveScene saves the
     // departing dirty scene and updates the tracker only on a real boundary crossing.
@@ -1599,6 +1599,13 @@ bool EditorShell::saveScene(int segmentIndex)
     if (segmentIndex < 0 || segmentIndex >= sceneDoc_.segments().size()) {
         return false;
     }
+    // ⛔ [I-0304] — A FAILED WRITE LEAVES THE SCENE DIRTY (Apple: [I-0259]): it leaves dirtyScenes_ only when its queued
+    // outcome says it was written ([SP-195], `applyWriteOutcomes`).
+    return enqueueSaves({saveEntryFor(segmentIndex)});
+}
+
+EditorShell::QueuedSaveEntry EditorShell::saveEntryFor(int segmentIndex) const
+{
     const SceneSegment& seg = sceneDoc_.segments().at(segmentIndex);
 
     // Surface state (T-0247): persist the scene-local caret + scroll *only* for the
@@ -1622,10 +1629,7 @@ bool EditorShell::saveScene(int segmentIndex)
                          : 0.0;
         }
     }
-
-    // ⛔ [I-0304] — A FAILED WRITE LEAVES THE SCENE DIRTY (Apple: [I-0259]): it leaves dirtyScenes_ only when its queued
-    // outcome says it was written ([SP-195], `applyWriteOutcomes`).
-    return enqueueSaves({{segmentIndex, selectionAnchor, selectionFocus, scroll}});
+    return {segmentIndex, selectionAnchor, selectionFocus, scroll};
 }
 
 bool EditorShell::enqueueSaves(const QList<QueuedSaveEntry>& entries)
@@ -1938,13 +1942,24 @@ void EditorShell::saveDirtyScenes()
         history_->beforeSave();
     }
 
-    // Snapshot the dirty sceneIDs, then save each by its current segment index (the
-    // offset map is authoritative for the body text). saveScene() drains the set.
-    const QSet<QString> pending = dirtyScenes_;
+    // Each dirty scene by its current segment index (the offset map is authoritative for the body text), in ONE queued call.
+    // ✅ [I-0339]: a scene stays dirty until its write LANDS, so a scene already queued with exactly this text is not queued
+    // again — every flush re-queued every write still in flight (1,175 after a Replace All, on every caret move).
+    QHash<QString, QPair<qint64, QString>> latest;   // sceneID → its newest queued ticket and text
+    for (auto it = queued_.cbegin(); it != queued_.cend(); ++it) {
+        auto& slot = latest[it.value().first];
+        if (it.key() >= slot.first) { slot = {it.key(), it.value().second}; }
+    }
+    QList<QueuedSaveEntry> entries;
     for (int i = 0; i < sceneDoc_.segments().size(); ++i) {
-        if (pending.contains(sceneDoc_.segments().at(i).sceneID)) {
-            saveScene(i);
-        }
+        const QString& id = sceneDoc_.segments().at(i).sceneID;
+        if (!dirtyScenes_.contains(id)) { continue; }
+        const auto queued = latest.constFind(id);
+        if (queued != latest.cend() && queued->second == sceneDoc_.bodyText(i)) { continue; }
+        entries.append(saveEntryFor(i));
+    }
+    if (!entries.isEmpty()) {
+        enqueueSaves(entries);
     }
 }
 
@@ -3123,20 +3138,6 @@ bool EditorShell::placeCaret(const QString& sceneID, qint64 byteOffset)
     return true;
 }
 
-int EditorShell::replaceSceneBody(int idx, const QString& text, int caretUtf16)
-{
-    const SceneSegment seg = sceneDoc_.segments().at(idx);   // copy: the edit below moves the map
-    QTextCursor c(sceneDoc_.document());
-    c.beginEditBlock();
-    c.setPosition(seg.bodyStart);
-    c.setPosition(seg.bodyStart + seg.bodyLength, QTextCursor::KeepAnchor);
-    // ⛔ Raw — never the editor's `replaceRange`, which would re-balance the restored text into something else.
-    c.insertText(text, QTextCharFormat());   // a '\n' becomes a block break, as typing's does
-    c.endEditBlock();
-    const SceneSegment& now = sceneDoc_.segments().at(idx);
-    return now.bodyStart + std::clamp(caretUtf16, 0, now.bodyLength);
-}
-
 void EditorShell::applyHistoryStep(const QVariantMap& step, bool isUndo)
 {
     const Span span("apply history step");
@@ -3171,6 +3172,11 @@ void EditorShell::applyHistoryStep(const QVariantMap& step, bool isUndo)
     struct Placed { int seg; int pos; QString sceneID; QString text; };
     QList<Placed> placed;
     history_->setApplying(true);
+    // ⛔ [I-0339]: each scene's edit moved the caret or the scroll, and every move flushed every scene restored so far, on
+    // the main thread: an undo of a 1,175-scene Replace All held the window 146 s. The caret and scroll hooks stay out until
+    // the caret is placed (⚠️ not `loading_`: that also skips the offset map). Only the changed span is rewritten, as
+    // Replace All writes it.
+    applyingHistory_ = true;
     for (const QVariant& v : changes) {
         const QVariantMap change = v.toMap();
         const QString sceneID = change.value(QStringLiteral("sceneID")).toString();
@@ -3180,12 +3186,19 @@ void EditorShell::applyHistoryStep(const QVariantMap& step, bool isUndo)
         }
         const QString text = change.value(QStringLiteral("newText")).toString();
         const int caret = change.value(QStringLiteral("cursorAfterUtf16"), text.size()).toInt();
-        placed.append({idx, replaceSceneBody(idx, text, caret), sceneID, text});
+        replaceSceneSpan(idx, sceneDoc_.bodyText(idx), text);
+        const SceneSegment& now = sceneDoc_.segments().at(idx);
+        placed.append({idx, now.bodyStart + std::clamp(caret, 0, now.bodyLength), sceneID, text});
         historyText_.insert(sceneID, text);
     }
-    // Saved at once, as Apple's `applySceneChange` (each write reported to history by `saveScene`).
+    applyingHistory_ = false;
+    // Saved at once, as Apple's `applySceneChange` — ✅ [I-0339] in ONE queued call (each write reported to history as it lands).
+    QList<QueuedSaveEntry> saves;
     for (const Placed& p : std::as_const(placed)) {
-        saveScene(p.seg);
+        saves.append({p.seg, 0, 0, 0.0});   // body-only: the caret is placed after, and its scene saves as usual
+    }
+    if (!saves.isEmpty()) {
+        enqueueSaves(saves);
     }
     // The caret: one change places its own; several place it ONCE, in the EARLIEST scene ([SP-164]).
     if (!placed.isEmpty()) {

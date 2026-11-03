@@ -8,6 +8,7 @@ Issues awaiting **user verification**. An Issue leaves this file only when the u
 
 | ID | Title | Severity | Sprint | Status |
 | -- | ----- | -------- | ------ | ------ |
+| **I-0339** | `[Linux]` ⛔ **Undo of a Replace All held the window for 146 s: each restored scene moved the caret or scroll, and every move re-queued every scene restored so far, on the main thread.** Found 2026-11-02 on the Linux VM, [T-0655] (EP-057). → [details](#i-0339) | High | — | 🟠 Resolved - Not Verified |
 | **I-0338** | `[Linux]` ⚠️ **The timeline chained all 1,175 scenes into ONE aggregate and Zoom to Current Scene could not separate it: Linux still clustered by transitive proximity chaining, the defect [I-0208] fixed on Apple only.** Found 2026-11-02 on the Linux VM, [T-0652] (EP-057). → [details](#i-0338) | High | — | 🟠 Resolved - Not Verified |
 | **I-0337** | `[Linux]` ⚠️ **The Inspector's cards take 3–5 s to fill over the share, and no "Loading…" appears on the Writing or Properties tab: the cue was only on the Worldbuilding tab, and every scene's cards waited for a whole-project metrics count.** Found 2026-11-02 on the Linux VM, [T-0650] (EP-057). → [details](#i-0337) | Medium | — | 🟠 Resolved - Not Verified |
 | **I-0336** | `[Linux]` ⛔ **Close Project released the project BEFORE asking "Some changes can't be saved": Cancel kept a window whose project was already closed — its held save never landed, its history was closed.** Found 2026-11-02 on the Linux VM, [T-0648] steps 5–6 (EP-057). → [details](#i-0336) | High | — | 🟠 Resolved - Not Verified — ⏳ the VM pass ([T-0648] steps 5–6) |
@@ -778,6 +779,38 @@ follows.)*
 *2026-08-15 (docs cleanup — 48 verified Issues archived to decade files, 4 closed Issues
 archived; 6 stale full entries (I-0064, I-0067–I-0071) reconciled against their authoritative table rows.
 10 `Resolved - Not Verified` Issues remain active.)*
+
+## I-0339
+
+**Title:** Undo of a Replace All freezes the window for minutes on a large project
+**Status:** 🟠 Resolved - Not Verified (2026-11-02) — ⏳ the user's VM pass: [T-0655] step 2 (and [T-0653] step 4)
+**Platform:** `[Linux]`
+**Severity:** High. The writer sees a frozen window and may force-quit with saves in flight.
+**Date Identified:** 2026-11-02, build 1.0.317 (`daebc71`), on the VM, dumas-prose-timelines-history on `/mnt/scrivi-other`:
+Replace All `the` → `Thee` (74,172 matches in 1,175 scenes) landed in ~4 s; **Edit ▸ Undo** then held the window from
+18:45:18 to 18:47:45 (`slow: undo took 146227 ms`). The log: 1,233 `save dirty scenes (main thread)` of ~90 ms each, every one
+under `apply history step > caret moved | scrolled > active scene changed`. Log: `scrivi-vm:~/evidence-2026-11-02/scrivi-replace.log`.
+**Root cause:** `EditorShell::applyHistoryStep` restored each scene by replacing its WHOLE body; each edit moved the caret or the
+scroll, so the hooks promoted a new active scene and flushed. A scene stays dirty until its write LANDS, so each flush re-queued
+every scene restored so far — quadratic. Then it saved the scenes one call each.
+**Resolution:**
+- the caret and scroll hooks stay out while the step's scenes are edited (`applyingHistory_`,
+  `platforms/linux/src/EditorShell.cpp:3179`; ⚠️ not `loading_`, which also skips the offset map);
+- only the changed span of each scene is rewritten (`replaceSceneSpan`, as Replace All writes it);
+- the saves go in ONE queued call (`:3201`);
+- `saveDirtyScenes` (`:1932`) no longer queues a scene already queued with the same text, and queues the rest in one call.
+  A held write stays queued in the core and is not repeated; a refused one is queued again (I-0304 unchanged).
+**Files Affected:** `platforms/linux/src/EditorShell.cpp`, `EditorShell.hpp` (the unused `replaceSceneBody` removed); test
+`platforms/linux/tests/replace_smoke.cpp` §4 (the undo's saves queued once, in one call; a flush right after queues nothing).
+**Verification (VM scratch copy):** the new check FAILED with the old per-scene save loop (2 calls); with the fix smokes
+38/38, ctest `-j6` 804/804. ⚠️ No test runs it at 1,175 scenes; the VM pass is the measurement.
+**Not this defect:** the user also saw scene headings run into the following paragraph. ✅ Checked: 90 scene files of the
+iCloud copy of this fixture (1 November, before any Replace All) already have the heading merged (first line > 120 characters);
+today's copy has 92. Of the difference, 3 are the same scenes renamed by today's splits, 1 was already merged on 1 November
+(just under the length test then), and 1 is a new scene with no heading at all. No scene lost its heading's newline today —
+the fixture's own data, not Replace All.
+
+---
 
 ## I-0338
 
