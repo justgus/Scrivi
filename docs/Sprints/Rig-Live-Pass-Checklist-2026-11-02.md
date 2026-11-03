@@ -113,7 +113,7 @@ yet re-passed.
 
 ## T-0652 · SP-199 AC6 — T-0640, T-0641: Timeline zoom-to-scene and time scale · ✅ iPad and Mac passed 2026-11-01
 
-→ [`Sprint-SP-199.md`](Sprint-SP-199.md)
+→ [`Closed/Sprint-SP-199.md`](Closed/Sprint-SP-199.md)
 
 - [ ] 1. **View ▸ Show Timeline** (Ctrl+Alt+M). A row of ticks runs along the top of the strip, labelled in years
   ("Year 1", "Year 2", …).

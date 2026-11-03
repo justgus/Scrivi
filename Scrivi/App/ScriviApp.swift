@@ -604,11 +604,14 @@ private struct AppEventsModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content
+            #if os(macOS)
             .onAppear {
                 // Bridge SwiftUI's openWindow(id:"welcome") into the environment so
                 // orchestration can reopen the Welcome window when the last project closes.
+                // macOS only: iOS is single-scene and shows Landing itself; there openWindow is refused.
                 env.openWelcomeAction = { openWindow(id: "welcome") }
             }
+            #endif
             // Deep link via the scrivi:// URL scheme. On macOS this is handled at the
             // app level by AppDelegate.application(_:open:) (reliable across windows);
             // keep the per-view path for non-macOS platforms only.

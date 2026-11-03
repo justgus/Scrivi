@@ -8,7 +8,7 @@
 
 ## T-0641 — `[Cross]` A time scale along the top of the Timeline
 
-**Epic:** [EP-055] · **Status:** ✅ **Verified 2026-11-02** (iPad and Mac live passes (user, 2026-11-01) and [T-0652] passed on the Linux VM (the live-pass checklist: Pass)) · **Sprint:** [SP-199] (🟡 Active) → [`../Sprints/Sprint-SP-199.md`](../../Sprints/Sprint-SP-199.md) · **Date Requested:** 2026-10-31
+**Epic:** [EP-055] · **Status:** ✅ **Verified 2026-11-02** (iPad and Mac live passes (user, 2026-11-01) and [T-0652] passed on the Linux VM (the live-pass checklist: Pass)) · **Sprint:** [SP-199] (🟡 Active) → [`Sprint-SP-199.md`](../../Sprints/Closed/Sprint-SP-199.md) · **Date Requested:** 2026-10-31
 
 **What (user):** ticks for decades, years, months, weeks, days, hours as the zoom allows, as a reference for where a scene
 sits in time and as a sign of movement while scrolling across empty stretches. **Ruling (2026-10-31):** labels are offsets

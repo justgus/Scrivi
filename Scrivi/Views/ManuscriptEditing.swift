@@ -639,6 +639,32 @@ final class ManuscriptSceneSync {
 
     func sceneBoundaries(in storage: NSTextStorage) -> [NSRange] { boundaryTable.ranges(in: storage) }
 
+    enum NavigateScope { case scene, chapter, manuscript }
+
+    /// The storage offset a Navigate move lands on ([T-0568]; shared by the Mac and iOS hosts, SP-199). Scene and chapter
+    /// edges are the caret's own; a chapter is the contiguous run of scenes sharing its `chapterID` (manuscript order).
+    /// ⚠️ [I-0266] The manuscript's start is the FIRST SCENE's first character, not offset 0 in front of a chapter heading.
+    func navigateTarget(_ scope: NavigateScope, _ edge: ManuscriptEdge, caret: Int, in storage: NSTextStorage) -> Int? {
+        Self.navigateTarget(scope, edge, caret: caret, boundaries: sceneBoundaries(in: storage),
+                            chapterIDs: loader.segments.map(\.chapterID), length: storage.length)
+    }
+
+    static func navigateTarget(_ scope: NavigateScope, _ edge: ManuscriptEdge, caret: Int, boundaries b: [NSRange],
+                               chapterIDs: [String], length: Int) -> Int? {
+        if scope == .manuscript { return edge == .start ? (b.first?.location ?? 0) : length }
+        guard var first = b.firstIndex(where: { NSLocationInRange(caret, $0) || caret == NSMaxRange($0) })
+                ?? (b.isEmpty ? nil : b.count - 1) else { return nil }
+        var last = first
+        if scope == .chapter {
+            guard chapterIDs.indices.contains(first) else { return nil }
+            let chapterID = chapterIDs[first]
+            while first > 0, chapterIDs[first - 1] == chapterID { first -= 1 }
+            while last < chapterIDs.count - 1, chapterIDs[last + 1] == chapterID { last += 1 }
+            guard b.indices.contains(last) else { return nil }
+        }
+        return edge == .start ? b[first].location : NSMaxRange(b[last])
+    }
+
     func segmentIndex(for characterLocation: Int, in storage: NSTextStorage) -> Int? {
         let boundaries = sceneBoundaries(in: storage)
         for (i, range) in boundaries.enumerated() {

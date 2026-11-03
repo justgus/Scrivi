@@ -8,7 +8,7 @@
 
 ## ✅ T-0639 — `[Apple]` The Timeline's zoom and position come back next time
 
-**Epic:** [EP-055] · **Status:** ✅ **Verified 2026-11-01** (user, 2026-11-01: *"All these steps passed on both iPad and the Mac."*) · **Sprint:** [SP-199] (🟡 Active) → [`../../Sprints/Sprint-SP-199.md`](../../Sprints/Sprint-SP-199.md) · **Date Requested:** 2026-10-31
+**Epic:** [EP-055] · **Status:** ✅ **Verified 2026-11-01** (user, 2026-11-01: *"All these steps passed on both iPad and the Mac."*) · **Sprint:** [SP-199] (🟡 Active) → [`Sprint-SP-199.md`](../../Sprints/Closed/Sprint-SP-199.md) · **Date Requested:** 2026-10-31
 
 **What (user):** a zoom and scroll position should be restored when the app next opens the project. Apple never saved it;
 Linux has since T-0338 (SP-083). **Ruling (2026-10-31):** per project, per device, outside the package.

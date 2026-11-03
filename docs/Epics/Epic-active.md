@@ -79,7 +79,7 @@ EP-055 Q2).
 
 ## EP-055: `[Apple]` **iPad and iPhone** — the manuscript first, then the full app on iPad and a phone surface
 
-**Status:** 🟡 **ACTIVE** 2026-10-29 — S1 = [SP-198] (🟡 active; implemented 2026-10-30, ⏳ its live passes); S2 = [SP-199] (🟡 active 2026-10-31: panels by size class, gestures, toolbar). Created 2026-10-24 as a Draft; activated 2026-10-29 (user:
+**Status:** 🟡 **ACTIVE** 2026-10-29 — S1 = [SP-198] ✅ closed 2026-11-03; S2 = [SP-199] ✅ closed 2026-11-03 (panels by size class, gestures, toolbar); no Sprint active. Created 2026-10-24 as a Draft; activated 2026-10-29 (user:
 *"Activate EP-055"*), with the manuscript ruled first (user, 2026-10-29: *"In the iOS version, we should focus on the
 Manuscript View first."*).
 **Codebase:** `[Apple]` (`Scrivi/`, the `ScriviApp-iOS` target). The core is shared and already cross-builds for iOS.
@@ -117,13 +117,13 @@ with the session question, the branch chooser and mark; buffers and keyboard sho
 access (Files, iCloud Drive, external drives on iPad); iPad multi-window; a phone layout; TestFlight delivery.
 
 **Acceptance Criteria:**
-- [ ] AC1 — A gap audit of the manuscript editor's host: every behaviour in `ManuscriptTextView.swift`, AppKit-bound or
+- [x] AC1 — ✅ [SP-198] (closed 2026-11-03) — A gap audit of the manuscript editor's host: every behaviour in `ManuscriptTextView.swift`, AppKit-bound or
       shareable, and the iOS shape ruled (Q3). The rest of the surfaces audited before S3.
-- [ ] AC2 — **The manuscript on iPad and iPhone:** a real project reads and scrolls well, and the writer types, selects and
+- [x] AC2 — ✅ [SP-198] (closed 2026-11-03) — **The manuscript on iPad and iPhone:** a real project reads and scrolls well, and the writer types, selects and
       autosaves, with the markers and hints, chapter titles and scene dividers as on the Mac
-- [ ] AC3 — The manuscript works with the on-screen keyboard and a hardware keyboard on iPad, iPhone and the Duo, using the
+- [x] AC3 — ✅ [SP-198] (closed 2026-11-03) — The manuscript works with the on-screen keyboard and a hardware keyboard on iPad, iPhone and the Duo, using the
       system's default behaviour and layout (Q8): nothing device- or keyboard-specific
-- [ ] AC4 — An iOS test target, run on the simulator, covering the manuscript's behaviour
+- [x] AC4 — ✅ [SP-198] (closed 2026-11-03) — An iOS test target, run on the simulator, covering the manuscript's behaviour
 - [ ] AC5 — Structural edits, undo/redo and Find in the manuscript on iOS — ⚠️ not yet on iOS (user, 2026-11-01): **Find and
       Replace**, and **Go to Scene / Chapter / Manuscript Begin and End**
 - [ ] AC6 — Navigator, inspector, timeline, worlds and detail sheets on iPad

@@ -785,13 +785,13 @@ archive files reconstructed after the fact from secondary sources.
 | T-0629 | `[ScriviCore]` One Inspector read per scene, and the per-scene searchable text | SP-197 | **EP-052** | ✅ Verified 2026-11-02 | [`Task-verified-0629.md`](Verified/Task-verified-0629.md) |
 | T-0630 | `[Cross]` The Inspector and the timeline read off the main thread, revision-checked | SP-197 | **EP-052** | ✅ Verified 2026-11-02 | [`Task-verified-0630.md`](Verified/Task-verified-0630.md) |
 | T-0631 | `[Apple]` Spotlight on one serial background queue, per-scene, behind the saves | SP-197 | **EP-052** | ✅ Verified 2026-11-02 | [`Task-verified-0631.md`](Verified/Task-verified-0631.md) |
-| T-0632 | `[Apple]` The manuscript host gap audit — what is AppKit, what is shared, the iOS shape | SP-198 | **EP-055** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
-| T-0633 | `[Apple]` The presentation layer compiles for iOS, the Mac unchanged | SP-198 | **EP-055** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
-| T-0634 | `[Apple]` The `UITextView` manuscript on iPad and iPhone | SP-198 | **EP-055** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
-| T-0635 | `[Apple]` An iOS test target | SP-198 | **EP-055** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
-| T-0636 | `[Apple]` Panels by size class: the compact stack and the regular split | SP-199 | **EP-055** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
-| T-0637 | `[Apple]` The iOS gestures and the Timeline grabber, with routes that need no gesture | SP-199 | **EP-055** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
-| T-0638 | `[Apple]` The Mac's toolbar buttons on iOS, at the system's placement | SP-199 | **EP-055** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
+| T-0632 | `[Apple]` The manuscript host gap audit — what is AppKit, what is shared, the iOS shape | SP-198 | **EP-055** | ✅ Verified 2026-11-03 | [`Verified/Task-verified-0632.md`](Verified/Task-verified-0632.md) |
+| T-0633 | `[Apple]` The presentation layer compiles for iOS, the Mac unchanged | SP-198 | **EP-055** | ✅ Verified 2026-11-03 | [`Verified/Task-verified-0633.md`](Verified/Task-verified-0633.md) |
+| T-0634 | `[Apple]` The `UITextView` manuscript on iPad and iPhone | SP-198 | **EP-055** | ✅ Verified 2026-11-03 | [`Verified/Task-verified-0634.md`](Verified/Task-verified-0634.md) |
+| T-0635 | `[Apple]` An iOS test target | SP-198 | **EP-055** | ✅ Verified 2026-11-03 | [`Verified/Task-verified-0635.md`](Verified/Task-verified-0635.md) |
+| T-0636 | `[Apple]` Panels by size class: the compact stack and the regular split | SP-199 | **EP-055** | ✅ Verified 2026-11-03 | [`Verified/Task-verified-0636.md`](Verified/Task-verified-0636.md) |
+| T-0637 | `[Apple]` The iOS gestures and the Timeline grabber, with routes that need no gesture | SP-199 | **EP-055** | ✅ Verified 2026-11-03 | [`Verified/Task-verified-0637.md`](Verified/Task-verified-0637.md) |
+| T-0638 | `[Apple]` The Mac's toolbar buttons on iOS, at the system's placement | SP-199 | **EP-055** | ✅ Verified 2026-11-03 | [`Verified/Task-verified-0638.md`](Verified/Task-verified-0638.md) |
 | T-0639 | `[Apple]` The Timeline's zoom and position come back next time | SP-199 | **EP-055** | ✅ Verified | [`Verified/Task-verified-0639.md`](Verified/Task-verified-0639.md) |
 | T-0640 | `[Cross]` Zoom to the current scene | SP-199 | **EP-055** | ✅ Verified 2026-11-02 | [`Task-verified-0640.md`](Verified/Task-verified-0640.md) |
 | T-0641 | `[Cross]` A time scale along the top of the Timeline | SP-199 | **EP-055** | ✅ Verified 2026-11-02 | [`Task-verified-0641.md`](Verified/Task-verified-0641.md) |

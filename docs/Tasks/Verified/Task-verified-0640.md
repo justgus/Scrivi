@@ -8,7 +8,7 @@
 
 ## T-0640 — `[Cross]` Zoom to the current scene
 
-**Epic:** [EP-055] · **Status:** ✅ **Verified 2026-11-02** (iPad and Mac live passes (user, 2026-11-01) and [T-0652] passed on the Linux VM (the live-pass checklist: Pass)) · **Sprint:** [SP-199] (🟡 Active) → [`../Sprints/Sprint-SP-199.md`](../../Sprints/Sprint-SP-199.md) · **Date Requested:** 2026-10-31
+**Epic:** [EP-055] · **Status:** ✅ **Verified 2026-11-02** (iPad and Mac live passes (user, 2026-11-01) and [T-0652] passed on the Linux VM (the live-pass checklist: Pass)) · **Sprint:** [SP-199] (🟡 Active) → [`Sprint-SP-199.md`](../../Sprints/Closed/Sprint-SP-199.md) · **Date Requested:** 2026-10-31
 
 **What (user):** a small Timeline button that zooms in until single dots show and centres on the scene the Manuscript and
 Navigator have selected. **Ruling (2026-10-31):** zoom until nearby dots separate.

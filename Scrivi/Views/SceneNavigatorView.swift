@@ -114,17 +114,14 @@ struct SceneNavigatorView: View {
         // remaining half of "go to a scene": the text moved, the list did not.
         ScrollViewReader { proxy in
             List(selection: listSelection) {
+                // ⚠️ SP-199: ONE view per row, its modifiers inside it. The List walks ALL ~2,350 rows of dumas up
+                // front; with the modifiers out here every row built its whole modifier stack each time the Navigator
+                // appeared (~1.2–3.6 s on an iPad, measured 2026-11-03).
                 ForEach(flatRows, id: \.rowID) { row in
-                    switch row {
-                    case .chapterHeader(let group):
-                        chapterHeaderRow(for: group)
-                            .listRowSeparator(.hidden)
-                    case .scene(let entry, let group):
-                        sceneRow(for: entry, in: group)
-                            // `id` is what `scrollTo` targets; it must match `rowID`,
-                            // which is also the List's selection identity.
-                            .id(row.rowID)
-                    }
+                    NavigatorRow(row: row, activeSceneID: loader.viewportSceneID,
+                                 onRename: { renameTarget = $0 },
+                                 onDeleteScene: { deleteSceneTarget = $0 },
+                                 onDeleteChapter: { deleteChapterTarget = $0 })
                 }
                 // ⚠️ T-0569 — reorder is OFF while filtering. `performMove` reads the
                 // drop's predecessor from `flatRows`, and with rows hidden that predecessor
@@ -355,50 +352,6 @@ struct SceneNavigatorView: View {
     }
 
     // MARK: — Scene row
-
-    @ViewBuilder
-    private func sceneRow(for entry: SceneEntry, in group: ChapterGroup) -> some View {
-        let isActive = entry.sceneID == loader.viewportSceneID
-        NavigatorSceneRow(title: entry.title, isActive: isActive)
-            .tag("scene-\(entry.sceneID)")
-            .listRowBackground(isActive ? Color.accentColor.opacity(0.12) : Color.clear)
-            // ⚠️ **No tap gesture on either platform (I-0132, 2026-08-18).** Navigation is
-            // driven by the List's `selection` binding, which the `NSTableView` behind
-            // `List` updates on every click. Three earlier attempts tried to win a race
-            // against that table — synchronous `makeFirstResponder`, then a deferred one,
-            // then `simultaneousGesture` — and each was a smaller race rather than a fix.
-            // The selection was always correct; only the parallel state kept beside it
-            // was unreliable. So there is no longer any parallel state.
-            .contextMenu {
-                Button("Rename") { renameTarget = .scene(entry) }
-                Divider()
-                Button("Delete", role: .destructive) { deleteSceneTarget = entry }
-            }
-            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                Button("Delete", role: .destructive) { deleteSceneTarget = entry }
-            }
-    }
-
-    // MARK: — Chapter header row
-
-    @ViewBuilder
-    private func chapterHeaderRow(for group: ChapterGroup) -> some View {
-        Text(group.chapterTitle)
-            .font(.subheadline.weight(.semibold))
-            .foregroundStyle(.primary)
-            .padding(.top, 6)
-            .tag("header-\(group.chapterID)")
-            .listRowBackground(Color.clear)
-            .contextMenu {
-                Button("Rename") {
-                    renameTarget = .chapter(group)
-                }
-                Divider()
-                Button("Delete", role: .destructive) {
-                    deleteChapterTarget = group
-                }
-            }
-    }
 
     // MARK: — Navigation
 
@@ -826,6 +779,50 @@ struct SceneNavigatorView: View {
 }
 
 // MARK: — Scene row view
+
+/// One Navigator row: a chapter header or a scene, with its tag, background and menus.
+private struct NavigatorRow: View {
+    let row: SceneNavigatorView.FlatRow
+    let activeSceneID: String?
+    let onRename: (SceneNavigatorView.RenameTarget) -> Void
+    let onDeleteScene: (SceneNavigatorView.SceneEntry) -> Void
+    let onDeleteChapter: (SceneNavigatorView.ChapterGroup) -> Void
+
+    var body: some View {
+        switch row {
+        case .chapterHeader(let group):
+            Text(group.chapterTitle)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.primary)
+                .padding(.top, 6)
+                .tag("header-\(group.chapterID)")
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+                .contextMenu {
+                    Button("Rename") { onRename(.chapter(group)) }
+                    Divider()
+                    Button("Delete", role: .destructive) { onDeleteChapter(group) }
+                }
+        case .scene(let entry, _):
+            let isActive = entry.sceneID == activeSceneID
+            NavigatorSceneRow(title: entry.title, isActive: isActive)
+                .tag("scene-\(entry.sceneID)")
+                .listRowBackground(isActive ? Color.accentColor.opacity(0.12) : Color.clear)
+                // ⚠️ **No tap gesture on either platform (I-0132, 2026-08-18).** Navigation is driven by the List's
+                // `selection` binding; three earlier attempts to race the table with a tap each lost.
+                .contextMenu {
+                    Button("Rename") { onRename(.scene(entry)) }
+                    Divider()
+                    Button("Delete", role: .destructive) { onDeleteScene(entry) }
+                }
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    Button("Delete", role: .destructive) { onDeleteScene(entry) }
+                }
+                // `id` is what `scrollTo` targets; it must match `rowID`, which is also the List's selection identity.
+                .id(row.rowID)
+        }
+    }
+}
 
 private struct NavigatorSceneRow: View {
     let title: String

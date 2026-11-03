@@ -240,6 +240,16 @@ struct PanelSwipeTests {
         #expect(PanelSwipe.actions(startX: 500, endX: 10, width: w, compact: true).isEmpty)
         #expect(PanelSwipe.actions(startX: 5, endX: 990, width: w, compact: true).isEmpty)
     }
+
+    @Test("from an owned edge any inward swipe counts, even curving up; mid-screen it must be sideways")
+    func edgeConsumes() {
+        #expect(PanelSwipe.isSwipe(startX: 10, tx: 80, ty: -300, vx: 50, width: w, compact: false))
+        #expect(PanelSwipe.isSwipe(startX: 990, tx: -80, ty: 250, vx: -50, width: w, compact: false))
+        #expect(!PanelSwipe.isSwipe(startX: 10, tx: -5, ty: 300, vx: 0, width: w, compact: false), "outward is not a swipe")
+        #expect(!PanelSwipe.isSwipe(startX: 500, tx: 80, ty: -300, vx: 50, width: w, compact: false), "mid-screen scroll")
+        #expect(!PanelSwipe.ownsEdge(startX: 10, width: w, compact: true), "the left edge is the system's back swipe")
+        #expect(PanelSwipe.ownsEdge(startX: 990, width: w, compact: true))
+    }
 }
 
 @Suite("Timeline time scale (T-0641)")
@@ -267,5 +277,27 @@ struct TimelineScaleTests {
         let ticks = TimelineScale.ticks(visibleMinMs: 0, visibleSpanMs: 240 * 365 * day, usable: 1000)
         #expect(!ticks.isEmpty && ticks.count < 20)
         #expect(ticks.first?.label == "Year 1")
+    }
+}
+
+@Suite("Toolbar Navigate targets (SP-199, shared with the Mac)")
+@MainActor
+struct NavigateTargetTests {
+    // Scenes at 10..<20, 21..<30 (chapter A), 31..<40 (chapter B); a chapter heading before 10; length 40.
+    let b = [NSRange(location: 10, length: 10), NSRange(location: 21, length: 9), NSRange(location: 31, length: 9)]
+    let ch = ["A", "A", "B"]
+    func t(_ s: ManuscriptSceneSync.NavigateScope, _ e: ManuscriptEdge, _ caret: Int) -> Int? {
+        ManuscriptSceneSync.navigateTarget(s, e, caret: caret, boundaries: b, chapterIDs: ch, length: 40)
+    }
+
+    @Test("scene, chapter and manuscript edges from the caret")
+    func edges() {
+        #expect(t(.scene, .start, 25) == 21)
+        #expect(t(.scene, .end, 25) == 30)
+        #expect(t(.chapter, .start, 25) == 10)
+        #expect(t(.chapter, .end, 12) == 30)
+        #expect(t(.chapter, .start, 35) == 31)
+        #expect(t(.manuscript, .start, 35) == 10, "[I-0266] the first scene, not offset 0")
+        #expect(t(.manuscript, .end, 12) == 40)
     }
 }

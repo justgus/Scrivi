@@ -129,29 +129,29 @@ struct ManuscriptTextView: NSViewRepresentable {
         // exists to show.
         session.sceneStartAction = { [weak coordinator, weak textView] in
             guard let tv = textView else { return }
-            coordinator?.takeFocus(); coordinator?.moveToSceneBoundary(.start, in: tv)
+            coordinator?.takeFocus(); coordinator?.moveTo(.scene, .start, in: tv)
         }
         session.sceneEndAction = { [weak coordinator, weak textView] in
             guard let tv = textView else { return }
-            coordinator?.takeFocus(); coordinator?.moveToSceneBoundary(.end, in: tv)
+            coordinator?.takeFocus(); coordinator?.moveTo(.scene, .end, in: tv)
         }
         session.chapterStartAction = { [weak coordinator, weak textView] in
             guard let tv = textView else { return }
-            coordinator?.takeFocus(); coordinator?.moveToChapterBoundary(.start, in: tv)
+            coordinator?.takeFocus(); coordinator?.moveTo(.chapter, .start, in: tv)
         }
         session.chapterEndAction = { [weak coordinator, weak textView] in
             guard let tv = textView else { return }
-            coordinator?.takeFocus(); coordinator?.moveToChapterBoundary(.end, in: tv)
+            coordinator?.takeFocus(); coordinator?.moveTo(.chapter, .end, in: tv)
         }
         // ⚠️ [T-0568] — Manuscript Start / End. ✅ Same take-focus-first discipline; the
         // navigator follows the viewport on its own.
         session.manuscriptStartAction = { [weak coordinator, weak textView] in
             guard let tv = textView else { return }
-            coordinator?.takeFocus(); coordinator?.moveToManuscriptBoundary(.start, in: tv)
+            coordinator?.takeFocus(); coordinator?.moveTo(.manuscript, .start, in: tv)
         }
         session.manuscriptEndAction = { [weak coordinator, weak textView] in
             guard let tv = textView else { return }
-            coordinator?.takeFocus(); coordinator?.moveToManuscriptBoundary(.end, in: tv)
+            coordinator?.takeFocus(); coordinator?.moveTo(.manuscript, .end, in: tv)
         }
 
         let scroll = NSScrollView()
@@ -1904,59 +1904,11 @@ struct ManuscriptTextView: NSViewRepresentable {
         // an existing text-editing behaviour. The menu items exist so the *functions* can
         // be exercised and judged while the binding question stays open.
 
-        // Storage range of the scene containing `storageOffset`, boundaries recomputed.
-        private func sceneStorageRange(containing storageOffset: Int, in tv: NSTextView) -> NSRange? {
-            ensureBoundaries(tv)
-            return sceneBoundaries.first { NSLocationInRange(storageOffset, $0)
-                || storageOffset == $0.location + $0.length }
-                ?? sceneBoundaries.last
-        }
-
-        func moveToSceneBoundary(_ edge: ManuscriptEdge, in tv: NSTextView) {
-            let caret = tv.selectedRange().location
-            guard let range = sceneStorageRange(containing: caret, in: tv) else { return }
-            placeCursorAt(edge == .start ? range.location : range.location + range.length, in: tv)
-        }
-
-        func moveToChapterBoundary(_ edge: ManuscriptEdge, in tv: NSTextView) {
-            let caret = tv.selectedRange().location
-            ensureBoundaries(tv)
-            // Find the caret's scene, then widen to every contiguous scene sharing its
-            // chapter. Scene order in `segments` is manuscript order, so the chapter is a
-            // contiguous run — the same assumption the Linux chapter-reorder splice makes.
-            guard let segIdx = sceneBoundaries.firstIndex(where: {
-                NSLocationInRange(caret, $0) || caret == $0.location + $0.length
-            }) ?? (sceneBoundaries.isEmpty ? nil : sceneBoundaries.count - 1) else { return }
-            guard parent.loader.segments.indices.contains(segIdx) else { return }
-            let chapterID = parent.loader.segments[segIdx].chapterID
-
-            var first = segIdx, last = segIdx
-            while first > 0, parent.loader.segments[first - 1].chapterID == chapterID { first -= 1 }
-            while last < parent.loader.segments.count - 1,
-                  parent.loader.segments[last + 1].chapterID == chapterID { last += 1 }
-
-            guard sceneBoundaries.indices.contains(first),
-                  sceneBoundaries.indices.contains(last) else { return }
-            let target = edge == .start
-                ? sceneBoundaries[first].location
-                : sceneBoundaries[last].location + sceneBoundaries[last].length
-            placeCursorAt(target, in: tv)
-        }
-
-        // ⚠️ [T-0568] — the manuscript's first or last character.
-        // ✅ The end is measured in UTF-16 (`NSString.length`), the unit `NSRange` uses —
-        // ⛔ not `String.count`, which counts Characters and falls SHORT of the true end
-        // whenever the text holds an emoji or a combining mark.
-        func moveToManuscriptBoundary(_ edge: ManuscriptEdge, in tv: NSTextView) {
-            // ⚠️ [I-0266] The start is the FIRST SCENE's first character, not offset 0 —
-            // with chapter titles shown, offset 0 is in front of Chapter 1's heading.
-            let target: Int
-            if edge == .start {
-                ensureBoundaries(tv)
-                target = sceneBoundaries.first?.location ?? 0
-            } else {
-                target = (tv.string as NSString).length
-            }
+        // The arithmetic is shared with iOS (`ManuscriptSceneSync.navigateTarget`).
+        func moveTo(_ scope: ManuscriptSceneSync.NavigateScope, _ edge: ManuscriptEdge, in tv: NSTextView) {
+            guard let storage = tv.textStorage,
+                  let target = sync.navigateTarget(scope, edge, caret: tv.selectedRange().location, in: storage)
+            else { return }
             placeCursorAt(target, in: tv)
         }
 
@@ -2829,7 +2781,7 @@ final class ManuscriptNSTextView: NSTextView {
     // character — not at offset 0, in front of Chapter 1's heading, where typing is refused.
     override func moveToBeginningOfDocument(_ sender: Any?) {
         guard let coordinator else { return super.moveToBeginningOfDocument(sender) }
-        coordinator.moveToManuscriptBoundary(.start, in: self)
+        coordinator.moveTo(.manuscript, .start, in: self)
     }
 
     @objc func undo(_ sender: Any?) {

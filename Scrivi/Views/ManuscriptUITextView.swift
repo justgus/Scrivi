@@ -46,6 +46,14 @@ struct ManuscriptTextView: UIViewRepresentable {
         loader.takeFocusHandler = { [weak textView] in
             DispatchQueue.main.async { _ = textView?.becomeFirstResponder() }
         }
+        // The toolbar's Navigate menu (SP-199): the Mac's six moves, the same shared arithmetic.
+        let c = context.coordinator
+        session.sceneStartAction      = { [weak c] in c?.move(.scene, .start) }
+        session.sceneEndAction        = { [weak c] in c?.move(.scene, .end) }
+        session.chapterStartAction    = { [weak c] in c?.move(.chapter, .start) }
+        session.chapterEndAction      = { [weak c] in c?.move(.chapter, .end) }
+        session.manuscriptStartAction = { [weak c] in c?.move(.manuscript, .start) }
+        session.manuscriptEndAction   = { [weak c] in c?.move(.manuscript, .end) }
         return textView
     }
 
@@ -162,6 +170,14 @@ struct ManuscriptTextView: UIViewRepresentable {
             let boundaries = sync.sceneBoundaries(in: tv.textStorage)
             return boundaries.indices.contains(segIdx) ? boundaries[segIdx].location
                                                        : parent.loader.storageOffset(forSceneID: sceneID)
+        }
+
+        func move(_ scope: ManuscriptSceneSync.NavigateScope, _ edge: ManuscriptEdge) {
+            guard let tv = textView,
+                  let target = sync.navigateTarget(scope, edge, caret: tv.selectedRange.location, in: tv.textStorage)
+            else { return }
+            place(target, in: tv)
+            _ = tv.becomeFirstResponder()
         }
 
         private func place(_ storageOffset: Int, in tv: ManuscriptUITextView) {

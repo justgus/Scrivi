@@ -6,6 +6,15 @@ struct ProjectToolbar: ToolbarContent {
     let session: ProjectSession
     let env: AppEnvironment
 
+    /// iOS: the system's secondary slot. With the editor role the iPad shows these in the middle of the bar and overflows
+    /// them into the system ⋯ menu when the width runs out; the iPhone keeps them in that menu (SP-199 live pass: as
+    /// primary items they pushed Worlds, Settings and ⋯ off the bar). The Mac keeps its own placement.
+    #if os(iOS)
+    private let placement = ToolbarItemPlacement.secondaryAction
+    #else
+    private let placement = ToolbarItemPlacement.automatic
+    #endif
+
     // MARK: — The window toolbar (EP-040 SP-134 / T-0543, app-shape study S1+S2)
     //
     // ⚠️ WHY IT IS DECLARED HERE, IN SWIFTUI, AND NOT AS AN AppKit `NSToolbar` (ruled 2026-09-22).
@@ -19,160 +28,122 @@ struct ProjectToolbar: ToolbarContent {
     // ⚠️ EVERY ITEM CALLS AN EXISTING CLOSURE. Nothing here re-implements a verb; the toolbar is a
     // SURFACE for what the menu bar already does (EP-040 AC2), and the two can never disagree
     // because there is one code path.
+    /// Width compact on iOS: the Inspector is a page, so its item opens it instead of toggling a column (SP-199 G3).
+    var showInspectorPage: (() -> Void)? = nil
+
+    // ⚠️ ORDERED BY USE, ONE SHAPE ON EVERY APPLE PLATFORM (user ruling 2026-11-03, SP-199). As the width shrinks the
+    // system moves items into its ⋯ overflow from the END, so the most-used come first and stay longest. ✅ It supersedes
+    // the 2026-09-22 per-object Scene / Chapter `ControlGroup`s: verbs are grouped by what they do (Navigate, New, Merge),
+    // two clicks each, and every one keeps its menu-bar item and shortcut. ✅ Manuscript Start/End return to the toolbar
+    // inside the labelled Navigate menu, where [T-0568]'s misreading as Scene Start/End cannot happen.
+    // ⚠️ EVERY ITEM CALLS AN EXISTING CLOSURE: the toolbar is a SURFACE for what the menu bar already does (EP-040 AC2).
     var body: some ToolbarContent {
-        // ⚠️ GROUPED PER MENU, AND THE GROUPING IS FUNCTIONAL — NOT COSMETIC (user ruling,
-        // live pass 2026-09-22).
-        //
-        // ✅ `ControlGroup` is what lets macOS COLLAPSE a group into a single popup control when
-        // the window is too narrow to show its members. ⛔ `ToolbarItemGroup` ALONE does not do
-        // that — it is layout adjacency only, which is what the first draft used, and at narrow
-        // widths its items would simply drop into the generic overflow menu instead of staying
-        // together as "Scene" and "Chapter".
-        //
-        // ⚠️ SO THE NESTING MATTERS: `ToolbarItemGroup { ControlGroup { … } label: { … } }`.
-        // The label is what the collapsed popup is titled with, which is why each one names its
-        // MENU — a writer who loses the buttons still finds "Scene" and "Chapter".
-        //
-        // ⚠️ Worlds and Project Settings are DELIBERATELY FREE-STANDING (user ruling): they are
-        // project-level surfaces, not members of a verb family, and collapsing them under a
-        // shared label would invent a grouping the menu bar does not have.
-
-        // Scene — mirrors the Scene menu, in its order (ScriviApp.swift:202-218).
-        ToolbarItemGroup {
-            ControlGroup {
-                Button { session.createSceneAction?() } label: {
-                    Label("New Scene", systemImage: "plus.rectangle")
-                }
-                .disabled(session.createSceneAction == nil)
-                .help("New Scene (⌘↩)")
-
-                Button { session.mergeSceneAction?() } label: {
-                    Label("Merge Scene", systemImage: "arrow.triangle.merge")
-                }
-                .disabled(session.mergeSceneAction == nil)
-                .help("Merge Scene with Previous (⌘⌫)")
-
-                Button { session.sceneStartAction?() } label: {
-                    Label("Scene Start", systemImage: "arrow.up.to.line.compact")
-                }
-                .disabled(session.sceneStartAction == nil)
-                .help("Go to Scene Start")
-
-                Button { session.sceneEndAction?() } label: {
-                    Label("Scene End", systemImage: "arrow.down.to.line.compact")
-                }
-                .disabled(session.sceneEndAction == nil)
-                .help("Go to Scene End")
-            } label: {
-                Label("Scene", systemImage: "plus.rectangle")
+        ToolbarItem(placement: placement) {
+            if let showInspectorPage {
+                Button(action: showInspectorPage) { Label("Inspector", systemImage: "sidebar.trailing") }
+            } else {
+                Toggle(isOn: Bindable(session).inspectorVisible) { Label("Inspector", systemImage: "sidebar.trailing") }
+                    .help("Show or hide the Scene Inspector")
             }
         }
 
-        // ⛔ [T-0568] NO Manuscript toolbar group — REMOVED by user ruling 2026-09-30: its
-        // buttons read as Scene Start/End. ✅ The commands live in the Project menu only,
-        // and ⌘↑/⌘↓ already reach the manuscript's ends from the text view.
-
-        // Chapter — mirrors the Chapter menu (ScriviApp.swift:220-231).
-        ToolbarItemGroup {
-            ControlGroup {
-                Button { session.createChapterAction?() } label: {
-                    Label("New Chapter", systemImage: "plus.rectangle.on.folder")
-                }
-                .disabled(session.createChapterAction == nil)
-                .help("New Chapter (⇧⌘↩)")
-
-                // ⚠️ EVERY VERB HAS ITS OWN GLYPH (user ruling, live pass 2026-09-22): a writer
-                // must not have to read a tooltip to tell Merge Scene from Merge Chapter.
-                //
-                // ✅ `rectangle.compress.vertical` — two bounded regions collapsing into one.
-                // ⚠️ Chosen after RENDERING the candidates, not from their names: `arrow.merge`
-                // and `arrow.trianglehead.merge` draw the SAME PICTURE as `arrow.triangle.merge`,
-                // and no circled merge symbol exists at all. ⛔ `arrow.trianglehead.branch` points
-                // OUTWARD — it means branch, the opposite of merge.
-                // ✅ It is arguably the truer metaphor here: a chapter IS a container, and merging
-                // collapses two containers into one.
-                //
-                // ⛔ The first draft used `arrow.triangle.merge.circle`, WHICH DOES NOT EXIST, and
-                // it rendered as a BLANK BUTTON with only a tooltip. SF Symbol names are not
-                // guessable; every symbol here was verified against `NSImage(systemSymbolName:)`.
-                Button { session.mergeChapterAction?() } label: {
-                    Label("Merge Chapter", systemImage: "rectangle.compress.vertical")
-                }
-                .disabled(session.mergeChapterAction == nil)
-                .help("Merge Chapter with Previous (⇧⌘⌫)")
-
-                // ✅ `.circle` distinguishes Chapter from Scene's `.compact` variant — the
-                // user's "enclosed" metaphor. ⚠️ `.alt` was tried first and REJECTED on render:
-                // it is NOT a double line, it draws the same as the plain symbol.
-                Button { session.chapterStartAction?() } label: {
-                    Label("Chapter Start", systemImage: "arrow.up.to.line.circle")
-                }
-                .disabled(session.chapterStartAction == nil)
-                .help("Go to Chapter Start")
-
-                Button { session.chapterEndAction?() } label: {
-                    Label("Chapter End", systemImage: "arrow.down.to.line.circle")
-                }
-                .disabled(session.chapterEndAction == nil)
-                .help("Go to Chapter End")
-            } label: {
-                Label("Chapter", systemImage: "plus.rectangle.on.folder")
+        ToolbarItem(placement: placement) {
+            Toggle(isOn: Bindable(session).timelineVisible) {
+                Label("Timeline", systemImage: "calendar.day.timeline.left")
             }
+            .help("Show or hide the Timeline")
         }
 
-        #if os(macOS)
-        // Visibility toggles.
-        //
-        // ⚠️ THERE IS NO NAVIGATOR BUTTON HERE. The first draft added one and it DUPLICATED the
-        // system sidebar control macOS already puts in the top-left — same icon, same behaviour.
-        // ✅ The platform's control is the affordance [I-0203] wanted; what was missing was STATE
-        // behind it, and T-0543's `columnVisibility` binding supplies that.
-        // ⛔ Do not re-add a second one.
-        ToolbarItemGroup {
-            ControlGroup {
-                Toggle(isOn: Bindable(session).inspectorVisible) {
-                    Label("Inspector", systemImage: "sidebar.trailing")
-                }
-                .help("Show or hide the Scene Inspector (⌥⌘I)")
-
-                Toggle(isOn: Bindable(session).timelineVisible) {
-                    Label("Timeline", systemImage: "calendar.day.timeline.left")
-                }
-                .help("Show or hide the Timeline (⌥⌘T)")
-
-                // ⚠️ Buffers visibility is APP-GLOBAL, not per-session: one floating palette
-                // follows the frontmost project (ProjectSession.swift:48-50). It binds to
-                // AppEnvironment, exactly as the View menu's "Show Buffers" does.
-                Toggle(isOn: Bindable(env).buffersPaletteVisible) {
-                    Label("Buffers", systemImage: "doc.on.clipboard")
-                }
-                .help("Show or hide the copy buffers (⌥⌘B)")
-            } label: {
-                Label("Show", systemImage: "sidebar.trailing")
-            }
-        }
-        #endif
-
-        // Project surfaces — FREE-STANDING, one item each (user ruling).
-        ToolbarItem {
-            Button { session.showWorlds = true } label: {
-                Label("Worlds", systemImage: "globe")
-            }
-            .help("Manage Worlds…")
-        }
-
-        ToolbarItem {
+        ToolbarItem(placement: placement) {
             Button { session.showProjectSettings = true } label: {
                 Label("Project Settings", systemImage: "gearshape")
             }
             .help("Project Settings… (⌘,)")
         }
 
-        // ⚠️ DECLARED SLOTS — EP-040 AC7 / AC5. Export and the text-size lens are what this
-        // toolbar makes ROOM for; ⛔ BUILDING THEM IS OUT OF SCOPE for this Epic (app-shape §4.2:
-        // "they are NEW FEATURES and should not be bundled into a structural restructure").
-        //
-        //   Document ▸ Export…              — no implementation exists yet
-        //   View     ▸ text-size lens       — no implementation exists yet (app-shape §2.3)
+        ToolbarItem(placement: placement) {
+            Button { session.showWorlds = true } label: {
+                Label("Worlds", systemImage: "globe")
+            }
+            .help("Manage Worlds…")
+        }
+
+        ToolbarItem(placement: placement) {
+            Menu {
+                item("Scene Start", "arrow.up.to.line.compact", session.sceneStartAction)
+                item("Scene End", "arrow.down.to.line.compact", session.sceneEndAction)
+                // ✅ `.circle` is Chapter's "enclosed" variant (user, live pass 2026-09-22).
+                item("Chapter Start", "arrow.up.to.line.circle", session.chapterStartAction)
+                item("Chapter End", "arrow.down.to.line.circle", session.chapterEndAction)
+                item("Manuscript Start", "arrow.up.to.line", session.manuscriptStartAction)
+                item("Manuscript End", "arrow.down.to.line", session.manuscriptEndAction)
+            } label: {
+                Label("Navigate", systemImage: "arrow.up.arrow.down")
+            }
+            .help("Go to a scene, chapter or manuscript start or end")
+        }
+
+        ToolbarItem(placement: placement) {
+            Menu {
+                item("New Scene", "plus.rectangle", session.createSceneAction)
+                item("New Chapter", "plus.rectangle.on.folder", session.createChapterAction)
+            } label: {
+                Label("New", systemImage: "plus")
+            }
+            .help("New Scene (⌘↩) or New Chapter (⇧⌘↩)")
+        }
+
+        ToolbarItem(placement: placement) {
+            Menu {
+                item("Merge Scene with Previous", "arrow.triangle.merge", session.mergeSceneAction)
+                // ✅ Its own glyph, so Merge Chapter never reads as Merge Scene (user, live pass 2026-09-22).
+                item("Merge Chapter with Previous", "rectangle.compress.vertical", session.mergeChapterAction)
+            } label: {
+                Label("Merge", systemImage: "arrow.triangle.merge")
+            }
+            .help("Merge Scene (⌘⌫) or Merge Chapter (⇧⌘⌫) with the previous one")
+        }
+
+        ToolbarItem(placement: placement) {
+            Menu {
+                Toggle(isOn: Bindable(session).worldWarningVisible) {
+                    Label("World Warnings", systemImage: "exclamationmark.triangle")
+                }
+                #if os(macOS)
+                // ⚠️ Buffers visibility is APP-GLOBAL: one palette follows the frontmost project.
+                Toggle(isOn: Bindable(env).buffersPaletteVisible) {
+                    Label("Buffers", systemImage: "doc.on.clipboard")
+                }
+                #endif
+            } label: {
+                Label("View", systemImage: "eye")
+            }
+            .help("View options")
+        }
+
+        ToolbarItem(placement: placement) {
+            Button(role: .destructive) { closeProject() } label: {
+                Label("Close Project", systemImage: "xmark")
+            }
+            .help("Close Project (⌘W)")
+        }
+
+        // ⚠️ DECLARED SLOTS — EP-040 AC7 / AC5: Export and the text-size lens; ⛔ not built in this Epic.
+    }
+
+    /// A menu entry for an existing closure, disabled where the platform has not wired it yet (SP-199 AC3).
+    private func item(_ title: String, _ symbol: String, _ action: (() -> Void)?) -> some View {
+        Button { action?() } label: { Label(title, systemImage: symbol) }
+            .disabled(action == nil)
+    }
+
+    private func closeProject() {
+        guard let pid = session.openProjectResult?.projectID else { return }
+        #if os(macOS)
+        // As the menu bar's Close Project: close the window; its windowWillClose tears the session down.
+        env.windows.closeWindow(projectID: pid)
+        #else
+        env.closeProject(projectID: pid)
+        #endif
     }
 }

@@ -27,6 +27,22 @@ enum PanelSwipe: Equatable {
         if compact { return [] }
         return (fromLeft ? [.showNavigator] : []) + (toRight ? [.hideInspector] : [])
     }
+
+    /// The edge whose swipes are this app's, not the manuscript's: both edges at width regular, the right edge at width
+    /// compact (the left there is the system's back swipe). A pan that starts here is CONSUMED: the text does not scroll.
+    static func ownsEdge(startX: CGFloat, width: CGFloat, compact: Bool) -> Bool {
+        (!compact && startX <= edgeZone) || startX >= width - edgeZone
+    }
+
+    /// Whether a finished pan is a panel swipe. From an owned edge, ANY inward travel past 60 pt counts, however much it
+    /// curves up or down (user, SP-199 live pass). Elsewhere it must be mostly sideways, and quick or long, so a selection
+    /// drag or a scroll is never taken.
+    static func isSwipe(startX: CGFloat, tx: CGFloat, ty: CGFloat, vx: CGFloat, width: CGFloat, compact: Bool) -> Bool {
+        if ownsEdge(startX: startX, width: width, compact: compact) {
+            return startX <= edgeZone ? tx > 60 : tx < -60
+        }
+        return abs(tx) > 1.5 * abs(ty) && abs(tx) > 60 && (abs(vx) > 200 || abs(tx) > 160)
+    }
 }
 
 /// Puts one pan recognizer on the WINDOW, and lets it see only touches that begin on the MANUSCRIPT (user, SP-199 live
@@ -67,23 +83,29 @@ struct PanelSwipeInstaller: UIViewRepresentable {
             window?.addGestureRecognizer(pan)
         }
         func gestureRecognizer(_ g: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool { true }
+        /// The manuscript the current touch began on.
+        private weak var textView: ManuscriptUITextView?
         func gestureRecognizer(_ g: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
             var view = touch.view
             while let v = view, !(v is ManuscriptUITextView) { view = v.superview }
+            textView = view as? ManuscriptUITextView
             return view != nil
         }
         @objc private func panned(_ g: UIPanGestureRecognizer) {
-            guard g.state == .ended, let window = g.view else { return }
+            guard let window = g.view else { return }
             let t = g.translation(in: window), v = g.velocity(in: window)
             let end = g.location(in: window).x
-            // [SCRIVI-SWIPE] temporary: SP-199 live pass, swipes still miss. Remove once the misses are explained.
-            NSLog("[SCRIVI-SWIPE] start=%.0f end=%.0f tx=%.0f ty=%.0f vx=%.0f width=%.0f", end - t.x, end, t.x, t.y, v.x,
-                  window.bounds.width)
-            // A swipe, not a selection drag or a scroll: mostly sideways, and quick or long.
-            guard abs(t.x) > 1.5 * abs(t.y), abs(t.x) > 60, abs(v.x) > 200 || abs(t.x) > 160 else { return }
-            let actions = PanelSwipe.actions(startX: end - t.x, endX: end, width: window.bounds.width,
-                                             compact: window.traitCollection.horizontalSizeClass == .compact)
-            NSLog("[SCRIVI-SWIPE] actions=%@", "\(actions)")
+            let compact = window.traitCollection.horizontalSizeClass == .compact
+            if g.state == .began, PanelSwipe.ownsEdge(startX: end - t.x, width: window.bounds.width, compact: compact),
+               let scroll = textView?.panGestureRecognizer {
+                // Disabling a recognizer cancels its gesture: the edge swipe is consumed, the text does not scroll.
+                scroll.isEnabled = false
+                scroll.isEnabled = true
+            }
+            guard g.state == .ended else { return }
+            guard PanelSwipe.isSwipe(startX: end - t.x, tx: t.x, ty: t.y, vx: v.x, width: window.bounds.width,
+                                     compact: compact) else { return }
+            let actions = PanelSwipe.actions(startX: end - t.x, endX: end, width: window.bounds.width, compact: compact)
             if !actions.isEmpty { parent.onSwipe(actions) }
         }
     }

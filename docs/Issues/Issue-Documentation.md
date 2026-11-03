@@ -113,7 +113,7 @@ never used). **This is not a filing defect** — do not re-open it as one.
 | 30 | I-0291 – I-0300 | [`Issue-verified-0291-0300.md`](Verified/Issue-verified-0291-0300.md) | 10 |
 | 31 | I-0301 – I-0310 | [`Issue-verified-0301-0310.md`](Verified/Issue-verified-0301-0310.md) | 8 |
 | 32 | I-0311 – I-0320 | [`Issue-verified-0311-0320.md`](Verified/Issue-verified-0311-0320.md) | 6 |
-| 33 | I-0321 – I-0330 | [`Issue-verified-0321-0330.md`](Verified/Issue-verified-0321-0330.md) | 1 |
+| 33 | I-0321 – I-0330 | [`Issue-verified-0321-0330.md`](Verified/Issue-verified-0321-0330.md) | 9 |
 
 ⚠️ **Rows 15 onward added 2026-09-30 ([SP-148] Audit Check A6)** — the table had stopped at batch 14. ✅ Each count is re-derived from the file (distinct IDs in its table rows ∪ `## I-0` sections), ⛔ never copied.
 

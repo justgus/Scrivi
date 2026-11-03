@@ -344,9 +344,10 @@ private struct ManuscriptEditorView: View {
             .navigationTitle(projectTitle)
             .navigationSubtitle(prefs.projectSubtitle)
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarRole(.editor)
             .toolbar {
-                ProjectToolbar(session: session, env: env)
-                editorMenuToolbar
+                ProjectToolbar(session: session, env: env,
+                               showInspectorPage: isCompact ? { applyPanel(.showInspector) } : nil)
             }
     }
 
@@ -758,34 +759,6 @@ private struct ManuscriptEditorView: View {
         prefs.projectTitle.trimmingCharacters(in: .whitespaces).isEmpty
             ? "Untitled" : prefs.projectTitle
     }
-
-    #if os(iOS)
-    // iOS has no menu bar on iPhone, so the project actions live on the editor's navigation bar.
-    @ToolbarContentBuilder
-    private var editorMenuToolbar: some ToolbarContent {
-        ToolbarItem(placement: .primaryAction) {
-            Menu {
-                Button("Project Settings…") { session.showProjectSettings = true }
-                // SP-199 G4: the way to every panel without a gesture. Width compact: the Inspector is a page.
-                if isCompact {
-                    Button("Scene Inspector") { applyPanel(.showInspector) }
-                } else {
-                    Toggle("Show Scene Inspector", isOn: Bindable(session).inspectorVisible)
-                }
-                Toggle("Show Timeline", isOn: Bindable(session).timelineVisible)
-                Toggle("Show World Warnings", isOn: Bindable(session).worldWarningVisible)
-                Divider()
-                Button("Close Project", role: .destructive) {
-                    if let pid = session.openProjectResult?.projectID {
-                        env.closeProject(projectID: pid)
-                    }
-                }
-            } label: {
-                Label("Actions", systemImage: "ellipsis.circle")
-            }
-        }
-    }
-    #endif
 
     private func consumePendingNavigation() {
         guard let sceneID = session.pendingNavigationSceneID else { return }

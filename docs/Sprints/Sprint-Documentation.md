@@ -466,8 +466,8 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-195** | `[Cross]` **[EP-052] S2a** — every scene save through the queue, Mac and Linux (T-0625, T-0626) | EP-052 | 2026-10-26 | 2026-11-02 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-195.md) |
 | **SP-196** | `[Cross]` **[EP-052] S2b** — structural edits through the queue, and the gesture cues (T-0627) | EP-052 | 2026-10-27 | 2026-11-02 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-196.md) |
 | **SP-197** | `[Cross]` **[EP-052] S3** — reads off the main thread and Spotlight in the background (T-0629–T-0631) | EP-052 | 2026-10-27 | 2026-11-02 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-197.md) |
-| **SP-198** | `[Apple]` **[EP-055] S1** — the manuscript on iPad and iPhone, and an iOS test target (T-0632–T-0635) | EP-055 | 2026-10-29 | — | 🟡 **ACTIVE** → [`Sprint-SP-198.md`](Sprint-SP-198.md) |
-| **SP-199** | `[Apple]` **[EP-055] S2** — panels by size class, the iOS gestures, the toolbar (T-0636–T-0638) | EP-055 | 2026-10-31 | — | 🟡 **ACTIVE** → [`Sprint-SP-199.md`](Sprint-SP-199.md) |
+| **SP-198** | `[Apple]` **[EP-055] S1** — the manuscript on iPad and iPhone, and an iOS test target (T-0632–T-0635) | EP-055 | 2026-10-29 | 2026-11-03 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-198.md) |
+| **SP-199** | `[Apple]` **[EP-055] S2** — panels by size class, the iOS gestures, the toolbar (T-0636–T-0638) | EP-055 | 2026-10-31 | 2026-11-03 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-199.md) |
 | **SP-200** | `[ScriviCore]` **[EP-052] AC11** — history load: compaction and compact records (T-0400, T-0643–T-0646) | EP-052 | 2026-11-01 | 2026-11-02 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-200.md) |
 | **SP-201** | `[Cross]` **[EP-052]** — Replace All without holding the window, no main-thread lock waits (I-0333, I-0334) | EP-052 | 2026-11-01 | 2026-11-02 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-201.md) |
 | **SP-160** | `[Linux]` **[EP-049] S1** — Linux writes Apple's manuscript format: escaping, paste/copy, pair deletion, Return/⌫, shared corpus (T-0586); + I-0276 | EP-049 | 2026-10-04 | 2026-10-04 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-160.md) |
@@ -509,6 +509,8 @@ by status, read the table.**
 > on neither time. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-11-03 (**SP-198, SP-199 → ✅ CLOSED** (user, 2026-11-03: *"close both sprints."*).)*
 
 *Last Updated: 2026-11-02 (**SP-195, SP-196, SP-197, SP-200, SP-201 → ✅ CLOSED** (user, 2026-11-02: *"on my authority, closed all the objects that have now tested completed"*); their rig ACs passed on the Linux VM ([T-0648]–[T-0655]).)*
 

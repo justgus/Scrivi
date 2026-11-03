@@ -1,18 +1,19 @@
 ---
 sprint: SP-198
 epic: EP-055
-status: Active
+status: Closed
+closed: 2026-11-03
 platform: Apple
 created: 2026-10-29
 ---
 
 # SP-198 — `[Apple]` [EP-055] **S1**: the manuscript on iPad and iPhone
 
-**Status:** 🟡 **ACTIVE 2026-10-29** (user: *"Activate EP-055, go with 27.1 … Duo simulator only for now. I have an iPhone
+**Status:** ✅ **CLOSED 2026-11-03** (user, 2026-11-03: *"close both sprints."*) — activated 2026-10-29 (user: *"Activate EP-055, go with 27.1 … Duo simulator only for now. I have an iPhone
 and iPad to test on."*).
-**Carries:** [T-0632], [T-0633], [T-0634], [T-0635] → [`../Tasks/Task-unverified.md`](../Tasks/Task-unverified.md);
-[I-0326], [I-0328] (found in the AC5 live passes) → [`../Issues/Issue-active.md`](../Issues/Issue-active.md); [I-0325], [I-0327] verified 2026-10-30 → [`../Issues/Verified/Issue-verified-0321-0330.md`](../Issues/Verified/Issue-verified-0321-0330.md).
-**Epic:** [EP-055] (AC1–AC4) → [`../Epics/Epic-active.md`](../Epics/Epic-active.md).
+**Carries:** [T-0632]–[T-0635] → `../Tasks/Verified/` (all ✅);
+[I-0325], [I-0326], [I-0327], [I-0328] (found in the AC5 live passes) → [`../Issues/Verified/Issue-verified-0321-0330.md`](../../Issues/Verified/Issue-verified-0321-0330.md).
+**Epic:** [EP-055] (AC1–AC4) → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md).
 **Goal:** a writer opens a real project on an iPad or an iPhone and the manuscript **works properly**: good to read and
 good to write on, with the system's default keyboard and layout behaviour (R3).
 
@@ -51,15 +52,19 @@ good to write on, with the system's default keyboard and layout behaviour (R3).
 - [x] AC1 — The manuscript host gap audit written and Q1 ruled ([T-0632]) — `docs/Scrivi_iOS_Manuscript_Design_v0_1.md`
 - [x] AC2 — The shared presentation layer compiles for iOS and the Mac behaves exactly as before: interop tests green and
       the TextKit 2 / type-source checks pass ([T-0633]) — 324/324 after each move; both checks pass
-- [ ] AC3 — On iPad and iPhone a real project opens to its manuscript, scrolls and reads with the Mac's typography,
+- [x] AC3 — ✅ 2026-11-03 On iPad and iPhone a real project opens to its manuscript, scrolls and reads with the Mac's typography,
       dividers and chapter titles, and typed text autosaves to the scene file ([T-0634]) — 🟠 implemented: the autosave test
       passes and a simulator render shows the typography; ⏳ on a device in AC5
 - [x] AC4 — An iOS test target that runs on the simulator and covers the manuscript ([T-0635]) — 10 tests, 2 suites, green
-- [ ] AC5 — Live passes on the user's iPad and iPhone (and the Duo simulator), on-screen and hardware keyboards, with
+- [x] AC5 — ✅ 2026-11-03 (iPad A, iPhone B, Duo simulator C, Mac D) Live passes on the user's iPad and iPhone (and the Duo simulator), on-screen and hardware keyboards, with
       nothing device- or keyboard-specific added (R3) — iPad simulator steps 3–5 ✅ (user, 2026-10-30); the caret jumps
       ([I-0325]), the lost headings ([I-0326], fixture repaired) and the raw Navigator titles ([I-0327]) found there are
       fixed, ⏳ re-pass. Pass 2 (2026-10-30): A, B, E, F, G, H ✅; C, D ⛔ ([I-0325] reopened, diagnosing); I ⛔ → [I-0328]
       (a close saved nothing), fixed
+
+*Last Updated: 2026-11-03 (all ACs met; T-0632–T-0635 ✅ Verified and archived; ⏳ close awaits the user.)*
+
+*Last Updated: 2026-11-03 ([I-0326], [I-0328] ✅ Verified and archived: Mac D1–D4, iPad A13, iPhone B7.)*
 
 *Last Updated: 2026-10-30 ([I-0325], [I-0327] ✅ Verified and archived; [I-0328] iPad ✅, Mac ⏳.)*
 
@@ -76,3 +81,5 @@ good to write on, with the system's default keyboard and layout behaviour (R3).
 *Last Updated: 2026-10-30 (R3: no Duo or keyboard special handling; R4: [T-0635] the iOS test target; Q2 withdrawn.)*
 
 *Last Updated: 2026-10-29 (created and activated with EP-055.)*
+
+*Last Updated: 2026-11-03 (**✅ CLOSED** (user, 2026-11-03: *"close both sprints."*).)*

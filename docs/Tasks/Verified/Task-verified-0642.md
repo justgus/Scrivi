@@ -8,7 +8,7 @@
 
 ## ✅ T-0642 — `[Apple]` The Timeline stays where the pinch leaves it
 
-**Epic:** [EP-055] · **Status:** ✅ **Verified 2026-11-01** (user, 2026-11-01: *"All these steps passed on both iPad and the Mac."*) · **Sprint:** [SP-199] (🟡 Active) → [`../../Sprints/Sprint-SP-199.md`](../../Sprints/Sprint-SP-199.md) · **Date Requested:** 2026-10-31
+**Epic:** [EP-055] · **Status:** ✅ **Verified 2026-11-01** (user, 2026-11-01: *"All these steps passed on both iPad and the Mac."*) · **Sprint:** [SP-199] (🟡 Active) → [`Sprint-SP-199.md`](../../Sprints/Closed/Sprint-SP-199.md) · **Date Requested:** 2026-10-31
 
 **What (user, SP-199 live pass):** on release of a pinch the view jumped somewhere other than what was on screen.
 **Cause:** `onEnded` recentred from the PRE-pinch window (the gesture state had already reset to 1).

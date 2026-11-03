@@ -9,7 +9,9 @@ Issues the user has VERIFIED, archived out of `Issue-active.md`.
 | **I-0322** | `[Linux]` ⚠️ **Linux has no "Project File Not Available" handling at all ([T-0570] was Apple-only): no banner when the project's drive goes away, and no "Some changes can't be saved" question on close or quit.** Found 2026-10-24 by reading, during [SP-193] ([I-0306]). → [details](#i-0322) | High | ✅ **Verified 2026-11-02** (folded into [SP-195] (Q3) and built there; [T-0648] passed on the Linux VM (the drive pulled: the red line, *"Some changes can't be saved"*, the held save landing)) |
 | **I-0324** | `[ScriviCore]` ⛔ **With real scene links, dumas-prose-timelines does not open: every relationship endpoint walks the whole manuscript.** Found 2026-10-28 linking 7,029 scenes to the new Dumas world: `repairDangling` (every open) re-parsed all 1,175 scene sidecars for each of ~14,000 endpoints (5+ min at full CPU, local disk, not finished); a card's edge listing and each citation listing did the same. → [details](#i-0324) | High | [SP-197] | ✅ **Verified 2026-11-02** ([SP-197]'s Mac pass (2026-11-01) and [T-0650] on the VM (checklist: Pass)) |
 | **I-0325** | `[Apple]` ⚠️ **iOS: the caret jumps to the start of a scene — the last character of the manuscript sends it to the previous scene's start, and typing or scrolling moves it elsewhere.** The iOS selection `onChange` had none of the Mac's [I-0132] loop break, so every viewport change echoed back as a navigation. ⚠️ Re-pass 2026-10-30: the end-of-manuscript case passes; a click then typing still lands elsewhere — diagnosing. → [details](#i-0325) | High | [SP-198] | ✅ Verified |
+| **I-0326** | `[Apple]` `[Linux]` ⛔ **Replace All of a heading's first word deletes the heading's `## `** — dumas-prose-timelines lost the heading on all 542 scenes whose heading starts "The". The selection snap took the hidden prefix into the match. → [details](#i-0326) | High | [SP-198] | ✅ **Verified 2026-11-03** (user: Mac D1–D4; the Linux half → [T-0651]) |
 | **I-0327** | `[Apple]` ⚠️ **The Scene Navigator showed an untitled scene's first line RAW — `## Youth against age`, escapes and emphasis markers included.** ✅ Ruled (user, 2026-10-30): *"The Navigator should show what the manuscript shows and hide what the manuscript hides."* → [details](#i-0327) | Medium | [SP-198] | ✅ Verified |
+| **I-0328** | `[Apple]` ⛔ **Closing a project (⌘W / Close Project) saved nothing: typing inside the 1 s autosave was LOST, and the project reopened where it had been opened, not where the writer left it.** Both platforms: `ProjectSession.close()`, the one chokepoint every close reaches, released the session without the save and resume stamp that quit and app-resign do. → [details](#i-0328) | High | [SP-198] | ✅ **Verified 2026-11-03** (user: Mac D1–D4, iPad A13, iPhone B7) |
 | **I-0329** | `[Apple]` ⛔ **iPad: dragging a Timeline scene dot a second time froze the whole UI for about 6 minutes** (no touch, keyboard or tap), then it recovered by itself. Found by the user on a real iPad with a hardware keyboard, 2026-10-31, in [SP-199]'s live pass, project `dumas-prose-timelines` (1,175 scenes). Steps: zoom the Timeline, drag a dot (it moves; on release the Time Delta Picker popover opens, as designed); dismiss it (the dot returns, as designed); drag a dot again → freeze. Evidence: the console logged `_UISystemGestureGateGestureRecognizer … has been in possible phase for 359.959951 seconds` and `Gesture: System gesture gate timed out`, which points to the main thread or the touch pipeline being stuck. ✅ **Cause found** (second `bt all`, taken WHILE frozen, 2026-10-31): the freeze starts when a Time Delta Picker choice is tapped ("that night"), not on the drag. `TimelineViewModel.setStoryTime` → `recomputeAndPersistFrom` (`TimelineStripView.swift:784`) calls `scrivi_set_scene_story_time` once for EVERY later scene, on the MAIN thread (~1,172 calls here). Each call's `StoryTimePatchGuard` (`scrivi_c_api.cpp:474`) drops the index BEFORE the write, so the core's `findSceneMetaPath` rebuilds the whole `ProjectIndex` (every sidecar, over iCloud) — ~1,172 full traversals ≈ 1.4M reads. The read-amplification class again; T-0549's patch saved only the AFTER rebuild. Linux `EditorShell.cpp:3763` runs the same chain loop. The dismiss "snap back" is by design (dismiss commits nothing); the moved position seen after reload is the "that night" write finishing. ✅ **Fix (user ruling: both halves, 2026-10-31):** (1) `StoryTimePatchGuard` no longer drops the index BEFORE the write (`scrivi_c_api.cpp:479`) — a warm index locates the scene, the after-write patch/drop is unchanged; (2) only the moved scene is saved — Apple `recomputeOffsetsFrom` (`TimelineStripView.swift:785`) recomputes later scenes in memory, Linux `showTimeDeltaPicker` (`EditorShell.cpp:3763`) dropped its re-save loop; both loads already derive offsets from the gap chain; (3) `exportProjectTimeline` derives scene starts from the gap chain instead of the stored `offsetMs` (`ScriviCore.cpp:1110`). Test: `ProjectIndexTests.cpp` "a story-time write keeps the WARM index (I-0329)". ctest 790/790, Mac interop 327, iOS 14/14, Mac build. ⚠️ Linux not built or smoked; no mutation check of the new test. iPad pass 1 (2026-10-31): steps 1, 2, 5 pass (no freeze on "that night"; the Mac step passes). Steps 3–4 were blocked: the picker showed only its first row of buttons. Cause: `.popover(arrowEdge: .top)` is honoured on iOS 18.1+, so the picker opened BELOW the dot, inside the bottom strip. Fix: `arrowEdge` is `nil` on iOS (`SceneDotView.pickerArrowEdge`); the Mac keeps `.top`. iPad pass 2: all steps pass, the picker fits. | High | — | ✅ **Verified** (user, 2026-10-31) |
 | **I-0330** | `[ScriviCore]` `[Apple]` ⛔ **The pending-edge sweep walked the whole manuscript (2,538 file operations on dumas) on every switch back into the app, and its answer is discarded unless a world is away.** Found in the SP-197 Mac live pass log, 2026-11-01. → [details](#i-0330) | Medium | [SP-197] | ✅ **Verified** (user, 2026-11-01: Mac re-check) |
 
@@ -234,3 +236,71 @@ close guard through every close path (the X, Close Project, Quit; [I-0306]'s les
 drive pulled first.
 
 ---
+
+---
+
+## I-0328
+
+**Title:** Closing a project saved nothing: recent typing lost, resume place not stamped
+**Status:** ✅ Verified 2026-11-03 (user)
+**Platform:** `[Apple]` — Mac and iOS (shared `ProjectSession`)
+**Component:** `ProjectSession.close()` (`Scrivi/App/ProjectSession.swift:394`), reached by the Mac's red button / ⌘W
+(`windowWillClose → didCloseProjectWindow → closeProject`) and iOS's File ▸ Close Project (`AppEnvironment.closeProject`)
+**Severity:** High. Silent loss of the writer's last second of typing on every close.
+**Sprint:** [SP-198]
+**Date Identified:** 2026-10-30, live pass step I on the iPad simulator: *"Position at the end of the manuscript … Cmd-W.
+Open Project. I'm in Scene 17 of Chapter 49."* The console: the reopen resolved scene index 1014, where the session had
+OPENED; no `quit:` / `stampWritingSurface` line at the close (they appear only at `onAppResign`).
+
+**Root cause:** `close()` committed and closed the history and released the session, but never ran
+`saveAllDirtyBlocking()` — the history flush, the dirty-scene writes, the resume stamp and the wait for the write queue that
+`applicationWillTerminate` and `willResignActive` do. A scene typed into within the 1 s autosave was dropped with the loader,
+and the resume place was whatever the last save had stamped. The test showed the typing loss on the Mac as well.
+
+**Resolution:** `close()` runs `saveAllDirtyBlocking()` first (`ProjectSession.swift:409–412`), so every close path saves
+and stamps exactly as a quit does. The Mac's [I-0305] wait has already let background writes land before this runs.
+**Files Affected:** `Scrivi/App/ProjectSession.swift`; test `closeKeepsThePlace` (`ScriviInteropTests.swift:7869`).
+**Verification:** `closeKeepsThePlace` (type into scene 2, move to scene 3, close, reopen in a new session) failed before
+the fix — the reopened scene held `"Bravo"`, not `"BravoX"` — and passes after. Mac interop 327/327, iOS 10/10.
+⏳ User: iPad — leave the caret somewhere, ⌘W, Open Project; type, ⌘W at once, reopen, the typing is there. Mac: the same.
+✅ **iPad half passed** (user, 2026-10-30, pass 4 step 5). ⏳ **Mac half not yet run** — the fix is in shared code, so it needs its own check.
+
+---
+
+## I-0326
+
+**Title:** Replace All of a heading's first word deletes the heading's `## `
+**Status:** ✅ Verified 2026-11-03 (user)
+**Platform:** `[Apple]` (both Mac and iOS: shared code) and `[Linux]` (the same rule, ported)
+**Component:** `MarkdownEscapes.isUnreachable` (`Scrivi/Views/ManuscriptEscapes.swift:176–182`), used by `snapSelection`,
+which `applyReplacements` (`ManuscriptTextView.swift:2480`) and the edit verdict (`ManuscriptEditing.swift:444`) call;
+Linux `ManuscriptEditor::isUnreachable` (`platforms/linux/src/ManuscriptEditor.cpp:172`)
+**Severity:** High. Silent loss of the writer's formatting across hundreds of scenes in one step.
+**Sprint:** [SP-198]
+**Date Identified:** 2026-10-30. The user: *"in the dumas-prose-timelines project many (and I mean a lot) of the Scene headers
+have lost their formatting."* On disk, 542 of 1,175 scenes begin `the claim stated plainly` where the fixture generator
+(`ScriviCore/tools/scrivi_make_test_world.cpp:231`) writes `## The claim stated plainly`. Exactly the topics that start
+"The" are affected, 47–48 scenes each, and `They` → `they` in body text: a case-sensitive Replace All of `The` → `the`
+from an earlier live pass. The iCloud copy and the rig's copy are identical.
+
+**Root cause:** a SELECTION never starts just past a stop run (`snapSelection`, E2-S2), so ⌘B on a bold word takes the `**`
+with it. A heading prefix `## ` is a stop run too, so a match at a heading's first presented character (storage 3..<6) was
+widened to 0..<6 and replaced, `## ` included. The same rule applied to a writer's own selection typed over or cut.
+
+**Resolution:** `StopRun` carries `blockPrefix` (a heading or list prefix); the boundary just past one is the paragraph's
+first character, so it is reachable. An emphasis opener is still taken in (⌘B's toggle). Linux: the same exemption.
+**Files Affected:** `Scrivi/Views/ManuscriptEscapes.swift`, `Scrivi/Views/ManuscriptEditing.swift` (`runLookup`),
+`platforms/linux/src/ManuscriptEditor.cpp`; tests `Scrivi/Tests/ScriviInteropTests.swift` (`replaceAllKeepsHeading`, and a
+`snapSelection` case in the stop-run test), `platforms/linux/tests/replace_smoke.cpp` (a heading seed scene).
+**Verification:** `replaceAllKeepsHeading` failed before the fix with the dumas damage exactly (`"the claim\n\nthey said."`)
+and passes after. Mac interop 325/325, iOS 10/10.
+**Fixture repaired (user: *"yes, please repair the document"*, 2026-10-30):** both copies (iCloud and `~/ScriviLinux/projects`)
+restored from their OWN history logs: the two 2026-10-26 Replace All groups (`The` → `teh`, then `teh` → `the`) undone per
+scene, each undo checked byte-for-byte against the recorded inserted text; the writer's later typing replayed on top. 1,167
+scenes restored per copy, 0 skipped; one scene's two keystrokes (typing `##` and deleting it — an attempt at this same
+heading) were not replayed. Backups: `dumas-manuscript-before-repair-2026-10-30.tar.gz` beside each package. ⚠️ Sidecar
+`stats` were not recomputed; the next open records an `externalChange` barrier per scene (design §6.b), so undo stops there.
+⏳ User: Replace All of a heading's first word on the Mac; a selection from a heading's start typed over.
+➡️ The Linux half → [T-0651] ([EP-057], the rig); this Issue may be Verified on the Mac steps alone.
+
+*Last Updated: 2026-11-03 — **I-0326, I-0328** archived (user-verified: Mac D1–D4; I-0328 also iPad and iPhone).*
