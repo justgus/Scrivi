@@ -41,7 +41,7 @@ does not exist and is owed to no one yet.**
 
 ## Backlog Issues (open, no Sprint)
 
-✅ **The rows live in [`Issue-backlog.md`](Issue-backlog.md)** — [I-0202], [I-0147], [I-0275] (filed 2026-10-04), [I-0284] (filed 2026-10-08), [I-0286] (filed 2026-10-10). ([I-0287] fixed in [SP-178] 2026-10-11 and verified 2026-10-15, archived.) ([I-0288] fixed in [SP-178] and verified 2026-10-12, archived.) ([I-0277] fixed and verified in [SP-171], archived.) ([I-0283] fixed and verified 2026-10-08, archived.) ([I-0281] fixed and verified in [SP-169], archived.) ([I-0278] fixed and verified in [SP-167], archived.) ⛔ This line read *"Currently: 0 — the backlog is empty"* while two Issues sat there; corrected 2026-10-04.
+✅ **The rows live in [`Issue-backlog.md`](Issue-backlog.md)** — [I-0202], [I-0147], [I-0275] (filed 2026-10-04), [I-0284] (filed 2026-10-08). ([I-0286] fixed 2026-11-02, moved to `Issue-active.md`.) ([I-0287] fixed in [SP-178] 2026-10-11 and verified 2026-10-15, archived.) ([I-0288] fixed in [SP-178] and verified 2026-10-12, archived.) ([I-0277] fixed and verified in [SP-171], archived.) ([I-0283] fixed and verified 2026-10-08, archived.) ([I-0281] fixed and verified in [SP-169], archived.) ([I-0278] fixed and verified in [SP-167], archived.) ⛔ This line read *"Currently: 0 — the backlog is empty"* while two Issues sat there; corrected 2026-10-04.
 
 ✅ **I-0018 was the last entry**, archived 2026-08-19 as ✅ Verified (audit ruling **R-02**) → batch 2.
 Its rescoped behaviour was delivered by I-0131's restore centring, verified 2026-08-18.

@@ -1,6 +1,11 @@
 #include "TimelinePanel.hpp"
 
 #include <QContextMenuEvent>
+#include <QFrame>
+#include <QLabel>
+#include <QScrollArea>
+#include <QTimer>
+#include <QVBoxLayout>
 #include <QCursor>
 #include <QHelpEvent>
 #include <QMenu>
@@ -269,6 +274,23 @@ void TimelinePanel::recomputeWindow()
     minMs_ = lo;
     maxMs_ = hi;
 
+    // ✅ [I-0340] Apple's I-0045 rule (`TimelineStripView.maxZoom`): zoom reaches far enough to separate the two closest
+    // project-row dots (floor 1 h). A fixed 500× left dumas's hour-apart scenes in ~78-scene aggregates once imported
+    // history (centuries) framed the strip.
+    QList<qint64> offsets;
+    offsets.reserve(dots_.size() + histDots_.size());
+    for (const Dot& d : dots_) { offsets.append(d.offsetMs); }
+    for (const HistDot& h : histDots_) { offsets.append(h.offsetMs); }
+    std::sort(offsets.begin(), offsets.end());
+    qint64 gap = std::numeric_limits<qint64>::max();
+    for (int i = 1; i < offsets.size(); ++i) {
+        if (offsets.at(i) != offsets.at(i - 1)) { gap = std::min(gap, offsets.at(i) - offsets.at(i - 1)); }
+    }
+    constexpr qint64 kMinVisibleSpanMs = kMsPerHour;   // the finest useful window
+    constexpr double kMaxZoomCeiling = 100000.0;       // safety bound
+    const qint64 target = gap == std::numeric_limits<qint64>::max() ? (hi - lo) : std::max(kMinVisibleSpanMs, gap);
+    maxZoom_ = std::clamp(static_cast<double>(hi - lo) / static_cast<double>(std::max<qint64>(target, 1)), 1.0, kMaxZoomCeiling);
+
     // Story-structure bands wrap the MAIN storyline only: story-time [0, last-scene-end],
     // NOT the flashback region left of the epoch (user decision 2026-07-23). Use the
     // scene span (not historical) for the storyline end so a distant historical event
@@ -279,6 +301,144 @@ void TimelinePanel::recomputeWindow()
     }
     storyEndMs_ = std::max<qint64>(sceneEnd, 1);
 }
+
+namespace {
+// ✅ [I-0286] The aggregate's members open in their OWN window, as Apple's popover (`AggregateMembersPopover`), never painted
+// inside the strip, which clipped them at its edges. Bounded as Apple's ([I-0208] defect 2): up to 12 members a ring, beyond
+// that a scrollable grid 300 px wide and at most 260 tall. A caption names the member under the pointer ([I-0212]).
+constexpr int kPopupMaxRingMembers = 12;    // Apple: kAggregatePopoverMaxRingMembers
+constexpr int kPopupMaxGridHeight  = 260;   // Apple: kAggregatePopoverMaxGridHeight
+constexpr int kPopupGridWidth      = 300;
+
+struct PopupMember { QString title; QColor fill; bool active = false; QString sceneID; };
+
+class MemberDots : public QWidget {
+public:
+    MemberDots(QList<PopupMember> members, std::function<void(int)> hovered, std::function<void(int)> clicked)
+        : members_(std::move(members)), hovered_(std::move(hovered)), clicked_(std::move(clicked))
+    {
+        setMouseTracking(true);
+        const int n = int(members_.size());
+        if (n <= kPopupMaxRingMembers) {
+            const double spacing = 2.0 * kDotRadius + 8.0;
+            const double ringR = std::max(spacing, n * spacing / 6.283185307179586);
+            const double canvas = 2.0 * (ringR + spacing);
+            for (int i = 0; i < n; ++i) {   // clockwise from 12 o'clock, as Apple's
+                const double a = -1.5707963267948966 + 6.283185307179586 * i / n;
+                centres_.append({canvas / 2 + ringR * std::cos(a), canvas / 2 + ringR * std::sin(a)});
+            }
+            setFixedSize(int(canvas), int(canvas));
+        } else {
+            const int cell = int(2.0 * kDotRadius + 10.0), gap = 6;
+            const int cols = std::max(1, (kPopupGridWidth - 20 + gap) / (cell + gap));
+            for (int i = 0; i < n; ++i) {
+                centres_.append({(i % cols) * (cell + gap) + cell / 2.0, (i / cols) * (cell + gap) + cell / 2.0});
+            }
+            setFixedSize(cols * (cell + gap), ((n + cols - 1) / cols) * (cell + gap));
+        }
+    }
+
+protected:
+    void paintEvent(QPaintEvent*) override
+    {
+        QPainter painter(this);
+        painter.setRenderHint(QPainter::Antialiasing);
+        const QColor ring = palette().color(QPalette::Highlight);
+        for (int i = 0; i < members_.size(); ++i) {
+            const double r = i == hover_ ? kDotRadius + 2.0 : kDotRadius;   // grows on hover, as Apple's
+            painter.setPen(Qt::NoPen);
+            painter.setBrush(members_.at(i).fill);
+            painter.drawEllipse(centres_.at(i), r, r);
+            if (members_.at(i).active) {
+                painter.setPen(QPen(ring, 1.5));
+                painter.setBrush(Qt::NoBrush);
+                painter.drawEllipse(centres_.at(i), r + 3.0, r + 3.0);
+            }
+        }
+    }
+    void mouseMoveEvent(QMouseEvent* e) override { setHover(at(e->position())); }
+    void leaveEvent(QEvent*) override { setHover(-1); }
+    void mouseReleaseEvent(QMouseEvent* e) override
+    {
+        if (e->button() == Qt::LeftButton) {
+            if (const int i = at(e->position()); i >= 0) { clicked_(i); }
+        }
+    }
+
+private:
+    int at(const QPointF& p) const
+    {
+        for (int i = 0; i < centres_.size(); ++i) {
+            if (QLineF(p, centres_.at(i)).length() <= kDotRadius + 4.0) { return i; }
+        }
+        return -1;
+    }
+    void setHover(int i)
+    {
+        if (i == hover_) { return; }
+        hover_ = i;
+        hovered_(i);
+        update();
+    }
+    QList<PopupMember> members_;
+    QList<QPointF> centres_;
+    std::function<void(int)> hovered_;
+    std::function<void(int)> clicked_;
+    int hover_ = -1;
+};
+
+// A tool window, not a grabbing popup: it takes no focus and no click, so the writer's next click elsewhere still lands.
+// It closes once the pointer has been away from both it and its aggregate for a moment (`closeTimer`).
+class AggregatePopup : public QFrame {
+public:
+    AggregatePopup(QWidget* owner, QTimer* closeTimer)
+        : QFrame(owner, Qt::ToolTip | Qt::FramelessWindowHint), closeTimer_(closeTimer)
+    {
+        setAttribute(Qt::WA_ShowWithoutActivating);
+        setFrameShape(QFrame::StyledPanel);
+        setAutoFillBackground(true);
+        setObjectName(QStringLiteral("timelineAggregatePopup"));
+    }
+    void setMembers(const QList<PopupMember>& members, std::function<void(const QString&)> chose)
+    {
+        delete layout();
+        qDeleteAll(findChildren<QWidget*>(Qt::FindDirectChildrenOnly));
+        auto* box = new QVBoxLayout(this);
+        box->setContentsMargins(12, 12, 12, 12);
+        box->setSpacing(8);
+        const QString idle = tr("%n items — hover to read, click to go", "", int(members.size()));
+        auto* caption = new QLabel(idle, this);
+        caption->setWordWrap(true);
+        caption->setAlignment(Qt::AlignCenter);
+        caption->setFixedWidth(kPopupGridWidth - 24);
+        caption->setMinimumHeight(2 * caption->fontMetrics().lineSpacing());   // the size never chases the pointer
+        auto* dots = new MemberDots(
+            members,
+            [caption, members, idle](int i) { caption->setText(i < 0 ? idle : members.at(i).title); },
+            [members, chose](int i) { chose(members.at(i).sceneID); });
+        if (members.size() <= kPopupMaxRingMembers) {
+            box->addWidget(dots, 0, Qt::AlignHCenter);
+        } else {
+            auto* scroll = new QScrollArea(this);
+            scroll->setWidget(dots);
+            scroll->setFrameShape(QFrame::NoFrame);
+            scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+            scroll->setFixedWidth(kPopupGridWidth - 24);
+            scroll->setFixedHeight(std::min(kPopupMaxGridHeight, dots->height() + 2));
+            box->addWidget(scroll);
+        }
+        box->addWidget(caption);
+        adjustSize();
+    }
+
+protected:
+    void enterEvent(QEnterEvent*) override { closeTimer_->stop(); }
+    void leaveEvent(QEvent*) override { closeTimer_->start(); }
+
+private:
+    QTimer* closeTimer_;
+};
+}   // namespace
 
 double TimelinePanel::memberX(const ClusterMember& m) const
 {
@@ -386,82 +546,6 @@ void TimelinePanel::paintAggregate(QPainter& painter, const Aggregate& agg,
                      Qt::AlignCenter | Qt::TextDontClip, QString::number(n));
 }
 
-QPointF TimelinePanel::fanOutMemberPos(int slot, double ax, double cy) const
-{
-    // Hexagonal ring positions (FR-035b): slot 0 at the centre; ring r (r≥1) holds 6r
-    // positions at 360°/(6r) increments, clockwise from 12 o'clock. Rings expand upward
-    // from the baseline. Radius grows one dot-spacing per ring.
-    if (slot <= 0) {
-        return QPointF(ax, cy);
-    }
-    int idx = slot - 1;   // 0-based position among the ring slots
-    int ring = 1;
-    while (idx >= 6 * ring) {
-        idx -= 6 * ring;
-        ++ring;
-    }
-    const int count = 6 * ring;
-    const double radius = ring * (2.0 * kDotRadius + 3.0);
-    // Clockwise from 12 o'clock: angle measured CW from straight up.
-    constexpr double kTwoPi = 6.283185307179586;
-    const double angle = kTwoPi * (static_cast<double>(idx) / count);
-    const double dx = radius * std::sin(angle);
-    const double dy = -radius * std::cos(angle);   // up = negative y
-    return QPointF(ax + dx, cy + dy);
-}
-
-double TimelinePanel::fanRadius(int memberCount) const
-{
-    // The outermost ring index used by `memberCount` members (slot 0 = centre, ring r
-    // holds 6r slots), then that ring's radius + a dot + padding — the grey backing disc
-    // must enclose every fanned dot.
-    int remaining = memberCount - 1;   // slots beyond the centre
-    int ring = 0;
-    while (remaining > 0) {
-        ++ring;
-        remaining -= 6 * ring;
-    }
-    const double outer = ring * (2.0 * kDotRadius + 3.0);
-    return outer + kDotRadius + 6.0;   // + dot + padding
-}
-
-void TimelinePanel::paintFanOut(QPainter& painter, const Aggregate& agg,
-                                double ax, double cy) const
-{
-    const QPalette& pal = palette();
-    const QColor sceneColor  = pal.color(QPalette::Text);
-    const QColor activeColor = pal.color(QPalette::Highlight);
-    const QColor histColor(0xC8, 0xA9, 0x7A);
-
-    // Grey backing disc (finding, T-0348): the fan is an OVERLAY drawn above every other
-    // timeline entity (it's painted last, after all dots), and a filled grey circle
-    // behind the fanned dots makes it immediately readable over a busy background (bands,
-    // neighbouring dots). A darker rim outlines the overlay.
-    const double r = fanRadius(static_cast<int>(agg.members.size()));
-    QColor backing = pal.color(QPalette::Window);
-    // Nudge toward a neutral grey with high opacity so underlying marks don't bleed through.
-    backing = QColor(0x88, 0x88, 0x88);
-    backing.setAlpha(232);
-    painter.setPen(QPen(pal.color(QPalette::Mid), 1.0));
-    painter.setBrush(backing);
-    painter.drawEllipse(QPointF(ax, cy), r, r);
-
-    for (int s = 0; s < agg.members.size(); ++s) {
-        const ClusterMember& m = agg.members.at(s);
-        const QPointF p = fanOutMemberPos(s, ax, cy);
-        const bool active =
-            m.isScene && dots_.at(m.index).sceneID == activeSceneID_;
-        painter.setPen(Qt::NoPen);
-        painter.setBrush(m.isScene ? (active ? activeColor : sceneColor) : histColor);
-        painter.drawEllipse(p, kDotRadius, kDotRadius);
-        if (active) {
-            painter.setPen(QPen(activeColor, 1.5));
-            painter.setBrush(Qt::NoBrush);
-            painter.drawEllipse(p, kDotRadius + 3.0, kDotRadius + 3.0);
-        }
-    }
-}
-
 int TimelinePanel::aggregateAtPoint(const QList<Aggregate>& aggs, const QPoint& p) const
 {
     const double cy = projectRowY();
@@ -478,55 +562,62 @@ int TimelinePanel::aggregateAtPoint(const QList<Aggregate>& aggs, const QPoint& 
     return -1;
 }
 
-bool TimelinePanel::fanMemberAt(const QList<Aggregate>& aggs, int aggIndex,
-                                const QPoint& p, ClusterMember& out) const
+void TimelinePanel::showMemberPopup(const Aggregate& agg)
 {
-    if (aggIndex < 0 || aggIndex >= aggs.size()) {
-        return false;
+    if (popupCloseTimer_ == nullptr) {
+        popupCloseTimer_ = new QTimer(this);
+        popupCloseTimer_->setSingleShot(true);
+        popupCloseTimer_->setInterval(350);
+        connect(popupCloseTimer_, &QTimer::timeout, this, [this] {
+            if (popup_ != nullptr && !popup_->underMouse()) {
+                popup_->hide();
+                popupCentreMs_ = std::numeric_limits<qint64>::min();
+            }
+        });
     }
-    const double cy = projectRowY();
-    const double ax = xForOffset(aggs.at(aggIndex).centerOffsetMs);
-    const Aggregate& agg = aggs.at(aggIndex);
-    for (int s = 0; s < agg.members.size(); ++s) {
-        const QPointF fp = fanOutMemberPos(s, ax, cy);
-        const double dx = p.x() - fp.x();
-        const double dy = p.y() - fp.y();
-        if (dx * dx + dy * dy <= kHitRadius * kHitRadius) {
-            out = agg.members.at(s);
-            return true;
+    popupCloseTimer_->stop();
+    if (popup_ != nullptr && popup_->isVisible() && popupCentreMs_ == agg.centerOffsetMs) {
+        return;   // already showing this aggregate
+    }
+    if (popup_ == nullptr) {
+        popup_ = new AggregatePopup(this, popupCloseTimer_);
+    }
+    const QPalette& pal = palette();
+    QList<PopupMember> members;
+    for (const ClusterMember& m : agg.members) {
+        if (m.isScene) {
+            const Dot& d = dots_.at(m.index);
+            QString title = d.title;
+            if (!d.chapterTitle.isEmpty()) { title += QStringLiteral(" — ") + d.chapterTitle; }
+            members.append({title + QStringLiteral("\n") + humanStoryTime(d.offsetMs),
+                            d.sceneID == activeSceneID_ ? pal.color(QPalette::Highlight) : pal.color(QPalette::Text),
+                            d.sceneID == activeSceneID_, d.sceneID});
+        } else {
+            const HistDot& h = histDots_.at(m.index);
+            members.append({h.title + QStringLiteral("\n") + tr("Historical event") + QStringLiteral(" · ")
+                                + humanStoryTime(h.offsetMs),
+                            QColor(0xC8, 0xA9, 0x7A), false, QString()});
         }
     }
-    return false;
+    static_cast<AggregatePopup*>(popup_)->setMembers(members, [this](const QString& sceneID) {
+        if (sceneID.isEmpty()) { return; }   // a historical event: read, not navigated to
+        popup_->hide();
+        popupCentreMs_ = std::numeric_limits<qint64>::min();
+        emit sceneClicked(sceneID);
+    });
+    popupCentreMs_ = agg.centerOffsetMs;
+    // Above the aggregate, centred on it (the compositor keeps it on screen).
+    const QPoint at = mapToGlobal(QPoint(int(xForOffset(agg.centerOffsetMs)), int(projectRowY())));
+    popup_->move(at.x() - popup_->width() / 2, at.y() - popup_->height() - int(kDotRadius) - 10);
+    popup_->show();
 }
 
-void TimelinePanel::updateHoverFan(const QPoint& p)
+void TimelinePanel::leaveEvent(QEvent* event)
 {
-    const QList<Aggregate> aggs = computeClusters();
-    int newFan = -1;
-
-    // Keep the current fan while the pointer stays inside its grey backing disc — the
-    // same radius the overlay is drawn at (finding, T-0348), so the fan dismisses as soon
-    // as the pointer leaves the visible disc, no sooner and no later.
-    if (fannedAggregate_ >= 0 && fannedAggregate_ < aggs.size()) {
-        const double cy = projectRowY();
-        const double ax = xForOffset(aggs.at(fannedAggregate_).centerOffsetMs);
-        const double dx = p.x() - ax;
-        const double dy = p.y() - cy;
-        const double keep = fanRadius(
-            static_cast<int>(aggs.at(fannedAggregate_).members.size()));
-        if (dx * dx + dy * dy <= keep * keep) {
-            newFan = fannedAggregate_;
-        }
+    if (popup_ != nullptr && popup_->isVisible()) {
+        popupCloseTimer_->start();   // unless the pointer went into the popup (its enterEvent stops it)
     }
-    // Otherwise, fan out whichever aggregate's collapsed core the pointer is over.
-    if (newFan < 0) {
-        newFan = aggregateAtPoint(aggs, p);
-    }
-
-    if (newFan != fannedAggregate_) {
-        fannedAggregate_ = newFan;
-        update();
-    }
+    QWidget::leaveEvent(event);
 }
 
 void TimelinePanel::setBands(const QList<Band>& bands,
@@ -673,7 +764,7 @@ void TimelinePanel::zoomAbout(double factor, double anchorX)
     const double anchorVisibleFrac = (anchorX - kSideInset) / usable;   // 0..1 on screen
     const double anchorFullFrac = panFraction_ + anchorVisibleFrac / zoom_;   // in full window
 
-    const double newZoom = std::clamp(zoom_ * factor, 1.0, 500.0);
+    const double newZoom = std::clamp(zoom_ * factor, 1.0, maxZoom_);
     if (newZoom == zoom_) {
         return;
     }
@@ -703,7 +794,7 @@ void TimelinePanel::zoomToActiveScene()
     }
     const double span = static_cast<double>(maxMs_ - minMs_);
     const double window = gap == std::numeric_limits<qint64>::max() ? span : 12.0 * static_cast<double>(gap);
-    zoom_ = std::clamp(span / std::max(1.0, window), 1.0, 500.0);
+    zoom_ = std::clamp(span / std::max(1.0, window), 1.0, maxZoom_);
     panFraction_ = static_cast<double>(at - minMs_) / span - 0.5 / zoom_;
     clampPan();
     syncScrollBar();
@@ -760,7 +851,7 @@ QString TimelinePanel::scaleLabel(qint64 ms, qint64 step)
 void TimelinePanel::setViewState(double zoom, double panFraction)
 {
     // Apply persisted state without re-emitting viewStateChanged (that would echo a save).
-    zoom_ = std::clamp(zoom, 1.0, 500.0);
+    zoom_ = std::clamp(zoom, 1.0, maxZoom_);
     panFraction_ = panFraction;
     clampPan();
     syncScrollBar();
@@ -963,13 +1054,8 @@ void TimelinePanel::paintEvent(QPaintEvent* /*event*/)
                      QPointF(width() - kSideInset, cy));
 
     // --- SP-084 clustering (T-0346/0347): collapse co-located members ------
-    // Every aggregate member is painted by the aggregate/fan-out code, NEVER by the
-    // per-dot baseline loops — so ALL members go in the skip-sets, INCLUDING the fanned
-    // aggregate's (paintFanOut draws those in the ring). Skipping the fanned aggregate
-    // here was a bug: its members then drew twice — once in the ring and once at their
-    // real baseline x — so members at the wide aggregate's screen extremes showed as
-    // "phantom" dots outside the ring (and shared selection with their ring twin). The
-    // ring is the ONLY place a fanned member is drawn.
+    // Every aggregate member is drawn only as part of its aggregate (and listed in its window, [I-0286]), NEVER by the
+    // per-dot baseline loops — so ALL members go in the skip-sets.
     const QList<Aggregate> aggregates = computeClusters();
     QSet<int> skipScene;
     QSet<int> skipHist;
@@ -1032,23 +1118,15 @@ void TimelinePanel::paintEvent(QPaintEvent* /*event*/)
         }
     }
 
-    // --- SP-084 aggregate dots (T-0347) + fan-out (T-0348) ----------------
+    // --- SP-084 aggregate dots (T-0347); their members' window [I-0286] ---
     // Each aggregate collapses ≥2 co-located members into one compact mark: a slightly
     // larger core (FR-031) with the member count centred, and a segmented arc ring —
     // one 360°/N wedge per member in story order, tinted by member type (scene =
     // accent-ish text tone, historical = warm), the active scene's wedge lit in the
-    // selection colour (FR-031a). The arc is display-only. The fanned-out aggregate
-    // (hover, T-0348) is drawn LAST (below), as an overlay above every other entity.
-    for (int a = 0; a < aggregates.size(); ++a) {
-        if (a == fannedAggregate_) { continue; }   // fanned one painted last (on top)
-        const Aggregate& agg = aggregates.at(a);
+    // selection colour (FR-031a). The arc is display-only. Hovering one opens its members in a window of their own
+    // ([I-0286], `showMemberPopup`).
+    for (const Aggregate& agg : aggregates) {
         paintAggregate(painter, agg, xForOffset(agg.centerOffsetMs), cy);
-    }
-    // Fan-out overlay, drawn after ALL collapsed aggregates + dots so it's the topmost
-    // project-row element (finding, T-0348): a grey backing disc + the member dots.
-    if (fannedAggregate_ >= 0 && fannedAggregate_ < aggregates.size()) {
-        const Aggregate& agg = aggregates.at(fannedAggregate_);
-        paintFanOut(painter, agg, xForOffset(agg.centerOffsetMs), cy);
     }
 
     // --- Imported-timeline rows (SP-082, T-0342) --------------------------
@@ -1137,26 +1215,6 @@ void TimelinePanel::mousePressEvent(QMouseEvent* event)
             return;
         }
 
-        // A fanned-out aggregate member (SP-084, T-0348): if the pointer is on a member
-        // of the currently fanned aggregate, route the press to that member as if it were
-        // a normal dot — scene → click-navigate / horizontal drag, historical → drag.
-        // Checked before the collapsed dot hit-tests (the collapsed members are skipped).
-        if (fannedAggregate_ >= 0) {
-            const QList<Aggregate> aggs = computeClusters();
-            ClusterMember m;
-            if (fanMemberAt(aggs, fannedAggregate_, event->pos(), m)) {
-                if (m.isScene) {
-                    pressedDot_ = m.index;
-                    dragX_ = xForOffset(dots_.at(pressedDot_).offsetMs);
-                } else {
-                    pressedHist_ = m.index;
-                    dragX_ = xForOffset(histDots_.at(pressedHist_).offsetMs);
-                }
-                event->accept();
-                return;
-            }
-        }
-
         pressedDot_ = dotIndexAt(event->pos());
         if (pressedDot_ >= 0) {
             dragX_ = xForOffset(dots_.at(pressedDot_).offsetMs);
@@ -1187,10 +1245,14 @@ void TimelinePanel::mousePressEvent(QMouseEvent* event)
 void TimelinePanel::mouseMoveEvent(QMouseEvent* event)
 {
     if (!(event->buttons() & Qt::LeftButton)) {
-        // --- SP-084 hover fan-out (T-0348) --------------------------------
-        // With no button held, hovering an aggregate fans its members out; leaving the
-        // fan collapses it. `fannedAggregate_` drives the paint + the fan-aware hit-tests.
-        updateHoverFan(event->pos());
+        // ✅ [I-0286] With no button held, hovering an aggregate opens its members' window; moving off it starts the close.
+        const QList<Aggregate> aggs = computeClusters();
+        const int a = aggregateAtPoint(aggs, event->pos());
+        if (a >= 0) {
+            showMemberPopup(aggs.at(a));
+        } else if (popup_ != nullptr && popup_->isVisible()) {
+            popupCloseTimer_->start();
+        }
         QWidget::mouseMoveEvent(event);
         return;
     }
@@ -1471,36 +1533,9 @@ bool TimelinePanel::event(QEvent* event)
     if (event->type() == QEvent::ToolTip) {
         auto* help = static_cast<QHelpEvent*>(event);
 
-        // SP-084 clustering (T-0348): a fanned-out member's own tooltip wins; over a
-        // collapsed aggregate core, show a "N events" summary. Checked before the plain
-        // dot hit-tests (which would otherwise tooltip an underlying clustered dot).
-        const QList<Aggregate> aggs = computeClusters();
-        if (fannedAggregate_ >= 0) {
-            ClusterMember m;
-            if (fanMemberAt(aggs, fannedAggregate_, help->pos(), m)) {
-                QString text;
-                if (m.isScene) {
-                    const Dot& d = dots_.at(m.index);
-                    text = d.title;
-                    if (!d.chapterTitle.isEmpty()) {
-                        text += QStringLiteral("\n") + d.chapterTitle;
-                    }
-                    text += QStringLiteral("\n") + humanStoryTime(d.offsetMs);
-                } else {
-                    const HistDot& h = histDots_.at(m.index);
-                    text = h.title + QStringLiteral("\n") + tr("Historical event")
-                           + QStringLiteral("\n") + humanStoryTime(h.offsetMs);
-                }
-                QToolTip::showText(help->globalPos(), text, this);
-                return true;
-            }
-        }
-        const int aggIdx = aggregateAtPoint(aggs, help->pos());
-        if (aggIdx >= 0) {
-            const int n = static_cast<int>(aggs.at(aggIdx).members.size());
-            QToolTip::showText(help->globalPos(),
-                               tr("%n co-located event(s) — hover to fan out", "", n),
-                               this);
+        // ✅ [I-0286] Over an aggregate its members' window is open: no tooltip on top of it.
+        if (aggregateAtPoint(computeClusters(), help->pos()) >= 0) {
+            QToolTip::hideText();
             return true;
         }
 

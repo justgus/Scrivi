@@ -8,6 +8,8 @@ Issues awaiting **user verification**. An Issue leaves this file only when the u
 
 | ID | Title | Severity | Sprint | Status |
 | -- | ----- | -------- | ------ | ------ |
+| **I-0340** | `[Linux]` ⚠️ **The Timeline could not zoom past 500×, so with imported history framing the strip, Zoom to Current Scene still left ~78 scenes in each aggregate.** Found 2026-11-02 on the Linux VM, [T-0652] (EP-057). → [details](#i-0340) | High | — | 🟠 Resolved - Not Verified |
+| **I-0286** | `[Linux]` ⚠️ **A large aggregate dot could not show all its members: the fan-out was painted inside the timeline panel and clipped at its edges. Now a separate, bounded window.** Reported by the user 2026-10-10 (rig) and again 2026-11-02 (VM). → [details](#i-0286) | Medium | — | 🟠 Resolved - Not Verified |
 | **I-0339** | `[Linux]` ⛔ **Undo of a Replace All held the window for 146 s: each restored scene moved the caret or scroll, and every move re-queued every scene restored so far, on the main thread.** Found 2026-11-02 on the Linux VM, [T-0655] (EP-057). → [details](#i-0339) | High | — | 🟠 Resolved - Not Verified |
 | **I-0338** | `[Linux]` ⚠️ **The timeline chained all 1,175 scenes into ONE aggregate and Zoom to Current Scene could not separate it: Linux still clustered by transitive proximity chaining, the defect [I-0208] fixed on Apple only.** Found 2026-11-02 on the Linux VM, [T-0652] (EP-057). → [details](#i-0338) | High | — | 🟠 Resolved - Not Verified |
 | **I-0337** | `[Linux]` ⚠️ **The Inspector's cards take 3–5 s to fill over the share, and no "Loading…" appears on the Writing or Properties tab: the cue was only on the Worldbuilding tab, and every scene's cards waited for a whole-project metrics count.** Found 2026-11-02 on the Linux VM, [T-0650] (EP-057). → [details](#i-0337) | Medium | — | 🟠 Resolved - Not Verified |
@@ -779,6 +781,75 @@ follows.)*
 *2026-08-15 (docs cleanup — 48 verified Issues archived to decade files, 4 closed Issues
 archived; 6 stale full entries (I-0064, I-0067–I-0071) reconciled against their authoritative table rows.
 10 `Resolved - Not Verified` Issues remain active.)*
+
+## I-0340
+
+**Title:** The Linux Timeline's zoom stops at 500×, too short to separate dumas's scenes
+**Status:** 🟠 Resolved - Not Verified (2026-11-02) — ⏳ the user's VM pass: [T-0652] step 2
+**Platform:** `[Linux]` — Apple: data-driven since I-0045 (`TimelineStripView.maxZoom`)
+**Severity:** High. [T-0640]'s ◎ cannot reach a single scene on the project it was built for.
+**Date Identified:** 2026-11-02, build 1.0.319 (`9f2087f`), [T-0652] on the VM, dumas-prose-timelines-history: *"There appears
+to be some upper limit to how far the Timeline can zoom. When I click the target button it shows aggregate dots that have about
+78 or 79 dots in them."*
+**Root cause:** zoom was clamped to [1, 500] in `zoomAbout`, `zoomToActiveScene` and `setViewState`. Visible imported timelines
+frame the strip (SP-173, Apple's I-0211), so it spans centuries while dumas's scenes are an hour apart; at 500× the strip still
+shows months, and [I-0338]'s slices hold ~78 scenes each.
+**Resolution:** Apple's rule: `maxZoom_` = the strip's span ÷ the smallest gap between two project-row dots, floored at 1 hour,
+up to 100,000× — set in `recomputeWindow` (`platforms/linux/src/TimelinePanel.cpp:292`) and used by all three.
+⚠️ Scenes at the SAME story time stay one aggregate at any zoom (as on Apple); their window lists them ([I-0286]).
+**Files Affected:** `platforms/linux/src/TimelinePanel.cpp`, `TimelinePanel.hpp`; test
+`platforms/linux/tests/timeline_cluster_smoke.cpp` (1,175 hour-apart scenes framed by an event 500 years earlier: zoom to scene
+leaves the active scene single).
+**Verification (VM scratch copy):** the new check FAILED with the cap at 500; with the fix smokes 38/38, ctest `-j6` 804/804.
+
+---
+
+## I-0286
+
+**Title:** On Linux, a large aggregate dot's fan-out is clipped by the timeline panel's edges, so not all its members can be seen
+**Status:** 🟠 Resolved - Not Verified (2026-11-02) — ⏳ the user's VM pass: [T-0652] (hover an aggregate)
+**Platform:** `[Linux]`
+**Component:** `TimelinePanel` (aggregate fan-out)
+**Severity:** Medium
+**Date Identified:** 2026-10-10 (user, on the rig with dumas; found during [SP-173], unrelated to it)
+
+**Description (user):** *"the aggregated popup is clipped by the timeline boundaries, meaning that if the aggregate dot [is]
+large, it cannot show all its member dots."*
+
+**Expected:** every member of an aggregate can be seen and reached, however many there are — as on Apple, where the members
+open in a popover outside the timeline strip, with its own size bound ([I-0208]).
+
+**Actual:** the members are drawn as a fan of dots INSIDE the timeline widget, around the aggregate
+(`TimelinePanel::paintFanOut`, `TimelinePanel.cpp:954`). Its radius grows with the member count (`fanRadius`, `:406`;
+positions from `fanOutMemberPos`, `:382`), so a large aggregate's fan runs past the panel's top and bottom (the strip is short)
+and past its ends, and Qt clips whatever falls outside the widget.
+
+**Root cause (read from the code, not yet measured):** the expansion is painted in the panel, so it can never be larger than the
+panel. ⚠️ Apple's shape is a separate surface (a popover) bounded independently (`Scrivi_Timeline_Clustering_Design_v0_1.md`:
+*"an INDEPENDENT popover size bound"*); Linux adopts Apple's shape (`feedback_linux_adopts_apple_shape`), so the fix direction is
+a pop-up window, not a bigger fan.
+
+**Related (not duplicates):** [I-0208], [I-0210], [I-0212] — the Apple aggregate popover (size, first/last dot, tooltips), all
+verified; none covers Linux.
+
+**Reported again 2026-11-02** (user, VM, build 1.0.319): *"the aggregate popups are still clipped to the timeline. I want that
+fixed here."*
+
+**Resolution:** the in-strip fan-out is gone. Hovering an aggregate opens its members in a window of their own, above it
+(`TimelinePanel::showMemberPopup`, `platforms/linux/src/TimelinePanel.cpp:565`; `AggregatePopup`, `:392`). It's bounded as
+Apple's: up to 12 members a ring, beyond that a scrollable grid 300 px wide and at most 260 tall. A caption names the member
+under the pointer ([I-0212]). Clicking a scene goes to it; a historical event is read only. It is a tool window: it takes no
+focus and no click, so the writer's next click elsewhere still lands. It closes 350 ms after the pointer has left both it and
+the aggregate.
+⚠️ **What it no longer does:** the fan let a member be DRAGGED to a new story time. Apple's popover dots are not draggable
+either; dragging a scene in an aggregate now needs a zoom that separates it ([I-0340]).
+**Files Affected:** `platforms/linux/src/TimelinePanel.cpp`, `TimelinePanel.hpp`; test
+`platforms/linux/tests/timeline_cluster_smoke.cpp` (forty coincident scenes: hovering opens a separate window; its grid is at
+most 260 px tall).
+**Verification (VM scratch copy, offscreen):** the new checks FAILED with the popup not opened; with it smokes 38/38, ctest
+`-j6` 804/804. ⚠️ Offscreen only: where the window lands on the Wayland screen, and the hover-close, are the VM pass.
+
+---
 
 ## I-0339
 

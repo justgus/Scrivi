@@ -17,6 +17,8 @@
 // Exit 0 on success; non-zero with a FAIL line on any mismatch.
 
 #include <QApplication>
+#include <QMouseEvent>
+#include <QScrollArea>
 
 #include <cmath>
 #include <cstdio>
@@ -68,7 +70,7 @@ int main(int argc, char* argv[])
     }
 
     // --- 2. Zoom-resolve: dots a small distance apart cluster at zoom 1, ---
-    //        separate when zoomed in far enough (within the [1,500] zoom clamp).
+    //        separate when zoomed in far enough.
     {
         // Three scenes 2 days apart over a ~1-year window. At zoom 1 their pixel spacing
         // (~4px in an 800px strip) is under one dot-diameter (12px) → clustered; at zoom
@@ -239,6 +241,52 @@ int main(int argc, char* argv[])
             single = single && !panel.aggregateHoldsSceneForTest(a, 600);
         }
         check(single, "I-0338: zoom to scene leaves the active scene a single dot in a dense story");
+    }
+
+    // [I-0340] — imported history (centuries) frames the strip: zoom to scene still separates scenes an hour apart (a fixed
+    // 500× left ~78 in each aggregate on dumas). Apple's rule: max zoom = span ÷ the closest two dots, floor 1 h.
+    {
+        constexpr qint64 kHour = 3600000LL;
+        QList<TimelinePanel::Dot> dots;
+        for (int k = 0; k < 1175; ++k) {
+            dots << scene(QStringLiteral("S%1").arg(k), k * kHour);
+        }
+        panel.setTimeline(QStringLiteral("Story Open"), dots);
+        TimelinePanel::HistDot far;
+        far.eventID = QStringLiteral("ancient");
+        far.title = QStringLiteral("The founding");
+        far.offsetMs = -500 * kYear;
+        panel.setHistoricalEvents({far});
+        panel.setViewState(1.0, 0.0);
+        panel.setActiveScene(QStringLiteral("S600"));
+        panel.zoomToActiveScene();
+        bool single = true;
+        for (int a = 0; a < panel.aggregateCountForTest(); ++a) {
+            single = single && !panel.aggregateHoldsSceneForTest(a, 600);
+        }
+        check(single, "I-0340: zoom to scene separates hour-apart scenes in a strip framed by 500 years of history");
+        panel.setHistoricalEvents({});
+    }
+
+    // [I-0286] — hovering an aggregate opens its members in a WINDOW of their own (never clipped by the strip), bounded:
+    // beyond 12 members a scrollable grid at most 260 px tall.
+    {
+        QList<TimelinePanel::Dot> dots;
+        for (int k = 0; k < 40; ++k) {
+            dots << scene(QStringLiteral("C%1").arg(k), 0);   // forty scenes at one story time: one aggregate at any zoom
+        }
+        dots << scene(QStringLiteral("Z"), 10 * kYear);
+        panel.setTimeline(QStringLiteral("Story Open"), dots);
+        panel.setViewState(1.0, 0.0);
+        check(panel.largestAggregateSizeForTest() == 40, "I-0286: forty coincident scenes form one aggregate");
+        const QPointF at(panel.aggregateXForTest(0), panel.projectRowYForTest());
+        QMouseEvent move(QEvent::MouseMove, at, panel.mapToGlobal(at), Qt::NoButton, Qt::NoButton, Qt::NoModifier);
+        QApplication::sendEvent(&panel, &move);
+        auto* popup = panel.findChild<QWidget*>(QStringLiteral("timelineAggregatePopup"));
+        check(popup != nullptr && popup->isVisible() && popup->isWindow(),
+              "I-0286: hovering the aggregate opens its members in a window of their own");
+        auto* scroll = popup != nullptr ? popup->findChild<QScrollArea*>() : nullptr;
+        check(scroll != nullptr && scroll->height() <= 260, "I-0286: forty members are a scrollable grid at most 260 px tall");
     }
 
     if (failures > 0) {

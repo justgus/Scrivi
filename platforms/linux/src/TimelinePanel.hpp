@@ -7,8 +7,10 @@
 #include <QWidget>
 
 #include <algorithm>
+#include <limits>
 
 class QToolButton;
+class QTimer;
 class QScrollBar;
 
 // TimelinePanel — the Linux Timeline strip (EP-025 / SP-079, T-0322).
@@ -165,6 +167,11 @@ public:
         return std::any_of(aggs.at(aggregate).members.cbegin(), aggs.at(aggregate).members.cend(),
                            [sceneIndex](const ClusterMember& m) { return m.isScene && m.index == sceneIndex; });
     }
+    double aggregateXForTest(int aggregate) const {
+        const QList<Aggregate> aggs = computeClusters();
+        return aggregate >= 0 && aggregate < aggs.size() ? xForOffset(aggs.at(aggregate).centerOffsetMs) : -1.0;
+    }
+    double projectRowYForTest() const { return projectRowY(); }
     int largestAggregateSizeForTest() const {
         int m = 0;
         for (const Aggregate& a : computeClusters()) {
@@ -173,7 +180,7 @@ public:
         return m;
     }
 
-    // Restore a previously-persisted zoom + pan (T-0338). `zoom` is clamped to [1, 500];
+    // Restore a previously-persisted zoom + pan (T-0338). `zoom` is clamped to [1, maxZoom_] ([I-0340]);
     // `panFraction` is clamped to the valid range for that zoom. No signal is emitted (the
     // shell is applying saved state, not producing new state). Repaints + syncs the
     // scrollbar. Call after setTimeline (which resets the window).
@@ -249,6 +256,7 @@ protected:
     void paintEvent(QPaintEvent* event) override;
     void mousePressEvent(QMouseEvent* event) override;
     void mouseMoveEvent(QMouseEvent* event) override;
+    void leaveEvent(QEvent* event) override;   // [I-0286]: starts the members' window closing
     void mouseReleaseEvent(QMouseEvent* event) override;
     void contextMenuEvent(QContextMenuEvent* event) override;
     void wheelEvent(QWheelEvent* event) override;   // Ctrl+wheel zoom (SP-083, T-0333)
@@ -286,30 +294,10 @@ private:
     // (T-0347). Not interactive (the arc is display-only).
     void paintAggregate(QPainter& painter, const Aggregate& agg,
                         double ax, double cy) const;
-    // Paint a fanned-out aggregate: its members in the hexagonal ring positions around
-    // (ax, cy) (T-0348). Each member dot is a normal dot the user can hover/click/drag.
-    void paintFanOut(QPainter& painter, const Aggregate& agg,
-                     double ax, double cy) const;
-    // The centre of fanned-out member `slot` (0-based) around (ax, cy): slot 0 at the
-    // centre, 1–6 in ring 1 (clockwise from 12 o'clock), 7–18 in ring 2, ring n = 6n
-    // (FR-035b). Shared by paintFanOut + the fan-out hit-test (T-0348).
-    QPointF fanOutMemberPos(int slot, double ax, double cy) const;
-    // Radius of the grey backing disc that encloses a fan of `memberCount` members —
-    // the outermost ring's member centre + a dot radius + padding. Used both to paint the
-    // overlay backing and as the hover keep-region (leaving the disc collapses the fan).
-    double fanRadius(int memberCount) const;
-
-    // --- SP-084 hover fan-out interaction (T-0348) ------------------------
-    // Update fannedAggregate_ for a hover at panel point `p`: fan out the aggregate whose
-    // collapsed dot the pointer is over; keep the current fan while the pointer is within
-    // it; collapse when the pointer leaves both. Repaints on change.
-    void updateHoverFan(const QPoint& p);
+    // ✅ [I-0286] Open (or keep) the window listing `agg`'s members, above it — never painted inside the strip.
+    void showMemberPopup(const Aggregate& agg);
     // The aggregate index (into `aggs`) whose collapsed core contains `p`, or -1.
     int aggregateAtPoint(const QList<Aggregate>& aggs, const QPoint& p) const;
-    // If aggregate `aggIndex` is fanned out and a member dot is under `p`, return that
-    // member (via `out`) and true; else false. Uses the fan ring positions (T-0348).
-    bool fanMemberAt(const QList<Aggregate>& aggs, int aggIndex, const QPoint& p,
-                     ClusterMember& out) const;
 
     // --- SP-082 imported-row geometry (T-0342) ----------------------------
     // The visible imported rows, in order (hidden rows are excluded from layout, FR-065).
@@ -398,15 +386,16 @@ private:
     int           draggingBorder_ = -1;
     QList<double> dragProportions_;
 
-    // Clustering fan-out (SP-084, T-0348): the index (into the current frame's
-    // computeClusters() result) of the aggregate currently fanned out on hover, or -1.
-    // Recomputed on hover-move; the fanned aggregate paints its members individually in
-    // the ring layout instead of as a collapsed aggregate dot.
-    int fannedAggregate_ = -1;
+    // [I-0286] The members' window, the aggregate it shows (by its slice centre: indices renumber as the clusters change)
+    // and the timer that closes it once the pointer has left both.
+    QWidget* popup_ = nullptr;
+    QTimer*  popupCloseTimer_ = nullptr;
+    qint64   popupCentreMs_ = std::numeric_limits<qint64>::min();
 
     // Zoom/pan (SP-083). zoom_ ≥ 1 (1 = full-fit); panFraction_ is the left edge of the
     // visible window as a fraction of the full [minMs_, maxMs_] window.
     double zoom_        = 1.0;
+    double maxZoom_     = 500.0;   // [I-0340] set by recomputeWindow: span ÷ the closest two dots (floor 1 h)
     double panFraction_ = 0.0;
     double panStartFraction_ = 0.0;   // panFraction_ at the start of a pan drag
 
