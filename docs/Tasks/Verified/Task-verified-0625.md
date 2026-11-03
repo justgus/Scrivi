@@ -9,7 +9,7 @@
 ## ✅ T-0625 — `[ScriviCore]` EP-052 S2a: what a failed queued write does
 
 **Epic:** [EP-052] · **Status:** ✅ **Verified 2026-10-26** (user, 2026-10-26: *"T-0625 is verified."*) · **Sprint:** [SP-195] (🟡 Active) →
-[`../../Sprints/Sprint-SP-195.md`](../../Sprints/Sprint-SP-195.md) · **Date Requested:** 2026-10-26 (user: *"approve the close.  plan S2."*)
+[`../../Sprints/Closed/Sprint-SP-195.md`](../../Sprints/Closed/Sprint-SP-195.md) · **Date Requested:** 2026-10-26 (user: *"approve the close.  plan S2."*)
 
 **What:** v0.2 §7's failure rule as [SP-195] Q1 (a) ruled 2026-10-26: the queue holds at the failed job, every later job waits
 behind it, and the core retries the held job itself every 5 s. A synchronous call that would wait behind a held queue fails

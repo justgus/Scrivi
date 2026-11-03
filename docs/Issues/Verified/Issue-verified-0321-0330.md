@@ -6,8 +6,12 @@ Issues the user has VERIFIED, archived out of `Issue-active.md`.
 | ID | Title | Severity | Sprint | Status |
 | -- | ----- | -------- | ------ | ------ |
 | **I-0321** | `[ScriviCore]` ⚠️ **The branch chooser offered a branch with no text: a change that only typed spaces (then undone) became a branch of its own.** Found by the user 2026-10-24 ([SP-188] Mac pass). → [details](#i-0321) | **Medium** | [SP-188] | ✅ **VERIFIED 2026-10-24** |
+| **I-0322** | `[Linux]` ⚠️ **Linux has no "Project File Not Available" handling at all ([T-0570] was Apple-only): no banner when the project's drive goes away, and no "Some changes can't be saved" question on close or quit.** Found 2026-10-24 by reading, during [SP-193] ([I-0306]). → [details](#i-0322) | High | ✅ **Verified 2026-11-02** (folded into [SP-195] (Q3) and built there; [T-0648] passed on the Linux VM (the drive pulled: the red line, *"Some changes can't be saved"*, the held save landing)) |
+| **I-0324** | `[ScriviCore]` ⛔ **With real scene links, dumas-prose-timelines does not open: every relationship endpoint walks the whole manuscript.** Found 2026-10-28 linking 7,029 scenes to the new Dumas world: `repairDangling` (every open) re-parsed all 1,175 scene sidecars for each of ~14,000 endpoints (5+ min at full CPU, local disk, not finished); a card's edge listing and each citation listing did the same. → [details](#i-0324) | High | [SP-197] | ✅ **Verified 2026-11-02** ([SP-197]'s Mac pass (2026-11-01) and [T-0650] on the VM (checklist: Pass)) |
 | **I-0325** | `[Apple]` ⚠️ **iOS: the caret jumps to the start of a scene — the last character of the manuscript sends it to the previous scene's start, and typing or scrolling moves it elsewhere.** The iOS selection `onChange` had none of the Mac's [I-0132] loop break, so every viewport change echoed back as a navigation. ⚠️ Re-pass 2026-10-30: the end-of-manuscript case passes; a click then typing still lands elsewhere — diagnosing. → [details](#i-0325) | High | [SP-198] | ✅ Verified |
 | **I-0327** | `[Apple]` ⚠️ **The Scene Navigator showed an untitled scene's first line RAW — `## Youth against age`, escapes and emphasis markers included.** ✅ Ruled (user, 2026-10-30): *"The Navigator should show what the manuscript shows and hide what the manuscript hides."* → [details](#i-0327) | Medium | [SP-198] | ✅ Verified |
+| **I-0329** | `[Apple]` ⛔ **iPad: dragging a Timeline scene dot a second time froze the whole UI for about 6 minutes** (no touch, keyboard or tap), then it recovered by itself. Found by the user on a real iPad with a hardware keyboard, 2026-10-31, in [SP-199]'s live pass, project `dumas-prose-timelines` (1,175 scenes). Steps: zoom the Timeline, drag a dot (it moves; on release the Time Delta Picker popover opens, as designed); dismiss it (the dot returns, as designed); drag a dot again → freeze. Evidence: the console logged `_UISystemGestureGateGestureRecognizer … has been in possible phase for 359.959951 seconds` and `Gesture: System gesture gate timed out`, which points to the main thread or the touch pipeline being stuck. ✅ **Cause found** (second `bt all`, taken WHILE frozen, 2026-10-31): the freeze starts when a Time Delta Picker choice is tapped ("that night"), not on the drag. `TimelineViewModel.setStoryTime` → `recomputeAndPersistFrom` (`TimelineStripView.swift:784`) calls `scrivi_set_scene_story_time` once for EVERY later scene, on the MAIN thread (~1,172 calls here). Each call's `StoryTimePatchGuard` (`scrivi_c_api.cpp:474`) drops the index BEFORE the write, so the core's `findSceneMetaPath` rebuilds the whole `ProjectIndex` (every sidecar, over iCloud) — ~1,172 full traversals ≈ 1.4M reads. The read-amplification class again; T-0549's patch saved only the AFTER rebuild. Linux `EditorShell.cpp:3763` runs the same chain loop. The dismiss "snap back" is by design (dismiss commits nothing); the moved position seen after reload is the "that night" write finishing. ✅ **Fix (user ruling: both halves, 2026-10-31):** (1) `StoryTimePatchGuard` no longer drops the index BEFORE the write (`scrivi_c_api.cpp:479`) — a warm index locates the scene, the after-write patch/drop is unchanged; (2) only the moved scene is saved — Apple `recomputeOffsetsFrom` (`TimelineStripView.swift:785`) recomputes later scenes in memory, Linux `showTimeDeltaPicker` (`EditorShell.cpp:3763`) dropped its re-save loop; both loads already derive offsets from the gap chain; (3) `exportProjectTimeline` derives scene starts from the gap chain instead of the stored `offsetMs` (`ScriviCore.cpp:1110`). Test: `ProjectIndexTests.cpp` "a story-time write keeps the WARM index (I-0329)". ctest 790/790, Mac interop 327, iOS 14/14, Mac build. ⚠️ Linux not built or smoked; no mutation check of the new test. iPad pass 1 (2026-10-31): steps 1, 2, 5 pass (no freeze on "that night"; the Mac step passes). Steps 3–4 were blocked: the picker showed only its first row of buttons. Cause: `.popover(arrowEdge: .top)` is honoured on iOS 18.1+, so the picker opened BELOW the dot, inside the bottom strip. Fix: `arrowEdge` is `nil` on iOS (`SceneDotView.pickerArrowEdge`); the Mac keeps `.top`. iPad pass 2: all steps pass, the picker fits. | High | — | ✅ **Verified** (user, 2026-10-31) |
+| **I-0330** | `[ScriviCore]` `[Apple]` ⛔ **The pending-edge sweep walked the whole manuscript (2,538 file operations on dumas) on every switch back into the app, and its answer is discarded unless a world is away.** Found in the SP-197 Mac live pass log, 2026-11-01. → [details](#i-0330) | Medium | [SP-197] | ✅ **Verified** (user, 2026-11-01: Mac re-check) |
 
 ---
 
@@ -137,3 +141,96 @@ analysis (`ManuscriptPresenter.analyze`, now static; `info` caches it), so the t
 **Verification:** Mac interop 326/326, iOS 10/10. ⏳ User: the Navigator on dumas shows `Youth against age`, no `##`.
 
 ✅ **Verified** (user, 2026-10-30): pass 3 step A — the Navigator shows the heading text with no `##`.
+
+## I-0324
+
+**Title:** With real scene links, a project does not open: every relationship endpoint walks the whole manuscript
+**Status:** ✅ **Resolved - Verified 2026-11-02** — [SP-197]'s Mac pass (2026-11-01) and [T-0650] on the VM (checklist: Pass); archived on the user's authority (user, 2026-11-02: *"on my authority, closed all the objects that have now tested completed"*). ⚠️ PRIOR: 🟠 Resolved - Not Verified (2026-10-28)
+**Platform:** `[ScriviCore]` (both apps)
+**Component:** `EndpointResolver::resolve` (`ScriviCore/src/objects/EndpointResolver.cpp`), called per endpoint by
+`RelationshipStore::repairDangling` (every open), `listFor` (a card's links, the Inspector's citations), `listPending`
+**Severity:** High. A writer who links scenes to their characters makes the project unopenable at a few thousand links.
+**Sprint:** [SP-197] (user, 2026-10-28: *"file the issue and fix it"*)
+**Date Identified:** 2026-10-28, generating the Dumas world (87 characters, 21 locations, 21 buildings, 7,091 links) on a
+local copy of dumas-prose-timelines (1,175 scenes)
+
+**Measured (local disk, Debug):**
+- `scrivi_open_project` on the linked copy: 5+ min at full CPU, stopped. A sample showed
+  `repairDangling` → `EndpointResolver::resolve` → `ManuscriptOrderResolver::resolve` → `parseSceneMeta`.
+- Linking: about 3 links a second by the end (each create resolves its scene endpoint with a walk).
+- `scrivi_load_scene_inspector` with citations: 21,747 file calls, 2.8 s.
+
+**Root cause:** each `resolve` (1) loaded the project index and, on a miss, REBUILT it (`ObjectIndex::find`), (2) resolved
+every bound world and read its index, and (3) walked and parsed every scene sidecar, all for ONE endpoint. A scene endpoint
+misses (1) and (2) and pays all three. The open's per-call read cache served the repeated reads from memory, so a file count
+of the open never showed it; the cost was parsing.
+
+**Resolution:** a resolver remembers the project index (rebuilt at most once), each world's resolution and index, and the
+scene list, for its own lifetime: one operation, as every caller makes it locally (the `BindingCache` rule).
+`RelationshipStore::listFor` takes an optional shared resolver, and the Inspector's citations share one.
+**Files Affected:** `ScriviCore/src/objects/EndpointResolver.{hpp,cpp}`, `ScriviCore/src/objects/RelationshipStore.{hpp,cpp}`,
+`ScriviCore/src/public_api/scrivi_c_api.cpp`; tests in `ScriviCore/tests/integration/RelationshipTests.cpp` and
+`ObjectCApiTests.cpp`.
+
+**Verification:**
+- `[I-0324]` (`RelationshipTests.cpp`): 20 scene links; `repairDangling` and `listFor`, below any cache, read no file more
+  than twice (unfixed: 80 and 40). `[I-0324]` (`ObjectCApiTests.cpp`): a card's listing costs the same file calls at 2 and 20
+  scene links (unfixed: 112 → 1,084). Both fail against the unfixed core in a copy.
+- The linked dumas copy: open + d'Artagnan's 584 links 1.5 s; one scene's Inspector load 49 file calls, or 4,009 with
+  citations (one walk, for the far objects' scene titles), 1.3 s.
+- ctest 789/789, interop 324/324, Linux smokes 38/38. ⏳ User verification (the rig pass on the linked project).
+
+---
+
+## I-0330
+
+**Title:** The pending-edge sweep walked the whole manuscript on every app activation
+**Status:** ✅ Verified 2026-11-01 (user, 2026-11-01: *"The re-check passed, no history calls on main."* The log: `scrivi_history_open` on `[worker]`, no `scrivi_history_get_tree` or `scrivi_list_pending_edges` lines)
+**Platform:** `[ScriviCore]` and `[Apple]`
+**Severity:** Medium. Background work (T-0523 moved it off the main thread), but 2,538 file operations per activation over a slow
+volume, holding the project's lock: the Inspector's read waited up to 382 ms behind it.
+**Sprint:** [SP-197]
+**Date Identified:** 2026-11-01, from the console of [SP-197]'s Mac live pass: `[worker] core (background):
+scrivi_list_pending_edges 371–409 ms, 2538 file ops` on every switch back into the app. User: *"Is it necessary that
+scrivi_list_pending_edges does 2538 file operations? Isn't the edge data already loaded into memory by then?"*
+
+**Root cause:** `EndpointResolver::resolve` learned which IDs are scenes by walking the manuscript (every scene sidecar), once
+per call since [I-0324], though the open project's index already holds every scene in memory. A scene endpoint also missed the
+object index first, which forced that index's rebuild from disk. And the Mac's world-warning strip ran the sweep on every
+activation and editor appearance, though it uses the result only to count links into UNAVAILABLE worlds
+(`WorldWarningView.swift:76`): with every world present the answer was discarded.
+
+**Resolution:**
+1. `SceneLocator::listSceneTitles` (`Services.hpp:218`, default "no hint"); the ABI's locator answers from the warm project
+   index (`scrivi_c_api.cpp:699`). The resolver checks scenes from memory first and walks only when there is no index
+   (`EndpointResolver.cpp:18`).
+2. The strip skips the sweep when no bound world is unavailable (`WorldWarningView.swift:76`, `:116`).
+**Verification:** ctest `[I-0330]` (`ObjectCApiTests.cpp:1304`, through `scrivi_*`): the sweep's file operations 12 → 12 from 1 to
+21 scenes; a mutation in a copy (the index lookup off) reads 18 → 58 and fails. ctest 791/791, Mac interop 328/328, iOS 17/17,
+Linux smokes 38/38 (no Linux caller of the sweep). ⏳ User: a live pass log with no `scrivi_list_pending_edges` on activation
+while every world is present.
+
+---
+
+## I-0322
+
+**Title:** Linux has no project-drive-lost handling ([T-0570]'s Linux half was never built)
+**Status:** ✅ **Resolved - Verified 2026-11-02** — folded into [SP-195] (Q3) and built there; [T-0648] passed on the Linux VM (the drive pulled: the red line, *"Some changes can't be saved"*, the held save landing); archived on the user's authority (user, 2026-11-02: *"on my authority, closed all the objects that have now tested completed"*). ⚠️ PRIOR: 🔵 Open (never updated when [SP-195] built it)
+**Platform:** `[Linux]`
+**Component:** `ScriviWindow::closeEvent` (`platforms/linux/src/ScriviWindow.cpp:690`), `EditorShell` save path
+**Severity:** High. The same loss [I-0306] closed on the Mac: with the project's drive pulled, typed edits can be lost on
+close or quit with no question asked.
+**Sprint:** Not Assigned
+**Date Identified:** 2026-10-24, by reading, while fixing [I-0306] in [SP-193]. Filed by user request (2026-10-25:
+*"yes, file both Issues"*).
+
+**What is missing:** [T-0570] (verified 2026-09-30, Apple) gives the Mac three things: the red non-dismissable
+*"Project File Not Available"* banner, dirty scenes kept and saved automatically on reconnect, and a Cancel / Quit Anyway
+question on close and quit. ⚠️ Linux has none of them. `closeEvent` calls `flushEditor()` and closes; nothing checks
+whether the writes landed. ⚠️ What a failed flush does on Linux (logged, silent, retried) is not yet measured.
+
+**Fix direction (not ruled):** port [T-0570]'s shape from Apple (`feedback_linux_adopts_apple_shape`), including the
+close guard through every close path (the X, Close Project, Quit; [I-0306]'s lesson). Measure on the rig with the
+drive pulled first.
+
+---

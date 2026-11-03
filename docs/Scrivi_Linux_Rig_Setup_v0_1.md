@@ -760,3 +760,10 @@ document**, not from memory.*
 *v0.1 — 2026-08-29. Written as-run during SP-123.*
 
 *2026-11-02 — §9 added: the Linux VM on the Mac (`scrivi-vm`), as-run (EP-057).*
+
+- ⚠️ **The SMB connection can degrade to ~1.7 MB/s after hours of use (measured 2026-11-02).** With the 5 ms delay on, a
+  36 MB file that read in 0.33 s at 20:30 took 21.6 s at 21:10 — on every share (they share ONE TCP connection to the Mac),
+  with large reads too, and 0.25 s with the delay off. Unmounting a single share does not reset it; **unmount all three and
+  mount again** (`sudo umount /mnt/scrivi-net /mnt/scrivi-worlds /mnt/scrivi-other`, then
+  `SCRIVI_RIG=scrivi-vm ./scripts/mount-shares-on-rig.sh`): 0.34 s again. ✅ **Before a timing pass, check:**
+  `time cat <a 30+ MB file on the share> > /dev/null` should be well under a second.

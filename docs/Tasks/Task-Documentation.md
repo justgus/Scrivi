@@ -686,7 +686,7 @@ archive files reconstructed after the fact from secondary sources.
 | T-0397 | `[Cross]` **Whitespace-kind labels in history** — new `whitespaceKind` tree field (`"newline:2"`) → `whitespaceLabel` (`"⏎ new paragraph"`); `preview`… | SP-093 | EP-019 | ✅ Verified 2026-08-10 [`Task-verified-0396-0398.md`](Verified/Task-verified-0396-0398.md) |
 | T-0398 | `[Cross]` **Distinguish added vs. deleted text in history rows** — `minus.circle` glyph + orange tint + "Deleted …" label prefix; `removedLength` carr… | SP-093 | EP-019 | ✅ Verified | [`Task-verified-0396-0398.md`](Verified/Task-verified-0396-0398.md) |
 | T-0399 | `[Apple]` **Card soft-failure isolation** — framework backstop in `CardBodyBoundary` + throwing `makeContent` (default forwards) + failing-card test f… | SP-101 | EP-030 | ✅ Verified | [`Task-verified-0399.md`](Verified/Task-verified-0399.md) |
-| T-0400 | `[ScriviCore]` **History log-segment rotation → (c) compaction** — design `Scrivi_History_Load_Design_v0_1.md` §2 | SP-200 | **EP-052** (was EP-019) | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
+| T-0400 | `[ScriviCore]` **History log-segment rotation → (c) compaction** — design `Scrivi_History_Load_Design_v0_1.md` §2 | SP-200 | **EP-052** (was EP-019) | ✅ Verified 2026-11-02 | [`Task-verified-0400.md`](Verified/Task-verified-0400.md) |
 | T-0401 | Index rebuild + corruption coverage (missing / corrupt / stale) — Doc 1 AC2 | SP-095 | EP-031 | ✅ Verified | [`Task-verified-0370-0406.md`](Verified/Task-verified-0370-0406.md) |
 | T-0402 | ⚠️ Endpoint-kind resolution via `ObjectIndex` — replaces §5.2's broken ID-prefix rule; amends Doc 1 | SP-096 | EP-031 | ✅ Verified | [`Task-verified-0370-0406.md`](Verified/Task-verified-0370-0406.md) |
 | T-0403 | ⚠️ `FileSystem::createFileExclusive` — exclusive-create primitive Doc 3 §6.5 assumes but that does not exist | SP-097 | EP-031 | ✅ Verified | [`Task-verified-0370-0406.md`](Verified/Task-verified-0370-0406.md) |
@@ -778,13 +778,13 @@ archive files reconstructed after the fact from secondary sources.
 | T-0622 | `[Cross]` One version on every platform: `1.0.<commits>`, with the commit hash | ✅ **SP-193** | **EP-054** | ✅ **Verified 2026-10-25** | [`Task-verified-0622.md`](Verified/Task-verified-0622.md) |
 | T-0623 | `[ScriviCore]` Two locks per project (memory and disk) | 🟡 **SP-194** | **EP-052** | ✅ **Verified 2026-10-26** | [`Task-verified-0623.md`](Verified/Task-verified-0623.md) |
 | T-0624 | `[ScriviCore]` The per-project write queue and its endpoints | 🟡 **SP-194** | **EP-052** | ✅ **Verified 2026-10-26** | [`Task-verified-0624.md`](Verified/Task-verified-0624.md) |
-| T-0625 | `[ScriviCore]` What a failed queued write does (hold, retry, report) | 🟡 **SP-195** | **EP-052** | ✅ **Verified 2026-10-26** | [`Task-verified-0625.md`](Verified/Task-verified-0625.md) |
-| T-0626 | `[Cross]` Every scene save through the queue, Mac and Linux | 🟡 **SP-195** | **EP-052** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
-| T-0627 | `[Cross]` Structural edits through the queue, and the gesture cues | 🟡 **SP-196** | **EP-052** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
+| T-0625 | `[ScriviCore]` What a failed queued write does (hold, retry, report) | ✅ SP-195 | **EP-052** | ✅ **Verified 2026-10-26** | [`Task-verified-0625.md`](Verified/Task-verified-0625.md) |
+| T-0626 | `[Cross]` Every scene save through the queue, Mac and Linux | ✅ SP-195 | **EP-052** | ✅ Verified 2026-11-02 | [`Task-verified-0626.md`](Verified/Task-verified-0626.md) |
+| T-0627 | `[Cross]` Structural edits through the queue, and the gesture cues | ✅ SP-196 | **EP-052** | ✅ Verified 2026-11-02 | [`Task-verified-0627.md`](Verified/Task-verified-0627.md) |
 | T-0628 | `[Cross]` Keep a held queue on local disk, push it when the project returns | — | **EP-052** | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
-| T-0629 | `[ScriviCore]` One Inspector read per scene, and the per-scene searchable text | SP-197 | **EP-052** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
-| T-0630 | `[Cross]` The Inspector and the timeline read off the main thread, revision-checked | SP-197 | **EP-052** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
-| T-0631 | `[Apple]` Spotlight on one serial background queue, per-scene, behind the saves | SP-197 | **EP-052** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
+| T-0629 | `[ScriviCore]` One Inspector read per scene, and the per-scene searchable text | SP-197 | **EP-052** | ✅ Verified 2026-11-02 | [`Task-verified-0629.md`](Verified/Task-verified-0629.md) |
+| T-0630 | `[Cross]` The Inspector and the timeline read off the main thread, revision-checked | SP-197 | **EP-052** | ✅ Verified 2026-11-02 | [`Task-verified-0630.md`](Verified/Task-verified-0630.md) |
+| T-0631 | `[Apple]` Spotlight on one serial background queue, per-scene, behind the saves | SP-197 | **EP-052** | ✅ Verified 2026-11-02 | [`Task-verified-0631.md`](Verified/Task-verified-0631.md) |
 | T-0632 | `[Apple]` The manuscript host gap audit — what is AppKit, what is shared, the iOS shape | SP-198 | **EP-055** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
 | T-0633 | `[Apple]` The presentation layer compiles for iOS, the Mac unchanged | SP-198 | **EP-055** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
 | T-0634 | `[Apple]` The `UITextView` manuscript on iPad and iPhone | SP-198 | **EP-055** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
@@ -793,22 +793,22 @@ archive files reconstructed after the fact from secondary sources.
 | T-0637 | `[Apple]` The iOS gestures and the Timeline grabber, with routes that need no gesture | SP-199 | **EP-055** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
 | T-0638 | `[Apple]` The Mac's toolbar buttons on iOS, at the system's placement | SP-199 | **EP-055** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
 | T-0639 | `[Apple]` The Timeline's zoom and position come back next time | SP-199 | **EP-055** | ✅ Verified | [`Verified/Task-verified-0639.md`](Verified/Task-verified-0639.md) |
-| T-0640 | `[Cross]` Zoom to the current scene | SP-199 | **EP-055** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
-| T-0641 | `[Cross]` A time scale along the top of the Timeline | SP-199 | **EP-055** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
+| T-0640 | `[Cross]` Zoom to the current scene | SP-199 | **EP-055** | ✅ Verified 2026-11-02 | [`Task-verified-0640.md`](Verified/Task-verified-0640.md) |
+| T-0641 | `[Cross]` A time scale along the top of the Timeline | SP-199 | **EP-055** | ✅ Verified 2026-11-02 | [`Task-verified-0641.md`](Verified/Task-verified-0641.md) |
 | T-0642 | `[Apple]` The Timeline stays where the pinch leaves it | SP-199 | **EP-055** | ✅ Verified | [`Verified/Task-verified-0642.md`](Verified/Task-verified-0642.md) |
-| T-0643 | `[ScriviCore]` History load b1: a diff is a list of hunks | SP-200 | **EP-052** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
-| T-0644 | `[ScriviCore]` History load b2: barrier texts stored as changes | SP-200 | **EP-052** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
-| T-0645 | `[ScriviCore]` History load b3: the structural payload stored as JSON | SP-200 | **EP-052** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
-| T-0646 | `[Cross]` History load: measurements and Mac and rig live passes | SP-200 | **EP-052** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
-| T-0647 | `[Cross]` Properties tab: scene links, Project and World metrics | SP-200 | **EP-052** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
-| T-0648 | `[Linux]` Rig pass: Saves through the queue | — | **EP-057** | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
-| T-0649 | `[Linux]` Rig pass: Structural edits through the queue | — | **EP-057** | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
-| T-0650 | `[Linux]` Rig pass: Reads off the main thread (Inspector, timeline) | — | **EP-057** | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
-| T-0651 | `[Linux]` Rig pass: Replace All keeps headings | — | **EP-057** | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
-| T-0652 | `[Linux]` Rig pass: Timeline zoom-to-scene and time scale | — | **EP-057** | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
-| T-0653 | `[Linux]` Rig pass: The history opens fast and reads back the same | — | **EP-057** | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
-| T-0654 | `[Linux]` Rig pass: The Properties tab's metrics | — | **EP-057** | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
-| T-0655 | `[Linux]` Rig pass: Replace All without holding the window | — | **EP-057** | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
+| T-0643 | `[ScriviCore]` History load b1: a diff is a list of hunks | SP-200 | **EP-052** | ✅ Verified 2026-11-02 | [`Task-verified-0643.md`](Verified/Task-verified-0643.md) |
+| T-0644 | `[ScriviCore]` History load b2: barrier texts stored as changes | SP-200 | **EP-052** | ✅ Verified 2026-11-02 | [`Task-verified-0644.md`](Verified/Task-verified-0644.md) |
+| T-0645 | `[ScriviCore]` History load b3: the structural payload stored as JSON | SP-200 | **EP-052** | ✅ Verified 2026-11-02 | [`Task-verified-0645.md`](Verified/Task-verified-0645.md) |
+| T-0646 | `[Cross]` History load: measurements and Mac and rig live passes | SP-200 | **EP-052** | ✅ Verified 2026-11-02 | [`Task-verified-0646.md`](Verified/Task-verified-0646.md) |
+| T-0647 | `[Cross]` Properties tab: scene links, Project and World metrics | SP-200 | **EP-052** | ✅ Verified 2026-11-02 | [`Task-verified-0647.md`](Verified/Task-verified-0647.md) |
+| T-0648 | `[Linux]` Rig pass: Saves through the queue | — | **EP-057** | ✅ Verified 2026-11-02 | [`Task-verified-0648.md`](Verified/Task-verified-0648.md) |
+| T-0649 | `[Linux]` Rig pass: Structural edits through the queue | — | **EP-057** | ✅ Verified 2026-11-02 | [`Task-verified-0649.md`](Verified/Task-verified-0649.md) |
+| T-0650 | `[Linux]` Rig pass: Reads off the main thread (Inspector, timeline) | — | **EP-057** | ✅ Verified 2026-11-02 | [`Task-verified-0650.md`](Verified/Task-verified-0650.md) |
+| T-0651 | `[Linux]` Rig pass: Replace All keeps headings | — | **EP-057** | ✅ Verified 2026-11-02 | [`Task-verified-0651.md`](Verified/Task-verified-0651.md) |
+| T-0652 | `[Linux]` Rig pass: Timeline zoom-to-scene and time scale | — | **EP-057** | ✅ Verified 2026-11-02 | [`Task-verified-0652.md`](Verified/Task-verified-0652.md) |
+| T-0653 | `[Linux]` Rig pass: The history opens fast and reads back the same | — | **EP-057** | ✅ Verified 2026-11-02 | [`Task-verified-0653.md`](Verified/Task-verified-0653.md) |
+| T-0654 | `[Linux]` Rig pass: The Properties tab's metrics | — | **EP-057** | ✅ Verified 2026-11-02 | [`Task-verified-0654.md`](Verified/Task-verified-0654.md) |
+| T-0655 | `[Linux]` Rig pass: Replace All without holding the window | — | **EP-057** | ✅ Verified 2026-11-02 | [`Task-verified-0655.md`](Verified/Task-verified-0655.md) |
 | T-0656 | `[Linux]` Landing: a warm grey background with a little depth | — | — | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
 | T-0592 | `[Apple]` E2-S3: formatting commands + lists + Option-Return | 🟡 **SP-163** | **EP-046** | ✅ **Verified 2026-10-06** | [`Task-verified-0592.md`](Verified/Task-verified-0592.md) |
 | T-0591 | `[Apple]` Balance emphasis across SCENE boundaries (cross-scene cut/copy/paste) | 🟡 **SP-163** | **EP-046** | ✅ **Verified 2026-10-06** | [`Task-verified-0591.md`](Verified/Task-verified-0591.md) |
@@ -847,6 +847,8 @@ archive files reconstructed after the fact from secondary sources.
 ⚠️ **This index ended at `T-0485 (next available)` until 2026-09-10 — ✅ that was STALE.** ⚠️ **T-0485–T-0498 had all been taken**, and T-0485–T-0490/T-0492–T-0496 are archived as Verified. ⚠️ **Rows for T-0486–T-0497 are NOT reconstructed here** — ✅ **their Sprints' closed records are authoritative** (`feedback_archive_on_close`).
 
 ---
+
+*Last Updated: 2026-11-02 (**T-0400, T-0626, T-0627, T-0629–T-0631, T-0640, T-0641, T-0643–T-0655 → ✅ Verified** (user, 2026-11-02).)*
 
 *Last Updated: 2026-10-30 (**T-0632–T-0635 → 🟠 Implemented - Not Verified**.)*
 

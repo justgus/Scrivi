@@ -3,6 +3,9 @@
 Evidence record for the held Linux live passes ([`Rig-Live-Pass-Held.md`](Rig-Live-Pass-Held.md), copied 2026-11-02).
 Tick each step as it passes; record each Task's result in its block, then in the Task itself.
 
+✅ **RESULT (2026-11-02): all eight Tasks passed on `scrivi-vm`** — the user's ticks and results are in the live-pass artifact; the
+Tasks are archived in `../Tasks/Verified/` with what each pass found (I-0335–I-0344, I-0286, I-0322).
+
 | | |
 |---|---|
 | **Machine** | ☐ scrivi-vm (VM, counts per Sprint-GUIDELINES rule 6) ☐ Oathkeeper (rig) |
@@ -30,7 +33,7 @@ Tick each step as it passes; record each Task's result in its block, then in the
 
 ## T-0648 · SP-195 AC6 — saves through the queue (EP-052 AC6) · ✅ Mac passed 2026-10-26
 
-→ [`Sprint-SP-195.md`](Sprint-SP-195.md)
+→ [`Sprint-SP-195.md`](Closed/Sprint-SP-195.md)
 ⚠️ Last attempt (2026-10-26) was blocked: the share could not be remounted with the project open (`umount`: *"target is
 busy"*). Before step 4, run `fuser -vm /mnt/scrivi-net` on the rig and record what it names.
 ⚠️ **Open dumas-prose-timelines from `/mnt/scrivi-other`** (the SCRIVI-OTHE drive), not `/mnt/scrivi-net` (the Mac's own disk).
@@ -54,7 +57,7 @@ Eject or pull the drive; never stop the share. Step 5 needs a build with the [I-
 
 ## T-0649 · SP-196 AC4 — structural edits through the queue · ✅ Mac passed 2026-10-27
 
-→ [`Sprint-SP-196.md`](Sprint-SP-196.md) · Rig pass 2 (2026-10-27) got stuck after a split and its undo; the fix has not
+→ [`Sprint-SP-196.md`](Closed/Sprint-SP-196.md) · Rig pass 2 (2026-10-27) got stuck after a split and its undo; the fix has not
 been re-passed. Each step's undo returns the manuscript to where it was, so no step leaves a fork for the next.
 
 - [ ] 1. Select from the middle of one scene to the middle of the next. **Edit ▸ Cut**, then **Edit ▸ Undo**, then
@@ -77,7 +80,7 @@ been re-passed. Each step's undo returns the manuscript to where it was, so no s
 
 ## T-0650 · SP-197 AC5 — reads off the main thread (Inspector, timeline) · ✅ Mac passed 2026-11-01
 
-→ [`Sprint-SP-197.md`](Sprint-SP-197.md) · Rig pass 1 (2026-10-27) failed: the Inspector's cards never enabled. Fix not
+→ [`Sprint-SP-197.md`](Closed/Sprint-SP-197.md) · Rig pass 1 (2026-10-27) failed: the Inspector's cards never enabled. Fix not
 yet re-passed.
 
 - [ ] 1. **View ▸ Show Inspector.** Scroll steadily through the manuscript. No freeze; the Inspector dims the old cards at once
@@ -130,7 +133,7 @@ yet re-passed.
 
 ## T-0653 · SP-200 AC5 — the history opens fast and reads back the same · ✅ Mac passed 2026-11-01
 
-→ [`Sprint-SP-200.md`](Sprint-SP-200.md). The first open of each project compacts its history (`history/log-000002.jsonl`
+→ [`Sprint-SP-200.md`](Closed/Sprint-SP-200.md). The first open of each project compacts its history (`history/log-000002.jsonl`
 appears beside `log-000001.jsonl`, which the next open removes).
 
 - [ ] 1. Open **dumas-prose-timelines** over the share. Note how long until the manuscript can be typed into.
@@ -148,7 +151,7 @@ appears beside `log-000001.jsonl`, which the next open removes).
 
 ## T-0654 · SP-200 AC6 — T-0647: the Properties tab's metrics · ✅ Mac passed 2026-11-01
 
-→ [`Sprint-SP-200.md`](Sprint-SP-200.md)
+→ [`Sprint-SP-200.md`](Closed/Sprint-SP-200.md)
 
 - [ ] 1. With dumas-prose-timelines open, **View ▸ Show Inspector**, then the **Properties** tab. Click a scene that has
   objects linked in its Worldbuilding tab.
@@ -168,7 +171,7 @@ appears beside `log-000001.jsonl`, which the next open removes).
 
 ## T-0655 · SP-201 AC6 — I-0333, I-0334: Replace All without holding the window · ✅ Mac passed 2026-11-01
 
-→ [`Sprint-SP-201.md`](Sprint-SP-201.md)
+→ [`Sprint-SP-201.md`](Closed/Sprint-SP-201.md)
 
 - [ ] 1. Open **dumas-prose-timelines** over the share. **Edit ▸ Find and Replace…** (Ctrl+Alt+F): find `the`, replace with
   `thee`, **Replace All**. The row counts (*"Replacing 12,000 of 41,296"*), the window stays usable, and it ends with every

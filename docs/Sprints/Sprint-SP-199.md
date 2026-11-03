@@ -71,3 +71,8 @@ system places them.
 *Last Updated: 2026-10-31 (T-0638 → 🟠; Mac 327/327, iOS 12/12.)*
 
 *Last Updated: 2026-10-31 (created and activated; G1–G4 ruled.)*
+
+
+### ✅ 2026-11-02 — [T-0640], [T-0641] → ✅ Verified (user, 2026-11-02: *"on my authority, closed all the objects that have now tested completed"*)
+
+iPad and Mac passes (2026-11-01) and the Linux rig pass [T-0652] on the VM (Pass). AC6 is met on every platform; AC1–AC3 and AC5 (the iOS passes) keep the Sprint open.

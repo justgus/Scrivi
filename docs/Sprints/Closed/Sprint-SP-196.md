@@ -1,18 +1,19 @@
 ---
 sprint: SP-196
 epic: EP-052
-status: Active
+status: Closed
+closed: 2026-11-02
 platform: Cross
 created: 2026-10-26
 ---
 
 # SP-196 — `[Cross]` [EP-052] **S2b**: structural edits through the queue, and the gesture cues
 
-**Status:** 🟡 **ACTIVE 2026-10-27** (user: *"Let's proceed with number 2.  SP-196"*) — created 2026-10-26 (user: *"approve the close.  plan S2."*). Activated while [SP-195] waits only on its rig pass (AC6).
-**Carries:** [T-0627] → [`../Tasks/Task-active.md`](../Tasks/Task-active.md).
-**Epic:** [EP-052] (AC4, AC5 for the structural edits; AC10) → [`../Epics/Epic-active.md`](../Epics/Epic-active.md).
-**Authority:** [`../Scrivi_Background_Writes_Design_v0_1.md`](../Scrivi_Background_Writes_Design_v0_1.md) W7 (W7-Q1 (a),
-ruled 2026-10-26) · [`../Scrivi_Background_Writes_Design_v0_2.md`](../Scrivi_Background_Writes_Design_v0_2.md) Q5 (ruled).
+**Status:** ✅ **CLOSED 2026-11-02** (user, 2026-11-02: *"on my authority, closed all the objects that have now tested completed"*) — activated 2026-10-27 (user: *"Let's proceed with number 2.  SP-196"*) — created 2026-10-26 (user: *"approve the close.  plan S2."*). Activated while [SP-195] waits only on its rig pass (AC6).
+**Carries:** [T-0627] → [`../Tasks/Task-active.md`](../../Tasks/Task-active.md).
+**Epic:** [EP-052] (AC4, AC5 for the structural edits; AC10) → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md).
+**Authority:** [`../Scrivi_Background_Writes_Design_v0_1.md`](../../Scrivi_Background_Writes_Design_v0_1.md) W7 (W7-Q1 (a),
+ruled 2026-10-26) · [`../Scrivi_Background_Writes_Design_v0_2.md`](../../Scrivi_Background_Writes_Design_v0_2.md) Q5 (ruled).
 
 ---
 
@@ -51,7 +52,7 @@ platforms' own structural workers are gone (W7h).
 
 ### ➡️ 2026-11-02 — Rig pass moved to [EP-057] (T-0649)
 - Under the new rule (user, 2026-11-02: *"1 and 2 approved"*; `Sprint-GUIDELINES.md`, *"The rig pass never holds a
-  Sprint open"*): the rig AC is carried by T-0649, steps in [`Rig-Live-Pass-Held.md`](Rig-Live-Pass-Held.md); the AC counts as met
+  Sprint open"*): the rig AC is carried by T-0649, steps in [`Rig-Live-Pass-Held.md`](../Rig-Live-Pass-Held.md); the AC counts as met
   for the close. Linux evidence: the Docker ctest and smokes recorded in this log.
 
 ### ❌→🟠 2026-10-27 — Rig pass 2 (build 304): stuck after a split and its undo; fixed, not yet re-passed
@@ -114,3 +115,13 @@ User: *"mac live pass passes."* The rig pass remains; AC4 stays open until it is
 
 ### 🔵 2026-10-26 — Sprint CREATED in Planning
 - User: *"approve the close.  plan S2."* Waits on [SP-195] and its Q1 (a held queue is what a refused job meets).
+
+### ✅ 2026-11-02 — Sprint CLOSED (user, 2026-11-02: *"on my authority, closed all the objects that have now tested completed"*)
+
+Every AC met; the rig AC passed on the Linux VM (`Rig-Live-Pass-Checklist-2026-11-02.md`: Pass; VM counts per
+Sprint-GUIDELINES rule 6). **Final status:** [T-0627] ✅ Verified 2026-11-02 · [T-0649] ✅ Verified 2026-11-02 (the rig AC, on the VM).
+
+**Retrospective.**
+- ✅ Split, merge and their undos land in ~0.3–0.4 s over the share on build 1.0.317 (the VM log).
+- ⚠️ The 10 s the user first saw was never measured: that launch's log was rotated away by a scratch run of mine. Scratch runs now use their own `XDG_STATE_HOME`.
+- ⚠️ An edit queued behind an Inspector read still waits up to ~1.7 s for the project lock (the VM log, 18:39); not filed.

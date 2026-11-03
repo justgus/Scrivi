@@ -1,19 +1,20 @@
 ---
 sprint: SP-195
 epic: EP-052
-status: Active
+status: Closed
+closed: 2026-11-02
 platform: Cross
 created: 2026-10-26
 ---
 
 # SP-195 — `[Cross]` [EP-052] **S2a**: every scene save through the queue, on the Mac and on Linux
 
-**Status:** 🟡 **ACTIVE 2026-10-26** (user: *"File it as a backlog Task, but under EP-052.  Then start SP-195."*) — created 2026-10-26 (user: *"approve the close.  plan S2."*). ✅ Q1–Q3 ruled 2026-10-26.
-**Carries:** [T-0625], [T-0626] → [`../Tasks/Task-active.md`](../Tasks/Task-active.md).
-**Epic:** [EP-052] (AC4–AC7, the saves) → [`../Epics/Epic-active.md`](../Epics/Epic-active.md).
+**Status:** ✅ **CLOSED 2026-11-02** (user, 2026-11-02: *"on my authority, closed all the objects that have now tested completed"*) — activated 2026-10-26 (user: *"File it as a backlog Task, but under EP-052.  Then start SP-195."*) — created 2026-10-26 (user: *"approve the close.  plan S2."*). ✅ Q1–Q3 ruled 2026-10-26.
+**Carries:** [T-0625], [T-0626] → [`../Tasks/Task-active.md`](../../Tasks/Task-active.md).
+**Epic:** [EP-052] (AC4–AC7, the saves) → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md).
 **Builds on:** [SP-194] (S1: the two locks and the queue, closed 2026-10-26).
-**Authority:** [`../Scrivi_Background_Writes_Design_v0_2.md`](../Scrivi_Background_Writes_Design_v0_2.md) §6 levels 2–3,
-§7 (the hazards) · [`../Scrivi_Background_Writes_Design_v0_1.md`](../Scrivi_Background_Writes_Design_v0_1.md) W4–W6.
+**Authority:** [`../Scrivi_Background_Writes_Design_v0_2.md`](../../Scrivi_Background_Writes_Design_v0_2.md) §6 levels 2–3,
+§7 (the hazards) · [`../Scrivi_Background_Writes_Design_v0_1.md`](../../Scrivi_Background_Writes_Design_v0_1.md) W4–W6.
 **Then:** [SP-196] (S2b) puts the structural edits through the queue.
 
 ---
@@ -166,6 +167,15 @@ it cannot land. Both platforms' own ordering code is gone (W6).
 
 ### ➡️ 2026-11-02 — Rig pass moved to [EP-057] (T-0648)
 - Under the new rule (user, 2026-11-02: *"1 and 2 approved"*; `Sprint-GUIDELINES.md`, *"The rig pass never holds a
-  Sprint open"*): the rig AC is carried by T-0648, steps in [`Rig-Live-Pass-Held.md`](Rig-Live-Pass-Held.md); the AC counts as met
+  Sprint open"*): the rig AC is carried by T-0648, steps in [`Rig-Live-Pass-Held.md`](../Rig-Live-Pass-Held.md); the AC counts as met
   for the close. Linux evidence: the Docker ctest and smokes recorded in this log.
 
+### ✅ 2026-11-02 — Sprint CLOSED (user, 2026-11-02: *"on my authority, closed all the objects that have now tested completed"*)
+
+Every AC met; the rig AC passed on the Linux VM (`Rig-Live-Pass-Checklist-2026-11-02.md`: Pass; VM counts per
+Sprint-GUIDELINES rule 6). **Final status:** [T-0625] ✅ Verified (2026-10-26) · [T-0626] ✅ Verified 2026-11-02 · [T-0648] ✅ Verified 2026-11-02 (the rig AC, on the VM) · [I-0322] ✅ Verified 2026-11-02 (folded in, Q3) · [I-0335], [I-0336] ✅ Verified 2026-11-02 (found and fixed during the VM pass) · [T-0628] stays in the backlog (EP-052, unscheduled: a held queue kept on local disk).
+
+**Retrospective.**
+- ✅ The rig rule let the Linux half close on the VM with no rig: Mac pass, Docker evidence, then [T-0648].
+- ⚠️ The VM pass found two Close Project defects no smoke reached: [I-0335] (the wait looped: `flushEditor` always re-queued a save) and [I-0336] (the project was released BEFORE the question). §1b used the window's X, which asks first; both paths are tested now.
+- ⚠️ [I-0322] was built here but its status stayed 🔵 Open in the backlog for a week — a folded-in Issue needs its own status move in the same step.

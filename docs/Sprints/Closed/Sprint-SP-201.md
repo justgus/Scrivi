@@ -1,18 +1,19 @@
 ---
 sprint: SP-201
 epic: EP-052
-status: Active
+status: Closed
+closed: 2026-11-02
 platform: Cross
 created: 2026-11-01
 ---
 
 # SP-201 — `[Cross]` [EP-052] Replace All without holding the window, and no main-thread lock waits
 
-**Status:** 🟡 **ACTIVE 2026-11-01** (user, 2026-11-01: *"activate and implement SP-201 please."*) — created 2026-11-01
+**Status:** ✅ **CLOSED 2026-11-02** (user, 2026-11-02: *"on my authority, closed all the objects that have now tested completed"*) — activated 2026-11-01 (user, 2026-11-01: *"activate and implement SP-201 please."*) — created 2026-11-01
 (user: *"Create a sprint for I-0333 and I-0334"*). ⏳ Q1–Q2 below, after step 1's profile.
-**Carries:** [I-0333], [I-0334] → [`../Issues/Issue-backlog.md`](../Issues/Issue-backlog.md).
+**Carries:** [I-0333], [I-0334] → [`../Issues/Issue-backlog.md`](../../Issues/Issue-backlog.md).
 **Epic:** [EP-052] (AC4 *"no project write on the main thread"*, AC6, AC8 *"a click, select or scroll makes no file
-operation on the main thread"*) → [`../Epics/Epic-active.md`](../Epics/Epic-active.md).
+operation on the main thread"*) → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md).
 **Found in:** [SP-200]'s Mac live pass log, 2026-11-01.
 **Size:** M (one profile decides it).
 
@@ -50,7 +51,7 @@ Then main-thread core calls waited up to 15 s for the project lock (`lockWaitMs`
 4. **[I-0334]** the fix Q2 rules.
 5. **Tests:** a boundary or interop test that fails before each fix (a count of lookups, or of main-thread lock waits —
    not a timing), and a mutation in a copy of the repo that it catches.
-6. **Live passes:** the Mac, then the rig (steps added to [`Rig-Live-Pass-Held.md`](Rig-Live-Pass-Held.md)).
+6. **Live passes:** the Mac, then the rig (steps added to [`Rig-Live-Pass-Held.md`](../Rig-Live-Pass-Held.md)).
 
 ## Questions (ruled after step 1)
 
@@ -75,7 +76,7 @@ Then main-thread core calls waited up to 15 s for the project lock (`lockWaitMs`
 
 ### ➡️ 2026-11-02 — Rig pass moved to [EP-057] (T-0655)
 - Under the new rule (user, 2026-11-02: *"1 and 2 approved"*; `Sprint-GUIDELINES.md`, *"The rig pass never holds a
-  Sprint open"*): the rig AC is carried by T-0655, steps in [`Rig-Live-Pass-Held.md`](Rig-Live-Pass-Held.md); the AC counts as met
+  Sprint open"*): the rig AC is carried by T-0655, steps in [`Rig-Live-Pass-Held.md`](../Rig-Live-Pass-Held.md); the AC counts as met
   for the close. Linux evidence: the Docker ctest and smokes recorded in this log.
 
 ### 🟠 2026-11-01 — AC6 Mac live pass PASSED (rig still held)
@@ -117,3 +118,11 @@ Then main-thread core calls waited up to 15 s for the project lock (`lockWaitMs`
 - User: *"Create a sprint for I-0333 and I-0334"*. Both Issues stay in the backlog until activation.
 
 *Last Updated: 2026-11-01 (I-0333, I-0334 Resolved - Not Verified.)*
+
+### ✅ 2026-11-02 — Sprint CLOSED (user, 2026-11-02: *"on my authority, closed all the objects that have now tested completed"*)
+
+Every AC met; the rig AC passed on the Linux VM (`Rig-Live-Pass-Checklist-2026-11-02.md`: Pass; VM counts per
+Sprint-GUIDELINES rule 6). **Final status:** [T-0655] ✅ Verified 2026-11-02 (the rig AC, on the VM) · [I-0333], [I-0334] ✅ Verified 2026-11-02 · [I-0339] ✅ Verified 2026-11-02 (found and fixed during the VM pass).
+
+**Retrospective.**
+- ⚠️ The undo of a 1,175-scene Replace All held the Linux window 146 s ([I-0339]): each restored scene moved the caret and every move re-queued every scene still in flight. The forward path was fine; the undo path had never been measured at size.

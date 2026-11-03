@@ -9,6 +9,7 @@ Issues the user has VERIFIED, archived out of `Issue-active.md`.
 | **I-0313** | `[Apple]` ⚠️ **Typing into an empty scene that sits right before another empty scene is credited to the NEXT scene: the page shows the letter in the first, the scene list puts a newline in the second, and the caret jumps two characters.** Found 2026-10-20 by [SP-187]'s run-render test; reproduced after a full render too, so not caused by it. ⚠️ Not yet seen in the app. → [details](#i-0313) | **Medium** | [SP-193] | ✅ **VERIFIED 2026-10-25** (user, Mac live pass 2026-10-24: step 1 *"passes"*, step 2 *"passes"*) |
 | **I-0314** | `[Apple]` ⛔ **A chapter split on the Mac puts the scenes out of order ON DISK: the new chapter is appended at the manuscript END, and the scenes after the split stay in the old chapter.** The editor shows the right order until the project is reopened. Linux had the same defect and fixed it in July ([I-0074]: create in place, then move the following scenes). Found 2026-10-21 planning [SP-191] (an interop probe). → [details](#i-0314) | **High** | [SP-191] | ✅ **VERIFIED 2026-10-22** (user, 2026-10-22: *"Yes, mark them verified and close SP-191"* — after the rig re-pass on build 79: *"all items pass"*; the Mac pass 2026-10-21) |
 | **I-0315** | `[Linux]` ⚠️ **Every move of the caret into another scene WRITES the previous scene's outline and to-do list, changed or not — two sidecar writes on the GUI thread per scene switch.** Found 2026-10-21 tracing [SP-191]'s GUI-thread core calls (`structural_baseline_smoke`). → [details](#i-0315) | Medium | [SP-191] | ✅ **VERIFIED 2026-10-22** (user, 2026-10-22: *"I-0315 is verified"*) |
+| **I-0316** | `[ScriviCore]` ⚠️ **When a project's linked world cannot be found, every project open tries to find it once PER RELATIONSHIP ENDPOINT: 270 reads of `world.json` and 540 folder probes on dumas-prose-timelines (135 relationships), each one failing.** The binding read is cached per sweep ([I-0207], [I-0231]); the world lookup is not. Found 2026-10-22 measuring [SP-191]. → [details](#i-0316) | Medium | [SP-197] | ✅ **Verified 2026-11-02** ([SP-197]'s Mac pass (2026-11-01) and [T-0650] on the VM (checklist: Pass)) |
 | **I-0319** | `[ScriviCore]` `[Apple]` `[Linux]` ⚠️ **Undoing a change made in THIS session showed "Undoing changes from a previous session", after the undo, with only an OK button.** Found by the user 2026-10-24 ([SP-188] Mac live pass, step 1). → [details](#i-0319) | **Medium** | [SP-188] | ✅ **VERIFIED 2026-10-25** (Mac and rig) |
 | **I-0320** | `[ScriviCore]` `[Apple]` ⚠️ **The branch chooser (a history choice point) pops up as an UNDO lands on a fork; choosing in it redoes, which is never what a writer wants right after an undo.** Reported by the user 2026-10-24 ([SP-188] Mac live pass). → [details](#i-0320) | **Medium** | [SP-188] | ✅ **VERIFIED 2026-10-24** |
 
@@ -246,3 +247,39 @@ on a fork.
 *Last Updated: 2026-10-22 — **I-0315** archived (user-verified).*
 
 *Last Updated: 2026-10-22 — **I-0311** and **I-0314** archived (user-verified, [SP-191]'s close).*
+
+## I-0316
+
+**Title:** A missing world is looked for once per relationship endpoint on every project open
+**Status:** ✅ **Resolved - Verified 2026-11-02** — [SP-197]'s Mac pass (2026-11-01) and [T-0650] on the VM (checklist: Pass); archived on the user's authority (user, 2026-11-02: *"on my authority, closed all the objects that have now tested completed"*). ⚠️ PRIOR: 🟠 Resolved - Not Verified (2026-10-28, with [I-0324])
+**Platform:** `[ScriviCore]`
+**Component:** `RelationshipStore::repairDangling` (`ScriviCore/src/objects/RelationshipStore.cpp:439`), which runs on every
+project open → `EndpointResolver::resolve` (`ScriviCore/src/objects/EndpointResolver.cpp:43`) → `WorldStore::resolve`
+(`ScriviCore/src/worlds/WorldStore.cpp:284`) for every bound world, for each endpoint
+**Severity:** Medium. On local disk it costs little. Over a network share each failed lookup is a round trip, about 800 of
+them per open on dumas, all for an answer the first lookup already gave.
+**Sprint:** [SP-197] (2026-10-28, user: *"file the issue and fix it"*; the same fix)
+**Date Identified:** 2026-10-22 (a file-call count of `scrivi_open_project` through the C ABI, [SP-191])
+
+**Measured:** `scrivi_open_project` on a copy of dumas-prose-timelines (1,180 scenes, 135 relationships, one bound world):
+- **world missing** (the project copied without `Dumas-France-Prose.scrivworld` beside it): 2,244 file calls. Of those, 270 are
+  reads of `../Dumas-France-Prose.scrivworld/world.json`, plus 270 probes each of the project's parent folder and the folder
+  above that.
+- **world present:** 1,433 file calls, with no repeated world reads.
+- 270 = 135 relationships × 2 endpoints. `repairDangling` shares a `BindingCache`, so `binding.json` is read once. But
+  `WorldStore::resolve` reads `world.json` at each candidate path, and probes the folders to tell "absent" from "offline",
+  again for every endpoint.
+
+**Why it is not fixed by the existing cache:** `BindingCache` holds the binding record, not the resolution. Its header
+(`WorldStore.hpp:126`) explains why a cache must not outlive one read-only operation. A resolution cache with the same
+lifetime (one sweep) would keep that rule.
+
+**Steps to reproduce:** copy a project with relationships to world objects somewhere its world is not beside it, open it,
+and count file calls (`CountingFileSystem`).
+**Resolution (2026-10-28, with [I-0324]):** `EndpointResolver` resolves each bound world, and reads its index, once per
+resolver (`ScriviCore/src/objects/EndpointResolver.cpp`), so one sweep looks for a missing world once.
+**Verification:** `[I-0324]` in `RelationshipTests.cpp`: with the world's folder moved away, `repairDangling` reads no file
+more than twice and prunes nothing. ⏳ User verification.
+
+---
+

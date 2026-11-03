@@ -1,19 +1,20 @@
 ---
 sprint: SP-200
 epic: EP-052
-status: Active
+status: Closed
+closed: 2026-11-02
 platform: ScriviCore
 created: 2026-11-01
 ---
 
 # SP-200 — `[ScriviCore]` [EP-052] History load: compaction and compact records
 
-**Status:** 🟡 **ACTIVE 2026-11-01** (user, 2026-11-01: *"activate and implement SP-200 please."*) — created 2026-11-01 (user: *"I'd like to do all three (a), (b), and
+**Status:** ✅ **CLOSED 2026-11-02** (user, 2026-11-02: *"on my authority, closed all the objects that have now tested completed"*) — activated 2026-11-01 (user, 2026-11-01: *"activate and implement SP-200 please."*) — created 2026-11-01 (user: *"I'd like to do all three (a), (b), and
 (c)"*; *"I accept your recommendation for 1, 2, and 3"*). Q1–Q4 ruled.
-**Carries:** [T-0400], [T-0643], [T-0644], [T-0645], [T-0646], [T-0647] → [`../Tasks/Task-active.md`](../Tasks/Task-active.md).
+**Carries:** [T-0400], [T-0643], [T-0644], [T-0645], [T-0646], [T-0647] → [`../Tasks/Task-active.md`](../../Tasks/Task-active.md).
 **Issue:** [I-0332] (parts 1 and (a) done in [SP-197]).
-**Design:** [`../Scrivi_History_Load_Design_v0_1.md`](../Scrivi_History_Load_Design_v0_1.md).
-**Epic:** [EP-052] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md).
+**Design:** [`../Scrivi_History_Load_Design_v0_1.md`](../../Scrivi_History_Load_Design_v0_1.md).
+**Epic:** [EP-052] → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md).
 
 ## Goal
 
@@ -61,7 +62,7 @@ measure; its baseline is taken before T-0400 starts.
 
 ### ➡️ 2026-11-02 — Rig pass moved to [EP-057] (T-0653, T-0654)
 - Under the new rule (user, 2026-11-02: *"1 and 2 approved"*; `Sprint-GUIDELINES.md`, *"The rig pass never holds a
-  Sprint open"*): the rig AC is carried by T-0653, T-0654, steps in [`Rig-Live-Pass-Held.md`](Rig-Live-Pass-Held.md); the AC counts as met
+  Sprint open"*): the rig AC is carried by T-0653, T-0654, steps in [`Rig-Live-Pass-Held.md`](../Rig-Live-Pass-Held.md); the AC counts as met
   for the close. Linux evidence: the Docker ctest and smokes recorded in this log.
 
 ### 🟠 2026-11-01 — AC6 Mac live pass PASSED (rig still held)
@@ -121,3 +122,14 @@ measure; its baseline is taken before T-0400 starts.
 - From [SP-197]'s Mac pass log: [I-0331], [I-0332]. The generated history is being built for the measurements.
 
 *Last Updated: 2026-11-01 (T-0647 added, AC6.)*
+
+### ✅ 2026-11-02 — Sprint CLOSED (user, 2026-11-02: *"on my authority, closed all the objects that have now tested completed"*)
+
+Every AC met; the rig AC passed on the Linux VM (`Rig-Live-Pass-Checklist-2026-11-02.md`: Pass; VM counts per
+Sprint-GUIDELINES rule 6). **Final status:** [T-0400], [T-0643], [T-0644], [T-0645], [T-0646], [T-0647] ✅ Verified 2026-11-02 · [T-0653], [T-0654] ✅ Verified 2026-11-02 (the rig ACs, on the VM) · [I-0331], [I-0332] ✅ Verified.
+
+**Retrospective.**
+- ✅ On the VM, after [I-0341]–[I-0344]: dumas-prose-timelines-history opens in 6.0 s over the share (82 s before); its history in 1.5 s.
+- ⚠️ The history read cost 26 s over SMB until [I-0341]: the core read every file 8 KB at a time. Measured only when the history grew to 36 MB (77% Replace All records).
+- ⚠️ A VM SMB connection degraded to ~1.7 MB/s and made the fixed read look unfixed; check `time cat` of a large share file before any timing pass (rig setup §9.3).
+- ⛔ Further replay speed ([I-0345]: `-O2` history code, a lower Q3 threshold) — not to be done (user, 2026-11-02).

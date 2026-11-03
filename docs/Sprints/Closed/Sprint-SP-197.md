@@ -1,18 +1,19 @@
 ---
 sprint: SP-197
 epic: EP-052
-status: Active
+status: Closed
+closed: 2026-11-02
 platform: Cross
 created: 2026-10-27
 ---
 
 # SP-197 — `[Cross]` [EP-052] **S3**: reads off the main thread, and Spotlight in the background
 
-**Status:** 🟡 **ACTIVE 2026-10-27** (user: *"activate and implement SP-197"*) — created 2026-10-27 (user: *"plan S3"*). Activated
+**Status:** ✅ **CLOSED 2026-11-02** (user, 2026-11-02: *"on my authority, closed all the objects that have now tested completed"*) — activated 2026-10-27 (user: *"activate and implement SP-197"*) — created 2026-10-27 (user: *"plan S3"*). Activated
 beside [SP-195] and [SP-196], which need only their rig passes. ✅ Q1–Q3 ruled 2026-10-27 (user: *"Q1–Q3 agreed as recommended"*).
-**Carries:** [T-0629], [T-0630], [T-0631] → [`../Tasks/Task-unverified.md`](../Tasks/Task-unverified.md).
-**Epic:** [EP-052] (AC8, AC9) → [`../Epics/Epic-active.md`](../Epics/Epic-active.md).
-**Authority:** [`../Scrivi_Background_Writes_Design_v0_2.md`](../Scrivi_Background_Writes_Design_v0_2.md) R1, R3, §4
+**Carries:** [T-0629], [T-0630], [T-0631] → [`../Tasks/Task-unverified.md`](../../Tasks/Task-unverified.md).
+**Epic:** [EP-052] (AC8, AC9) → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md).
+**Authority:** [`../Scrivi_Background_Writes_Design_v0_2.md`](../../Scrivi_Background_Writes_Design_v0_2.md) R1, R3, §4
 (R3a, R3b), §5 (S1–S4); Q2, Q3 ruled, Q4 "not yet" · `Scrivi_Core_Concurrency_Design_v0_1.md` D2, D4 (the revision rule).
 
 ---
@@ -85,7 +86,7 @@ moved. Spotlight never runs on the main thread: one serial queue, per-scene re-i
 
 ### ➡️ 2026-11-02 — Rig pass moved to [EP-057] (T-0650)
 - Under the new rule (user, 2026-11-02: *"1 and 2 approved"*; `Sprint-GUIDELINES.md`, *"The rig pass never holds a
-  Sprint open"*): the rig AC is carried by T-0650, steps in [`Rig-Live-Pass-Held.md`](Rig-Live-Pass-Held.md); the AC counts as met
+  Sprint open"*): the rig AC is carried by T-0650, steps in [`Rig-Live-Pass-Held.md`](../Rig-Live-Pass-Held.md); the AC counts as met
   for the close. Linux evidence: the Docker ctest and smokes recorded in this log.
 
 ### 🟠 2026-11-01 — [I-0332]: the history open, 2.05 s → 0.25 s on dumas
@@ -193,3 +194,12 @@ moved. Spotlight never runs on the main thread: one serial queue, per-scene re-i
 
 ### 🔵 2026-10-27 — Sprint CREATED in Planning
 - User: *"plan S3"*.
+
+### ✅ 2026-11-02 — Sprint CLOSED (user, 2026-11-02: *"on my authority, closed all the objects that have now tested completed"*)
+
+Every AC met; the rig AC passed on the Linux VM (`Rig-Live-Pass-Checklist-2026-11-02.md`: Pass; VM counts per
+Sprint-GUIDELINES rule 6). **Final status:** [T-0629], [T-0630], [T-0631] ✅ Verified 2026-11-02 · [T-0650] ✅ Verified 2026-11-02 (the rig AC, on the VM) · [I-0316], [I-0324], [I-0330], [I-0331], [I-0332] ✅ Verified (I-0330/I-0331 2026-11-01; the rest 2026-11-02) · [I-0337] ✅ Verified 2026-11-02 (found and fixed during the VM pass).
+
+**Retrospective.**
+- ⚠️ The VM pass found the Linux Inspector's "Loading…" only on the Worldbuilding tab, and the cards waiting for a whole-project count ([I-0337]); Apple had it right on every card.
+- ⚠️ [I-0330]'s scene-titles lookup built the project index from DISK during an open — the 2-of-3 sidecar reads that [I-0342] removed. A locator must build through the caller's filesystem.
