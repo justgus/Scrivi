@@ -52,26 +52,20 @@ edit made by hand would; ✅ the log has `structural "…": applied in N ms, M m
 
 ---
 
-### [Mac] T-0618 / T-0616 — the same, on the Mac over a share ([SP-190] AC2, [SP-189] AC5; [SP-188] AC11's carried pass)
+### [Mac] T-0618 / T-0616 — the same, on the Mac, on a LOCAL disk ([SP-190] AC2, [SP-189] AC5)
 
 **Held here with the rig's at the user's instruction (2026-11-04: *"Put all the live pass steps in the EP-057 Live pass"*)** —
-it is not an EP-057 Task: its result goes in [T-0618] (and [T-0616]). ✅ **The share ([SP-190] Q2): scrivi-vm's Samba loop** —
-the Mac's own drive back through two hops (Mac → VM's CIFS mount → VM's Samba → Mac).
+it is not an EP-057 Task: its result goes in [T-0618] (and [T-0616]). ✅ **Re-ruled 2026-11-04 (user): on a local disk** — the
+two-hop Samba loop was too slow to be useful; the share half is Linux's ([T-0661]).
 
-**Once, first:** on the VM, `sudo smbpasswd -a justgus` (choose the password). On the Mac, Finder ▸ Go ▸ Connect to Server…
-(⌘K) → `smb://192.168.64.2/ScriviOtherLoop` → Connect, as `justgus` with that password; again for `ScriviWorldsLoop` (dumas's
-world). Make a copy of dumas on the drive for this pass (as [SP-188]'s `dumas-loop-test.scrivi`) and open THAT copy from the
-`ScriviOtherLoop` volume.
-
-**Build:** the Mac app from `main` at or after `c4799ac` — Scrivi ▸ About Scrivi. Back up the dumas copy on the share first.
-Open it from the loop volume (File ▸ Open…), then **Help ▸ Show Log Folder** (Finder shows `scrivi.log`).
+**Build:** the Mac app from `main` at or after `c4799ac` — Scrivi ▸ About Scrivi. Copy dumas to a local folder (keep the original
+untouched), open the copy (File ▸ Open…), then **Help ▸ Show Log Folder** (Finder shows `scrivi.log`).
 
 Steps 1–8 as the rig's above, with the Mac's commands: **Scene ▸ New Scene (⌘↩)** for a split, **Scene ▸ Merge Scene with
 Previous (⌘⌫)** for a merge, **Chapter ▸ New Chapter (⇧⌘↩)** for a chapter split, **Chapter ▸ Merge Chapter with Previous
 (⇧⌘⌫)**; **Edit ▸ Copy / Cut / Paste**; Delete (⌫) over a selection; **Edit ▸ Undo (⌘Z) / Redo (⇧⌘Z)** — ⚠️ never a new edit
 between an Undo and its Redo, or the Mac's branch chooser opens on ⇧⌘Z. Quit with **Scrivi ▸ Quit Scrivi**. The same ✅ marks;
 the log lines are the same words (`structural: … landed after N ms in all`, `verify: …`, `⚠ the window is not answering`).
-
 ---
 
 *Last Updated: 2026-11-04 (T-0660 passed on the VM and is archived; its section removed.)*

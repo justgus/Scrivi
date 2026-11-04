@@ -50,11 +50,18 @@ the window, and leaves the manuscript reading as a flat edit would.
 ## Acceptance Criteria
 
 - [x] AC1 — The Mac's timing source as Q1 rules — ✅ 2026-11-04: `DiagnosticLog` (`ScriviDiag.swift`)
-- [ ] AC2 — ✅ **Mac live pass (user)** over the share: every step timed, no freeze → `Rig-Live-Pass-Held.md`, the Mac section
+- [ ] AC2 — ✅ **Mac live pass (user)** — ✅ **RE-RULED 2026-11-04 (user: *"I approve your suggestion"*): on a LOCAL disk** (the two-hop loop is too slow to be useful: the user, 2026-11-04, *"It is too restrictive to be useful"*); the share half is Linux's ([T-0661]). Every step timed, no freeze → `Rig-Live-Pass-Held.md`, the Mac section
 - [ ] AC3 — ✅ **Rig live pass (user)** over the share: every step timed, no freeze → [T-0661] ([EP-057])
 - [ ] AC4 — Every finding filed and ruled
 
 ## Progress log
+
+### 🔴 2026-11-04 — the VM pass ([T-0661]) failed; the Mac's half moved to a local disk
+- [T-0661] on scrivi-vm (build 1.0.342): steps 2–7 passed as seen; step 1 the view jumped ([I-0347]); step 8 reopened in the
+  wrong place ([I-0348]); the log shows a 345–632 ms stall after every edit ([I-0346]). Times: every edit `applied in ~33 ms,
+  ~330 ms in all` (the queue's wait ~270 ms over the share).
+- The Mac over the loop: stopped at the load (user: *"too restrictive to be useful"*). ✅ Re-ruled: the Mac's pass on a local
+  disk; the Samba loop stays on scrivi-vm, unused.
 
 ### 🟡 2026-11-04 — Activated; Q1 built
 - **The Mac's diagnostic log** (`DiagnosticLog` in `Scrivi/App/ScriviDiag.swift`): `~/Library/Logs/Scrivi/scrivi.log` (the
