@@ -17,7 +17,7 @@ being built together. Development stays parallel; only the live pass on real Lin
 
 | Task | Rig pass | From |
 |---|---|---|
-| — | ✅ **None waiting.** [T-0648]–[T-0655] all passed on the Linux VM 2026-11-02 (user's checklist: Pass) and are archived. | — |
+| [T-0660] | Orca reads the manuscript as the page shows it | [SP-203] (EP-050 S4); [SP-202] Q3 |
 
 ---
 
@@ -195,16 +195,17 @@ in S2 · ✅ (later the same day) S2 split into S2a [SP-187] and S2b [SP-191]; t
 
 ## EP-050: `[Apple]` ⚠️ **Manuscript Accessibility** — VoiceOver reads the page the writer reads
 
-**Status:** 🟡 **ACTIVE 2026-10-08** (SP-171 activated) — created 2026-10-08 (user: *"let's look at I-0277"*; rulings A1–A3 the same day). ✅ S1 = [SP-171], ✅ closed 2026-10-08; S2 = [SP-172], ✅ closed 2026-10-09. S3 = [SP-202], 🟡 active 2026-11-04.
+**Status:** 🟡 **ACTIVE 2026-10-08** (SP-171 activated) — created 2026-10-08 (user: *"let's look at I-0277"*; rulings A1–A3 the same day). ✅ S1 = [SP-171], ✅ closed 2026-10-08; S2 = [SP-172], ✅ closed 2026-10-09. S3 = [SP-202], 🟡 active 2026-11-04 (✅ ready to close); S4 = [SP-203], 🟡 active 2026-11-04 (✅ built; ⏳ Q1 headings).
 **Sprints:**
 
 | Sprint | Scope | Status |
 | ------ | ----- | ------ |
 | **[SP-171]** | **S1** — the translation layer (one map, shared with Find), the caret both ways, cost: AC1, AC2, AC3 + AC5 reading half | ✅ **CLOSED 2026-10-08** (user-approved) → [`../Sprints/Closed/Sprint-SP-171.md`](../Sprints/Closed/Sprint-SP-171.md) · Q2 re-ruled: dividers read as WORDS · ✅ AC1, AC2, AC3, AC5 reading half met |
 | **[SP-172]** | **S2** — the Headings rotor: AC4 + AC5 rotor half | ✅ **CLOSED 2026-10-09** (user-approved) → [`../Sprints/Closed/Sprint-SP-172.md`](../Sprints/Closed/Sprint-SP-172.md) · rulings R1–R3 there · ✅ AC4 + AC5 rotor half met (live pass 2026-10-09); T-0600 verified |
-| **[SP-202]** | **S3** — Linux: AC6 (measure what Orca is given, then rule) | 🟡 **ACTIVE 2026-11-04** → [`../Sprints/Sprint-SP-202.md`](../Sprints/Sprint-SP-202.md) · ✅ measured: Orca is given the STORED text · ⏳ Q1–Q3 |
+| **[SP-202]** | **S3** — Linux: AC6 (measure what Orca is given, then rule) | 🟡 **ACTIVE 2026-11-04** → [`../Sprints/Sprint-SP-202.md`](../Sprints/Sprint-SP-202.md) · ✅ measured: Orca was given the STORED text · ✅ Q1–Q3 ruled (fix here, S4) |
+| **[SP-203]** | **S4** — Linux: AC7 — Orca reads the page at rest (Apple's AC1–AC3 on Linux) | 🟡 **ACTIVE 2026-11-04** → [`../Sprints/Sprint-SP-203.md`](../Sprints/Sprint-SP-203.md) · ✅ built, scrivi-vm + Docker green · ⏳ Q1 (headings: Qt's bridge has no Collection) · listen → [T-0660] |
 
-**Tasks:** ✅ [T-0599] (SP-171 — VERIFIED, archived) · ✅ [T-0600] (SP-172 — VERIFIED, archived) · 🟡 [T-0658] (SP-202).
+**Tasks:** ✅ [T-0599] (SP-171 — VERIFIED, archived) · ✅ [T-0600] (SP-172 — VERIFIED, archived) · 🟠 [T-0658] (SP-202) · 🟠 [T-0659] (SP-203) · 🔵 [T-0660] ([EP-057]: the Orca listen).
 **Issues:** ✅ [I-0277] `[Apple]` VoiceOver reads the STORED manuscript — fixed and VERIFIED in [SP-171], archived. · 🔵 [I-0284] (found in SP-171 → Issue backlog).
 **Authority:** design [`../Scrivi_Manuscript_Renderer_E2_Design_v0_1.md`](../Scrivi_Manuscript_Renderer_E2_Design_v0_1.md) §13 (*"VoiceOver /
 accessibility reads storage. Hidden markers may be spoken; not checked."*); SDK `AppKit/NSAccessibilityProtocols.h`,
@@ -242,7 +243,8 @@ caret-snap rules. ✅ `NSAccessibilityCustomRotor` (macOS 10.13+) has `NSAccessi
 | **AC3** | **Cost:** the map is cached and invalidated per edit — measured on 1.8 MB (`numberOfCharacters`, `string(for:)`, a keystroke with VoiceOver's queries); recorded |
 | **AC4** | **The Headings rotor (A2):** Markdown headings and chapter titles, in order, each a `targetRange` in presented positions; next/previous from **VoiceOver's reading position** (amended 2026-10-08, SP-172 R3: VoiceOver never passes the caret) |
 | **AC5** | **Live pass with VoiceOver** (user, Mac): it reads the page without markup at default punctuation verbosity; the rotor moves heading to heading; typing with VoiceOver on behaves |
-| **AC6** | **Linux** (Qt accessibility reads the stored text too, I-0277): MEASURE what Orca hears, then rule — a criterion here or EP-048's |
+| **AC6** | ✅ **MET 2026-11-04** ([SP-202]) — **Linux** (Qt accessibility reads the stored text too, I-0277): MEASURE what Orca hears, then rule — a criterion here or EP-048's. ✅ Measured; ✅ ruled: **here**, as AC7 |
+| **AC7** | ✅ **ADDED 2026-11-04** ([SP-202] Q1–Q2) — **Linux: Orca is given the page at rest** (A1): every text member through the one map, the caret both ways, cost recorded (Apple's AC1–AC3) — [SP-203]; heading navigation measured, then ruled ([SP-203] Q1); the Orca listen [T-0660] ([EP-057]) |
 
 ⛔ **OUT:** iOS/visionOS (no manuscript surface yet) · spoken formatting ("bold") beyond what the attributed string carries.
 

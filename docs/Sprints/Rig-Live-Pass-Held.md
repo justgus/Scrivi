@@ -23,10 +23,34 @@ Every Linux rig live pass that is waiting for the rig, in one place, so they can
 
 ## Held now
 
-✅ **None** (2026-11-02). [T-0648]–[T-0655] all passed on the Linux VM (`scrivi-vm`, builds 1.0.316–1.0.321; the user's
-checklist: Pass) and are archived in `../Tasks/Verified/`. Their steps are in those archives.
+### T-0660 — Orca reads the manuscript as the page shows it ([SP-203], EP-050 S4; [SP-202] Q3)
+
+**Where:** scrivi-vm (counts: no x86, GPU or real network). **Build:** 1.0.328 (`1be7b83`) or later — Help ▸ About Scrivi.
+No share needed; a new local project.
+
+1. Launch Scrivi from the desktop launcher. **Help ▸ About Scrivi** shows 1.0.328 or later. Close the About box.
+2. **File ▸ New Project…** — the New Project dialog: **Title:** `Orca test`; keep the suggested **Location:**; **Create**.
+3. In the manuscript, type: `Mr. Smith said ` — then **Format ▸ Bold**, type `bold`, **Format ▸ Bold** again — type ` and ` —
+   **Format ▸ Italic**, type `soft`, **Format ▸ Italic** — type ` here.` and press **Return** twice.
+4. **Format ▸ Heading 2**, type `The claim stated plainly`, press **Return** twice, type `1. not a list.`
+5. Turn **Orca on**: Super+Alt+S (Orca says "Screen reader on"). Click back into the manuscript.
+6. Press **Up** and **Down** over the lines. ✅ Orca reads *"Mr. Smith said bold and soft here."* — never "star", "backslash"
+   or "number sign"; *"The claim stated plainly"* — no "number number"; *"1. not a list."* with no "backslash".
+   Record what Orca says for the Mr. line exactly (Orca's default punctuation level).
+7. On the Mr. line, **Right** / **Left** one character at a time through *"bold"*. ✅ Orca speaks each letter; never a "star",
+   and the caret never stops twice in one place.
+8. Put the caret at the start of `1. not a list.` and choose **Scene ▸ Split Scene** (a divider appears above it). Press
+   **Up** from that line. ✅ Orca reads *"Scene break"* on the divider line.
+9. Type a few words with Orca on. ✅ It echoes what you type; nothing freezes.
+10. Optional: open **dumas-prose-timelines** with Orca on. Note whether the window pauses for a moment when Orca first reads
+    the manuscript (measured: about 0.2 s once).
+11. Turn **Orca off**: Super+Alt+S. Quit Scrivi (**File ▸ Quit**). The `Orca test` project can be deleted afterwards.
+
+**Pass:** 6–9 as marked. A failure is a new Issue, linked from [T-0660].
 
 ---
+
+*Last Updated: 2026-11-04 (T-0660 added: the Orca listen, EP-050 S4.)*
 
 *Last Updated: 2026-11-02 (all eight held passes run on the VM and passed; their sections removed.)*
 
