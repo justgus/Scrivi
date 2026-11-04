@@ -72,3 +72,10 @@ in Docker — once, when Orca first reads the manuscript; a keystroke then caret
 
 - **2026-11-04** — Created and activated; built; Docker + scrivi-vm green (above). ⚠️ Found on the way: **scrivi-vm's clock
   was 35.8 h slow** (chrony slewing, not stepping) — ninja refused to build a copy; stepped with `chronyc makestep`.
+- **2026-11-04** — ⛔ **My test broke the VM's Orca** (user: Orca would not start). `accessibility_atspi.sh` ran its own
+  `at-spi-bus-launcher` under the DESKTOP's `XDG_RUNTIME_DIR` (`/run/user/1000`), and on exit it removed
+  `/run/user/1000/at-spi/bus` — the desktop's accessibility bus socket — at 12:21; Orca then aborted at start
+  ("Couldn't connect to accessibility bus"). ✅ Fixed: the script runs in its own runtime folder (checked: a sentinel in the
+  desktop's folder survives a run, and nothing is added). The desktop's bus comes back with a log-out and log-in.
+  ⚠️ Also found: the VM's sound was a **Dummy Output** (PipeWire took only the VirtIO card's input profile); set to
+  `pro-audio` (`wpctl set-profile`), which gives a real output — so Orca can be heard.
