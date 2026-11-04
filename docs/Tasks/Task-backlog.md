@@ -38,7 +38,7 @@ status changes on its own layer.
 | T-0611 | `[Linux]` EP-048 S5c: Show chapter titles, and the chapter-ending divider | EP-048 ([SP-184], 🔵 Planning) | 🔵 Backlog |
 | T-0621 | `[Cross]` Explore a whole-manuscript history view (a tree, or a branching timeline) | ⚠️ None yet | 🔵 Backlog — exploration |
 | T-0628 | `[Cross]` EP-052: keep a held queue on local disk and push it when the project returns | EP-052 (unscheduled) | 🔵 Backlog |
-| T-0661 | `[Linux]` Rig pass: EP-053 over the share — every structural edit timed, verified, no freeze ([SP-189] AC5, [SP-190] AC3) | **EP-057** | 🔵 Backlog — steps in `../Sprints/Rig-Live-Pass-Held.md` |
+| T-0661 | `[Linux]` Rig pass: EP-053 over the share — every structural edit timed, verified, no freeze ([SP-189] AC5, [SP-190] AC3) | **EP-057** | 🔴 **Run 2026-11-04 — FAILED** (user): steps 2–7 passed as seen, step 1 the view jumped ([I-0347]), step 8 reopened in the wrong place ([I-0348]); the log shows a 350–630 ms stall after every edit ([I-0346]). Re-run after the fixes; steps in `../Sprints/Rig-Live-Pass-Held.md` |
 | T-0657 | `[Cross]` Navigator: collapsible chapters, the current one open, the writer's choices remembered per device | ⚠️ None yet | 🔵 Backlog |
 
 > ✅ **T-0477 – T-0479 LEFT this file 2026-08-31 when SP-124 was ACTIVATED**, per the standing rule that
