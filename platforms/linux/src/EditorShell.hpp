@@ -863,6 +863,7 @@ private:
                       std::function<void(const QVariantMap&)> inserted = {});
     // The caret `byteOffset` UTF-8 bytes into `sceneID`'s body, the navigator following; false when the scene is not loaded.
     bool placeCaret(const QString& sceneID, qint64 byteOffset);
+    std::optional<int> caretHeight_;   // [I-0347] the caret's height in the window when a structural edit began
     // Replace segment `index`'s body with `text`, under `isApplying`; returns the document position of `caretUtf16`.
     // A structural barrier (§4.5), Apple's kinds and notes. ⚠️ AFTER the op: `sceneTexts` is what it left in each
     // scene it rewrote or created ([I-0287]).

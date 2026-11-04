@@ -2084,6 +2084,9 @@ bool EditorShell::runRangeEdit(const QString& label, RangeCall call, RangeNode n
         if (dirtyScenes_.contains(seg.sceneID)) { unsaved.append(i); }
     }
     saveScenesOffMain(unsaved);
+    // ✅ [I-0347] (Apple T-0573): the caret keeps its height in the window across the edit — when it is on screen now.
+    const QRect caretRect = viewport_->cursorRect();
+    caretHeight_ = viewport_->viewport()->rect().contains(caretRect.center()) ? std::optional<int>(caretRect.top()) : std::nullopt;
     const QString historyRoot = node && history_ != nullptr && history_->isOpen() ? history_->projectRootPath() : QString();
     lockForWork(label);      // ✅ Q5: the cue — read-only at once, in the key press's own turn; the progress row after 400 ms
     rangeEditInFlight_ = true;
@@ -3215,6 +3218,18 @@ bool EditorShell::placeCaret(const QString& sceneID, qint64 byteOffset)
     c.setPosition(sceneDoc_.segments().at(idx).bodyStart + std::min(chars, int(text.size())));
     viewport_->setTextCursor(c);
     viewport_->ensureCursorVisible();
+    // ✅ [I-0347] (Apple T-0573): back at the height it had before the structural edit — the view scrolls by lines, so to the
+    // nearest line. (Without it a split left the caret's line at the top of the window.)
+    if (const std::optional<int> height = std::exchange(caretHeight_, std::nullopt)) {
+        QScrollBar* bar = viewport_->verticalScrollBar();
+        const int line = std::max(1, viewport_->fontMetrics().lineSpacing());
+        for (int k = 0; k < 400; ++k) {
+            const int off = viewport_->cursorRect().top() - *height;
+            if (off > line / 2 && bar->value() < bar->maximum()) { bar->setValue(bar->value() + 1); }
+            else if (off < -line / 2 && bar->value() > bar->minimum()) { bar->setValue(bar->value() - 1); }
+            else { break; }
+        }
+    }
     selectNavigatorScene(sceneID);
     viewport_->setFocus();
     return true;

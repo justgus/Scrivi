@@ -952,6 +952,57 @@ int main(int argc, char* argv[])
         v.shell->hide();
         v.shell.reset();
     }
+    // ── [I-0347] (Apple T-0573): a split keeps the caret at its height in the window (it jumped to the top line) ────────
+    {
+        Rig k;
+        k.projectDir = r.projectDir + QStringLiteral("-height");
+        k.appSupport = r.appSupport;
+        k.bridge.bootstrap(QStringLiteral("Baseline Tester"), k.appSupport);
+        k.projectID = k.bridge.createProject(k.projectDir, k.appSupport, QStringLiteral("Height"), QStringLiteral("height"))
+                          .value(QStringLiteral("projectID")).toString();
+        // As dumas: several scenes of long paragraphs that WRAP (the view scrolls by block and by line within it).
+        const QVariantMap k0 = k.bridge.openProject(k.projectDir, k.appSupport).value(QStringLiteral("scenes")).toList().at(0).toMap();
+        const QString sentence = QStringLiteral("She walked along the quay in the evening light, thinking of the letter. ");
+        const auto body = [&](int scene) {
+            QStringList paras;
+            for (int i = 1; i <= 30; ++i) { paras.append(QStringLiteral("S%1P%2 ").arg(scene).arg(i) + sentence.repeated(8)); }
+            return paras.join(QStringLiteral("\n\n"));
+        };
+        k.bridge.saveScene(k.projectID, k.projectDir, k.appSupport, k0.value(QStringLiteral("sceneID")).toString(),
+                           k0.value(QStringLiteral("metadataPath")).toString(), k0.value(QStringLiteral("contentPath")).toString(),
+                           body(1), 0, 0, 0.0);
+        QVariantMap prevK = k0;
+        for (int sc = 2; sc <= 5; ++sc) {
+            const QVariantMap made = k.bridge.createScene(k.projectDir, k.appSupport, k.projectID,
+                                                          k0.value(QStringLiteral("chapterID")).toString(),
+                                                          prevK.value(QStringLiteral("sceneID")).toString());
+            k.bridge.saveScene(k.projectID, k.projectDir, k.appSupport, made.value(QStringLiteral("sceneID")).toString(),
+                               made.value(QStringLiteral("metadataPath")).toString(), made.value(QStringLiteral("contentPath")).toString(),
+                               body(sc), 0, 0, 0.0);
+            prevK = made;
+        }
+        check(k.load(), QStringLiteral("I-0347: the long project loaded"));
+        armConfirmer(k.shell.get());
+        k.caretAt(QStringLiteral("S3P15 She walked along the quay in the evening light, thinking"), false);   // mid-paragraph
+        k.editor->ensureCursorVisible();
+        QScrollBar* bar = k.editor->verticalScrollBar();
+        // The caret's line about a third of the way down the window, as a writer mid-page has it.
+        for (int i = 0; i < 400 && k.editor->cursorRect().top() < k.editor->viewport()->height() / 3 && bar->value() > 0; ++i) {
+            bar->setValue(bar->value() - 1);
+        }
+        QApplication::processEvents();
+        const int before = k.editor->cursorRect().top();
+        check(before > k.editor->fontMetrics().lineSpacing() * 3, QStringLiteral("I-0347: the caret starts well below the top (%1 px)").arg(before));
+        check(k.landing([&] { k.shell->splitScene(); }), QStringLiteral("I-0347: the split landed"));
+        QApplication::processEvents();
+        const int after = k.editor->cursorRect().top();
+        check(std::abs(after - before) <= k.editor->fontMetrics().lineSpacing() * 2,
+              QStringLiteral("I-0347: the caret keeps its height across the split (%1 px → %2 px)").arg(before).arg(after));
+        k.shell->flushHistory();
+        k.shell->releaseProject();
+        k.shell->hide();
+        k.shell.reset();
+    }
     // c. The comparison itself: the same scenes in another order are put back in the disk's order; scenes the list does not
     //    know, a chapter gone and another chapter order are reported, never guessed at.
     {
