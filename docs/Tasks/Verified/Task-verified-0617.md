@@ -9,7 +9,7 @@
 ## T-0617 — `[Cross]` EP-053 S4: the background sync verification
 
 **Epic:** [EP-053] (S4) · **Status:** ✅ **Verified 2026-11-04** (user, 2026-11-04: *"Steps 1-8 on the Mac pass."* — the Mac on a local disk, build 1.0.349 `ef79dca`) ·
-**Sprint:** [SP-189] → [`../Sprints/Sprint-SP-189.md`](../Sprints/Sprint-SP-189.md) · **Date Requested:** 2026-10-20 (user: *"complete planning for EP-053"*)
+**Sprint:** [SP-189] → [`../../Sprints/Closed/Sprint-SP-189.md`](../../Sprints/Closed/Sprint-SP-189.md) · **Date Requested:** 2026-10-20 (user: *"complete planning for EP-053"*)
 
 **What:** after every structural operation, a background task on both platforms re-reads only the files the delta names and
 corrects any difference from the disk silently (design R3, P4, Q3), never overwriting a scene typed into meanwhile (Q2).

@@ -6,15 +6,6 @@ Sprints listed here are in 🔵 Planning status — defined and ready to activat
 
 ---
 
-## 🔵 EP-053 — S2b–S5 (created 2026-10-20)
-
-| Sprint | Scope | Record | Waits on |
-| ------ | ----- | ------ | -------- |
-
-Order: SP-188 → SP-189 → SP-190, after [SP-191] (✅ closed 2026-10-22, S2b) — user, 2026-10-20: each operation ships with its undo; S2 split.
-
----
-
 ## 🔵 EP-048 — S5a–S5c (created 2026-10-15)
 
 | Sprint | Scope | Record | Waits on |
