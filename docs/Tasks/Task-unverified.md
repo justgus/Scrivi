@@ -34,7 +34,7 @@ corrects any difference from the disk silently (design R3, P4, Q3), never overwr
 
 **Done (2026-11-04):** `scrivi_range_verify_read` (core); Linux `RangeVerify.hpp` + `EditorShell::verifyAgainstDisk`; Apple
 `RangeVerify` + `ViewportSceneLoader.verifyAgainstDisk` + `applyCorrection`. A two-scene paste's verification = 1 listing +
-2 reads. Tests on all three; mutations Linux 6/6, Apple 3/3. ⏳ [SP-189] Q3 (a difference a delta cannot fix: log only, as built).
+2 reads. Tests on all three; mutations Linux 6/6, Apple 3/3. ✅ [SP-189] Q3 ruled 2026-11-04: a difference a delta cannot fix is logged only.
 
 ---
 
@@ -47,7 +47,7 @@ corrects any difference from the disk silently (design R3, P4, Q3), never overwr
 and redo, timed by each platform's log, with no freeze; the Mac's timing source per [SP-190] Q1.
 
 **Done (2026-11-04):** the Mac's diagnostic log ([SP-190] Q1: `DiagnosticLog`, Help ▸ Show Log Folder). The steps: the rig's
-[T-0661] and the Mac's section, both in `../Sprints/Rig-Live-Pass-Held.md`. ⏳ [SP-190] Q2 (the Mac's share).
+[T-0661] and the Mac's section, both in `../Sprints/Rig-Live-Pass-Held.md`. ✅ [SP-190] Q2 ruled 2026-11-04: Samba on scrivi-vm (`ScriviOtherLoop`).
 
 ---
 

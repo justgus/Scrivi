@@ -181,8 +181,8 @@ thread, one core call per scene); a cut no longer removed structure, so paste an
 | **[SP-187]** | **S2a** — `[Apple]` + `[Linux]` the scene list as the model of record (design §4.2a), no visible change: the range endpoints bound on both, the delta types, Linux's list holding the text, Apple's partial re-render; baseline counts | ✅ **CLOSED 2026-10-21** (user-approved) → [`../Sprints/Closed/Sprint-SP-187.md`](../Sprints/Closed/Sprint-SP-187.md) · ✅ Q1–Q4 ruled |
 | **[SP-191]** | **S2b** — `[Apple]` + `[Linux]` copy builds the Range from memory; paste and its undo (a range cut); split, chapter split, merge and chapter merge as range calls (undoable, sidecars restored, no barriers); the delta applied, no reload, off the main thread on both; old history nodes converted; [I-0314] · ➡️ takes [SP-185] AC4 | ✅ **CLOSED 2026-10-22** (user-approved) → [`../Sprints/Closed/Sprint-SP-191.md`](../Sprints/Closed/Sprint-SP-191.md) · [T-0619] verified |
 | **[SP-188]** | **S3** — `[Apple]` + `[Linux]` structural cut; Backspace / Delete over scenes = Cut minus the clipboard (Q4); cut's undo (a range paste); old `structuredCut` nodes still undo | ✅ **CLOSED 2026-10-26** (user-approved) → [`../Sprints/Closed/Sprint-SP-188.md`](../Sprints/Closed/Sprint-SP-188.md) · AC11's Mac pass over a share → [SP-190] |
-| **[SP-189]** | **S4** — `[Cross]` the background sync verification (disk wins, silently — Q3) | 🟡 **ACTIVE 2026-11-04** → [`../Sprints/Sprint-SP-189.md`](../Sprints/Sprint-SP-189.md) · ✅ Q1–Q2 ruled · ✅ built (core + both), green · ⏳ Q3 · passes → [T-0661] |
-| **[SP-190]** | **S5** — Mac and rig live passes over the share, timed by the diagnostic logs | 🟡 **ACTIVE 2026-11-04** → [`../Sprints/Sprint-SP-190.md`](../Sprints/Sprint-SP-190.md) · ✅ Q1 ruled + built (the Mac's log) · ⏳ Q2 (the Mac's share) · passes → [T-0661] / Mac section |
+| **[SP-189]** | **S4** — `[Cross]` the background sync verification (disk wins, silently — Q3) | 🟡 **ACTIVE 2026-11-04** → [`../Sprints/Sprint-SP-189.md`](../Sprints/Sprint-SP-189.md) · ✅ Q1–Q2 ruled · ✅ built (core + both), green · ✅ Q3 ruled (log only) · passes → [T-0661] |
+| **[SP-190]** | **S5** — Mac and rig live passes over the share, timed by the diagnostic logs | 🟡 **ACTIVE 2026-11-04** → [`../Sprints/Sprint-SP-190.md`](../Sprints/Sprint-SP-190.md) · ✅ Q1 ruled + built (the Mac's log) · ✅ Q2 ruled (Samba on scrivi-vm, set up) · passes → [T-0661] / Mac section |
 
 **Planning rulings (user, 2026-10-20):** ✅ each operation ships with its undo (paste + its undo in S2, cut + its undo in
 S3; verification moves to S4, history no longer a Sprint of its own) · ✅ split, merge and chapter create/merge are in scope,
@@ -196,7 +196,7 @@ in S2 · ✅ (later the same day) S2 split into S2a [SP-187] and S2b [SP-191]; t
 
 ## EP-050: `[Apple]` ⚠️ **Manuscript Accessibility** — VoiceOver reads the page the writer reads
 
-**Status:** 🟡 **ACTIVE 2026-10-08** (SP-171 activated) — created 2026-10-08 (user: *"let's look at I-0277"*; rulings A1–A3 the same day). ✅ S1 = [SP-171], ✅ closed 2026-10-08; S2 = [SP-172], ✅ closed 2026-10-09. S3 = [SP-202], 🟡 active 2026-11-04 (✅ ready to close); S4 = [SP-203], 🟡 active 2026-11-04 (✅ built; ⏳ Q1 headings).
+**Status:** 🟡 **ACTIVE 2026-10-08** (SP-171 activated) — created 2026-10-08 (user: *"let's look at I-0277"*; rulings A1–A3 the same day). ✅ S1 = [SP-171], ✅ closed 2026-10-08; S2 = [SP-172], ✅ closed 2026-10-09. S3 = [SP-202], 🟡 active 2026-11-04 (✅ ready to close); S4 = [SP-203], 🟡 active 2026-11-04 (✅ built; ✅ Q1 ruled: headings not offered on Linux).
 **Sprints:**
 
 | Sprint | Scope | Status |
@@ -204,7 +204,7 @@ in S2 · ✅ (later the same day) S2 split into S2a [SP-187] and S2b [SP-191]; t
 | **[SP-171]** | **S1** — the translation layer (one map, shared with Find), the caret both ways, cost: AC1, AC2, AC3 + AC5 reading half | ✅ **CLOSED 2026-10-08** (user-approved) → [`../Sprints/Closed/Sprint-SP-171.md`](../Sprints/Closed/Sprint-SP-171.md) · Q2 re-ruled: dividers read as WORDS · ✅ AC1, AC2, AC3, AC5 reading half met |
 | **[SP-172]** | **S2** — the Headings rotor: AC4 + AC5 rotor half | ✅ **CLOSED 2026-10-09** (user-approved) → [`../Sprints/Closed/Sprint-SP-172.md`](../Sprints/Closed/Sprint-SP-172.md) · rulings R1–R3 there · ✅ AC4 + AC5 rotor half met (live pass 2026-10-09); T-0600 verified |
 | **[SP-202]** | **S3** — Linux: AC6 (measure what Orca is given, then rule) | 🟡 **ACTIVE 2026-11-04** → [`../Sprints/Sprint-SP-202.md`](../Sprints/Sprint-SP-202.md) · ✅ measured: Orca was given the STORED text · ✅ Q1–Q3 ruled (fix here, S4) |
-| **[SP-203]** | **S4** — Linux: AC7 — Orca reads the page at rest (Apple's AC1–AC3 on Linux) | 🟡 **ACTIVE 2026-11-04** → [`../Sprints/Sprint-SP-203.md`](../Sprints/Sprint-SP-203.md) · ✅ built, scrivi-vm + Docker green · ⏳ Q1 (headings: Qt's bridge has no Collection) · listen → [T-0660] |
+| **[SP-203]** | **S4** — Linux: AC7 — Orca reads the page at rest (Apple's AC1–AC3 on Linux) | 🟡 **ACTIVE 2026-11-04** → [`../Sprints/Sprint-SP-203.md`](../Sprints/Sprint-SP-203.md) · ✅ built, scrivi-vm + Docker green · ✅ Q1 ruled (headings: recorded, nothing built) · listen → [T-0660] |
 
 **Tasks:** ✅ [T-0599] (SP-171 — VERIFIED, archived) · ✅ [T-0600] (SP-172 — VERIFIED, archived) · 🟠 [T-0658] (SP-202) · 🟠 [T-0659] (SP-203) · 🔵 [T-0660] ([EP-057]: the Orca listen).
 **Issues:** ✅ [I-0277] `[Apple]` VoiceOver reads the STORED manuscript — fixed and VERIFIED in [SP-171], archived. · 🔵 [I-0284] (found in SP-171 → Issue backlog).

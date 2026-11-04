@@ -9,7 +9,7 @@ created: 2026-11-04
 # SP-203 — `[Linux]` [EP-050] **S4**: Orca reads the page at rest
 
 **Status:** 🟡 **ACTIVE** — created and activated 2026-11-04 ([SP-202] Q1–Q3, user: *"Q1-Q3 ruled as recommended. Once EP-050
-implementation is complete continue on…"*). ✅ Implemented and tested (below); ⏳ Q1 (headings) to rule; the Orca listen is
+implementation is complete continue on…"*). ✅ Implemented and tested (below); ✅ Q1 ruled 2026-11-04 (as recommended: record the difference, build nothing); the Orca listen is
 [T-0660] ([EP-057]).
 **Carries:** [T-0659] → [`../Tasks/Task-unverified.md`](../Tasks/Task-unverified.md).
 **Epic:** [EP-050] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md) — AC7 (Apple's AC1–AC3 on Linux).
@@ -53,11 +53,11 @@ in Docker — once, when Orca first reads the manuscript; a keystroke then caret
   editor both answer *no* (`get_collection_iface()`), for Scrivi AND for a bare `QPlainTextEdit`.
 - So heading navigation cannot reach Scrivi's headings by ANY interface Scrivi builds; Orca reads a heading as a line.
 
-## Questions
+## Questions — ✅ Q1 RULED 2026-11-04 (user: *"Q1 and Q3 ruled as recommended"*)
 
 | # | Question | Recommendation |
 | - | -------- | -------------- |
-| **Q1** | **Headings on Linux** (Apple's AC4 rotor). | ⏳ **Record the difference, build nothing:** Orca's heading navigation needs Qt's bridge to implement Collection, which Scrivi cannot add. A writer moves scene to scene with the Navigator, and Orca reads the line the caret lands on (⚠️ Linux has no Go to Scene command). Alternative: a Scrivi command, Next / Previous Heading, that moves the caret (Orca then reads it) — new keys on both platforms. |
+| **Q1** | **Headings on Linux** (Apple's AC4 rotor). | ✅ **RULED: record the difference, build nothing:** Orca's heading navigation needs Qt's bridge to implement Collection, which Scrivi cannot add. A writer moves scene to scene with the Navigator, and Orca reads the line the caret lands on (⚠️ Linux has no Go to Scene command). Alternative: a Scrivi command, Next / Previous Heading, that moves the caret (Orca then reads it) — new keys on both platforms. |
 
 ## Acceptance Criteria
 
@@ -65,7 +65,7 @@ in Docker — once, when Orca first reads the manuscript; a keystroke then caret
 - [x] AC2 — The caret both ways, through Scrivi's caret rules (Apple AC2)
 - [x] AC3 — Cost measured and recorded (Apple AC3)
 - [x] AC4 — Qt's text events in page positions, proved over AT-SPI
-- [ ] AC5 — Q1 ruled
+- [x] AC5 — Q1 ruled (2026-11-04): Orca reads a heading as a line; heading navigation is not offered on Linux (Qt has no Collection)
 - [x] AC6 — The Orca listen → [T-0660] ([EP-057], `Rig-Live-Pass-Held.md`)
 
 ## Progress log

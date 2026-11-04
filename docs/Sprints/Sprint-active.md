@@ -12,15 +12,15 @@
 
 ## SP-189 — `[Cross]` [EP-053] S4: the background sync verification
 
-🟡 **ACTIVE 2026-11-04** → [`Sprint-SP-189.md`](Sprint-SP-189.md) · carries [T-0617] · ✅ built, all platforms green · ⏳ Q3 · passes → [T-0661] / the Mac section
+🟡 **ACTIVE 2026-11-04** → [`Sprint-SP-189.md`](Sprint-SP-189.md) · carries [T-0617] · ✅ built, all platforms green · ✅ Q3 ruled · passes → [T-0661] / the Mac section
 
 ## SP-190 — `[Cross]` [EP-053] S5: Mac and rig live passes over the share, timed
 
-🟡 **ACTIVE 2026-11-04** → [`Sprint-SP-190.md`](Sprint-SP-190.md) · carries [T-0618] · ✅ Q1 built (the Mac's log) · ⏳ Q2 (the Mac's share) · passes → [T-0661] / the Mac section
+🟡 **ACTIVE 2026-11-04** → [`Sprint-SP-190.md`](Sprint-SP-190.md) · carries [T-0618] · ✅ Q1 built (the Mac's log) · ✅ Q2: Samba on scrivi-vm · passes → [T-0661] / the Mac section
 
 ## SP-203 — `[Linux]` [EP-050] S4: Orca reads the page at rest
 
-🟡 **ACTIVE 2026-11-04** → [`Sprint-SP-203.md`](Sprint-SP-203.md) · carries [T-0659] · ✅ built, Docker + scrivi-vm green · ⏳ Q1 (headings) · the Orca listen → [T-0660] ([EP-057])
+🟡 **ACTIVE 2026-11-04** → [`Sprint-SP-203.md`](Sprint-SP-203.md) · carries [T-0659] · ✅ built, Docker + scrivi-vm green · ✅ Q1 ruled · the Orca listen → [T-0660] ([EP-057])
 
 *Last Updated: 2026-11-03 (**SP-198, SP-199 → ✅ CLOSED** (user, 2026-11-03: *"close both sprints."*).)*
 

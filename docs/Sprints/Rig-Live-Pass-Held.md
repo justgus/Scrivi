@@ -55,11 +55,16 @@ edit made by hand would; ✅ the log has `structural "…": applied in N ms, M m
 ### [Mac] T-0618 / T-0616 — the same, on the Mac over a share ([SP-190] AC2, [SP-189] AC5; [SP-188] AC11's carried pass)
 
 **Held here with the rig's at the user's instruction (2026-11-04: *"Put all the live pass steps in the EP-057 Live pass"*)** —
-it is not an EP-057 Task: its result goes in [T-0618] (and [T-0616]). ⏳ **[SP-190] Q2: which share the Mac opens dumas from**
-(scrivi-vm runs no Samba server, so the [SP-188] loop does not exist there yet).
+it is not an EP-057 Task: its result goes in [T-0618] (and [T-0616]). ✅ **The share ([SP-190] Q2): scrivi-vm's Samba loop** —
+the Mac's own drive back through two hops (Mac → VM's CIFS mount → VM's Samba → Mac).
+
+**Once, first:** on the VM, `sudo smbpasswd -a justgus` (choose the password). On the Mac, Finder ▸ Go ▸ Connect to Server…
+(⌘K) → `smb://192.168.64.2/ScriviOtherLoop` → Connect, as `justgus` with that password; again for `ScriviWorldsLoop` (dumas's
+world). Make a copy of dumas on the drive for this pass (as [SP-188]'s `dumas-loop-test.scrivi`) and open THAT copy from the
+`ScriviOtherLoop` volume.
 
 **Build:** the Mac app from `main` at or after `c4799ac` — Scrivi ▸ About Scrivi. Back up the dumas copy on the share first.
-Open it from the share (File ▸ Open…), then **Help ▸ Show Log Folder** (Finder shows `scrivi.log`).
+Open it from the loop volume (File ▸ Open…), then **Help ▸ Show Log Folder** (Finder shows `scrivi.log`).
 
 Steps 1–8 as the rig's above, with the Mac's commands: **Scene ▸ New Scene (⌘↩)** for a split, **Scene ▸ Merge Scene with
 Previous (⌘⌫)** for a merge, **Chapter ▸ New Chapter (⇧⌘↩)** for a chapter split, **Chapter ▸ Merge Chapter with Previous
@@ -79,7 +84,8 @@ No share needed; a new local project.
 3. In the manuscript, type: `Mr. Smith said ` — then **Format ▸ Bold**, type `bold`, **Format ▸ Bold** again — type ` and ` —
    **Format ▸ Italic**, type `soft`, **Format ▸ Italic** — type ` here.` and press **Return** twice.
 4. **Format ▸ Heading 2**, type `The claim stated plainly`, press **Return** twice, type `1. not a list.`
-5. Turn **Orca on**: Super+Alt+S (Orca says "Screen reader on"). Click back into the manuscript.
+5. Turn **Orca on**: **⌘ Command + ⌥ Option + S** in the VM window (GNOME's Super+Alt+S — Super is ⌘ on the Mac's keyboard), or
+   **Settings ▸ Accessibility ▸ Seeing ▸ Screen Reader** on. Orca says "Screen reader on". Click back into the manuscript.
 6. Press **Up** and **Down** over the lines. ✅ Orca reads *"Mr. Smith said bold and soft here."* — never "star", "backslash"
    or "number sign"; *"The claim stated plainly"* — no "number number"; *"1. not a list."* with no "backslash".
    Record what Orca says for the Mr. line exactly (Orca's default punctuation level).
@@ -90,7 +96,7 @@ No share needed; a new local project.
 9. Type a few words with Orca on. ✅ It echoes what you type; nothing freezes.
 10. Optional: open **dumas-prose-timelines** with Orca on. Note whether the window pauses for a moment when Orca first reads
     the manuscript (measured: about 0.2 s once).
-11. Turn **Orca off**: Super+Alt+S. Quit Scrivi (**File ▸ Quit**). The `Orca test` project can be deleted afterwards.
+11. Turn **Orca off**: ⌘⌥S again, or the same Settings switch. Quit Scrivi (**File ▸ Quit**). The `Orca test` project can be deleted afterwards.
 
 **Pass:** 6–9 as marked. A failure is a new Issue, linked from [T-0660].
 

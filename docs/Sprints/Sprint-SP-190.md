@@ -8,7 +8,7 @@ created: 2026-10-20
 
 # SP-190 — `[Cross]` [EP-053] **S5**: Mac and rig live passes over the share, timed
 
-**Status:** 🟡 **ACTIVE 2026-11-04** (user: *"continue on and do the remaining implementation for EP-053. Put all the live pass steps in the EP-057 Live pass."*) — created 2026-10-20. ✅ Q1 ruled 2026-11-04 (as recommended) and built (AC1); ⏳ the passes: steps in [`Rig-Live-Pass-Held.md`](Rig-Live-Pass-Held.md) — the rig's as [T-0661] ([EP-057]), the Mac's beside it; ⏳ Q2 (the Mac's share).
+**Status:** 🟡 **ACTIVE 2026-11-04** (user: *"continue on and do the remaining implementation for EP-053. Put all the live pass steps in the EP-057 Live pass."*) — created 2026-10-20. ✅ Q1 ruled 2026-11-04 (as recommended) and built (AC1); ⏳ the passes: steps in [`Rig-Live-Pass-Held.md`](Rig-Live-Pass-Held.md) — the rig's as [T-0661] ([EP-057]), the Mac's beside it; ✅ Q2 ruled 2026-11-04: Samba on scrivi-vm (set up the same day).
 **Carries:** [T-0618] → [`../Tasks/Task-unverified.md`](../Tasks/Task-unverified.md).
 **Epic:** [EP-053] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md).
 **Builds on:** [SP-187], [SP-188], [SP-189].
@@ -44,13 +44,13 @@ the window, and leaves the manuscript reading as a flat edit would.
 
 | # | Question | Recommendation |
 | - | -------- | -------------- |
-| **Q2** | ➕ **2026-11-04: the share the Mac opens dumas from.** scrivi-vm runs no Samba server (it only MOUNTS the Mac's shares), so the [SP-188] loop (the rig re-sharing the Mac's drive back) does not exist there. | ⏳ **Ask the user.** Candidates: Samba on scrivi-vm re-sharing `/mnt/scrivi-other` (the [SP-188] loop, two hops); another machine's share; a NAS. |
+| **Q2** | ➕ **2026-11-04: the share the Mac opens dumas from.** scrivi-vm runs no Samba server (it only MOUNTS the Mac's shares), so the [SP-188] loop (the rig re-sharing the Mac's drive back) does not exist there. | ✅ **RULED (user, 2026-11-04: *"Samba on the VM for Q2"*)** — scrivi-vm re-shares `/mnt/scrivi-other` and `/mnt/scrivi-worlds` as `ScriviOtherLoop` / `ScriviWorldsLoop` (oplocks off, as [SP-188]'s loop). Candidates were: Samba on scrivi-vm re-sharing `/mnt/scrivi-other` (the [SP-188] loop, two hops); another machine's share; a NAS. |
 | **Q1** | **The Mac's timing source.** | ✅ **RULED (user, 2026-11-04: *"approved as recommended"*): a minimal Mac diagnostic log** (structural steps and main-thread stalls only, the same line format as Linux's), built here. Alternative: time it by hand, which cannot measure a stall. |
 
 ## Acceptance Criteria
 
 - [x] AC1 — The Mac's timing source as Q1 rules — ✅ 2026-11-04: `DiagnosticLog` (`ScriviDiag.swift`)
-- [ ] AC2 — ✅ **Mac live pass (user)** over the share: every step timed, no freeze → `Rig-Live-Pass-Held.md`, the Mac section (⏳ Q2)
+- [ ] AC2 — ✅ **Mac live pass (user)** over the share: every step timed, no freeze → `Rig-Live-Pass-Held.md`, the Mac section
 - [ ] AC3 — ✅ **Rig live pass (user)** over the share: every step timed, no freeze → [T-0661] ([EP-057])
 - [ ] AC4 — Every finding filed and ruled
 
@@ -63,6 +63,10 @@ the window, and leaves the manuscript reading as a flat edit would.
   verification ([SP-189]), the main thread's core calls that took time, and the watchdog's stalls (≥ 250 ms) — ✅ spans and the
   watchdog no longer need `SCRIVI_DIAG_TIMING` (it still adds the console lines and the open-path table). Interop test: a
   split's lines are in the file, every line in Linux's format.
+- ✅ Q2 (user: *"Samba on the VM"*): `samba` installed on scrivi-vm; `/etc/samba/smb.conf` (original kept as
+  `smb.conf.orig`) gains `[ScriviOtherLoop]` → `/mnt/scrivi-other` and `[ScriviWorldsLoop]` → `/mnt/scrivi-worlds`, `valid users`
+  / `force user = justgus`, all oplocks off; no firewall; port 445 reachable from the Mac. ⏳ The Samba password is the user's
+  to set (`sudo smbpasswd -a justgus` on the VM).
 - The passes' steps are in `Rig-Live-Pass-Held.md` (user: *"Put all the live pass steps in the EP-057 Live pass"*).
 
 ### 🔵 2026-10-20 — Sprint CREATED in Planning

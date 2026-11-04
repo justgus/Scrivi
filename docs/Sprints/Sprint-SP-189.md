@@ -8,7 +8,7 @@ created: 2026-10-20
 
 # SP-189 — `[Cross]` [EP-053] **S4**: the background sync verification — disk wins, silently
 
-**Status:** 🟡 **ACTIVE 2026-11-04** (user: *"continue on and do the remaining implementation for EP-053"*) — created 2026-10-20 (user: *"complete planning for EP-053"*). ✅ Q1–Q2 ruled 2026-11-04 (as recommended). ✅ Built and tested on both (below); ⏳ Q3; the live passes → [`Rig-Live-Pass-Held.md`](Rig-Live-Pass-Held.md) ([T-0661], [EP-057]; the Mac's beside it).
+**Status:** 🟡 **ACTIVE 2026-11-04** (user: *"continue on and do the remaining implementation for EP-053"*) — created 2026-10-20 (user: *"complete planning for EP-053"*). ✅ Q1–Q2 ruled 2026-11-04 (as recommended). ✅ Built and tested on both (below); ✅ Q3 ruled 2026-11-04 (as recommended: log it, change nothing); the live passes → [`Rig-Live-Pass-Held.md`](Rig-Live-Pass-Held.md) ([T-0661], [EP-057]; the Mac's beside it).
 **Carries:** [T-0617] → [`../Tasks/Task-unverified.md`](../Tasks/Task-unverified.md).
 **Epic:** [EP-053] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md).
 **Builds on:** [SP-187] and [SP-191] (S2a, S2b) and [SP-188]: every structural operation returns a delta that the editor applies in memory.
@@ -49,14 +49,14 @@ without a notice, without touching the writer's caret or typing elsewhere.
 | # | Question | Recommendation |
 | - | -------- | -------------- |
 | **Q1** | **Where the comparison runs.** Comparing is not backend logic, but which fields count as "differs" is a rule both platforms must share. | ✅ **RULED (user, 2026-11-04: *"Q1 and Q2 approved as recommended"*): a core endpoint returns the disk's version of the delta's scenes and chapters; each platform compares field by field** against a list the core documents. Alternative: the platform sends its view and the core returns only the differences (one rule, but the whole touched text crosses the ABI twice). |
-| **Q3** | ➕ **2026-11-04 (found building it): a difference a delta cannot put right** — a scene on disk the list does not know, a chapter folder gone from under its scenes, another chapter order. Apple has no project reload; Linux's is a one-off fallback. | ⏳ **Log it, change nothing** (as built, both platforms): these mean an outside change or a defect, and guessing would be worse. Alternative: reload the project (Linux's `load`; Apple would need one built), which re-reads everything and moves the caret. |
+| **Q3** | ➕ **2026-11-04 (found building it): a difference a delta cannot put right** — a scene on disk the list does not know, a chapter folder gone from under its scenes, another chapter order. Apple has no project reload; Linux's is a one-off fallback. | ✅ **RULED (user, 2026-11-04: *"Q1 and Q3 ruled as recommended"*): log it, change nothing** (as built, both platforms): these mean an outside change or a defect, and guessing would be worse. Alternative: reload the project (Linux's `load`; Apple would need one built), which re-reads everything and moves the caret. |
 | **Q2** | **A scene the writer typed into before the verification ran.** | ✅ **RULED (user, 2026-11-04): skip it**, and log that it was skipped. The writer's text is newer than the disk's; overwriting it would lose typing. |
 
 ## Acceptance Criteria
 
 - [x] AC1 — After every structural operation, a background verification reads only the delta's files, on both platforms
 - [x] AC2 — A divergence is corrected from the disk silently (design Q3), logged, with the caret and scroll unchanged — a text,
-      or an order within a chapter; what a delta cannot fix is logged (⏳ Q3)
+      or an order within a chapter; what a delta cannot fix is logged (✅ Q3: logged, never guessed at)
 - [x] AC3 — A scene typed into meanwhile is never overwritten (Q2)
 - [x] AC4 — Tests on both: forced divergence corrected; no divergence → zero corrections; count guard; mutation-checked
 - [ ] AC5 — ✅ **Live passes (user):** Mac and rig, over the share — the diagnostic logs show each verification and its cost →
