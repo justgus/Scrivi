@@ -1,17 +1,18 @@
 ---
 sprint: SP-202
 epic: EP-050
-status: Active
+status: Closed
+closed: 2026-11-04
 platform: Linux
 created: 2026-11-04
 ---
 
 # SP-202 — `[Linux]` [EP-050] **S3**: AC6 — measure what Orca is given, then rule
 
-**Status:** 🟡 **ACTIVE** — created and activated 2026-11-04 (user: *"let's implement AC6 for EP-050"*). ✅ The measurement is
+**Status:** ✅ **CLOSED 2026-11-04** (user, 2026-11-04: *"this is a pass. We should be able to close SP-202 and SP-203."*) — — created and activated 2026-11-04 (user: *"let's implement AC6 for EP-050"*). ✅ The measurement is
 done (below); ✅ Q1–Q3 ruled 2026-11-04 (as recommended): the fix is EP-050 S4 = [SP-203]; the Orca listen is [T-0660] ([EP-057]).
-**Carries:** [T-0658] → [`../Tasks/Task-active.md`](../Tasks/Task-active.md).
-**Epic:** [EP-050] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md) — AC6: *"MEASURE what Orca hears, then rule — a
+**Carries:** [T-0658] → [`../../Tasks/Verified/Task-verified-0658.md`](../../Tasks/Verified/Task-verified-0658.md) ✅ verified.
+**Epic:** [EP-050] → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md) — AC6: *"MEASURE what Orca hears, then rule — a
 criterion here or EP-048's"*.
 **Size:** S (measurement only; any fix is a later Sprint).
 
@@ -72,3 +73,4 @@ running in a desktop session (Q3).
 
 - **2026-11-04** — Created and activated; measured (above).
 - **2026-11-04** — Q1–Q3 ruled as recommended; S4 = [SP-203] created; the listen carried to [T-0660]. ✅ All ACs met or carried — ready to close on approval.
+- **2026-11-04** — ✅ **CLOSED** (user, 2026-11-04: *"this is a pass. We should be able to close SP-202 and SP-203."*). [T-0660] (the Orca pass) passed; Tasks verified and archived.

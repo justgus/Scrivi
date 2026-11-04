@@ -1,18 +1,19 @@
 ---
 sprint: SP-203
 epic: EP-050
-status: Active
+status: Closed
+closed: 2026-11-04
 platform: Linux
 created: 2026-11-04
 ---
 
 # SP-203 — `[Linux]` [EP-050] **S4**: Orca reads the page at rest
 
-**Status:** 🟡 **ACTIVE** — created and activated 2026-11-04 ([SP-202] Q1–Q3, user: *"Q1-Q3 ruled as recommended. Once EP-050
+**Status:** ✅ **CLOSED 2026-11-04** (user, 2026-11-04: *"this is a pass. We should be able to close SP-202 and SP-203."*) — — created and activated 2026-11-04 ([SP-202] Q1–Q3, user: *"Q1-Q3 ruled as recommended. Once EP-050
 implementation is complete continue on…"*). ✅ Implemented and tested (below); ✅ Q1 ruled 2026-11-04 (as recommended: record the difference, build nothing); the Orca listen is
 [T-0660] ([EP-057]).
-**Carries:** [T-0659] → [`../Tasks/Task-unverified.md`](../Tasks/Task-unverified.md).
-**Epic:** [EP-050] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md) — AC7 (Apple's AC1–AC3 on Linux).
+**Carries:** [T-0659] → [`../../Tasks/Verified/Task-verified-0659.md`](../../Tasks/Verified/Task-verified-0659.md) ✅ verified.
+**Epic:** [EP-050] → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md) — AC7 (Apple's AC1–AC3 on Linux).
 **Builds on:** [SP-202] (the measurement: Orca was given the STORED manuscript).
 
 ---
@@ -66,7 +67,7 @@ in Docker — once, when Orca first reads the manuscript; a keystroke then caret
 - [x] AC3 — Cost measured and recorded (Apple AC3)
 - [x] AC4 — Qt's text events in page positions, proved over AT-SPI
 - [x] AC5 — Q1 ruled (2026-11-04): Orca reads a heading as a line; heading navigation is not offered on Linux (Qt has no Collection)
-- [x] AC6 — The Orca listen → [T-0660] ([EP-057], `Rig-Live-Pass-Held.md`)
+- [x] AC6 — The Orca listen → [T-0660] ([EP-057]) — ✅ passed 2026-11-04
 
 ## Progress log
 
@@ -79,3 +80,4 @@ in Docker — once, when Orca first reads the manuscript; a keystroke then caret
   desktop's folder survives a run, and nothing is added). The desktop's bus comes back with a log-out and log-in.
   ⚠️ Also found: the VM's sound was a **Dummy Output** (PipeWire took only the VirtIO card's input profile); set to
   `pro-audio` (`wpctl set-profile`), which gives a real output — so Orca can be heard.
+- **2026-11-04** — ✅ **CLOSED** (user, 2026-11-04: *"this is a pass. We should be able to close SP-202 and SP-203."*). [T-0660] (the Orca pass) passed; Tasks verified and archived.

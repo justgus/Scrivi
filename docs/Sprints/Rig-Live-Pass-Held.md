@@ -74,35 +74,7 @@ the log lines are the same words (`structural: … landed after N ms in all`, `v
 
 ---
 
-### T-0660 — Orca reads the manuscript as the page shows it ([SP-203], EP-050 S4; [SP-202] Q3)
-
-**Where:** scrivi-vm (counts: no x86, GPU or real network). **Build:** 1.0.328 (`1be7b83`) or later — Help ▸ About Scrivi.
-No share needed; a new local project.
-
-1. Launch Scrivi from the desktop launcher. **Help ▸ About Scrivi** shows 1.0.328 or later. Close the About box.
-2. **File ▸ New Project…** — the New Project dialog: **Title:** `Orca test`; keep the suggested **Location:**; **Create**.
-3. In the manuscript, type: `Mr. Smith said ` — then **Format ▸ Bold**, type `bold`, **Format ▸ Bold** again — type ` and ` —
-   **Format ▸ Italic**, type `soft`, **Format ▸ Italic** — type ` here.` and press **Return** twice.
-4. **Format ▸ Heading 2**, type `The claim stated plainly`, press **Return** twice, type `1. not a list.`
-5. Turn **Orca on WITH ITS SPEECH LOG** (2026-11-04: the VM's sound stutters, so what Orca says is read from its log, not
-   heard): open a Terminal in the VM and type `orca -r --debug-file=/tmp/orca.log &` then Return. Click back into the
-   manuscript. (Settings ▸ Accessibility ▸ Seeing ▸ Screen Reader only turns Orca on — without the log.)
-6. Press **Up** and **Down** over the lines. ✅ Orca reads *"Mr. Smith said bold and soft here."* — never "star", "backslash"
-   or "number sign"; *"The claim stated plainly"* — no "number number"; *"1. not a list."* with no "backslash".
-   (What Orca said is read afterwards from `/tmp/orca.log`: each utterance is a `SPEECH OUTPUT: '…'` line.)
-7. On the Mr. line, **Right** / **Left** one character at a time through *"bold"*. ✅ Orca speaks each letter; never a "star",
-   and the caret never stops twice in one place.
-8. Put the caret at the start of `1. not a list.` and choose **Scene ▸ Split Scene** (a divider appears above it). Press
-   **Up** from that line. ✅ Orca reads *"Scene break"* on the divider line.
-9. Type a few words with Orca on. ✅ It echoes what you type; nothing freezes.
-10. Optional: open **dumas-prose-timelines** with Orca on. Note whether the window pauses for a moment when Orca first reads
-    the manuscript (measured: about 0.2 s once).
-11. Turn **Orca off**: in the Terminal, `pkill orca` (the screen reader setting starts the usual one again later). Tell Claude
-    the log is there: it reads `/tmp/orca.log` over SSH. Quit Scrivi (**File ▸ Quit**). The `Orca test` project can be deleted afterwards.
-
-**Pass:** 6–9 as marked. A failure is a new Issue, linked from [T-0660].
-
----
+*Last Updated: 2026-11-04 (T-0660 passed on the VM and is archived; its section removed.)*
 
 *Last Updated: 2026-11-04 (T-0661 and the Mac section added: EP-053 S4–S5, user: "Put all the live pass steps in the EP-057 Live pass".)*
 

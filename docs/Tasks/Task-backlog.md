@@ -39,7 +39,6 @@ status changes on its own layer.
 | T-0621 | `[Cross]` Explore a whole-manuscript history view (a tree, or a branching timeline) | ⚠️ None yet | 🔵 Backlog — exploration |
 | T-0628 | `[Cross]` EP-052: keep a held queue on local disk and push it when the project returns | EP-052 (unscheduled) | 🔵 Backlog |
 | T-0661 | `[Linux]` Rig pass: EP-053 over the share — every structural edit timed, verified, no freeze ([SP-189] AC5, [SP-190] AC3) | **EP-057** | 🔵 Backlog — steps in `../Sprints/Rig-Live-Pass-Held.md` |
-| T-0660 | `[Linux]` Rig pass: Orca reads the manuscript as the page shows it ([SP-202] Q3, [SP-203]) | **EP-057** | 🔵 Backlog — steps in `../Sprints/Rig-Live-Pass-Held.md` |
 | T-0657 | `[Cross]` Navigator: collapsible chapters, the current one open, the writer's choices remembered per device | ⚠️ None yet | 🔵 Backlog |
 
 > ✅ **T-0477 – T-0479 LEFT this file 2026-08-31 when SP-124 was ACTIVATED**, per the standing rule that

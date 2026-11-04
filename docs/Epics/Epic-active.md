@@ -17,7 +17,6 @@ being built together. Development stays parallel; only the live pass on real Lin
 
 | Task | Rig pass | From |
 |---|---|---|
-| [T-0660] | Orca reads the manuscript as the page shows it | [SP-203] (EP-050 S4); [SP-202] Q3 |
 | [T-0661] | EP-053 over the share: every structural edit and its undo / redo timed, verified, no freeze | [SP-189] AC5, [SP-190] AC3 |
 
 ---
@@ -196,17 +195,17 @@ in S2 · ✅ (later the same day) S2 split into S2a [SP-187] and S2b [SP-191]; t
 
 ## EP-050: `[Apple]` ⚠️ **Manuscript Accessibility** — VoiceOver reads the page the writer reads
 
-**Status:** 🟡 **ACTIVE 2026-10-08** (SP-171 activated) — created 2026-10-08 (user: *"let's look at I-0277"*; rulings A1–A3 the same day). ✅ S1 = [SP-171], ✅ closed 2026-10-08; S2 = [SP-172], ✅ closed 2026-10-09. S3 = [SP-202], 🟡 active 2026-11-04 (✅ ready to close); S4 = [SP-203], 🟡 active 2026-11-04 (✅ built; ✅ Q1 ruled: headings not offered on Linux).
+**Status:** 🟡 **ACTIVE 2026-10-08** (SP-171 activated) — created 2026-10-08 (user: *"let's look at I-0277"*; rulings A1–A3 the same day). ✅ S1 = [SP-171], ✅ closed 2026-10-08; S2 = [SP-172], ✅ closed 2026-10-09. S3 = [SP-202] and S4 = [SP-203], ✅ closed 2026-11-04. ✅ All planned Sprints closed — the Audit Check and the close are next.
 **Sprints:**
 
 | Sprint | Scope | Status |
 | ------ | ----- | ------ |
 | **[SP-171]** | **S1** — the translation layer (one map, shared with Find), the caret both ways, cost: AC1, AC2, AC3 + AC5 reading half | ✅ **CLOSED 2026-10-08** (user-approved) → [`../Sprints/Closed/Sprint-SP-171.md`](../Sprints/Closed/Sprint-SP-171.md) · Q2 re-ruled: dividers read as WORDS · ✅ AC1, AC2, AC3, AC5 reading half met |
 | **[SP-172]** | **S2** — the Headings rotor: AC4 + AC5 rotor half | ✅ **CLOSED 2026-10-09** (user-approved) → [`../Sprints/Closed/Sprint-SP-172.md`](../Sprints/Closed/Sprint-SP-172.md) · rulings R1–R3 there · ✅ AC4 + AC5 rotor half met (live pass 2026-10-09); T-0600 verified |
-| **[SP-202]** | **S3** — Linux: AC6 (measure what Orca is given, then rule) | 🟡 **ACTIVE 2026-11-04** → [`../Sprints/Sprint-SP-202.md`](../Sprints/Sprint-SP-202.md) · ✅ measured: Orca was given the STORED text · ✅ Q1–Q3 ruled (fix here, S4) |
-| **[SP-203]** | **S4** — Linux: AC7 — Orca reads the page at rest (Apple's AC1–AC3 on Linux) | 🟡 **ACTIVE 2026-11-04** → [`../Sprints/Sprint-SP-203.md`](../Sprints/Sprint-SP-203.md) · ✅ built, scrivi-vm + Docker green · ✅ Q1 ruled (headings: recorded, nothing built) · listen → [T-0660] |
+| **[SP-202]** | **S3** — Linux: AC6 (measure what Orca is given, then rule) | ✅ **CLOSED 2026-11-04** (user-approved) → [`../Sprints/Closed/Sprint-SP-202.md`](../Sprints/Closed/Sprint-SP-202.md) · ✅ measured: Orca was given the STORED text · ✅ Q1–Q3 ruled (fix here, S4) |
+| **[SP-203]** | **S4** — Linux: AC7 — Orca reads the page at rest (Apple's AC1–AC3 on Linux) | ✅ **CLOSED 2026-11-04** (user-approved) → [`../Sprints/Closed/Sprint-SP-203.md`](../Sprints/Closed/Sprint-SP-203.md) · ✅ built, scrivi-vm + Docker green · ✅ Q1 ruled (headings: recorded, nothing built) · listen → [T-0660] |
 
-**Tasks:** ✅ [T-0599] (SP-171 — VERIFIED, archived) · ✅ [T-0600] (SP-172 — VERIFIED, archived) · 🟠 [T-0658] (SP-202) · 🟠 [T-0659] (SP-203) · 🔵 [T-0660] ([EP-057]: the Orca listen).
+**Tasks:** ✅ [T-0599] (SP-171 — VERIFIED, archived) · ✅ [T-0600] (SP-172 — VERIFIED, archived) · ✅ [T-0658] (SP-202) · ✅ [T-0659] (SP-203) · ✅ [T-0660] ([EP-057]: the Orca pass) — all VERIFIED 2026-11-04, archived.
 **Issues:** ✅ [I-0277] `[Apple]` VoiceOver reads the STORED manuscript — fixed and VERIFIED in [SP-171], archived. · 🔵 [I-0284] (found in SP-171 → Issue backlog).
 **Authority:** design [`../Scrivi_Manuscript_Renderer_E2_Design_v0_1.md`](../Scrivi_Manuscript_Renderer_E2_Design_v0_1.md) §13 (*"VoiceOver /
 accessibility reads storage. Hidden markers may be spoken; not checked."*); SDK `AppKit/NSAccessibilityProtocols.h`,

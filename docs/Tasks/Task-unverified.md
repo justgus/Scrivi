@@ -1,5 +1,7 @@
 # Unverified Tasks
 
+*Last Updated: 2026-11-04 (**T-0658, T-0659 → ✅ Verified and archived** (user, 2026-11-04: *"this is a pass. We should be able to close SP-202 and SP-203."*))*
+
 *Last Updated: 2026-11-04 (**T-0617, T-0618 → 🟠** ([SP-189], [SP-190]).)*
 
 *Last Updated: 2026-11-04 (**T-0658, T-0659 → 🟠** (EP-050 S3, S4).)*
@@ -48,35 +50,6 @@ and redo, timed by each platform's log, with no freeze; the Mac's timing source 
 
 **Done (2026-11-04):** the Mac's diagnostic log ([SP-190] Q1: `DiagnosticLog`, Help ▸ Show Log Folder). The steps: the rig's
 [T-0661] and the Mac's section, both in `../Sprints/Rig-Live-Pass-Held.md`. ✅ [SP-190] Q2 ruled 2026-11-04: Samba on scrivi-vm (`ScriviOtherLoop`).
-
----
-
-## 🟠 T-0659 — `[Linux]` EP-050 S4: Orca reads the manuscript as the page shows it
-
-**Epic:** [EP-050] (S4, AC7) · **Status:** 🟠 **Implemented - Not Verified** (2026-11-04) — ⏳ the Orca listen [T-0660] ([EP-057]) ·
-**Sprint:** [SP-203] → [`../Sprints/Sprint-SP-203.md`](../Sprints/Sprint-SP-203.md) · **Date Requested:** 2026-11-04 ([SP-202] Q1–Q2, user: *"Q1-Q3 ruled as recommended"*)
-
-**What:** Apple's AC1–AC3 on Linux — Orca is given the page at rest (no escapes, `##`, emphasis markers; chapter titles; a
-divider as "Scene break"); every text member through the one map (`PresentedText`, Find's); a caret Orca sets goes through
-Scrivi's caret rules; Qt's text events re-sent in page positions.
-
-**Done (2026-11-04):** `platforms/linux/src/ManuscriptAccessibility.cpp` (the interface + event translation, installed in
-`main.cpp`); `ManuscriptFind.cpp` (`pageText` / `pageIndex` / `documentPosition`, the leads); `ManuscriptEditor::placeCaret`.
-`accessibility_smoke` (CI) and `accessibility_atspi.sh` (over a real AT-SPI bus) pass on scrivi-vm build 1.0.328 and in
-Docker; mutations 7/7 caught; ctest 806/806, 39 smokes. Cost: first query 200 ms (VM, 1.77 MB), a keystroke's queries 26 ms.
-
----
-
-## 🟠 T-0658 — `[Linux]` EP-050 AC6: measure what Orca is given for the manuscript
-
-**Epic:** [EP-050] (S3) · **Status:** 🟠 **Implemented - Not Verified** (2026-11-04) · **Sprint:** [SP-202] →
-[`../Sprints/Sprint-SP-202.md`](../Sprints/Sprint-SP-202.md) · **Date Requested:** 2026-11-04 (user: *"let's implement AC6 for EP-050"*)
-
-**What:** measure what Qt's accessibility layer hands AT-SPI (Orca's source) for the Linux manuscript; the user rules where
-the fix lives (AC6).
-
-**Done (2026-11-04):** measured — Orca was given the STORED manuscript (`\.`, `##`, `**`, `*`); caret consistent (stored); no
-heading objects. ✅ Q1–Q3 ruled 2026-11-04: the fix is EP-050 S4 ([SP-203], [T-0659]); the Orca listen is [T-0660].
 
 ---
 

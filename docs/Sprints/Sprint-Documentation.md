@@ -470,8 +470,8 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-199** | `[Apple]` **[EP-055] S2** — panels by size class, the iOS gestures, the toolbar (T-0636–T-0638) | EP-055 | 2026-10-31 | 2026-11-03 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-199.md) |
 | **SP-200** | `[ScriviCore]` **[EP-052] AC11** — history load: compaction and compact records (T-0400, T-0643–T-0646) | EP-052 | 2026-11-01 | 2026-11-02 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-200.md) |
 | **SP-201** | `[Cross]` **[EP-052]** — Replace All without holding the window, no main-thread lock waits (I-0333, I-0334) | EP-052 | 2026-11-01 | 2026-11-02 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-201.md) |
-| **SP-202** | `[Linux]` **[EP-050] S3** — AC6: measure what Orca is given, then rule (T-0658) | EP-050 | 2026-11-04 | — | 🟡 **ACTIVE** → [`Sprint-SP-202.md`](Sprint-SP-202.md) |
-| **SP-203** | `[Linux]` **[EP-050] S4** — Orca reads the page at rest (T-0659) | EP-050 | 2026-11-04 | — | 🟡 **ACTIVE** → [`Sprint-SP-203.md`](Sprint-SP-203.md) |
+| **SP-202** | `[Linux]` **[EP-050] S3** — AC6: measure what Orca is given, then rule (T-0658) | EP-050 | 2026-11-04 | 2026-11-04 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-202.md) |
+| **SP-203** | `[Linux]` **[EP-050] S4** — Orca reads the page at rest (T-0659) | EP-050 | 2026-11-04 | 2026-11-04 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-203.md) |
 | **SP-160** | `[Linux]` **[EP-049] S1** — Linux writes Apple's manuscript format: escaping, paste/copy, pair deletion, Return/⌫, shared corpus (T-0586); + I-0276 | EP-049 | 2026-10-04 | 2026-10-04 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-160.md) |
 
 ## Statistics
