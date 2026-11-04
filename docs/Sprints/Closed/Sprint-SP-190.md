@@ -1,18 +1,19 @@
 ---
 sprint: SP-190
 epic: EP-053
-status: Active
+status: Closed
+closed: 2026-11-04
 platform: Cross
 created: 2026-10-20
 ---
 
 # SP-190 — `[Cross]` [EP-053] **S5**: Mac and rig live passes over the share, timed
 
-**Status:** 🟡 **ACTIVE 2026-11-04** (user: *"continue on and do the remaining implementation for EP-053. Put all the live pass steps in the EP-057 Live pass."*) — created 2026-10-20. ✅ Q1 ruled 2026-11-04 (as recommended) and built (AC1); ⏳ the passes: steps in [`Rig-Live-Pass-Held.md`](Rig-Live-Pass-Held.md) — the rig's as [T-0661] ([EP-057]), the Mac's beside it; ✅ Q2 ruled 2026-11-04: Samba on scrivi-vm (set up the same day).
-**Carries:** [T-0618] → [`../Tasks/Task-unverified.md`](../Tasks/Task-unverified.md).
-**Epic:** [EP-053] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md).
+**Status:** ✅ **CLOSED 2026-11-04** (user, 2026-11-04: *"yes, backlog that don't attach it to SP-190. Then close SP-189 and SP-190."*) — activated 2026-11-04 (user: *"continue on and do the remaining implementation for EP-053. Put all the live pass steps in the EP-057 Live pass."*) — created 2026-10-20. ✅ Q1 ruled 2026-11-04 (as recommended) and built (AC1); ⏳ the passes: steps in [`Rig-Live-Pass-Held.md`](../Rig-Live-Pass-Held.md) — the rig's as [T-0661] ([EP-057]), the Mac's beside it; ✅ Q2 ruled 2026-11-04: Samba on scrivi-vm (set up the same day).
+**Carries:** [T-0618] → [`../../Tasks/Verified/Task-verified-0618.md`](../../Tasks/Verified/Task-verified-0618.md) ✅ verified.
+**Epic:** [EP-053] → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md).
 **Builds on:** [SP-187], [SP-188], [SP-189].
-**Authority:** [`../Scrivi_Structured_CutCopyPaste_Design_v0_3.md`](../Scrivi_Structured_CutCopyPaste_Design_v0_3.md) (v0.3, 2026-10-21, supersedes v0.2) §6
+**Authority:** [`../Scrivi_Structured_CutCopyPaste_Design_v0_3.md`](../../Scrivi_Structured_CutCopyPaste_Design_v0_3.md) (v0.3, 2026-10-21, supersedes v0.2) §6
 step 5 · EP-053's Goal (the same behaviour and performance on the Mac and on Linux, over a network share as on a local disk).
 **Size:** S — mostly the user's passes; the code work is a Mac-side timing log if Q1 rules one.
 
@@ -52,7 +53,7 @@ the window, and leaves the manuscript reading as a flat edit would.
 - [x] AC1 — The Mac's timing source as Q1 rules — ✅ 2026-11-04: `DiagnosticLog` (`ScriviDiag.swift`)
 - [x] AC2 — ✅ **Mac live pass (user)** — on a LOCAL disk (re-ruled 2026-11-04) — ✅ PASSED 2026-11-04 (build 1.0.349: 22 edits, every verification 0 corrected, no stall after any)
 - [x] AC3 — ✅ **Rig live pass (user)** over the share: every step timed, no freeze → [T-0661] ([EP-057]) — ✅ PASSED 2026-11-04 (run 2, build 1.0.348); times in [T-0661]
-- [ ] AC4 — Every finding filed and ruled — ✅ [I-0346], [I-0347], [I-0348] filed, fixed and VERIFIED; ⏳ [I-0349] (the freeze after a load: its accessibility part fixed, its font part open) — to rule
+- [x] AC4 — Every finding filed and ruled — ✅ [I-0346], [I-0347], [I-0348] filed, fixed and VERIFIED; ✅ [I-0349] ruled to the Issue backlog, not this Sprint (user, 2026-11-04: *"yes, backlog that don't attach it to SP-190. Then close SP-189 and SP-190."*)
 
 ## Progress log
 
@@ -88,3 +89,6 @@ the window, and leaves the manuscript reading as a flat edit would.
 - [SP-188] AC11's **Mac pass over a share** ([T-0616]'s last check). Its first attempt over the two-hop loop (the rig
   re-sharing the Mac's drive) took minutes per step and stopped at step 5 ([SP-188] log, 2026-10-26); run it after
   [EP-052]'s levels 1–3 land.
+
+### ✅ 2026-11-04 — CLOSED
+- (user, 2026-11-04: *"yes, backlog that don't attach it to SP-190. Then close SP-189 and SP-190."*). Every AC met; [T-00618] verified and archived.

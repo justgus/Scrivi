@@ -1,5 +1,7 @@
 # Sprint Backlog
 
+*Last Updated: 2026-11-04 (**SP-189, SP-190 removed** — closed 2026-11-04.)*
+
 Sprints listed here are in 🔵 Planning status — defined and ready to activate, but not yet started.
 
 ---
@@ -8,8 +10,6 @@ Sprints listed here are in 🔵 Planning status — defined and ready to activat
 
 | Sprint | Scope | Record | Waits on |
 | ------ | ----- | ------ | -------- |
-| **SP-189** | `[Cross]` **S4** — the background sync verification | [`Sprint-SP-189.md`](Sprint-SP-189.md) | SP-188; Q1–Q2 |
-| **SP-190** | `[Cross]` **S5** — Mac and rig live passes over the share, timed | [`Sprint-SP-190.md`](Sprint-SP-190.md) | SP-189; Q1 |
 
 Order: SP-188 → SP-189 → SP-190, after [SP-191] (✅ closed 2026-10-22, S2b) — user, 2026-10-20: each operation ships with its undo; S2 split.
 
