@@ -23,12 +23,16 @@ Every Linux rig live pass that is waiting for the rig, in one place, so they can
 
 ## Held now
 
-### T-0661 — EP-053 over the share: every structural edit timed, verified, no freeze ([SP-189] AC5, [SP-190] AC3)
+### [Mac] T-0618 / T-0616 — the same, on the Mac, on a LOCAL disk ([SP-190] AC2, [SP-189] AC5)
 
-**Where:** scrivi-vm (its shares carry the 5 ms SMB delay; counts for this — no x86, GPU or real network). **Build:** 1.0.330
-(`c4799ac`) or later — Help ▸ About Scrivi. Do **Before any section** first (back up dumas, mount, pull + build, open
-**dumas-prose-timelines over the share**, Help ▸ Show Log Folder). ⚠️ Each step ends with the edit APPLIED (do it, Undo, Redo),
-so no step's undo leaves a fork for the next. No dialog appears in any step.
+**Held here with the rig's at the user's instruction (2026-11-04: *"Put all the live pass steps in the EP-057 Live pass"*)** —
+it is not an EP-057 Task: its result goes in [T-0618] (and [T-0616]). ✅ **Re-ruled 2026-11-04 (user): on a local disk** — the
+two-hop Samba loop was too slow to be useful; the share half is Linux's ([T-0661]).
+
+**Build:** the Mac app from `main` at or after `c4799ac` — Scrivi ▸ About Scrivi. Copy dumas to a local folder (keep the original
+untouched), open the copy (File ▸ Open…), then **Help ▸ Show Log Folder** (Finder shows `scrivi.log`).
+
+The steps (as [T-0661] ran them on the rig, ✅ passed 2026-11-04 and archived):
 
 For EVERY step: ✅ the window never stops answering (a short read-only moment is fine); ✅ the manuscript reads as the same
 edit made by hand would; ✅ the log has `structural "…": applied in N ms, M ms in all` and then
@@ -45,28 +49,19 @@ edit made by hand would; ✅ the log has `structural "…": applied in N ms, M m
    **Edit ▸ Copy**; caret in the middle of a paragraph in chapter 5 → **Edit ▸ Paste** (it lands with its divider). Undo, Redo.
 6. **Cut across scenes:** select across a divider in chapter 6 → **Edit ▸ Cut** (the two scenes join where the cut was). Undo, Redo.
 7. **Backspace over scenes:** select across a divider in chapter 7 → press **Backspace** (as Cut, without the clipboard). Undo, Redo.
-8. **File ▸ Quit**, launch again, open dumas over the share: ✅ the manuscript reads as you left it after step 7.
-9. Copy the log (Help ▸ Show Log Folder → `scrivi.log`) to `~/evidence-2026-11-xx/` before running anything else.
+8. Note the word the caret is on; **Quit**, launch again, open the same copy: ✅ the window shows that word, the caret on it.
+9. **Help ▸ Show Log Folder**: copy `scrivi.log` (and `scrivi.log.1`, the session before the reopen) somewhere safe.
 
-**Pass:** every step as marked. A failure is a new Issue, linked from [T-0661]. Afterwards restore dumas from the backup.
 
----
-
-### [Mac] T-0618 / T-0616 — the same, on the Mac, on a LOCAL disk ([SP-190] AC2, [SP-189] AC5)
-
-**Held here with the rig's at the user's instruction (2026-11-04: *"Put all the live pass steps in the EP-057 Live pass"*)** —
-it is not an EP-057 Task: its result goes in [T-0618] (and [T-0616]). ✅ **Re-ruled 2026-11-04 (user): on a local disk** — the
-two-hop Samba loop was too slow to be useful; the share half is Linux's ([T-0661]).
-
-**Build:** the Mac app from `main` at or after `c4799ac` — Scrivi ▸ About Scrivi. Copy dumas to a local folder (keep the original
-untouched), open the copy (File ▸ Open…), then **Help ▸ Show Log Folder** (Finder shows `scrivi.log`).
-
-Steps 1–8 as the rig's above, with the Mac's commands: **Scene ▸ New Scene (⌘↩)** for a split, **Scene ▸ Merge Scene with
+On the Mac, with the Mac's commands: **Scene ▸ New Scene (⌘↩)** for a split, **Scene ▸ Merge Scene with
 Previous (⌘⌫)** for a merge, **Chapter ▸ New Chapter (⇧⌘↩)** for a chapter split, **Chapter ▸ Merge Chapter with Previous
 (⇧⌘⌫)**; **Edit ▸ Copy / Cut / Paste**; Delete (⌫) over a selection; **Edit ▸ Undo (⌘Z) / Redo (⇧⌘Z)** — ⚠️ never a new edit
 between an Undo and its Redo, or the Mac's branch chooser opens on ⇧⌘Z. Quit with **Scrivi ▸ Quit Scrivi**. The same ✅ marks;
 the log lines are the same words (`structural: … landed after N ms in all`, `verify: …`, `⚠ the window is not answering`).
+
 ---
+
+*Last Updated: 2026-11-04 (T-0661 passed on the VM (run 2) and is archived; its steps kept in the Mac section.)*
 
 *Last Updated: 2026-11-04 (T-0660 passed on the VM and is archived; its section removed.)*
 

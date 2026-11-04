@@ -813,7 +813,7 @@ archive files reconstructed after the fact from secondary sources.
 | T-0658 | `[Linux]` EP-050 AC6: measure what Orca is given for the manuscript | ✅ **SP-202** | **EP-050** | ✅ Verified 2026-11-04 | [`Verified/Task-verified-0658.md`](Verified/Task-verified-0658.md) |
 | T-0659 | `[Linux]` EP-050 S4: Orca reads the manuscript as the page shows it | ✅ **SP-203** | **EP-050** | ✅ Verified 2026-11-04 | [`Verified/Task-verified-0659.md`](Verified/Task-verified-0659.md) |
 | T-0660 | `[Linux]` Rig pass: Orca reads the manuscript as the page shows it | — | **EP-057** | ✅ Verified 2026-11-04 | [`Verified/Task-verified-0660.md`](Verified/Task-verified-0660.md) |
-| T-0661 | `[Linux]` Rig pass: EP-053 over the share — timed, verified, no freeze | — | **EP-057** | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
+| T-0661 | `[Linux]` Rig pass: EP-053 over the share — timed, verified, no freeze | — | **EP-057** | ✅ Verified 2026-11-04 | [`Verified/Task-verified-0661.md`](Verified/Task-verified-0661.md) |
 | T-0592 | `[Apple]` E2-S3: formatting commands + lists + Option-Return | 🟡 **SP-163** | **EP-046** | ✅ **Verified 2026-10-06** | [`Task-verified-0592.md`](Verified/Task-verified-0592.md) |
 | T-0591 | `[Apple]` Balance emphasis across SCENE boundaries (cross-scene cut/copy/paste) | 🟡 **SP-163** | **EP-046** | ✅ **Verified 2026-10-06** | [`Task-verified-0591.md`](Verified/Task-verified-0591.md) |
 | T-0590 | `[Apple]` E2-S2: bold and italic + span reveal + the split rule | ✅ **SP-162** | **EP-046** | ✅ **Verified 2026-10-05** | [`Task-verified-0590.md`](Verified/Task-verified-0590.md) |

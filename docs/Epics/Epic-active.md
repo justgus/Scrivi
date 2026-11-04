@@ -17,7 +17,7 @@ being built together. Development stays parallel; only the live pass on real Lin
 
 | Task | Rig pass | From |
 |---|---|---|
-| [T-0661] | EP-053 over the share: every structural edit and its undo / redo timed, verified, no freeze | [SP-189] AC5, [SP-190] AC3 |
+| — | ✅ **None waiting.** [T-0661] passed on the VM 2026-11-04 (run 2) and is archived. | — |
 
 ---
 
@@ -188,7 +188,7 @@ S3; verification moves to S4, history no longer a Sprint of its own) · ✅ spli
 in S2 · ✅ (later the same day) S2 split into S2a [SP-187] and S2b [SP-191]; the list stays an ordered array (Q4) · ✅ new history op names `rangePaste` / `rangeCut` in `scrivi.history.v1`, backward-compatible (old
 `structuredPaste` / `structuredCut` nodes keep undoing).
 
-**Tasks:** ✅ [T-0614] (SP-186 — VERIFIED, archived) · ✅ [T-0615] (SP-187 — VERIFIED 2026-10-21, archived) · ✅ [T-0619] (SP-191 — VERIFIED 2026-10-22, archived) · 🟠 [T-0616] (SP-188 ✅ closed — Implemented - Not Verified, ⏳ the Mac pass over a share in SP-190) · 🟠 [T-0617] (SP-189) · 🟠 [T-0618] (SP-190) · 🔵 [T-0661] ([EP-057]: the rig pass).
+**Tasks:** ✅ [T-0614] (SP-186 — VERIFIED, archived) · ✅ [T-0615] (SP-187 — VERIFIED 2026-10-21, archived) · ✅ [T-0619] (SP-191 — VERIFIED 2026-10-22, archived) · 🟠 [T-0616] (SP-188 ✅ closed — Implemented - Not Verified, ⏳ the Mac pass over a share in SP-190) · 🟠 [T-0617] (SP-189) · 🟠 [T-0618] (SP-190) · ✅ [T-0661] ([EP-057]: the rig pass — VERIFIED 2026-11-04, archived).
 **Issues:** ✅ [I-0311] · ✅ [I-0297] · ✅ [I-0314] (all VERIFIED 2026-10-22, archived, with [SP-191]).
 
 ---

@@ -9,6 +9,9 @@ Issues the user has VERIFIED, archived out of `Issue-active.md`.
 | **I-0342** | `[ScriviCore]` ⚠️ **An open read every scene sidecar THREE times: the relationship repair built the project index from disk, bypassing the open's cache — ~31 s of a 47 s open over a share.** Found 2026-11-02 on the Linux VM. → [details](#i-0342) | High | — | ✅ **Verified 2026-11-02** (the load pass on the VM (build 1.0.321: open 47.5 → 3.3 s); user: *"I am pleased with the result."*) |
 | **I-0343** | `[ScriviCore]` ⚠️ **The scene texts read 8 at a time: 5.3 s for dumas's 1,176 over a share; 64 readers read them in 0.27 s.** Found 2026-11-02 on the Linux VM. → [details](#i-0343) | Medium | — | ✅ **Verified 2026-11-02** (the load pass on the VM (build 1.0.321: scene texts 5.3 → ~0.9 s); user: *"I am pleased with the result."*) |
 | **I-0344** | `[Linux]` ⚠️ **The load's build on the UI thread read the Inspector layout and the copy buffers from disk — 0.6 s, plus 1.8 s waiting for the project lock behind an Inspector read.** Found 2026-11-02 on the Linux VM. → [details](#i-0344) | Medium | — | ✅ **Verified 2026-11-02** (the load pass on the VM (build 1.0.321: UI-thread build 2.55 s → 57 ms); user: *"I am pleased with the result."*) |
+| **I-0346** | `[Linux]` ⛔ **The window stops answering for 350–630 ms after EVERY structural edit over the share** — each stall begins ~150 ms after `applied` and ends ~15–40 ms after the [SP-189] background verification's `verify:` line (its read: ~300 ms over the share); no main-thread core call is logged during it. Found in [T-0661]'s pass, scrivi-vm build 1.0.342. → [details](#i-0346) | High | [SP-189] | ✅ **Verified 2026-11-04** ([T-0661] re-run: Pass) |
+| **I-0347** | `[Linux]` **Split Scene moves the caret's line to the TOP of the viewport** (the edit is right; the view jumps). Found in [T-0661] step 1. → [details](#i-0347) | Medium | [SP-190] | ✅ **Verified 2026-11-04** ([T-0661] re-run: Pass) |
+| **I-0348** | `[Linux]` ⛔ **After structural edits and a quit, the project reopens in the wrong place** — left at *"Thanksgiving"* in chapter 6's last scene; reopened near chapter 14. Found in [T-0661] step 8. (Apple's [I-0328] was the Mac's close path; this is Linux's quit.) → [details](#i-0348) | High | [SP-190] | ✅ **Verified 2026-11-04** ([T-0661] re-run: Pass) |
 
 ---
 
@@ -105,3 +108,53 @@ test `platforms/linux/tests/structural_baseline_smoke.cpp` (the load makes no UI
 
 ---
 
+---
+
+## I-0346: `[Linux]` The window stops answering after every structural edit over the share
+
+**Found:** 2026-11-04, [T-0661] (the user's pass on scrivi-vm over the 5 ms share, dumas, build 1.0.342 `5087912`).
+**Evidence:** `~/evidence-2026-11-04/` and `~/.local/state/scrivi/scrivi.log.1` on scrivi-vm. Every split, merge, chapter split /
+merge, paste, cut, Backspace and their undo / redo: `structural "…": applied in ~33 ms, ~330 ms in all`, then the watchdog's
+*"the window is not answering"* ~150 ms later, *"answering again"* after **345–632 ms** — each time **15–40 ms after** the
+`verify: … read in ~305 ms — 0 corrected` line. No `[main] core:` call is logged during a stall ("running: nothing Scrivi has
+marked"). ⚠️ The user saw each step pass; the stall is under a second, but the watchdog counts it, and AC "no freeze" fails.
+**Cause (found 2026-11-04):** ⛔ NOT the verification — its `read in ~305 ms` is timed to its landing ON the GUI thread, so it
+landed when the GUI thread came free (its real read is a listing + 1–2 files). The GUI thread was in [SP-203]'s accessibility
+layer: the VM's accessibility bus was enabled (`org.a11y.Status IsEnabled: true`, even with the Screen Reader switch off), so
+Qt sent every edit's events; re-sending one refreshes the page map, which matched its scenes to the list BY POSITION — after a
+split or merge every later scene no longer lined up, and the rest of the manuscript was rebuilt (~0.4 s on the VM).
+**Fix:** `PresentedText::align` (`ManuscriptFind.cpp`) matches by SCENE ID, and edits are marked by scene ID (positions shift
+under a structural edit); Find shares the map and the fix. The re-send is a named span now (`DiagnosticLog`), so a stall there
+names itself. **Test:** `accessibility_smoke` — a split mid-book on 1.8 MB: the page equals a fresh build, in **6 ms (a full
+build: 506 ms)**; mutations (position matching back; edits marked by position) both caught. ✅ **Verified 2026-11-04** (user, 2026-11-04: *"all the checkes passed"* — [T-0661] re-run on scrivi-vm, build 1.0.348).
+
+## I-0347: `[Linux]` Split Scene moves the caret's line to the top of the viewport
+
+**Found:** 2026-11-04, [T-0661] step 1 (user: *"Split scene moved the caret to the top line of the viewport. Otherwise it
+passed."*). The split itself is right; the view scrolls so the caret's line is the first visible line. ⏳ Compare Apple's
+caret placement after a split (it keeps the caret's height — T-0573).
+**Cause:** Linux placed the caret after a structural edit with `ensureCursorVisible()` only — Apple's T-0573 rule (the caret
+keeps its height in the window) was never ported. With dumas's long WRAPPED paragraphs, replacing the run resets where the view
+stands inside the top paragraph, and the caret's line ended at the top.
+**Fix:** `EditorShell::runRangeEdit` records the caret's height when it is on screen; `EditorShell::placeCaret` scrolls it back
+there (to the nearest line — the view scrolls by lines). Every structural edit and its undo / redo goes through them.
+**Test:** `structural_baseline_smoke` — five scenes of long wrapped paragraphs, the caret a third of the way down, a split: the
+caret within two lines of its height. ✅ Passes on Qt 6.4 and 6.10; with the fix removed it FAILS on both — ⚠️ an earlier
+one-scene, short-line version did not reproduce it on either (wrapped paragraphs are what moves the view). ✅ **Verified 2026-11-04** (user, 2026-11-04: *"all the checkes passed"* — [T-0661] re-run on scrivi-vm, build 1.0.348).
+
+## I-0348: `[Linux]` After structural edits and a quit, the project reopens in the wrong place
+
+**Found:** 2026-11-04, [T-0661] step 8 (user: *"The manuscript existed at the work 'Thanksgiving' in the last scene of chapter
+6. The project loaded somewhere near the beginning or end of chapter 14."*). Steps 1–7 had split, merged, cut and pasted
+scenes in chapters 2–7 before File ▸ Quit. ⏳ Read what the quit stamped (`workspace-state.json`, `lastWritingSurface`) against
+the scene the caret was in.
+**Cause:** on open, Linux put the caret back in the stamped scene and centred it — then OVERRODE that with the saved
+whole-document scroll FRACTION. The fraction is of the scroll range at quit, and `QPlainTextEdit` lays wrapped paragraphs out
+lazily, so a fresh open's range is not that one: the view landed away from the caret (dumas: chapters away). Apple never used
+the fraction ([I-0133], ruled 2026-08-18: it centres the restored scene). (The 15:56 stamp was overwritten by the 16:00 quit,
+so it was read from the code and reproduced, not from the file.)
+**Fix:** `EditorShell` restores the caret and CENTRES it; the fraction is no longer applied (Apple's shape). The stamp still
+carries it, as Apple's does.
+**Test:** `structural_baseline_smoke` — 40 scenes of wrapped paragraphs; a session reads through the book; the caret in scene
+30, stamped as quitting does; reopened in a fresh shell: the caret in that scene, ON SCREEN, and the window showing it. ⛔ Before
+the fix it FAILED on Qt 6.10 (the caret 287 px above the window). ✅ Passes on Qt 6.4 and 6.10. ✅ **Verified 2026-11-04** (user, 2026-11-04: *"all the checkes passed"* — [T-0661] re-run on scrivi-vm, build 1.0.348).

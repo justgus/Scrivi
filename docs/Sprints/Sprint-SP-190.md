@@ -51,10 +51,14 @@ the window, and leaves the manuscript reading as a flat edit would.
 
 - [x] AC1 — The Mac's timing source as Q1 rules — ✅ 2026-11-04: `DiagnosticLog` (`ScriviDiag.swift`)
 - [ ] AC2 — ✅ **Mac live pass (user)** — ✅ **RE-RULED 2026-11-04 (user: *"I approve your suggestion"*): on a LOCAL disk** (the two-hop loop is too slow to be useful: the user, 2026-11-04, *"It is too restrictive to be useful"*); the share half is Linux's ([T-0661]). Every step timed, no freeze → `Rig-Live-Pass-Held.md`, the Mac section
-- [ ] AC3 — ✅ **Rig live pass (user)** over the share: every step timed, no freeze → [T-0661] ([EP-057])
+- [x] AC3 — ✅ **Rig live pass (user)** over the share: every step timed, no freeze → [T-0661] ([EP-057]) — ✅ PASSED 2026-11-04 (run 2, build 1.0.348); times in [T-0661]
 - [ ] AC4 — Every finding filed and ruled
 
 ## Progress log
+
+### ✅ 2026-11-04 — the VM pass re-run: PASS
+- [T-0661] run 2 on build 1.0.348 (after [I-0346]–[I-0348]): ✅ every check (user). 24 edits, no stall after any; times in
+  [T-0661]. ⏳ Only the Mac's local-disk pass (AC2) remains.
 
 ### 🔴 2026-11-04 — the VM pass ([T-0661]) failed; the Mac's half moved to a local disk
 - [T-0661] on scrivi-vm (build 1.0.342): steps 2–7 passed as seen; step 1 the view jumped ([I-0347]); step 8 reopened in the
