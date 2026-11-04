@@ -84,11 +84,12 @@ No share needed; a new local project.
 3. In the manuscript, type: `Mr. Smith said ` — then **Format ▸ Bold**, type `bold`, **Format ▸ Bold** again — type ` and ` —
    **Format ▸ Italic**, type `soft`, **Format ▸ Italic** — type ` here.` and press **Return** twice.
 4. **Format ▸ Heading 2**, type `The claim stated plainly`, press **Return** twice, type `1. not a list.`
-5. Turn **Orca on**: **⌘ Command + ⌥ Option + S** in the VM window (GNOME's Super+Alt+S — Super is ⌘ on the Mac's keyboard), or
-   **Settings ▸ Accessibility ▸ Seeing ▸ Screen Reader** on. Orca says "Screen reader on". Click back into the manuscript.
+5. Turn **Orca on WITH ITS SPEECH LOG** (2026-11-04: the VM's sound stutters, so what Orca says is read from its log, not
+   heard): open a Terminal in the VM and type `orca -r --debug-file=/tmp/orca.log &` then Return. Click back into the
+   manuscript. (Settings ▸ Accessibility ▸ Seeing ▸ Screen Reader only turns Orca on — without the log.)
 6. Press **Up** and **Down** over the lines. ✅ Orca reads *"Mr. Smith said bold and soft here."* — never "star", "backslash"
    or "number sign"; *"The claim stated plainly"* — no "number number"; *"1. not a list."* with no "backslash".
-   Record what Orca says for the Mr. line exactly (Orca's default punctuation level).
+   (What Orca said is read afterwards from `/tmp/orca.log`: each utterance is a `SPEECH OUTPUT: '…'` line.)
 7. On the Mr. line, **Right** / **Left** one character at a time through *"bold"*. ✅ Orca speaks each letter; never a "star",
    and the caret never stops twice in one place.
 8. Put the caret at the start of `1. not a list.` and choose **Scene ▸ Split Scene** (a divider appears above it). Press
@@ -96,7 +97,8 @@ No share needed; a new local project.
 9. Type a few words with Orca on. ✅ It echoes what you type; nothing freezes.
 10. Optional: open **dumas-prose-timelines** with Orca on. Note whether the window pauses for a moment when Orca first reads
     the manuscript (measured: about 0.2 s once).
-11. Turn **Orca off**: ⌘⌥S again, or the same Settings switch. Quit Scrivi (**File ▸ Quit**). The `Orca test` project can be deleted afterwards.
+11. Turn **Orca off**: in the Terminal, `pkill orca` (the screen reader setting starts the usual one again later). Tell Claude
+    the log is there: it reads `/tmp/orca.log` over SSH. Quit Scrivi (**File ▸ Quit**). The `Orca test` project can be deleted afterwards.
 
 **Pass:** 6–9 as marked. A failure is a new Issue, linked from [T-0660].
 
