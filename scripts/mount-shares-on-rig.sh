@@ -35,7 +35,7 @@
 #
 set -euo pipefail
 
-RIG="${SCRIVI_RIG:-oathkeeper}"
+RIG="${SCRIVI_RIG:-192.168.64.2}"
 MAC_HOST="${SCRIVI_MAC_HOST:-$(scutil --get LocalHostName 2>/dev/null || hostname -s)}.local"
 SMB_USER="${SCRIVI_SMB_USER:-$(id -un)}"
 
