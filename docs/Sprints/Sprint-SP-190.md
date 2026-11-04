@@ -8,7 +8,7 @@ created: 2026-10-20
 
 # SP-190 — `[Cross]` [EP-053] **S5**: Mac and rig live passes over the share, timed
 
-**Status:** 🔵 **PLANNING** — created 2026-10-20 (user: *"complete planning for EP-053"*). ⏳ Q1 below.
+**Status:** 🔵 **PLANNING** — created 2026-10-20 (user: *"complete planning for EP-053"*). ✅ Q1 ruled 2026-11-04 (as recommended).
 **Carries:** [T-0618] → [`../Tasks/Task-backlog.md`](../Tasks/Task-backlog.md).
 **Epic:** [EP-053] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md).
 **Builds on:** [SP-187], [SP-188], [SP-189].
@@ -40,11 +40,11 @@ the window, and leaves the manuscript reading as a flat edit would.
 3. **Run it on both,** read both logs, and record each step's time here.
 4. **Anything found** is filed as an Issue and ruled before this Sprint closes.
 
-## Questions
+## Questions — ✅ Q1 RULED 2026-11-04 (as recommended)
 
 | # | Question | Recommendation |
 | - | -------- | -------------- |
-| **Q1** | **The Mac's timing source.** | ⏳ **A minimal Mac diagnostic log** (structural steps and main-thread stalls only, the same line format as Linux's), built here. Alternative: time it by hand, which cannot measure a stall. |
+| **Q1** | **The Mac's timing source.** | ✅ **RULED (user, 2026-11-04: *"approved as recommended"*): a minimal Mac diagnostic log** (structural steps and main-thread stalls only, the same line format as Linux's), built here. Alternative: time it by hand, which cannot measure a stall. |
 
 ## Acceptance Criteria
 

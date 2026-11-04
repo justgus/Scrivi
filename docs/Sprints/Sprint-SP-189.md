@@ -8,7 +8,7 @@ created: 2026-10-20
 
 # SP-189 — `[Cross]` [EP-053] **S4**: the background sync verification — disk wins, silently
 
-**Status:** 🔵 **PLANNING** — created 2026-10-20 (user: *"complete planning for EP-053"*). ⏳ Q1–Q2 below.
+**Status:** 🔵 **PLANNING** — created 2026-10-20 (user: *"complete planning for EP-053"*). ✅ Q1–Q2 ruled 2026-11-04 (as recommended).
 **Carries:** [T-0617] → [`../Tasks/Task-backlog.md`](../Tasks/Task-backlog.md).
 **Epic:** [EP-053] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md).
 **Builds on:** [SP-187] and [SP-191] (S2a, S2b) and [SP-188]: every structural operation returns a delta that the editor applies in memory.
@@ -44,12 +44,12 @@ without a notice, without touching the writer's caret or typing elsewhere.
    typed into meanwhile is not overwritten; prove an operation with no divergence makes zero corrections and reads only the
    delta's files (count guard). Mutation-checked.
 
-## Questions
+## Questions — ✅ Q1–Q2 RULED 2026-11-04 (as recommended)
 
 | # | Question | Recommendation |
 | - | -------- | -------------- |
-| **Q1** | **Where the comparison runs.** Comparing is not backend logic, but which fields count as "differs" is a rule both platforms must share. | ⏳ **A core endpoint returns the disk's version of the delta's scenes and chapters; each platform compares field by field** against a list the core documents. Alternative: the platform sends its view and the core returns only the differences (one rule, but the whole touched text crosses the ABI twice). |
-| **Q2** | **A scene the writer typed into before the verification ran.** | ⏳ **Skip it**, and log that it was skipped. The writer's text is newer than the disk's; overwriting it would lose typing. |
+| **Q1** | **Where the comparison runs.** Comparing is not backend logic, but which fields count as "differs" is a rule both platforms must share. | ✅ **RULED (user, 2026-11-04: *"Q1 and Q2 approved as recommended"*): a core endpoint returns the disk's version of the delta's scenes and chapters; each platform compares field by field** against a list the core documents. Alternative: the platform sends its view and the core returns only the differences (one rule, but the whole touched text crosses the ABI twice). |
+| **Q2** | **A scene the writer typed into before the verification ran.** | ✅ **RULED (user, 2026-11-04): skip it**, and log that it was skipped. The writer's text is newer than the disk's; overwriting it would lose typing. |
 
 ## Acceptance Criteria
 
