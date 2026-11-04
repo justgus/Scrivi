@@ -14,9 +14,11 @@ export BIN HERE
 echo "== Accessibility over AT-SPI (GetText, lines, caret, text-caret-moved) =="
 dbus-run-session -- bash -c '
     Xvfb :97 -screen 0 1280x800x24 -nolisten tcp >/dev/null 2>&1 & X=$!
+    export DISPLAY=:97   # the bus, the registry (key synthesis) and the checker all on this display
+    sleep 1
     /usr/libexec/at-spi-bus-launcher --launch-immediately >/dev/null 2>&1 & B=$!
     sleep 1
-    DISPLAY=:97 QT_QPA_PLATFORM=xcb QT_LINUX_ACCESSIBILITY_ALWAYS_ON=1 SCRIVI_A11Y_HOLD_MS=15000 \
+    QT_QPA_PLATFORM=xcb QT_LINUX_ACCESSIBILITY_ALWAYS_ON=1 SCRIVI_A11Y_HOLD_MS=15000 \
         XDG_STATE_HOME="$(mktemp -d)" "$BIN" >/dev/null 2>&1 & APP=$!
     sleep 4
     python3 -I "$HERE/accessibility_atspi.py"; R=$?
