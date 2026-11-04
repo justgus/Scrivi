@@ -1,15 +1,15 @@
 ---
 sprint: SP-190
 epic: EP-053
-status: Planning
+status: Active
 platform: Cross
 created: 2026-10-20
 ---
 
 # SP-190 — `[Cross]` [EP-053] **S5**: Mac and rig live passes over the share, timed
 
-**Status:** 🔵 **PLANNING** — created 2026-10-20 (user: *"complete planning for EP-053"*). ✅ Q1 ruled 2026-11-04 (as recommended).
-**Carries:** [T-0618] → [`../Tasks/Task-backlog.md`](../Tasks/Task-backlog.md).
+**Status:** 🟡 **ACTIVE 2026-11-04** (user: *"continue on and do the remaining implementation for EP-053. Put all the live pass steps in the EP-057 Live pass."*) — created 2026-10-20. ✅ Q1 ruled 2026-11-04 (as recommended) and built (AC1); ⏳ the passes: steps in [`Rig-Live-Pass-Held.md`](Rig-Live-Pass-Held.md) — the rig's as [T-0661] ([EP-057]), the Mac's beside it; ⏳ Q2 (the Mac's share).
+**Carries:** [T-0618] → [`../Tasks/Task-unverified.md`](../Tasks/Task-unverified.md).
 **Epic:** [EP-053] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md).
 **Builds on:** [SP-187], [SP-188], [SP-189].
 **Authority:** [`../Scrivi_Structured_CutCopyPaste_Design_v0_3.md`](../Scrivi_Structured_CutCopyPaste_Design_v0_3.md) (v0.3, 2026-10-21, supersedes v0.2) §6
@@ -44,16 +44,26 @@ the window, and leaves the manuscript reading as a flat edit would.
 
 | # | Question | Recommendation |
 | - | -------- | -------------- |
+| **Q2** | ➕ **2026-11-04: the share the Mac opens dumas from.** scrivi-vm runs no Samba server (it only MOUNTS the Mac's shares), so the [SP-188] loop (the rig re-sharing the Mac's drive back) does not exist there. | ⏳ **Ask the user.** Candidates: Samba on scrivi-vm re-sharing `/mnt/scrivi-other` (the [SP-188] loop, two hops); another machine's share; a NAS. |
 | **Q1** | **The Mac's timing source.** | ✅ **RULED (user, 2026-11-04: *"approved as recommended"*): a minimal Mac diagnostic log** (structural steps and main-thread stalls only, the same line format as Linux's), built here. Alternative: time it by hand, which cannot measure a stall. |
 
 ## Acceptance Criteria
 
-- [ ] AC1 — The Mac's timing source as Q1 rules
-- [ ] AC2 — ✅ **Mac live pass (user)** over the share: every step timed, no freeze
-- [ ] AC3 — ✅ **Rig live pass (user)** over the share: every step timed, no freeze
+- [x] AC1 — The Mac's timing source as Q1 rules — ✅ 2026-11-04: `DiagnosticLog` (`ScriviDiag.swift`)
+- [ ] AC2 — ✅ **Mac live pass (user)** over the share: every step timed, no freeze → `Rig-Live-Pass-Held.md`, the Mac section (⏳ Q2)
+- [ ] AC3 — ✅ **Rig live pass (user)** over the share: every step timed, no freeze → [T-0661] ([EP-057])
 - [ ] AC4 — Every finding filed and ruled
 
 ## Progress log
+
+### 🟡 2026-11-04 — Activated; Q1 built
+- **The Mac's diagnostic log** (`DiagnosticLog` in `Scrivi/App/ScriviDiag.swift`): `~/Library/Logs/Scrivi/scrivi.log` (the
+  app's container), Linux's line format (`yyyy-MM-dd HH:mm:ss.SSS [thread] text`), always on, the previous session kept as
+  `scrivi.log.1`; **Help ▸ Show Log Folder**. It carries the structural steps (started / queued / landed, with times), the
+  verification ([SP-189]), the main thread's core calls that took time, and the watchdog's stalls (≥ 250 ms) — ✅ spans and the
+  watchdog no longer need `SCRIVI_DIAG_TIMING` (it still adds the console lines and the open-path table). Interop test: a
+  split's lines are in the file, every line in Linux's format.
+- The passes' steps are in `Rig-Live-Pass-Held.md` (user: *"Put all the live pass steps in the EP-057 Live pass"*).
 
 ### 🔵 2026-10-20 — Sprint CREATED in Planning
 - User: *"complete planning for EP-053."* Issued with [SP-187]–[SP-189] via `next-id.py`; [T-0618] filed.

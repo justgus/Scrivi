@@ -1,15 +1,15 @@
 ---
 sprint: SP-189
 epic: EP-053
-status: Planning
+status: Active
 platform: Cross
 created: 2026-10-20
 ---
 
 # SP-189 — `[Cross]` [EP-053] **S4**: the background sync verification — disk wins, silently
 
-**Status:** 🔵 **PLANNING** — created 2026-10-20 (user: *"complete planning for EP-053"*). ✅ Q1–Q2 ruled 2026-11-04 (as recommended).
-**Carries:** [T-0617] → [`../Tasks/Task-backlog.md`](../Tasks/Task-backlog.md).
+**Status:** 🟡 **ACTIVE 2026-11-04** (user: *"continue on and do the remaining implementation for EP-053"*) — created 2026-10-20 (user: *"complete planning for EP-053"*). ✅ Q1–Q2 ruled 2026-11-04 (as recommended). ✅ Built and tested on both (below); ⏳ Q3; the live passes → [`Rig-Live-Pass-Held.md`](Rig-Live-Pass-Held.md) ([T-0661], [EP-057]; the Mac's beside it).
+**Carries:** [T-0617] → [`../Tasks/Task-unverified.md`](../Tasks/Task-unverified.md).
 **Epic:** [EP-053] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md).
 **Builds on:** [SP-187] and [SP-191] (S2a, S2b) and [SP-188]: every structural operation returns a delta that the editor applies in memory.
 **Authority:** [`../Scrivi_Structured_CutCopyPaste_Design_v0_3.md`](../Scrivi_Structured_CutCopyPaste_Design_v0_3.md) (v0.3, 2026-10-21, supersedes v0.2) — R3,
@@ -49,17 +49,38 @@ without a notice, without touching the writer's caret or typing elsewhere.
 | # | Question | Recommendation |
 | - | -------- | -------------- |
 | **Q1** | **Where the comparison runs.** Comparing is not backend logic, but which fields count as "differs" is a rule both platforms must share. | ✅ **RULED (user, 2026-11-04: *"Q1 and Q2 approved as recommended"*): a core endpoint returns the disk's version of the delta's scenes and chapters; each platform compares field by field** against a list the core documents. Alternative: the platform sends its view and the core returns only the differences (one rule, but the whole touched text crosses the ABI twice). |
+| **Q3** | ➕ **2026-11-04 (found building it): a difference a delta cannot put right** — a scene on disk the list does not know, a chapter folder gone from under its scenes, another chapter order. Apple has no project reload; Linux's is a one-off fallback. | ⏳ **Log it, change nothing** (as built, both platforms): these mean an outside change or a defect, and guessing would be worse. Alternative: reload the project (Linux's `load`; Apple would need one built), which re-reads everything and moves the caret. |
 | **Q2** | **A scene the writer typed into before the verification ran.** | ✅ **RULED (user, 2026-11-04): skip it**, and log that it was skipped. The writer's text is newer than the disk's; overwriting it would lose typing. |
 
 ## Acceptance Criteria
 
-- [ ] AC1 — After every structural operation, a background verification reads only the delta's files, on both platforms
-- [ ] AC2 — A divergence is corrected from the disk silently (Q3), logged, with the caret and scroll unchanged
-- [ ] AC3 — A scene typed into meanwhile is never overwritten (Q2)
-- [ ] AC4 — Tests on both: forced divergence corrected; no divergence → zero corrections; count guard; mutation-checked
-- [ ] AC5 — ✅ **Live passes (user):** Mac and rig, over the share — the diagnostic logs show each verification and its cost
+- [x] AC1 — After every structural operation, a background verification reads only the delta's files, on both platforms
+- [x] AC2 — A divergence is corrected from the disk silently (design Q3), logged, with the caret and scroll unchanged — a text,
+      or an order within a chapter; what a delta cannot fix is logged (⏳ Q3)
+- [x] AC3 — A scene typed into meanwhile is never overwritten (Q2)
+- [x] AC4 — Tests on both: forced divergence corrected; no divergence → zero corrections; count guard; mutation-checked
+- [ ] AC5 — ✅ **Live passes (user):** Mac and rig, over the share — the diagnostic logs show each verification and its cost →
+      `Rig-Live-Pass-Held.md` ([T-0661] for the rig; the Mac's section beside it)
 
 ## Progress log
+
+### 🟡 2026-11-04 — Activated and built
+- **Core:** `scrivi_range_verify_read` (`RangeOperations::verifyRead`, `scrivi.h`) — what the DISK holds for the files a delta
+  named: each chapter's scenes in order as the ORDER-KEY FILE NAMES (one listing; no sidecar read — membership and order are
+  the names, as the core resolves the manuscript), each written scene's text, the chapter order when asked. The comparison
+  rule is documented at the endpoint (Q1). Paths are checked at the boundary (`manuscript/…`, no `..`); a missing file is
+  `present: false`, a failed read an ERROR, never "absent".
+- **Linux:** `RangeVerify.hpp` (the pure comparison) and `EditorShell::verifyAgainstDisk` — the request built BEFORE the delta
+  is applied (it still knows the removed scenes' chapters), the read on a worker, the comparison on the GUI thread, the
+  correction applied as a delta with the caret and scroll kept; discarded when another structural edit has started since.
+- **Apple:** `RangeVerify` + `ViewportSceneLoader.verifyAgainstDisk` (`ViewportSceneLoader.swift`), the Coordinator's
+  `applyCorrection` (`ManuscriptTextView.swift`) — the same rule, the same threads (R5).
+- **Tests:** core — 3 ABI tests + the budget (a two-scene paste's verification = **1 listing, 2 reads, 0 writes**); Linux —
+  `structural_baseline_smoke` (every operation verifies with 0 corrections; the disk changed behind the list → put right, the
+  caret held; typed into meanwhile → skipped; the comparison's reorder and its reports); Apple — 4 interop tests (the same,
+  through the real coordinator). Mutations: **Linux 6/6, Apple 3/3 caught** (one Apple survivor at first — NSTextView already
+  keeps a caret AFTER the corrected scene — killed by testing the caret INSIDE it). Mac ctest 806/806, interop 337/337;
+  scrivi-vm build 1.0.330: ctest 810/810, 39 smokes.
 
 ### 🔵 2026-10-20 — Sprint CREATED in Planning
 - User: *"complete planning for EP-053."* Issued with [SP-187], [SP-188], [SP-190] via `next-id.py`; [T-0617] filed.

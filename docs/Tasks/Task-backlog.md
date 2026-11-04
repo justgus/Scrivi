@@ -1,5 +1,7 @@
 # Task Backlog
 
+*Last Updated: 2026-11-04 (**T-0617, T-0618 → 🟠** → `Task-unverified.md` ([SP-189], [SP-190] activated and built); **T-0660, T-0661** filed under [EP-057].)*
+
 Tasks listed here are **documented, unstarted, and not assigned to an active Sprint.**
 
 **What does _not_ belong in this file:**
@@ -34,10 +36,9 @@ status changes on its own layer.
 | **T-0497** | ⚠️ **`[Linux]` World CREATION** — the one Worlds action SP-127 deliberately deferred. ⚠️ **Apple entangles it with `WorldBookmarkStore` (macOS sandbox grants, NO Linux equivalent)**, and ✅ **AC3 asks for added / status read / relinked, not created**. ⚠️ **PRIORITY ARGUMENT CHANGED BY THE T-0496 LIVE PASS (2026-09-01):** ⚠️ **the user hit this as a DEAD END while setting up a test** — `Project ▸ Manage Worlds…` offers **no create affordance**, so ⚠️ **a project with no world cannot proceed on Linux at all**: there is nothing to *add* or *relink*. ✅ **Apple detects the no-world case and PROMPTS the writer to create one** — ⚠️ **the deferral assumed add+relink were enough to be USABLE, and they are not.** ⚠️ **The step-7 test could not be completed on Linux alone; the world (`Alpha Centauri`) had to be created in the APPLE app** — ⚠️ **the sharpest evidence available that this is a gap, not a nicety.** | **EP-035** | 🔵 **Backlog** — ⚠️ **unscheduled, but ⚠️ NOW BLOCKING a Linux-only writer** |
 | T-0610 | `[Linux]` EP-048 S5b: line spacing and the first-line indent | EP-048 ([SP-183], 🔵 Planning) | 🔵 Backlog |
 | T-0611 | `[Linux]` EP-048 S5c: Show chapter titles, and the chapter-ending divider | EP-048 ([SP-184], 🔵 Planning) | 🔵 Backlog |
-| T-0617 | `[Cross]` EP-053 S4: the background sync verification | EP-053 ([SP-189], 🔵 Planning) | 🔵 Backlog |
-| T-0618 | `[Cross]` EP-053 S5: Mac and rig live passes over the share, timed | EP-053 ([SP-190], 🔵 Planning) | 🔵 Backlog |
 | T-0621 | `[Cross]` Explore a whole-manuscript history view (a tree, or a branching timeline) | ⚠️ None yet | 🔵 Backlog — exploration |
 | T-0628 | `[Cross]` EP-052: keep a held queue on local disk and push it when the project returns | EP-052 (unscheduled) | 🔵 Backlog |
+| T-0661 | `[Linux]` Rig pass: EP-053 over the share — every structural edit timed, verified, no freeze ([SP-189] AC5, [SP-190] AC3) | **EP-057** | 🔵 Backlog — steps in `../Sprints/Rig-Live-Pass-Held.md` |
 | T-0660 | `[Linux]` Rig pass: Orca reads the manuscript as the page shows it ([SP-202] Q3, [SP-203]) | **EP-057** | 🔵 Backlog — steps in `../Sprints/Rig-Live-Pass-Held.md` |
 | T-0657 | `[Cross]` Navigator: collapsible chapters, the current one open, the writer's choices remembered per device | ⚠️ None yet | 🔵 Backlog |
 
@@ -380,26 +381,6 @@ formats, so the mechanism is measured first and ruled from the numbers ([SP-183]
 **What:** the dialog's Writing Surface ▸ Show chapter titles in manuscript ([EP-026] Q4), read from the shared settings file
 (absent per [SP-184] Q1). `SceneDocument` builds with or without chapter headings, and every chapter boundary gets Apple's
 full-strength closing divider ([T-0575]). Every structural operation and its undo is tested with titles off and on.
-
----
-
-## 🔵 T-0617 — `[Cross]` EP-053 S4: the background sync verification
-
-**Epic:** [EP-053] (S4) · **Status:** 🔵 Backlog · **Sprint:** [SP-189] (🔵 Planning) →
-[`../Sprints/Sprint-SP-189.md`](../Sprints/Sprint-SP-189.md) · **Date Requested:** 2026-10-20 (user: *"complete planning for EP-053"*)
-
-**What:** after every structural operation, a background task on both platforms re-reads only the files the delta names and
-corrects any difference from the disk silently (design v0.2 R3, P4, Q3), never overwriting a scene typed into meanwhile.
-
----
-
-## 🔵 T-0618 — `[Cross]` EP-053 S5: Mac and rig live passes over the share, timed
-
-**Epic:** [EP-053] (S5) · **Status:** 🔵 Backlog · **Sprint:** [SP-190] (🔵 Planning) →
-[`../Sprints/Sprint-SP-190.md`](../Sprints/Sprint-SP-190.md) · **Date Requested:** 2026-10-20 (user: *"complete planning for EP-053"*)
-
-**What:** live passes on dumas-prose-timelines over the share on the Mac and the rig: every structural operation and its undo
-and redo, timed by each platform's log, with no freeze. Includes the Mac's timing source if [SP-190] Q1 rules one.
 
 ---
 

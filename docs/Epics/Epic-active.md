@@ -18,6 +18,7 @@ being built together. Development stays parallel; only the live pass on real Lin
 | Task | Rig pass | From |
 |---|---|---|
 | [T-0660] | Orca reads the manuscript as the page shows it | [SP-203] (EP-050 S4); [SP-202] Q3 |
+| [T-0661] | EP-053 over the share: every structural edit and its undo / redo timed, verified, no freeze | [SP-189] AC5, [SP-190] AC3 |
 
 ---
 
@@ -155,7 +156,7 @@ access (Files, iCloud Drive, external drives on iPad); iPad multi-window; a phon
 ## EP-053: `[Cross]` **Range-Based Structural Editing** — cut, copy, paste and undo as one Range, one core call, no reload
 
 **Status:** 🟡 **ACTIVE 2026-10-17** — created and started the same day (user: *"draft EP-053, start the first sprint and publish
-the design doc for my perusal"*). S1 = [SP-186], ✅ closed 2026-10-20. S2a = [SP-187], ✅ closed 2026-10-21. S3 = [SP-188], ✅ closed 2026-10-26; no Sprint active.
+the design doc for my perusal"*). S1 = [SP-186], ✅ closed 2026-10-20. S2a = [SP-187], ✅ closed 2026-10-21. S3 = [SP-188], ✅ closed 2026-10-26. S4 = [SP-189] and S5 = [SP-190], 🟡 active 2026-11-04 (built; ⏳ the live passes, held in `Rig-Live-Pass-Held.md`).
 **Design:** [`../Scrivi_Structured_CutCopyPaste_Design_v0_3.md`](../Scrivi_Structured_CutCopyPaste_Design_v0_3.md) (v0.3, [SP-191]; supersedes v0.2) — ✅ ruled
 2026-10-17 (R1–R7, Q1–Q5). Supersedes v0.1 (EP-029) where they differ.
 **Codebase:** `[ScriviCore]` first, then `[Apple]` and `[Linux]` together — the same shape and the same threads on both (R5).
@@ -180,15 +181,15 @@ thread, one core call per scene); a cut no longer removed structure, so paste an
 | **[SP-187]** | **S2a** — `[Apple]` + `[Linux]` the scene list as the model of record (design §4.2a), no visible change: the range endpoints bound on both, the delta types, Linux's list holding the text, Apple's partial re-render; baseline counts | ✅ **CLOSED 2026-10-21** (user-approved) → [`../Sprints/Closed/Sprint-SP-187.md`](../Sprints/Closed/Sprint-SP-187.md) · ✅ Q1–Q4 ruled |
 | **[SP-191]** | **S2b** — `[Apple]` + `[Linux]` copy builds the Range from memory; paste and its undo (a range cut); split, chapter split, merge and chapter merge as range calls (undoable, sidecars restored, no barriers); the delta applied, no reload, off the main thread on both; old history nodes converted; [I-0314] · ➡️ takes [SP-185] AC4 | ✅ **CLOSED 2026-10-22** (user-approved) → [`../Sprints/Closed/Sprint-SP-191.md`](../Sprints/Closed/Sprint-SP-191.md) · [T-0619] verified |
 | **[SP-188]** | **S3** — `[Apple]` + `[Linux]` structural cut; Backspace / Delete over scenes = Cut minus the clipboard (Q4); cut's undo (a range paste); old `structuredCut` nodes still undo | ✅ **CLOSED 2026-10-26** (user-approved) → [`../Sprints/Closed/Sprint-SP-188.md`](../Sprints/Closed/Sprint-SP-188.md) · AC11's Mac pass over a share → [SP-190] |
-| **[SP-189]** | **S4** — `[Cross]` the background sync verification (disk wins, silently — Q3) | 🔵 **PLANNING 2026-10-20** → [`../Sprints/Sprint-SP-189.md`](../Sprints/Sprint-SP-189.md) · ✅ Q1–Q2 ruled 2026-11-04 |
-| **[SP-190]** | **S5** — Mac and rig live passes over the share, timed by the diagnostic logs | 🔵 **PLANNING 2026-10-20** → [`../Sprints/Sprint-SP-190.md`](../Sprints/Sprint-SP-190.md) · ✅ Q1 ruled 2026-11-04 |
+| **[SP-189]** | **S4** — `[Cross]` the background sync verification (disk wins, silently — Q3) | 🟡 **ACTIVE 2026-11-04** → [`../Sprints/Sprint-SP-189.md`](../Sprints/Sprint-SP-189.md) · ✅ Q1–Q2 ruled · ✅ built (core + both), green · ⏳ Q3 · passes → [T-0661] |
+| **[SP-190]** | **S5** — Mac and rig live passes over the share, timed by the diagnostic logs | 🟡 **ACTIVE 2026-11-04** → [`../Sprints/Sprint-SP-190.md`](../Sprints/Sprint-SP-190.md) · ✅ Q1 ruled + built (the Mac's log) · ⏳ Q2 (the Mac's share) · passes → [T-0661] / Mac section |
 
 **Planning rulings (user, 2026-10-20):** ✅ each operation ships with its undo (paste + its undo in S2, cut + its undo in
 S3; verification moves to S4, history no longer a Sprint of its own) · ✅ split, merge and chapter create/merge are in scope,
 in S2 · ✅ (later the same day) S2 split into S2a [SP-187] and S2b [SP-191]; the list stays an ordered array (Q4) · ✅ new history op names `rangePaste` / `rangeCut` in `scrivi.history.v1`, backward-compatible (old
 `structuredPaste` / `structuredCut` nodes keep undoing).
 
-**Tasks:** ✅ [T-0614] (SP-186 — VERIFIED, archived) · ✅ [T-0615] (SP-187 — VERIFIED 2026-10-21, archived) · ✅ [T-0619] (SP-191 — VERIFIED 2026-10-22, archived) · 🟠 [T-0616] (SP-188 ✅ closed — Implemented - Not Verified, ⏳ the Mac pass over a share in SP-190) · 🔵 [T-0617] (SP-189) · 🔵 [T-0618] (SP-190).
+**Tasks:** ✅ [T-0614] (SP-186 — VERIFIED, archived) · ✅ [T-0615] (SP-187 — VERIFIED 2026-10-21, archived) · ✅ [T-0619] (SP-191 — VERIFIED 2026-10-22, archived) · 🟠 [T-0616] (SP-188 ✅ closed — Implemented - Not Verified, ⏳ the Mac pass over a share in SP-190) · 🟠 [T-0617] (SP-189) · 🟠 [T-0618] (SP-190) · 🔵 [T-0661] ([EP-057]: the rig pass).
 **Issues:** ✅ [I-0311] · ✅ [I-0297] · ✅ [I-0314] (all VERIFIED 2026-10-22, archived, with [SP-191]).
 
 ---

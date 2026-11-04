@@ -1,5 +1,7 @@
 # Unverified Tasks
 
+*Last Updated: 2026-11-04 (**T-0617, T-0618 → 🟠** ([SP-189], [SP-190]).)*
+
 *Last Updated: 2026-11-04 (**T-0658, T-0659 → 🟠** (EP-050 S3, S4).)*
 
 *Last Updated: 2026-11-03 (**T-0632–T-0638 → ✅ Verified and archived** (user: the iPad, iPhone and Duo live passes, 2026-11-03).)*
@@ -19,6 +21,33 @@ Tasks that are **implemented and awaiting user verification** before being archi
 ⚠️ This file must not disagree with [`Task-active.md`](Task-active.md) or
 [`Task-backlog.md`](Task-backlog.md). A Task implemented but unverified belongs **here** — not left
 in the backlog carrying a 🟠 status.
+
+---
+
+## 🟠 T-0617 — `[Cross]` EP-053 S4: the background sync verification
+
+**Epic:** [EP-053] (S4) · **Status:** 🟠 **Implemented - Not Verified** (2026-11-04) — ⏳ the live passes ([T-0661]; the Mac's section) ·
+**Sprint:** [SP-189] → [`../Sprints/Sprint-SP-189.md`](../Sprints/Sprint-SP-189.md) · **Date Requested:** 2026-10-20 (user: *"complete planning for EP-053"*)
+
+**What:** after every structural operation, a background task on both platforms re-reads only the files the delta names and
+corrects any difference from the disk silently (design R3, P4, Q3), never overwriting a scene typed into meanwhile (Q2).
+
+**Done (2026-11-04):** `scrivi_range_verify_read` (core); Linux `RangeVerify.hpp` + `EditorShell::verifyAgainstDisk`; Apple
+`RangeVerify` + `ViewportSceneLoader.verifyAgainstDisk` + `applyCorrection`. A two-scene paste's verification = 1 listing +
+2 reads. Tests on all three; mutations Linux 6/6, Apple 3/3. ⏳ [SP-189] Q3 (a difference a delta cannot fix: log only, as built).
+
+---
+
+## 🟠 T-0618 — `[Cross]` EP-053 S5: Mac and rig live passes over the share, timed
+
+**Epic:** [EP-053] (S5) · **Status:** 🟠 **Implemented - Not Verified** (2026-11-04) — ⏳ the passes · **Sprint:** [SP-190] →
+[`../Sprints/Sprint-SP-190.md`](../Sprints/Sprint-SP-190.md) · **Date Requested:** 2026-10-20 (user: *"complete planning for EP-053"*)
+
+**What:** live passes on dumas-prose-timelines over the share on the Mac and the rig: every structural operation and its undo
+and redo, timed by each platform's log, with no freeze; the Mac's timing source per [SP-190] Q1.
+
+**Done (2026-11-04):** the Mac's diagnostic log ([SP-190] Q1: `DiagnosticLog`, Help ▸ Show Log Folder). The steps: the rig's
+[T-0661] and the Mac's section, both in `../Sprints/Rig-Live-Pass-Held.md`. ⏳ [SP-190] Q2 (the Mac's share).
 
 ---
 
