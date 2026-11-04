@@ -12,7 +12,7 @@ created: 2026-10-17
 
 **Status:** ✅ **CLOSED 2026-10-20** (user: *"mark T-0614 as verified and close SP-186"*) · created and ACTIVATED 2026-10-17 (user: *"draft EP-053, start the first sprint"*).
 **Carries:** [T-0614] → [`../../Tasks/Verified/Task-verified-0614.md`](../../Tasks/Verified/Task-verified-0614.md) · [I-0311] → [`../../Issues/Issue-active.md`](../../Issues/Issue-active.md).
-**Epic:** [EP-053] → [`../../Epics/Epic-active.md`](../../Epics/Epic-active.md).
+**Epic:** [EP-053] → [`../../Epics/Closed/Epic-EP-053.md`](../../Epics/Closed/Epic-EP-053.md).
 **Authority:** [`../../Scrivi_Structured_CutCopyPaste_Design_v0_2.md`](../../Scrivi_Structured_CutCopyPaste_Design_v0_2.md) — R2, R4, R6,
 R7, §4.2–4.5, Q2, Q4 (all ruled 2026-10-17).
 **Size:** L. ScriviCore only: the platforms keep today's endpoints until S2 switches both to these together. No rig needed

@@ -11,7 +11,7 @@ created: 2026-10-20
 
 **Status:** ✅ **CLOSED 2026-11-04** (user, 2026-11-04: *"yes, backlog that don't attach it to SP-190. Then close SP-189 and SP-190."*) — activated 2026-11-04 (user: *"continue on and do the remaining implementation for EP-053. Put all the live pass steps in the EP-057 Live pass."*) — created 2026-10-20. ✅ Q1 ruled 2026-11-04 (as recommended) and built (AC1); ⏳ the passes: steps in [`Rig-Live-Pass-Held.md`](../Rig-Live-Pass-Held.md) — the rig's as [T-0661] ([EP-057]), the Mac's beside it; ✅ Q2 ruled 2026-11-04: Samba on scrivi-vm (set up the same day).
 **Carries:** [T-0618] → [`../../Tasks/Verified/Task-verified-0618.md`](../../Tasks/Verified/Task-verified-0618.md) ✅ verified.
-**Epic:** [EP-053] → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md).
+**Epic:** [EP-053] → [`../../Epics/Closed/Epic-EP-053.md`](../../Epics/Closed/Epic-EP-053.md).
 **Builds on:** [SP-187], [SP-188], [SP-189].
 **Authority:** [`../Scrivi_Structured_CutCopyPaste_Design_v0_3.md`](../../Scrivi_Structured_CutCopyPaste_Design_v0_3.md) (v0.3, 2026-10-21, supersedes v0.2) §6
 step 5 · EP-053's Goal (the same behaviour and performance on the Mac and on Linux, over a network share as on a local disk).

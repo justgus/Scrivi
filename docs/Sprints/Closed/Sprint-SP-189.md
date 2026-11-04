@@ -11,7 +11,7 @@ created: 2026-10-20
 
 **Status:** ✅ **CLOSED 2026-11-04** (user, 2026-11-04: *"yes, backlog that don't attach it to SP-190. Then close SP-189 and SP-190."*) — activated 2026-11-04 (user: *"continue on and do the remaining implementation for EP-053"*) — created 2026-10-20 (user: *"complete planning for EP-053"*). ✅ Q1–Q2 ruled 2026-11-04 (as recommended). ✅ Built and tested on both (below); ✅ Q3 ruled 2026-11-04 (as recommended: log it, change nothing); the live passes → [`Rig-Live-Pass-Held.md`](../Rig-Live-Pass-Held.md) ([T-0661], [EP-057]; the Mac's beside it).
 **Carries:** [T-0617] → [`../../Tasks/Verified/Task-verified-0617.md`](../../Tasks/Verified/Task-verified-0617.md) ✅ verified.
-**Epic:** [EP-053] → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md).
+**Epic:** [EP-053] → [`../../Epics/Closed/Epic-EP-053.md`](../../Epics/Closed/Epic-EP-053.md).
 **Builds on:** [SP-187] and [SP-191] (S2a, S2b) and [SP-188]: every structural operation returns a delta that the editor applies in memory.
 **Authority:** [`../Scrivi_Structured_CutCopyPaste_Design_v0_3.md`](../../Scrivi_Structured_CutCopyPaste_Design_v0_3.md) (v0.3, 2026-10-21, supersedes v0.2) — R3,
 P4, Q3 (*"silently reconciled"*: the disk wins, no notice).

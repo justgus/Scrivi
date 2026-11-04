@@ -14,7 +14,7 @@ created: 2026-10-20
 [SP-187] (Q2: old history nodes convert; Q3: `ViewportSceneLoader` applies the delta).
 **Carries:** [I-0314] (Q6) · [T-0619] → [`../../Tasks/Verified/Task-verified-0619.md`](../../Tasks/Verified/Task-verified-0619.md) (✅ verified 2026-10-22) · [SP-185] AC4 (user, 2026-10-20: *"AC4 goes
 to EP-053 S2"*) · [I-0297]'s reload half · [I-0311] (the apps reach `scrivi_range_paste`).
-**Epic:** [EP-053] → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md).
+**Epic:** [EP-053] → [`../../Epics/Closed/Epic-EP-053.md`](../../Epics/Closed/Epic-EP-053.md).
 **Builds on:** [SP-186] (S1, the endpoints) · [SP-187] (S2a: the list as the model of record, the bindings, the delta types,
 the partial re-render, the baseline counts).
 **Authority:** [`../Scrivi_Structured_CutCopyPaste_Design_v0_3.md`](../../Scrivi_Structured_CutCopyPaste_Design_v0_3.md) (v0.3, 2026-10-21, supersedes v0.2) — R1,

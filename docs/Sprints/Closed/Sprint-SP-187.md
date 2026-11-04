@@ -1,7 +1,8 @@
 ---
 sprint: SP-187
 epic: EP-053
-status: Active
+status: Closed
+closed: 2026-10-21
 activated: 2026-10-20
 platform: Cross
 created: 2026-10-20
@@ -12,7 +13,7 @@ created: 2026-10-20
 **Status:** ✅ **CLOSED 2026-10-21** (user, 2026-10-21: *"close all five sprints and keep I-0308 open."*) · ✅ COMPLETE 2026-10-21 (every AC met; ⏳ close awaits the user) · 🟡 **ACTIVE 2026-10-20** (user: *"complete planning for SP-187 and activate it"*) — created 2026-10-20 in Planning
 (user: *"complete planning for EP-053"*). ✅ Q1–Q4 ruled 2026-10-20, all as recommended.
 **Carries:** [T-0615] → [`../Tasks/Task-active.md`](../../Tasks/Task-active.md).
-**Epic:** [EP-053] → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md).
+**Epic:** [EP-053] → [`../../Epics/Closed/Epic-EP-053.md`](../../Epics/Closed/Epic-EP-053.md).
 **Builds on:** [SP-186] (S1, ✅ closed): `scrivi_range_read`, `scrivi_range_paste`, `scrivi_range_cut` and the delta they return.
 **Followed by:** [SP-191] (S2b): copy, paste and its undo, split, merge and the chapter operations applied as deltas, no reload.
 **Authority:** [`../Scrivi_Structured_CutCopyPaste_Design_v0_2.md`](../../Scrivi_Structured_CutCopyPaste_Design_v0_2.md) — R5,

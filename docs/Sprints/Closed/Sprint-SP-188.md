@@ -11,7 +11,7 @@ created: 2026-10-20
 **Status:** ✅ **CLOSED** 2026-10-26 (user, 2026-10-26: *"close SP-188 and activate EP-052."*), with AC11's Mac pass over a share carried to [SP-190] — activated 2026-10-22 (user: *"activate and implement SP-188"*) — created 2026-10-20 (user: *"complete planning for EP-053"*); code re-read 2026-10-22 after
 [SP-191]. ✅ Q1–Q6 ruled 2026-10-22 (user: *"Q1–Q6 agreed as recommended"*).
 **Carries:** [T-0616] (🟠 Implemented - Not Verified) → [`../Tasks/Task-unverified.md`](../../Tasks/Task-unverified.md). · [I-0319], [I-0320] and [I-0321] (✅ Verified, archived), added 2026-10-24 → [`../Issues/Issue-active.md`](../../Issues/Issue-active.md).
-**Epic:** [EP-053] → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md).
+**Epic:** [EP-053] → [`../../Epics/Closed/Epic-EP-053.md`](../../Epics/Closed/Epic-EP-053.md).
 **Builds on:** [SP-186] (S1, `scrivi_range_cut`) · [SP-187] + [SP-191] (S2a + S2b: the scene list as the model of record, the delta applied,
 `rangePaste` / `rangeCut` history, the one off-main path).
 **Authority:** [`../Scrivi_Structured_CutCopyPaste_Design_v0_4.md`](../../Scrivi_Structured_CutCopyPaste_Design_v0_4.md) (v0.4, 2026-10-22, this Sprint's

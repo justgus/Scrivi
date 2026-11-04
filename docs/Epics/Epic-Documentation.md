@@ -91,7 +91,7 @@ user-approved), ⛔ not from either copy.\*\* ⚠️ **The table is now ONE unbr
 | EP-050 | `[Apple]` **Manuscript Accessibility** — VoiceOver reads the page at rest (one presented⇄storage translation layer across every AX member) + a Headings rotor; ✅ Linux: Orca is given the page at rest ([SP-203]) | ✅ **CLOSED** 2026-11-04 (user-approved) → [record](Closed/Epic-EP-050.md) | 2026-10-08 | 2026-11-04 |
 | EP-051 | `[Docs]` **Design Documentation Consolidation** — one living design document; `docs/studies`, `docs/runbooks`, `docs/archives`; CLAUDE.md points at the design document | 🔵 **Draft** (backlog) 2026-10-10 | — | — |
 | EP-052 | `[ScriviCore]` **Background Writes** — one ordered write queue per project in the core: undo, redo, Replace All, structural operations and the autosave off the GUI thread; Apple and Linux adopt it together | ✅ **CLOSED** 2026-11-02 (user-approved) → [record](Closed/Epic-EP-052.md) | 2026-10-26 | 2026-11-02 |
-| EP-053 | `[Cross]` **Range-Based Structural Editing** — cut, copy, paste and undo as one Range and one core call, applied in memory with no reload; the same on the Mac and Linux | 🟡 **ACTIVE** 2026-10-17 | [SP-186]–[SP-191] | — |
+| EP-053 | `[Cross]` **Range-Based Structural Editing** — cut, copy, paste and undo as one Range and one core call, applied in memory with no reload; the same on the Mac and Linux | ✅ **CLOSED** 2026-11-04 (user-approved) → [record](Closed/Epic-EP-053.md) | 2026-10-17 | 2026-11-04 |
 | EP-054 | `[ScriviCore]` **Import & Export** — project archives (with history), worlds, manuscript export (formatted HTML for fanfic, Markdown, .docx, PDF, ePub) and import (Markdown, .docx, Scrivener); for the alpha | 🟡 **ACTIVE** 2026-10-24 | [SP-193] (S0) |
 | EP-055 | `[Apple]` **iPad and iPhone** — the full app on iPad, a phone surface (incl. the iPhone Duo), TestFlight; for the alpha | 🟡 **ACTIVE** 2026-10-29 — the manuscript first | [SP-198] (S1) |
 | EP-056 | `[Linux]` **Install on Ubuntu** — a .deb testers can install, update and remove; for the alpha | 🔵 **Draft** (backlog) 2026-10-24 | — |
@@ -132,6 +132,8 @@ ruling **R-23(②)**. **To count Epics by status, read the table.**
 > been acted on. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-11-04 (**EP-053 → ✅ CLOSED** (user, 2026-11-04: *"approved."*): the Goal met, [SP-186]–[SP-191] closed, Audit Check run at the close (F1–F3 ruled).)*
 
 *Last Updated: 2026-11-04 (**EP-050 → ✅ CLOSED** (user, 2026-11-04: *"approved."*): AC1–AC7 met, its four Sprints closed, Audit Check run at the close (F1–F4 ruled).)*
 
