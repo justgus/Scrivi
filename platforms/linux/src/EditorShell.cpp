@@ -2217,6 +2217,83 @@ void EditorShell::runDeferredSteps()
 void EditorShell::applyRangeResult(const QVariantMap& result)
 {
     const RangeDelta delta = RangeDelta::fromVariant(result.value(QStringLiteral("delta")).toMap());
+    RangeVerify::Request verify = RangeVerify::requestFor(delta, sceneDoc_.segments());   // before: it knows the removed
+    ++structuralGeneration_;
+    applyDelta(delta);
+    verifyAgainstDisk(std::move(verify));
+}
+
+void EditorShell::verifyAgainstDisk(RangeVerify::Request request)
+{
+    if (request.isEmpty() || projectPath_.isEmpty()) {
+        return;
+    }
+    RangeVerify::snapshot(request, sceneDoc_.segments());
+    const int generation = structuralGeneration_;
+    const WorkerBridge::Handle bridgeHandle = WorkerBridge::handleFor(bridge_);   // ✅ [I-0309]: never `bridge_` itself
+    const QString path = projectPath_;
+    const QString json = request.toJson();
+    const std::function<void()> tamper = beforeVerifyRead;
+    QElapsedTimer clock;
+    clock.start();
+    struct Read { QVariantMap disk; bool failed = false; };
+    AsyncCall::run<Read>(
+        this,
+        // ⚠️ The WORKER: the C ABI only. The read waits for the project's queued writes (W3), so it sees the edit.
+        [bridgeHandle, path, json, tamper]() {
+            if (tamper) { tamper(); }
+            WorkerBridge bridge(bridgeHandle);
+            Read r;
+            r.disk = bridge->rangeVerifyRead(path, json);
+            r.failed = bridge->lastCallFailed();
+            return r;
+        },
+        [this, request, generation, clock](const Read& r) {
+            if (r.failed) {
+                DiagnosticLog::note(QStringLiteral("verify: the disk could not be read (%1 ms) — nothing changed").arg(clock.elapsed()));
+                return;
+            }
+            // Another structural edit started since: the disk is ahead of the list, and that edit verifies itself.
+            if (generation != structuralGeneration_ || rangeEditInFlight_) {
+                ++verifyStats_.superseded;
+                DiagnosticLog::note(QStringLiteral("verify: superseded by a later structural edit (%1 ms)").arg(clock.elapsed()));
+                return;
+            }
+            const RangeVerify::Outcome out = RangeVerify::compare(request, r.disk, sceneDoc_.segments());
+            ++verifyStats_.compared;
+            verifyStats_.corrected += out.corrected;
+            verifyStats_.skipped += int(out.skipped.size());
+            verifyStats_.uncorrectable += int(out.uncorrectable.size());
+            if (!out.correction.scenes.isEmpty()) {
+                // ✅ The disk wins, silently (Q3), the caret and the scroll where they were (AC2).
+                const int caretAt = viewport_->textCursor().position();
+                const int caretScene = sceneDoc_.sceneIndexForCaret(caretAt);
+                const QString caretID = caretScene >= 0 ? sceneDoc_.segments().at(caretScene).sceneID : QString();
+                const int caretOffset = caretScene >= 0 ? caretAt - sceneDoc_.segments().at(caretScene).bodyStart : 0;
+                const int scroll = viewport_->verticalScrollBar()->value();
+                const bool wasLoading = std::exchange(loading_, true);   // the core's text, not the writer's
+                applyDelta(out.correction);
+                loading_ = wasLoading;
+                if (const int i = sceneDoc_.sceneIndexForScene(caretID); i >= 0) {
+                    const SceneSegment& seg = sceneDoc_.segments().at(i);
+                    QTextCursor c = viewport_->textCursor();
+                    c.setPosition(seg.bodyStart + std::clamp(caretOffset, 0, seg.bodyLength));
+                    viewport_->setTextCursor(c);
+                }
+                viewport_->verticalScrollBar()->setValue(scroll);
+            }
+            DiagnosticLog::note(QStringLiteral("verify: %1 chapter(s), %2 scene(s) read in %3 ms — %4 corrected, %5 skipped "
+                                               "(typed since), %6 not correctable%7")
+                                    .arg(request.chapters.size()).arg(request.scenes.size()).arg(clock.elapsed())
+                                    .arg(out.corrected).arg(out.skipped.size()).arg(out.uncorrectable.size())
+                                    .arg(out.uncorrectable.isEmpty() ? QString()
+                                                                     : QStringLiteral(": ") + out.uncorrectable.join(QStringLiteral("; "))));
+        },
+        [] {}, 0);   // ⚠️ No timeout: it only reads, and a late answer is still checked against the list as it is then
+}
+
+void EditorShell::applyDelta(const RangeDelta& delta)
+{
     // The document edits are the core's, not the writer's: `loading_` (held by `lockForWork`) keeps them from being
     // reported or dirtied.
     const int lo = sceneDoc_.applyRangeDelta(delta);

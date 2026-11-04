@@ -8045,6 +8045,98 @@ struct UndoAfterStructuralOpTests {
     }
 }
 
+// MARK: — [SP-189] the background sync verification (EP-053 S4), through the real coordinator
+
+extension UndoAfterStructuralOpTests {
+    @MainActor private func verified(_ h: Harness, past n: Int) async throws {
+        for _ in 0..<500 where h.loader.verifyStats.compared <= n { try await Task.sleep(for: .milliseconds(10)) }
+        #expect(h.loader.verifyStats.compared == n + 1, "verified against the disk once")
+    }
+
+    @Test("[SP-189] a split is verified against the disk, and nothing is put right")
+    func verifyFindsNothing() async throws {
+        let h = try await harness(["Alpha one. Alpha two.", "Beta."])
+        h.caret(scene: 0, at: 11)
+        h.c.handleCreateScene()
+        try await h.waitForSceneCount(3)
+        try await verified(h, past: 0)
+        #expect(h.loader.verifyStats.corrected == 0 && h.loader.verifyStats.uncorrectable == 0)
+        try h.listMatchesDisk("after the split")
+    }
+
+    @Test("[SP-189] the disk changed behind the list: the disk wins, silently, the caret where it was")
+    func verifyPutsTheDiskRight() async throws {
+        let h = try await harness(["Alpha one. Alpha two.", "Beta."])
+        let headFile = h.root.url.appendingPathComponent(h.loader.segments[0].contentPath)
+        let headID = h.loader.segments[0].sceneID
+        h.loader.beforeVerifyRead = {
+            try? "Alpha changed on disk ".write(to: headFile, atomically: true, encoding: .utf8)
+            Thread.sleep(forTimeInterval: 0.3)   // the writer puts the caret in that scene meanwhile (no typing)
+        }
+        h.caret(scene: 0, at: 11)
+        h.c.handleCreateScene()
+        try await h.waitForSceneCount(3)
+        h.caret(scene: 0, at: 3)                                   // "Alp|ha", in the scene the disk will put right
+        try await verified(h, past: 0)
+        h.loader.beforeVerifyRead = nil
+        #expect(h.loader.segments.first(where: { $0.sceneID == headID })?.text == "Alpha changed on disk ")
+        #expect(h.loader.verifyStats.corrected == 1)
+        #expect(h.tv.string.contains("Alpha changed on disk "), "the page shows it")
+        h.c.ensureBoundaries(h.tv)
+        let head = try #require(h.loader.segments.firstIndex(where: { $0.sceneID == headID }))
+        #expect(h.tv.selectedRange().location == h.c.sceneBoundaries[head].location + 3, "the caret is where it was in that scene")
+        let dirty = h.loader.segments.filter(\.isDirty).count
+        #expect(dirty == 0, "nothing to save — the disk already has it")
+        try h.listMatchesDisk("after the correction")
+    }
+
+    @Test("[SP-189] changed on disk AND typed into before the verification came back: the writer's text wins")
+    func verifySkipsTypedScene() async throws {
+        let h = try await harness(["Alpha one. Alpha two.", "Beta."])
+        let headFile = h.root.url.appendingPathComponent(h.loader.segments[0].contentPath)
+        let headID = h.loader.segments[0].sceneID
+        h.loader.beforeVerifyRead = {
+            try? "Alpha changed on disk".write(to: headFile, atomically: true, encoding: .utf8)
+            Thread.sleep(forTimeInterval: 0.8)   // the writer types meanwhile
+        }
+        h.caret(scene: 0, at: 11)
+        h.c.handleCreateScene()
+        try await h.waitForSceneCount(3)
+        h.caret(scene: 0, at: 5)
+        h.tv.insertText("Q", replacementRange: h.tv.selectedRange())
+        try await verified(h, past: 0)
+        h.loader.beforeVerifyRead = nil
+        #expect(h.loader.verifyStats.skipped == 1 && h.loader.verifyStats.corrected == 0)
+        #expect(h.loader.segments.first(where: { $0.sceneID == headID })?.text == "AlphaQ one. ", "the typing is kept")
+    }
+
+    @Test("[SP-189] the comparison: another order put back; an unknown scene, a chapter gone, another chapter order reported")
+    func verifyComparison() {
+        func scene(_ id: String, _ ch: String) -> RangeVerify.Scene {
+            .init(sceneID: id, chapterID: ch, title: "", chapterTitle: "", metadataPath: "manuscript/chapter-\(ch)/\(id).meta.json",
+                  contentPath: "", chapterMetadataPath: "manuscript/chapter-\(ch)/chapter.meta.json", text: id)
+        }
+        let now = [scene("z", "A"), scene("a", "B"), scene("b", "B"), scene("c", "B")]
+        func disk(_ ids: [String], present: Bool = true, order: [String]? = nil) -> RangeVerifyDisk {
+            RangeVerifyDisk(chapters: [.init(chapterMetadataPath: now[1].chapterMetadataPath, present: present,
+                                             scenes: ids.map { "manuscript/chapter-B/\($0).meta.json" })],
+                            scenes: [], chapterOrder: order)
+        }
+        var req = RangeVerify.Request()
+        req.chapters = [now[1].chapterMetadataPath]
+        var out = RangeVerify.compare(req, disk: disk(["c", "a", "b"]), now: now)
+        #expect(out.correction.map { "\($0.sceneID)>\($0.afterSceneID)" } == ["c>z", "a>c", "b>a"] && out.uncorrectable.isEmpty)
+        out = RangeVerify.compare(req, disk: disk(["a", "b", "c", "new"]), now: now)
+        #expect(out.correction.isEmpty && out.uncorrectable.count == 1)
+        out = RangeVerify.compare(req, disk: disk([], present: false), now: now)
+        #expect(out.uncorrectable.count == 1)
+        out = RangeVerify.compare(req, disk: disk(["a", "b", "c"], order: [now[1].chapterMetadataPath, now[0].chapterMetadataPath]), now: now)
+        #expect(out.uncorrectable == ["the chapter order"])
+        out = RangeVerify.compare(req, disk: disk(["a", "b", "c"]), now: now)
+        #expect(out.correction.isEmpty && out.uncorrectable.isEmpty)
+    }
+}
+
 /// [I-0289] — copy buffers 1–9 keep emphasis BALANCED, as ⌘C / ⌘X / ⌘V do (EP-046 AC12, [T-0591], [SP-163]). Driven
 /// through the coordinator's own buffer actions — the ones ⌘N / ⌥N / ⌃N and the palette call.
 @Suite("Copy buffers keep emphasis balanced ([I-0289], Apple)")

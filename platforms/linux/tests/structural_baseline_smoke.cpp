@@ -17,6 +17,7 @@
 #include "SceneInspector.hpp"
 #include <QLabel>
 #include "ScriviBridge.hpp"
+#include "RangeVerify.hpp"
 
 #include <QAbstractButton>
 #include <QApplication>
@@ -30,6 +31,8 @@
 #include <QTextCursor>
 #include <QTextDocument>
 #include <QTimer>
+#include <QThread>
+#include <QFile>
 #include <QTreeWidget>
 
 #include <array>
@@ -221,6 +224,7 @@ struct Rig {
     qint64 measured(const char* what, const std::function<void()>& act, bool structural = true)
     {
         const qint64 calls = ScriviBridge::guiThreadCallCount();
+        const EditorShell::VerifyStats verified = shell->verifyStats();
         const int loads = shell->loadCount();
         const int builds = shell->sceneDocument().builds();
         QStringList endpoints;   // which project calls the count is made of, so a red CI log names them
@@ -234,6 +238,17 @@ struct Rig {
             if (!editor->isReadOnly()) { break; }
         }
         QTest::qWait(200);
+        if (structural) {
+            // ✅ [SP-189]: the background verification came back, and found nothing to put right.
+            for (int i = 0; i < 100 && shell->verifyStats().compared + shell->verifyStats().superseded
+                                       == verified.compared + verified.superseded; ++i) {
+                QTest::qWait(50);
+            }
+            check(shell->verifyStats().compared == verified.compared + 1,
+                  QStringLiteral("%1: verified against the disk once").arg(what));
+            check(shell->verifyStats().corrected == verified.corrected && shell->verifyStats().uncorrectable == verified.uncorrectable,
+                  QStringLiteral("%1: the verification found nothing to put right").arg(what));
+        }
         // Before the checks below make their own. The Inspector's D4 revision check is a memory read (no disk) and runs
         // once more each time a write races its read, so it is not counted.
         const qint64 made = ScriviBridge::guiThreadCallCount() - calls
@@ -859,6 +874,128 @@ int main(int argc, char* argv[])
         e.shell->hide();
         e.shell.reset();
     }
+    // ── [SP-189] the background sync verification: the disk wins, silently; a scene typed into since is skipped ──────────
+    {
+        Rig v;
+        v.projectDir = r.projectDir + QStringLiteral("-verify");
+        v.appSupport = r.appSupport;
+        v.bridge.bootstrap(QStringLiteral("Baseline Tester"), v.appSupport);
+        v.projectID = v.bridge.createProject(v.projectDir, v.appSupport, QStringLiteral("Verify"), QStringLiteral("verify"))
+                          .value(QStringLiteral("projectID")).toString();
+        const QVariantMap v0 = v.bridge.openProject(v.projectDir, v.appSupport).value(QStringLiteral("scenes")).toList().at(0).toMap();
+        v.bridge.saveScene(v.projectID, v.projectDir, v.appSupport, v0.value(QStringLiteral("sceneID")).toString(),
+                           v0.value(QStringLiteral("metadataPath")).toString(), v0.value(QStringLiteral("contentPath")).toString(),
+                           QStringLiteral("Alpha one. Alpha two."), 0, 0, 0.0);
+        const QVariantMap v1 = v.bridge.createScene(v.projectDir, v.appSupport, v.projectID,
+                                                    v0.value(QStringLiteral("chapterID")).toString(), v0.value(QStringLiteral("sceneID")).toString());
+        v.bridge.saveScene(v.projectID, v.projectDir, v.appSupport, v1.value(QStringLiteral("sceneID")).toString(),
+                           v1.value(QStringLiteral("metadataPath")).toString(), v1.value(QStringLiteral("contentPath")).toString(),
+                           QStringLiteral("Gamma body."), 0, 0, 0.0);
+        check(v.load(), QStringLiteral("SP-189: the project loaded"));
+        armConfirmer(v.shell.get());
+        auto& r = v;   // the checks below read as the rest of this file does
+        const auto waitVerified = [&](int compared) {
+            for (int i = 0; i < 200 && r.shell->verifyStats().compared < compared; ++i) { QTest::qWait(50); }
+            return r.shell->verifyStats().compared >= compared;
+        };
+        const auto segOf = [&](const QString& marker) {
+            const int at = int(r.editor->document()->find(marker).selectionStart());
+            return r.shell->sceneDocument().segments().at(r.shell->sceneDocument().sceneIndexForCaret(at));
+        };
+        // a. The scene a split keeps is changed on disk behind the list: the verification puts the list right from the disk,
+        //    and the caret stays in the new scene, at its start.
+        const SceneSegment head = segOf(QStringLiteral("Gamma "));
+        const QString headFile = r.projectDir + QLatin1Char('/') + head.contentPath;
+        r.shell->beforeVerifyRead = [&] {
+            QFile f(headFile);
+            if (f.open(QIODevice::WriteOnly | QIODevice::Truncate)) { f.write("Gamma changed on disk "); }
+        };
+        const EditorShell::VerifyStats was = r.shell->verifyStats();
+        check(r.landing([&] { r.caretAt(QStringLiteral("Gamma ")); r.shell->splitScene(); }), QStringLiteral("SP-189 a: the split landed"));
+        const int tail = r.shell->sceneDocument().sceneIndexForCaret(r.editor->textCursor().position());
+        const QString tailID = tail >= 0 ? r.shell->sceneDocument().segments().at(tail).sceneID : QString();
+        check(waitVerified(was.compared + 1), QStringLiteral("SP-189 a: verified"));
+        r.shell->beforeVerifyRead = nullptr;
+        const int hi = r.shell->sceneDocument().sceneIndexForScene(head.sceneID);
+        check(hi >= 0 && r.shell->sceneDocument().segments().at(hi).text == QStringLiteral("Gamma changed on disk "),
+              QStringLiteral("SP-189 a: the disk's text is in the list"));
+        check(r.shell->verifyStats().corrected == was.corrected + 1, QStringLiteral("SP-189 a: one scene put right"));
+        check(r.shell->sceneDocument().textMatchesDocument(), QStringLiteral("SP-189 a: the document shows it"));
+        const int ti = r.shell->sceneDocument().sceneIndexForScene(tailID);
+        check(ti >= 0 && r.editor->textCursor().position() == r.shell->sceneDocument().segments().at(ti).bodyStart,
+              QStringLiteral("SP-189 a: the caret is still at the new scene's start"));
+        check(r.shell->dirtySceneCount() == 0, QStringLiteral("SP-189 a: nothing to save — the disk already has it"));
+        r.listMatchesDisk(QStringLiteral("SP-189 a"));
+
+        // b. Changed on disk AND typed into before the verification came back: the writer's text wins (Q2).
+        const SceneSegment head2 = segOf(QStringLiteral("Alpha two."));
+        const QString file2 = r.projectDir + QLatin1Char('/') + head2.contentPath;
+        r.shell->beforeVerifyRead = [&] {
+            QFile f(file2);
+            if (f.open(QIODevice::WriteOnly | QIODevice::Truncate)) { f.write("Alpha changed on disk"); }
+            QThread::msleep(800);   // the writer types meanwhile
+        };
+        const EditorShell::VerifyStats was2 = r.shell->verifyStats();
+        check(r.landing([&] { r.caretAt(QStringLiteral("Alpha ")); r.shell->splitScene(); }), QStringLiteral("SP-189 b: the split landed"));
+        r.caretAt(QStringLiteral("Alpha"));
+        QTest::keyClicks(r.editor, QStringLiteral("Q"));
+        check(waitVerified(was2.compared + 1), QStringLiteral("SP-189 b: verified"));
+        r.shell->beforeVerifyRead = nullptr;
+        check(r.shell->verifyStats().skipped == was2.skipped + 1, QStringLiteral("SP-189 b: the typed-into scene skipped"));
+        check(r.shell->verifyStats().corrected == was2.corrected, QStringLiteral("SP-189 b: nothing overwritten"));
+        const int bi = r.shell->sceneDocument().sceneIndexForScene(head2.sceneID);
+        check(bi >= 0 && r.shell->sceneDocument().segments().at(bi).text.contains(QStringLiteral("AlphaQ")),
+              QStringLiteral("SP-189 b: the writer's typing is kept"));
+        r.listMatchesDisk(QStringLiteral("SP-189 b (saved)"));
+        v.shell->flushHistory();
+        v.shell->releaseProject();
+        v.shell->hide();
+        v.shell.reset();
+    }
+    // c. The comparison itself: the same scenes in another order are put back in the disk's order; scenes the list does not
+    //    know, a chapter gone and another chapter order are reported, never guessed at.
+    {
+        const auto seg = [](const QString& id, const QString& chapter) {
+            SceneSegment s;
+            s.sceneID = id;
+            s.chapterID = chapter;
+            s.metadataPath = QStringLiteral("manuscript/chapter-%1/%2.meta.json").arg(chapter, id);
+            s.chapterMetadataPath = QStringLiteral("manuscript/chapter-%1/chapter.meta.json").arg(chapter);
+            s.text = id;
+            return s;
+        };
+        const QList<SceneSegment> now{seg(QStringLiteral("z"), QStringLiteral("A")), seg(QStringLiteral("a"), QStringLiteral("B")),
+                                      seg(QStringLiteral("b"), QStringLiteral("B")), seg(QStringLiteral("c"), QStringLiteral("B"))};
+        const auto chapter = [&](const QStringList& ids, bool present = true) {
+            QStringList paths;
+            for (const QString& id : ids) { paths.append(QStringLiteral("manuscript/chapter-B/%1.meta.json").arg(id)); }
+            return QVariantMap{{QStringLiteral("chapterMetadataPath"), now[1].chapterMetadataPath},
+                               {QStringLiteral("present"), present}, {QStringLiteral("scenes"), paths}};
+        };
+        RangeVerify::Request req;
+        req.chapters = QStringList{now[1].chapterMetadataPath};
+        const auto diskOf = [&](const QVariantMap& c, const QStringList& order = {}) {
+            QVariantMap d;
+            d.insert(QStringLiteral("chapters"), QVariantList{c});
+            if (!order.isEmpty()) { d.insert(QStringLiteral("chapterOrder"), order); }
+            return d;
+        };
+        RangeVerify::Outcome out = RangeVerify::compare(req, diskOf(chapter(QStringList{"c", "a", "b"})), now);
+        QStringList got;
+        for (const auto& sc : out.correction.scenes) { got.append(sc.sceneID + QLatin1Char('>') + sc.afterSceneID); }
+        check(got == QStringList{"c>z", "a>c", "b>a"} && out.uncorrectable.isEmpty(),
+              QStringLiteral("SP-189 c: a reordered chapter put back in the disk's order: ") + got.join(QLatin1Char(' ')));
+        out = RangeVerify::compare(req, diskOf(chapter(QStringList{"a", "b", "c", "new"})), now);
+        check(out.correction.scenes.isEmpty() && out.uncorrectable.size() == 1, QStringLiteral("SP-189 c: an unknown scene is reported"));
+        out = RangeVerify::compare(req, diskOf(chapter(QStringList{}, false)), now);
+        check(out.uncorrectable.size() == 1, QStringLiteral("SP-189 c: a chapter gone from disk is reported"));
+        out = RangeVerify::compare(req, diskOf(chapter(QStringList{"a", "b", "c"}),
+                                               QStringList{now[1].chapterMetadataPath, now[0].chapterMetadataPath}), now);
+        check(out.uncorrectable == QStringList{QStringLiteral("the chapter order")}, QStringLiteral("SP-189 c: another chapter order is reported"));
+        out = RangeVerify::compare(req, diskOf(chapter(QStringList{"a", "b", "c"})), now);
+        check(out.correction.scenes.isEmpty() && out.uncorrectable.isEmpty(), QStringLiteral("SP-189 c: no difference, nothing to do"));
+    }
+
     if (failures == 0) { std::printf("structural_baseline_smoke: all checks passed\n"); }
     return failures == 0 ? 0 : 1;
 }

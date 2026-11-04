@@ -4991,6 +4991,47 @@ const char* scrivi_range_read(const char* projectRootPath,
   });
 }
 
+const char* scrivi_range_verify_read(const char* projectRootPath, const char* requestJson) {
+    SCRIVI_PROJECT_READ(projectRootPath);
+  return guarded([&]() -> const char* {
+    const std::string root = S(projectRootPath);
+    if (root.empty())
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "projectRootPath is required"));
+    auto parsed = scrivi::util::parseJson(S(requestJson));
+    if (!parsed.ok() || !parsed.value().isObject())
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "requestJson is not a JSON object"));
+    const auto& req = parsed.value();
+    scrivi::manuscript::RangeVerifyRequest request;
+    request.chapters = req.getStringArray("chapters");
+    for (std::size_t i = 0; i < req.arraySize("scenes"); ++i) {
+        const auto sc = req.arrayItem("scenes", i);
+        request.scenes.emplace_back(scrivi::SceneID{sc.getString("sceneID")}, sc.getString("contentPath"));
+    }
+    request.chapterOrder = req.getBool("chapterOrder");
+
+    auto services = abiServices();
+    auto r = scrivi::manuscript::RangeOperations::verifyRead(services, root, request);
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+    scrivi::util::JsonDoc doc;
+    for (const auto& c : r.value().chapters) {
+        scrivi::util::JsonDoc d;
+        d.setString("chapterMetadataPath", c.chapterMetadataPath);
+        d.setBool("present", c.present);
+        for (const auto& p : c.scenes) d.appendStringToArray("scenes", p);
+        doc.appendToArray("chapters", std::move(d));
+    }
+    for (const auto& s : r.value().scenes) {
+        scrivi::util::JsonDoc d;
+        d.setString("sceneID", s.sceneID.value);
+        d.setBool("present", s.present);
+        d.setString("text", s.text);
+        doc.appendToArray("scenes", std::move(d));
+    }
+    for (const auto& p : r.value().chapterOrder) doc.appendStringToArray("chapterOrder", p);
+    return heap(okEnvelope(std::move(doc)));
+  });
+}
+
 const char* scrivi_range_paste(const char* projectRootPath,
                                const char* rangeJson,
                                const char* caretSceneID,

@@ -547,6 +547,8 @@ public:
                                       const QString& endSceneID, long long endByte);
     Q_INVOKABLE QVariantMap rangePaste(const QString& projectRootPath, const QString& rangeJson, const QString& caretSceneID,
                                        long long caretByteOffset, const QString& caretSceneText, const QString& displayName);
+    // EP-053 S4 ([SP-189]): the disk's chapters, order and texts for a delta — `RangeVerify::Request::toJson()`.
+    Q_INVOKABLE QVariantMap rangeVerifyRead(const QString& projectRootPath, const QString& requestJson);
     Q_INVOKABLE QVariantMap rangeCut(const QString& projectRootPath, const QString& rangeJson, const QString& displayName);
     // [SP-191] Q3e: a chapter merge, and its undo — the run of whole scenes in `rangeJson` moves into `targetChapterID` (the
     // chapter before, after, or a new one; "" = fresh). Answers { delta, range, fromChapterID }.

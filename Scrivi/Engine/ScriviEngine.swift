@@ -1655,6 +1655,16 @@ public final class ScriviEngine: @unchecked Sendable {
         return result.range
     }
 
+    /// EP-053 S4 ([SP-189]) — `scrivi_range_verify_read`: what the DISK holds for the files a delta named — each chapter's
+    /// scenes in order, each written scene's text, and (when asked) the chapter order. `requestJSON` is
+    /// `RangeVerify.Request.json`. The comparison rule is documented at the endpoint (`scrivi.h`).
+    public func rangeVerifyRead(projectRootPath: String, requestJSON: String) throws -> RangeVerifyDisk {
+        let raw = projectRootPath.withCString { prp in
+            requestJSON.withCString { rj in scrivi_range_verify_read(prp, rj) }
+        }
+        return try decodeC(raw)
+    }
+
     /// `scrivi_range_paste`: paste `range` at the caret. `caretSceneText` is the caret scene's text as the editor holds it —
     /// ⛔ refused when it is not what is on disk. The result's `range` is what the paste INSERTED (its undo is `rangeCut`).
     public func rangePaste(projectRootPath: String,
@@ -2071,6 +2081,7 @@ public final class ScriviEngine: @unchecked Sendable {
     public func fragmentPaste(projectRootPath: String, appSupportRoot: String, projectID: String, fragmentJSON: String, caretSceneID: String, caretByteOffset: Int, authorshipRef: AuthorshipRef) throws -> FragmentPasteResult { try unavailable() }
     public func fragmentUncutPaste(projectRootPath: String, fragmentJSON: String, targetSceneID: String, createdSceneIDs: [String], createdChapterIDs: [String]) throws -> FragmentUncutPasteResult { try unavailable() }
     public func rangeRead(projectRootPath: String, startSceneID: String, startByte: Int, endSceneID: String, endByte: Int) throws -> ScriviRange { try unavailable() }
+    public func rangeVerifyRead(projectRootPath: String, requestJSON: String) throws -> RangeVerifyDisk { try unavailable() }
     public func rangePaste(projectRootPath: String, range: ScriviRange, caretSceneID: String, caretByteOffset: Int, caretSceneText: String, authorshipRef: AuthorshipRef) throws -> RangeOperationResult { try unavailable() }
     public func rangeCut(projectRootPath: String, range: ScriviRange, authorshipRef: AuthorshipRef) throws -> RangeOperationResult { try unavailable() }
     public func rangeRelabel(projectRootPath: String, range: ScriviRange, targetChapterID: String, authorshipRef: AuthorshipRef) throws -> RangeOperationResult { try unavailable() }
@@ -2721,6 +2732,14 @@ public struct RangeDelta: Decodable, Sendable, Equatable {
     public let createdChapters: [Chapter]
     public let removedChapterIDs: [String]
 
+    /// [SP-189]: a correction built from the disk — scenes put right, nothing created or removed.
+    public init(correcting scenes: [Scene]) {
+        self.scenes = scenes
+        removedSceneIDs = []
+        createdChapters = []
+        removedChapterIDs = []
+    }
+
     private enum CodingKeys: String, CodingKey { case scenes, removedSceneIDs, createdChapters, removedChapterIDs }
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -2745,6 +2764,49 @@ public struct RangeOperationResult: Decodable, Sendable {
 
 struct RangeReadResult: Decodable, Sendable {
     let range: ScriviRange
+}
+
+/// [SP-189] `scrivi_range_verify_read`'s result. ⚠️ The C ABI OMITS an empty list, so every list decodes absent as empty;
+/// `chapterOrder` is nil when it was not asked for.
+public struct RangeVerifyDisk: Decodable, Sendable {
+    public struct Chapter: Decodable, Sendable {
+        public let chapterMetadataPath: String
+        public let present: Bool
+        public let scenes: [String]
+        private enum CodingKeys: String, CodingKey { case chapterMetadataPath, present, scenes }
+        public init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            chapterMetadataPath = try c.decode(String.self, forKey: .chapterMetadataPath)
+            present = try c.decode(Bool.self, forKey: .present)
+            scenes = try c.decodeIfPresent([String].self, forKey: .scenes) ?? []
+        }
+        init(chapterMetadataPath: String, present: Bool, scenes: [String]) {
+            self.chapterMetadataPath = chapterMetadataPath
+            self.present = present
+            self.scenes = scenes
+        }
+    }
+    public struct Scene: Decodable, Sendable {
+        public let sceneID: String
+        public let present: Bool
+        public let text: String
+    }
+    public let chapters: [Chapter]
+    public let scenes: [Scene]
+    public let chapterOrder: [String]?
+
+    private enum CodingKeys: String, CodingKey { case chapters, scenes, chapterOrder }
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        chapters = try c.decodeIfPresent([Chapter].self, forKey: .chapters) ?? []
+        scenes = try c.decodeIfPresent([Scene].self, forKey: .scenes) ?? []
+        chapterOrder = try c.decodeIfPresent([String].self, forKey: .chapterOrder)
+    }
+    init(chapters: [Chapter], scenes: [Scene], chapterOrder: [String]?) {
+        self.chapters = chapters
+        self.scenes = scenes
+        self.chapterOrder = chapterOrder
+    }
 }
 
 

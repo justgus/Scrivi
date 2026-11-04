@@ -501,3 +501,39 @@ TEST_CASE("[EP-053] a Range converts to and from scrivi.fragment.v1", "[ep053][r
         CHECK(f2.pieces[i].sceneTitle == f.pieces[i].sceneTitle);
     }
 }
+
+// ✅ [SP-189] AC1: the background verification of a two-scene paste reads ONLY the delta's files — one listing for its
+// chapter, one read per scene it wrote — and no sidecar at all (membership and order are the order-key file names).
+TEST_CASE("[SP-189] verifying a two-scene paste is one listing and two reads", "[ep053][budget][verify]") {
+    Harness h;
+    h.build(6, 20);
+    auto indexR = ms::ProjectIndex::build(h.root(), h.services);
+    REQUIRE(indexR.ok());
+    ms::ProjectIndex& index = indexR.value();
+    const ms::SceneLocation source = index.scenesInOrder().at(40);
+    const ms::SceneLocation target = index.scenesInOrder().at(3);
+    ms::Range range;
+    range.append({source.sceneID, source.chapterID, source.chapterTitle, source.title, 0, 11, 11, "pasted head"});
+    range.append({index.scenesInOrder().at(41).sceneID, source.chapterID, source.chapterTitle, "", 0, 12, 20, "pasted scene"});
+    ms::RangeOperations ops{h.services, h.root(), index};
+    auto r = ops.paste(range, target.sceneID, 5, readBody(h, target), author());
+    REQUIRE(r.ok());
+
+    ms::RangeVerifyRequest req;
+    for (const auto& s : r.value().delta.scenes) {
+        if (std::find(req.chapters.begin(), req.chapters.end(), s.location.chapterMetadataPath) == req.chapters.end()) {
+            req.chapters.push_back(s.location.chapterMetadataPath);
+        }
+        req.scenes.emplace_back(s.location.sceneID, s.location.contentPath);
+    }
+    h.counting.reset();
+    auto v = ms::RangeOperations::verifyRead(h.services, h.root(), req);
+    REQUIRE(v.ok());
+    report("verify a two-scene paste", h.counting);
+    const auto& t = h.counting.total();
+    CHECK(t.listDirectory == 1);
+    CHECK(t.readTextFile == 2);
+    CHECK(writesOf(t) == 0);
+    REQUIRE(v.value().chapters.size() == 1);
+    CHECK(v.value().chapters[0].scenes.size() == 21);
+}

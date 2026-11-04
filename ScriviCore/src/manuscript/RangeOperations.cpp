@@ -343,6 +343,109 @@ RangeOperations::RangeOperations(CoreServices& services, AbsolutePath projectRoo
 
 // ── read ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
+namespace {
+
+// A path the platform sent: relative, inside `manuscript/`, no `..`, no control characters.
+bool isManuscriptPath(const RelativePath& p)
+{
+    if (p.rfind("manuscript/", 0) != 0 || util::containsControlCharacter(p) || p.find('\\') != std::string::npos) {
+        return false;
+    }
+    for (const auto& part : std::filesystem::path(p)) {
+        if (part == "..") {
+            return false;
+        }
+    }
+    return true;
+}
+
+}  // namespace
+
+Result<RangeVerifyResult> RangeOperations::verifyRead(CoreServices& services, const AbsolutePath& projectRoot,
+                                                      const RangeVerifyRequest& request)
+{
+    using R = Result<RangeVerifyResult>;
+    auto& fs = *services.fileSystem;
+    const auto bad = [](const std::string& p) {
+        return R::failure({.code = ErrorCode::invalidArgument, .message = "not a manuscript path: " + p});
+    };
+    RangeVerifyResult out;
+    for (const RelativePath& chapter : request.chapters) {
+        if (!isManuscriptPath(chapter)) {
+            return bad(chapter);
+        }
+        RangeVerifyChapter c{.chapterMetadataPath = chapter};
+        const std::string dir = chapterDirOf(chapter);
+        auto there = fs.exists(util::join(projectRoot, dir));   // ⚠️ `isDirectory` FAILS on a missing path
+        if (!there.ok()) {
+            return R::failure(there.error());
+        }
+        c.present = there.value();
+        if (c.present) {
+            auto list = fs.listDirectory(util::join(projectRoot, dir));
+            if (!list.ok()) {
+                return R::failure(list.error());
+            }
+            // `listScenesByOrder`'s filter and sort, on the names alone.
+            std::vector<std::pair<std::string, std::string>> keyed;
+            for (const auto& abs : list.value()) {
+                const std::string name = util::filename(abs);
+                if (util::isIgnorableFilesystemArtifact(name) || name == "chapter.meta.json" ||
+                    !name.ends_with(".meta.json")) {
+                    continue;
+                }
+                const std::string key = sceneOrderKeyOf(name);
+                if (!key.empty()) {
+                    keyed.emplace_back(key, dir + "/" + name);
+                }
+            }
+            std::sort(keyed.begin(), keyed.end());
+            for (auto& [key, path] : keyed) {
+                c.scenes.push_back(std::move(path));
+            }
+        }
+        out.chapters.push_back(std::move(c));
+    }
+    for (const auto& [sceneID, contentPath] : request.scenes) {
+        if (!isManuscriptPath(contentPath)) {
+            return bad(contentPath);
+        }
+        RangeVerifyScene s{.sceneID = sceneID};
+        const AbsolutePath abs = util::join(projectRoot, contentPath);
+        auto there = fs.exists(abs);
+        if (!there.ok()) {
+            return R::failure(there.error());
+        }
+        s.present = there.value();
+        if (s.present) {
+            auto text = fs.readTextFile(abs);
+            if (!text.ok()) {
+                return R::failure(text.error());
+            }
+            s.text = std::move(text.value());
+        }
+        out.scenes.push_back(std::move(s));
+    }
+    if (request.chapterOrder) {
+        auto list = fs.listDirectory(util::join(projectRoot, "manuscript"));
+        if (!list.ok()) {
+            return R::failure(list.error());
+        }
+        std::vector<std::string> folders;
+        for (const auto& abs : list.value()) {
+            const std::string name = util::filename(abs);
+            if (name.starts_with("chapter-") && name.size() > 8 && !util::isIgnorableFilesystemArtifact(name)) {
+                folders.push_back(name);
+            }
+        }
+        std::sort(folders.begin(), folders.end());   // "chapter-" + order key: the same order as the keys (B3)
+        for (const auto& f : folders) {
+            out.chapterOrder.push_back("manuscript/" + f + "/chapter.meta.json");
+        }
+    }
+    return R::success(std::move(out));
+}
+
 Result<Range> RangeOperations::read(CoreServices& services, const AbsolutePath& projectRoot, const ProjectIndex& index,
                                     const SceneID& startScene, std::size_t startByte,
                                     const SceneID& endScene, std::size_t endByte)

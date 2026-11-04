@@ -14,6 +14,7 @@
 #include "ProjectSession.hpp"
 #include "FindBar.hpp"
 #include "ManuscriptEditor.hpp"
+#include "RangeVerify.hpp"
 #include "SceneDocument.hpp"
 
 class ProjectPreferences;
@@ -826,6 +827,12 @@ private:
     // The delta of a range call's result → the scene list and the document (`SceneDocument::applyRangeDelta`); the
     // written scenes clean, history's view of their text, the navigator.
     void applyRangeResult(const QVariantMap& result);
+    void applyDelta(const RangeDelta& delta);
+    // ✅ EP-053 S4 ([SP-189]): once a delta is applied, a worker reads what the disk holds for the files it named and the
+    // differences are put right from the disk, silently (`RangeVerify`). Discarded when another structural edit has started
+    // since (the disk is then ahead of the list).
+    void verifyAgainstDisk(RangeVerify::Request request);
+    int  structuralGeneration_ = 0;
     // Where a structural edit anchors for a caret at `pos`: stepped back over every hidden marker run that ends exactly there
     // and whose caret home is after it — so a caret resting after a heading's `## ` anchors BEFORE it (a split there takes
     // the heading with the new scene). `beforeLineMarker`: it stepped over a heading or list prefix. Apple:
@@ -900,4 +907,14 @@ private:
     bool                               rangeEditInFlight_ = false;
     QList<std::function<void()>>       deferredSteps_;
     void runDeferredSteps();
+
+public:
+    // [SP-189] (smokes): the verifications that came back and compared, and what they put right.
+    struct VerifyStats { int compared = 0; int corrected = 0; int skipped = 0; int uncorrectable = 0; int superseded = 0; };
+    const VerifyStats& verifyStats() const { return verifyStats_; }
+    // [SP-189] (smokes): runs on the WORKER just before the disk is read — a test changes the disk behind the list here.
+    std::function<void()> beforeVerifyRead;
+
+private:
+    VerifyStats verifyStats_;
 };

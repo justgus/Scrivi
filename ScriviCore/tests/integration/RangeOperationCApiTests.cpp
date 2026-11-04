@@ -1328,3 +1328,96 @@ TEST_CASE("[SP-188] Q3: a plain cut carries no join; a join is refused anywhere 
     CHECK(p.text(p.id(2, 2)) == "**Alpha beXYZ delta.**");
     CHECK(p.rows().size() == before.size());
 }
+
+// ── EP-053 S4 ([SP-189], T-0617): scrivi_range_verify_read — the disk's side of the background sync verification ──
+
+namespace {
+
+// The verification request a platform builds from a delta: each touched chapter, each scene whose text it wrote.
+std::string verifyRequest(const JsonDoc& delta, bool chapterOrder) {
+    JsonDoc req;
+    std::vector<std::string> chapters;
+    for (std::size_t i = 0; i < delta.arraySize("scenes"); ++i) {
+        const JsonDoc s = delta.arrayItem("scenes", i);
+        const std::string c = s.getString("chapterMetadataPath");
+        if (std::find(chapters.begin(), chapters.end(), c) == chapters.end()) { chapters.push_back(c); }
+        if (s.getString("change") != "moved") {
+            JsonDoc e;
+            e.setString("sceneID", s.getString("sceneID"));
+            e.setString("contentPath", s.getString("contentPath"));
+            req.appendToArray("scenes", std::move(e));
+        }
+    }
+    for (const auto& c : chapters) { req.appendStringToArray("chapters", c); }
+    req.setBool("chapterOrder", chapterOrder);
+    return req.dump(-1);
+}
+
+}  // namespace
+
+TEST_CASE("[SP-189] scrivi_range_verify_read gives the disk's chapters, order and texts for a delta", "[ep053][verify][capi]") {
+    Project p(2, 3);
+    const JsonDoc copied = p.read(p.id(1, 2), 4, p.id(1, 3), 4);
+    const JsonDoc delta = p.paste(copied, p.id(2, 2), 2).getSubDoc("delta");
+
+    const JsonDoc v = ok(scrivi_range_verify_read(p.r(), verifyRequest(delta, true).c_str()));
+    // The touched chapter: its scenes' sidecars in reading order — exactly what a fresh index resolves.
+    REQUIRE(v.arraySize("chapters") == 1);
+    const JsonDoc c = v.arrayItem("chapters", 0);
+    CHECK(c.getBool("present"));
+    std::vector<std::string> want;
+    for (const auto& row : p.rows()) {
+        if (row.chapterID == p.rows()[3].chapterID) { want.push_back(p.locationOf(row.sceneID).metadataPath); }
+    }
+    CHECK(c.getStringArray("scenes") == want);
+    // The scenes it wrote: their text as on disk, which is the delta's.
+    REQUIRE(v.arraySize("scenes") == 2);
+    for (std::size_t i = 0; i < 2; ++i) {
+        const JsonDoc s = v.arrayItem("scenes", i);
+        CHECK(s.getBool("present"));
+        CHECK(s.getString("text") == p.text(s.getString("sceneID")));
+    }
+    // The chapter order: the chapters' sidecars in reading order.
+    std::vector<std::string> order;
+    for (const auto& row : p.rows()) {
+        const std::string path = p.locationOf(row.sceneID).chapterMetadataPath;
+        if (order.empty() || order.back() != path) { order.push_back(path); }
+    }
+    CHECK(v.getStringArray("chapterOrder") == order);
+}
+
+TEST_CASE("[SP-189] scrivi_range_verify_read reports what is not there, and an edit behind the editor's back", "[ep053][verify][capi]") {
+    Project p(2, 2);
+    const auto loc = p.locationOf(p.id(2, 2));
+    fs::remove(p.root / loc.contentPath);
+    fs::remove(p.root / loc.metadataPath);
+    std::ofstream(p.contentOf(p.id(1, 1)), std::ios::binary) << "changed outside";
+    JsonDoc req;
+    req.appendStringToArray("chapters", loc.chapterMetadataPath);
+    req.appendStringToArray("chapters", "manuscript/chapter-gone/chapter.meta.json");
+    for (const auto& [id, path] : {std::pair{p.id(2, 2), loc.contentPath},
+                                   std::pair{p.id(1, 1), p.locationOf(p.id(1, 1)).contentPath}}) {
+        JsonDoc e;
+        e.setString("sceneID", id);
+        e.setString("contentPath", path);
+        req.appendToArray("scenes", std::move(e));
+    }
+    const JsonDoc v = ok(scrivi_range_verify_read(p.r(), req.dump(-1).c_str()));
+    CHECK(v.arrayItem("chapters", 0).getStringArray("scenes") ==
+          std::vector<std::string>{p.locationOf(p.id(2, 1)).metadataPath});
+    CHECK_FALSE(v.arrayItem("chapters", 1).getBool("present"));
+    CHECK_FALSE(v.arrayItem("scenes", 0).getBool("present"));
+    CHECK(v.arrayItem("scenes", 1).getString("text") == "changed outside");
+    CHECK_FALSE(v.contains("chapterOrder"));
+}
+
+TEST_CASE("[SP-189] scrivi_range_verify_read refuses a path outside the manuscript", "[ep053][verify][capi]") {
+    Project p(1, 1);
+    for (const char* bad : {R"({"chapters":["manuscript/../../etc/chapter.meta.json"]})",
+                            R"({"chapters":["/etc/chapter.meta.json"]})",
+                            R"({"scenes":[{"sceneID":"x","contentPath":"project.json"}]})",
+                            "not json"}) {
+        INFO(bad);
+        CHECK(refused(scrivi_range_verify_read(p.r(), bad)));
+    }
+}

@@ -545,6 +545,53 @@ struct SceneSegment: Identifiable {
     private(set) var structuralProgress: String?
     @ObservationIgnored private var structuralWaiters: [@MainActor () -> Void] = []
     @ObservationIgnored private var structuralGeneration = 0
+
+    // MARK: — [SP-189] the background sync verification
+
+    struct VerifyStats { var compared = 0, corrected = 0, skipped = 0, uncorrectable = 0, superseded = 0 }
+    /// (tests) The verifications that came back and compared, and what they put right.
+    @ObservationIgnored private(set) var verifyStats = VerifyStats()
+    /// (tests) Runs OFF the main actor just before the disk is read — a test changes the disk behind the list here.
+    @ObservationIgnored var beforeVerifyRead: (@Sendable () -> Void)?
+
+    /// ✅ EP-053 S4 ([SP-189]): once a delta is applied, a worker reads what the disk holds for the files it named; the
+    /// differences are put right from the disk, silently (`RangeVerify`), through `apply` (the view renders it). Discarded
+    /// when another structural edit has started since — the disk is then ahead of the list, and that edit verifies itself.
+    func verifyAgainstDisk(_ request: RangeVerify.Request, apply: @escaping @MainActor (RangeDelta) -> Void) {
+        guard !request.isEmpty else { return }
+        var request = request
+        RangeVerify.snapshot(&request, now: verifyScenes)
+        let generation = structuralGeneration, engine = engine, root = projectRootPath, json = request.json
+        let tamper = beforeVerifyRead, began = Date()
+        Task { @MainActor [weak self] in
+            // ⚠️ The read waits for the project's queued writes (W3), so it sees the edit.
+            let read = await Task.detached(priority: .utility) { () -> Result<RangeVerifyDisk, Error> in
+                tamper?()
+                return Result { try engine.rangeVerifyRead(projectRootPath: root, requestJSON: json) }
+            }.value
+            guard let self else { return }
+            let ms = Date().timeIntervalSince(began) * 1000
+            guard case .success(let disk) = read else {
+                ScriviDiag.note(String(format: "verify: the disk could not be read (%.0f ms) — nothing changed", ms))
+                return
+            }
+            guard generation == self.structuralGeneration, !self.structuralInFlight else {
+                self.verifyStats.superseded += 1
+                ScriviDiag.note(String(format: "verify: superseded by a later structural edit (%.0f ms)", ms))
+                return
+            }
+            let out = RangeVerify.compare(request, disk: disk, now: self.verifyScenes)
+            self.verifyStats.compared += 1
+            self.verifyStats.corrected += out.correction.count
+            self.verifyStats.skipped += out.skipped.count
+            self.verifyStats.uncorrectable += out.uncorrectable.count
+            if !out.correction.isEmpty { apply(RangeDelta(correcting: out.correction)) }
+            ScriviDiag.note(String(format: "verify: %d chapter(s), %d scene(s) read in %.0f ms — %d corrected, %d skipped (typed since), %d not correctable",
+                                   request.chapters.count, request.scenes.count, ms, out.correction.count, out.skipped.count,
+                                   out.uncorrectable.count)
+                            + (out.uncorrectable.isEmpty ? "" : ": " + out.uncorrectable.joined(separator: "; ")))
+        }
+    }
     /// Tests: the main-thread core calls this editor's structural edits made (AC: none of their own).
     @ObservationIgnored let structuralCalls = StructuralCallSink()
 
@@ -997,4 +1044,149 @@ struct SceneSegment: Identifiable {
     }
 
 
+}
+
+// MARK: — EP-053 S4 ([SP-189], T-0617): the background sync verification (design P4, R3)
+
+/// The platform half of the verification: after a structural delta is applied, a worker reads what the DISK holds for the
+/// files it named (`scrivi_range_verify_read`) and this compares it with the scene list, by the rule the core documents
+/// there (Q1): each touched chapter's scenes in order, each written scene's text, the chapter order when chapters came or
+/// went. ✅ The disk wins, silently (design Q3): a text, or an order within a chapter, is put right IN PLACE — as a delta,
+/// applied the way every structural delta is. ✅ Q2: a scene the writer typed into since is skipped (its newer text saves as
+/// usual). ⚠️ What a delta cannot fix — a scene on disk the list does not know, a chapter gone from under its scenes, another
+/// chapter order — is logged, never guessed at. Linux: `RangeVerify.hpp`, the same rule.
+enum RangeVerify {
+    /// One scene as the list holds it.
+    struct Scene {
+        let sceneID, chapterID, title, chapterTitle, metadataPath, contentPath, chapterMetadataPath: String
+        let text: String
+    }
+
+    struct Request {
+        var chapters: [String] = []                                    // each chapter sidecar touched, removed or created
+        var scenes: [(sceneID: String, contentPath: String)] = []      // each scene whose text the delta wrote
+        var chapterOrder = false
+        var expected: [String: String] = [:]                           // sceneID → its text once the delta was applied (Q2)
+
+        var isEmpty: Bool { chapters.isEmpty && scenes.isEmpty }
+        var json: String {
+            let body: [String: Any] = ["chapters": chapters,
+                                       "scenes": scenes.map { ["sceneID": $0.sceneID, "contentPath": $0.contentPath] },
+                                       "chapterOrder": chapterOrder]
+            let data = (try? JSONSerialization.data(withJSONObject: body)) ?? Data()
+            return String(decoding: data, as: UTF8.self)
+        }
+    }
+
+    /// BEFORE the delta is applied: `before` still knows the chapters the removed scenes were in.
+    static func request(for delta: RangeDelta, before: [Scene]) -> Request {
+        var r = Request()
+        func chapter(_ path: String) { if !path.isEmpty, !r.chapters.contains(path) { r.chapters.append(path) } }
+        for s in delta.scenes {
+            chapter(s.chapterMetadataPath)
+            if s.text != nil { r.scenes.append((s.sceneID, s.contentPath)) }
+        }
+        let removed = Set(delta.removedSceneIDs), removedChapters = Set(delta.removedChapterIDs)
+        for s in before where removed.contains(s.sceneID) || removedChapters.contains(s.chapterID) { chapter(s.chapterMetadataPath) }
+        for c in delta.createdChapters { chapter(c.metadataPath) }
+        r.chapterOrder = !delta.createdChapters.isEmpty || !delta.removedChapterIDs.isEmpty
+        return r
+    }
+
+    /// Once the delta is applied: the text each verified scene holds now — what "typed into since" is measured against.
+    static func snapshot(_ r: inout Request, now: [Scene]) {
+        let ids = Set(r.scenes.map(\.sceneID))
+        for s in now where ids.contains(s.sceneID) { r.expected[s.sceneID] = s.text }
+    }
+
+    struct Outcome {
+        var correction: [RangeDelta.Scene] = []   // apply it: the disk wins
+        var skipped: [String] = []                 // typed into since (Q2)
+        var uncorrectable: [String] = []           // what a delta cannot put right — logged
+    }
+
+    /// `disk` is `scrivi_range_verify_read`'s result; `now` the scene list as it is when the read comes back.
+    static func compare(_ r: Request, disk: RangeVerifyDisk, now: [Scene]) -> Outcome {
+        var out = Outcome()
+        var byID: [String: Int] = [:], byPath: [String: Int] = [:]
+        for (i, s) in now.enumerated() { byID[s.sceneID] = i; byPath[s.metadataPath] = i }
+        var fix: [String: (after: String, text: String?)] = [:]   // sceneID → its correction
+        var reordered: [String: [String]] = [:]                    // chapter sidecar → its scenes' IDs in the disk's order
+        func entry(_ i: Int) -> (after: String, text: String?) { fix[now[i].sceneID] ?? (i > 0 ? now[i - 1].sceneID : "", nil) }
+
+        // 2. Texts.
+        for s in disk.scenes {
+            guard let i = byID[s.sceneID], s.present else {
+                out.uncorrectable.append("scene \(s.sceneID): " + (byID[s.sceneID] == nil ? "not in the list" : "not on disk"))
+                continue
+            }
+            if s.text == now[i].text { continue }
+            if now[i].text != r.expected[s.sceneID] { out.skipped.append(s.sceneID); continue }
+            var e = entry(i)
+            e.text = s.text
+            fix[s.sceneID] = e
+        }
+        // 1. Each chapter's scenes, in order.
+        for c in disk.chapters {
+            let mine = now.indices.filter { now[$0].chapterMetadataPath == c.chapterMetadataPath }
+            let paths = mine.map { now[$0].metadataPath }
+            guard c.present else {
+                if !mine.isEmpty { out.uncorrectable.append("chapter \(c.chapterMetadataPath): not on disk") }
+                continue
+            }
+            if paths == c.scenes { continue }
+            guard Set(paths) == Set(c.scenes) else {
+                out.uncorrectable.append("chapter \(c.chapterMetadataPath): other scenes on disk")
+                continue
+            }
+            // The same scenes in another order: each after the one the disk puts before it.
+            var after = mine.first.map { $0 > 0 ? now[$0 - 1].sceneID : "" } ?? ""
+            for p in c.scenes {
+                guard let i = byPath[p] else { continue }
+                var e = entry(i)
+                e.after = after
+                fix[now[i].sceneID] = e
+                after = now[i].sceneID
+                reordered[c.chapterMetadataPath, default: []].append(now[i].sceneID)
+            }
+        }
+        // 3. The chapter order.
+        if let order = disk.chapterOrder {
+            var mine: [String] = []
+            for s in now where mine.last != s.chapterMetadataPath { mine.append(s.chapterMetadataPath) }
+            if mine != order { out.uncorrectable.append("the chapter order") }
+        }
+        // In reading order, as a delta is applied — a reordered chapter's in the DISK's order, so each entry's `afterSceneID`
+        // is already in place when it is placed.
+        func change(_ i: Int) -> RangeDelta.Scene {
+            let s = now[i], e = fix[s.sceneID]!
+            return RangeDelta.Scene(change: e.text == nil ? .moved : .rewritten, sceneID: s.sceneID, chapterID: s.chapterID,
+                                    title: s.title, chapterTitle: s.chapterTitle, metadataPath: s.metadataPath,
+                                    contentPath: s.contentPath, chapterMetadataPath: s.chapterMetadataPath,
+                                    afterSceneID: e.after, text: e.text)
+        }
+        for (i, s) in now.enumerated() {
+            if let ids = reordered[s.chapterMetadataPath] {
+                if !ids.isEmpty {
+                    out.correction += ids.compactMap { byID[$0] }.map(change)
+                    reordered[s.chapterMetadataPath] = []   // emitted once
+                }
+            } else if fix[s.sceneID] != nil {
+                out.correction.append(change(i))
+            }
+        }
+        return out
+    }
+}
+
+extension ViewportSceneLoader {
+    /// [SP-189] The scene list as `RangeVerify` reads it: the order and places of `allScenes`, the text of `segments`.
+    var verifyScenes: [RangeVerify.Scene] {
+        let text = Dictionary(segments.map { ($0.sceneID, $0.text) }, uniquingKeysWith: { a, _ in a })
+        return allScenes.map {
+            RangeVerify.Scene(sceneID: $0.sceneID, chapterID: $0.chapterID, title: $0.title, chapterTitle: $0.chapterTitle,
+                              metadataPath: $0.metadataPath, contentPath: $0.contentPath,
+                              chapterMetadataPath: $0.chapterMetadataPath, text: text[$0.sceneID] ?? "")
+        }
+    }
 }

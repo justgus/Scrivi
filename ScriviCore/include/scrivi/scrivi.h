@@ -1066,6 +1066,26 @@ const char* scrivi_range_read(const char* projectRootPath,
                               const char* startSceneID, long long startByte,
                               const char* endSceneID, long long endByte);
 
+/* EP-053 S4 ([SP-189], T-0617): what the DISK holds for the files a structural delta names — the read half of a platform's
+ * background SYNC VERIFICATION (design P4, R3). Reads ONLY those files: one listing per chapter (membership and order are
+ * the order-key file names, sorted as the core resolves the manuscript — no sidecar is read) and each named scene's text.
+ * requestJson: { chapters: [ chapterMetadataPath, ... ],               each chapter the delta touched, removed or created
+ *                scenes:   [ { sceneID, contentPath }, ... ],          each scene whose text the delta wrote
+ *                chapterOrder: bool }                                  and the manuscript's chapter order (one more listing)
+ * result: { chapters: [ { chapterMetadataPath, present, scenes: [ metadataPath, ... ] } ],
+ *           scenes:   [ { sceneID, present, text } ],
+ *           chapterOrder: [ chapterMetadataPath, ... ] }
+ * ✅ THE COMPARISON ([SP-189] Q1 — the rule both platforms share). The platform's scene list DIFFERS from the disk when:
+ *   1. a chapter's `scenes` (its scenes' metadataPath, in order) is not the list of the platform's scenes in that chapter, in
+ *      order — or `present` is false while the platform still has scenes in it;
+ *   2. a scene's `text` is not the platform's text for it — or `present` is false;
+ *   3. (when asked) `chapterOrder` is not the platform's chapters, in order.
+ * A difference is corrected FROM THE DISK, silently (design Q3) — except a scene the writer typed into since the operation,
+ * which is skipped (Q2: the newer text wins; it saves as usual).
+ * ⛔ invalidArgument for a path not under `manuscript/` (or with `..`). A file or folder that is not there is
+ * `present: false`; one that is there and cannot be read is an ERROR, never "absent". Waits for the project's queued writes. */
+const char* scrivi_range_verify_read(const char* projectRootPath, const char* requestJson);
+
 /* Pastes a Range at a caret (design §4.4). The caret scene is split at `caretByteOffset`; its head takes the first
  * entry's text; each later entry creates a scene, or a chapter and its first scene where the chapter changes; the tail
  * goes onto the last created scene. When the Range opens a chapter, the caret chapter's scenes after the caret move into

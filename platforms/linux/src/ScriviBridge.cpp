@@ -1322,6 +1322,12 @@ QVariantMap ScriviBridge::rangeRead(const QString& projectRootPath, const QStrin
     return parseEnvelope(envelope.toQString());
 }
 
+QVariantMap ScriviBridge::rangeVerifyRead(const QString& projectRootPath, const QString& requestJson)
+{
+    const ScriviString envelope(scrivi_range_verify_read(projectRootPath.toUtf8().constData(), requestJson.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
 QVariantMap ScriviBridge::rangePaste(const QString& projectRootPath, const QString& rangeJson, const QString& caretSceneID,
                                      long long caretByteOffset, const QString& caretSceneText, const QString& displayName)
 {

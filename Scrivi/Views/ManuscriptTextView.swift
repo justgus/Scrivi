@@ -1231,6 +1231,8 @@ struct ManuscriptTextView: NSViewRepresentable {
             }
             if let history = landing.history { parent.session.historyCapture?.adopt(history) }
             let delta = landing.result.delta
+            let verify = RangeVerify.request(for: delta, before: loader.verifyScenes)   // before: it knows the removed
+            defer { loader.verifyAgainstDisk(verify) { [weak self] correction in self?.applyCorrection(correction) } }
             // ✅ [SP-191] Q10: no renumbering — an untitled chapter's "Chapter N" is derived from its position wherever it
             // shows (headings, navigator, timeline), so a chapter inserted or removed renumbers the rest by itself.
             if let run = loader.apply(delta) { renderRun(tv, old: run.old, new: run.new) }
@@ -1255,6 +1257,27 @@ struct ManuscriptTextView: NSViewRepresentable {
             }
             then?(landing.result)   // ✅ [SP-188] after the caret is placed: a cut's clipboard, a paste over a selection (Q4, Q6)
             runDeferredSteps()
+        }
+
+        /// ✅ [SP-189]: the disk's correction, rendered as every delta is — the caret and the scroll where they were (AC2).
+        private func applyCorrection(_ correction: RangeDelta) {
+            let loader = parent.loader
+            guard let tv = textView else { return }
+            ensureBoundaries(tv)
+            let caret = tv.selectedRange().location
+            let scene = segmentIndex(for: caret).flatMap { loader.segments.indices.contains($0) ? loader.segments[$0].sceneID : nil }
+            let offset = segmentIndex(for: caret).flatMap { sceneBoundaries.indices.contains($0) ? caret - sceneBoundaries[$0].location : nil } ?? 0
+            let origin = tv.enclosingScrollView?.contentView.bounds.origin
+            if let run = loader.apply(correction) { renderRun(tv, old: run.old, new: run.new) }
+            ensureBoundaries(tv)
+            if let scene, let i = loader.segments.firstIndex(where: { $0.sceneID == scene }), sceneBoundaries.indices.contains(i) {
+                let length = (loader.segments[i].text as NSString).length
+                tv.setSelectedRange(NSRange(location: sceneBoundaries[i].location + min(max(offset, 0), length), length: 0))
+            }
+            if let origin, let clip = tv.enclosingScrollView?.contentView {
+                clip.scroll(to: origin)
+                tv.enclosingScrollView?.reflectScrolledClipView(clip)
+            }
         }
 
         /// The caret's scene, its index, and the caret's scene-local UTF-8 byte offset — where a range call is anchored.

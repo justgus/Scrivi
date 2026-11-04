@@ -79,8 +79,39 @@ struct RangeOperationResult {
     std::size_t undoCaretByte = 0;
 };
 
+// EP-053 S4 ([SP-189] Q1, T-0617): what the DISK holds for the files a delta names — read by a platform's background sync
+// verification, which compares it with its own scene list (the fields that count are documented at
+// `scrivi_range_verify_read`). ✅ Only those files: a LISTING per chapter (membership and order are the order-key file
+// names, as `listScenesByOrder` sorts them — no sidecar is read) and each rewritten scene's text.
+struct RangeVerifyRequest {
+    std::vector<RelativePath>                       chapters;   // each touched chapter's sidecar path
+    std::vector<std::pair<SceneID, RelativePath>>   scenes;     // each scene whose text the delta wrote, and its .md
+    bool                                            chapterOrder = false;   // and the manuscript's chapter order
+};
+struct RangeVerifyChapter {
+    RelativePath              chapterMetadataPath;
+    bool                      present = false;   // its folder exists
+    std::vector<RelativePath> scenes;            // its scenes' sidecar paths, in reading order
+};
+struct RangeVerifyScene {
+    SceneID     sceneID;
+    bool        present = false;
+    std::string text;
+};
+struct RangeVerifyResult {
+    std::vector<RangeVerifyChapter> chapters;
+    std::vector<RangeVerifyScene>   scenes;
+    std::vector<RelativePath>       chapterOrder;   // chapter sidecar paths in reading order (when asked)
+};
+
 class RangeOperations {
 public:
+    // `scrivi_range_verify_read`. ⛔ invalidArgument for a path that is not a relative path under `manuscript/`. A file or
+    // folder that is not there is `present: false` (the disk's answer); one that is there and cannot be read is an error —
+    // ⚠️ never "absent", so a failed read is never taken for a deletion.
+    [[nodiscard]] static Result<RangeVerifyResult> verifyRead(CoreServices& services, const AbsolutePath& projectRoot,
+                                                              const RangeVerifyRequest& request);
+
     // ⚠️ `index` must be VALID and describe the project as it is on disk. It is patched only after every write succeeded.
     // ⛔ On ANY failure the caller drops the index: a write that failed part-way leaves it describing a state that is gone.
     RangeOperations(CoreServices& services, AbsolutePath projectRoot, ProjectIndex& index);
