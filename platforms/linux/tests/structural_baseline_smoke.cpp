@@ -1003,6 +1003,80 @@ int main(int argc, char* argv[])
         k.shell->hide();
         k.shell.reset();
     }
+    // ── [I-0348]: reopening puts the writer back where they were, in a long book of wrapped paragraphs ───────────────────
+    {
+        const QString dir = r.projectDir + QStringLiteral("-reopen");
+        QString pid;
+        {
+            ScriviBridge b;
+            b.bootstrap(QStringLiteral("Baseline Tester"), r.appSupport);
+            pid = b.createProject(dir, r.appSupport, QStringLiteral("Reopen"), QStringLiteral("reopen")).value(QStringLiteral("projectID")).toString();
+            const QVariantMap s0 = b.openProject(dir, r.appSupport).value(QStringLiteral("scenes")).toList().at(0).toMap();
+            const QString sentence = QStringLiteral("She walked along the quay in the evening light, thinking of the letter. ");
+            const auto body = [&](int scene) {
+                QStringList paras;
+                for (int i = 1; i <= 8; ++i) { paras.append(QStringLiteral("S%1P%2 ").arg(scene).arg(i) + sentence.repeated(8)); }
+                return paras.join(QStringLiteral("\n\n"));
+            };
+            const auto save = [&](const QVariantMap& sc, int n) {
+                b.saveScene(pid, dir, r.appSupport, sc.value(QStringLiteral("sceneID")).toString(),
+                            sc.value(QStringLiteral("metadataPath")).toString(), sc.value(QStringLiteral("contentPath")).toString(),
+                            body(n), 0, 0, 0.0);
+            };
+            save(s0, 1);
+            QVariantMap prev = s0;
+            for (int n = 2; n <= 40; ++n) {
+                const QVariantMap made = b.createScene(dir, r.appSupport, pid, s0.value(QStringLiteral("chapterID")).toString(),
+                                                       prev.value(QStringLiteral("sceneID")).toString());
+                save(made, n);
+                prev = made;
+            }
+        }
+        QString left;   // the scene the writer left
+        {
+            Rig a;
+            a.projectDir = dir;
+            a.appSupport = r.appSupport;
+            a.bridge.bootstrap(QStringLiteral("Baseline Tester"), a.appSupport);
+            check(a.load(), QStringLiteral("I-0348: the long project loaded"));
+            QScrollBar* bar = a.editor->verticalScrollBar();
+            for (int v = 0; v <= bar->maximum(); v += std::max(1, bar->pageStep())) {   // a session reads through the book
+                bar->setValue(v);
+                QApplication::processEvents();
+            }
+            a.caretAt(QStringLiteral("S30P4 She walked"), false);
+            a.editor->centerCursor();
+            QApplication::processEvents();
+            left = a.shell->sceneDocument().segments().at(
+                       a.shell->sceneDocument().sceneIndexForCaret(a.editor->textCursor().position())).sceneID;
+            a.shell->saveDirtyScenes();
+            a.shell->stampWritingSurface();   // as quitting does (ScriviWindow::flushEditor)
+            a.shell->flushHistory();
+            a.shell->releaseProject();
+            a.shell->hide();
+            a.shell.reset();
+        }
+        Rig b;
+        b.projectDir = dir;
+        b.appSupport = r.appSupport;
+        b.bridge.bootstrap(QStringLiteral("Baseline Tester"), b.appSupport);
+        check(b.load(), QStringLiteral("I-0348: the long project reopened"));
+        QApplication::processEvents();
+        const auto& segs = b.shell->sceneDocument().segments();
+        const int at = b.shell->sceneDocument().sceneIndexForCaret(b.editor->textCursor().position());
+        check(at >= 0 && segs.at(at).sceneID == left, QStringLiteral("I-0348: the caret is back in the scene the writer left"));
+        const QRect caret = b.editor->cursorRect();
+        check(b.editor->viewport()->rect().contains(caret.center()),
+              QStringLiteral("I-0348: and on screen (caret at y=%1, window 0–%2)").arg(caret.center().y()).arg(b.editor->viewport()->height()));
+        const int mid = b.shell->sceneDocument().sceneIndexForCaret(
+            b.editor->cursorForPosition(QPoint(10, b.editor->viewport()->height() / 2)).position());
+        check(mid >= 0 && segs.at(mid).sceneID == left,
+              QStringLiteral("I-0348: the window shows that scene (it shows scene %1 of %2)").arg(mid + 1).arg(segs.size()));
+        b.shell->flushHistory();
+        b.shell->releaseProject();
+        b.shell->hide();
+        b.shell.reset();
+    }
     // c. The comparison itself: the same scenes in another order are put back in the disk's order; scenes the list does not
     //    know, a chapter gone and another chapter order are reported, never guessed at.
     {

@@ -475,7 +475,6 @@ private:
         QList<SceneDocument::Input> inputs;          // assembled, bodies included
         int                        restoredAnchor = 0;
         int                        restoredFocus  = 0;
-        double                     restoredScroll = 0.0;
         TimelineData               timeline;         // SP-173 (D4): read in the worker, after the bodies
         // EP-026 S2 ([SP-178] Q1): the undo history was opened (and every scene validated) IN THE WORKER. ⛔ Only on a
         // project's FIRST load — a structural reload keeps the history it has (`scrivi_history_open` would mint a new

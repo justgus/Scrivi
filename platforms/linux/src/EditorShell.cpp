@@ -545,7 +545,6 @@ void EditorShell::load(const QString& projectPath,
             const QVariantMap restored = opened.value(QStringLiteral("restored")).toMap();
             out.restoredAnchor = restored.value(QStringLiteral("anchor")).toInt();
             out.restoredFocus  = restored.value(QStringLiteral("focus")).toInt();
-            out.restoredScroll = restored.value(QStringLiteral("scroll")).toDouble();
 
             // ✅ T-0500: THE TOTAL IS KNOWN HERE, BEFORE THE EXPENSIVE PART.
             // ⚠️ `openProject` has already returned the scene list, so this is a
@@ -735,7 +734,6 @@ void EditorShell::applyLoadedProject(const QString& projectPath,
     const QString activeSceneID = payload.activeSceneID;
     const int restoredAnchor    = payload.restoredAnchor;
     const int restoredFocus     = payload.restoredFocus;
-    const double restoredScroll = payload.restoredScroll;
     const QList<SceneDocument::Input>& inputs = payload.inputs;
 
     // ⚠️ SP-145 / T-0552: captured BEFORE `projectID_` is overwritten, so the
@@ -901,16 +899,11 @@ void EditorShell::applyLoadedProject(const QString& projectPath,
             cursor.setPosition(globalFocus, QTextCursor::KeepAnchor);
         }
         viewport_->setTextCursor(cursor);
+        // ✅ [I-0348] (Apple's shape, [I-0133]): the restored caret CENTRED, and the saved scroll fraction NOT applied. The
+        // fraction is of the scroll range as it was at quit — and the view lays wrapped paragraphs out lazily, so a fresh
+        // open's range is not that one: the fraction landed whole chapters away from the caret (dumas: left in chapter 6,
+        // reopened at 14).
         viewport_->centerCursor();
-        // Apply the saved scroll fraction over the whole document (overrides the
-        // centerCursor scroll when a real fraction was persisted).
-        if (QScrollBar* vsb = viewport_->verticalScrollBar()) {
-            const int range = vsb->maximum() - vsb->minimum();
-            if (range > 0 && restoredScroll > 0.0) {
-                vsb->setValue(vsb->minimum()
-                              + int(qRound(restoredScroll * range)));
-            }
-        }
         programmaticViewportChange_ = false;
         activeSegment_ = initialSeg;
 
