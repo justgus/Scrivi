@@ -1,4 +1,4 @@
-## EP-050: `[Apple]` ⚠️ **Manuscript Accessibility** — VoiceOver reads the page the writer reads
+# EP-050: `[Apple]` ⚠️ **Manuscript Accessibility** — VoiceOver reads the page the writer reads
 
 **Status:** ✅ **CLOSED 2026-11-04** (user, 2026-11-04: *"approved."*) — ✅ AC1–AC7 met; Sprints [SP-171], [SP-172], [SP-202], [SP-203] closed; ✅ Audit Check run at the close (findings below). — activated 2026-10-08 (SP-171 activated) — created 2026-10-08 (user: *"let's look at I-0277"*; rulings A1–A3 the same day). ✅ S1 = [SP-171], ✅ closed 2026-10-08; S2 = [SP-172], ✅ closed 2026-10-09. S3 = [SP-202] and S4 = [SP-203], ✅ closed 2026-11-04.
 **Sprints:**
