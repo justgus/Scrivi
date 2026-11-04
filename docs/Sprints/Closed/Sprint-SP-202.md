@@ -12,7 +12,7 @@ created: 2026-11-04
 **Status:** ✅ **CLOSED 2026-11-04** (user, 2026-11-04: *"this is a pass. We should be able to close SP-202 and SP-203."*) — — created and activated 2026-11-04 (user: *"let's implement AC6 for EP-050"*). ✅ The measurement is
 done (below); ✅ Q1–Q3 ruled 2026-11-04 (as recommended): the fix is EP-050 S4 = [SP-203]; the Orca listen is [T-0660] ([EP-057]).
 **Carries:** [T-0658] → [`../../Tasks/Verified/Task-verified-0658.md`](../../Tasks/Verified/Task-verified-0658.md) ✅ verified.
-**Epic:** [EP-050] → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md) — AC6: *"MEASURE what Orca hears, then rule — a
+**Epic:** [EP-050] → [`../../Epics/Closed/Epic-EP-050.md`](../../Epics/Closed/Epic-EP-050.md) — AC6: *"MEASURE what Orca hears, then rule — a
 criterion here or EP-048's"*.
 **Size:** S (measurement only; any fix is a later Sprint).
 

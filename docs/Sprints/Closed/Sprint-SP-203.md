@@ -13,7 +13,7 @@ created: 2026-11-04
 implementation is complete continue on…"*). ✅ Implemented and tested (below); ✅ Q1 ruled 2026-11-04 (as recommended: record the difference, build nothing); the Orca listen is
 [T-0660] ([EP-057]).
 **Carries:** [T-0659] → [`../../Tasks/Verified/Task-verified-0659.md`](../../Tasks/Verified/Task-verified-0659.md) ✅ verified.
-**Epic:** [EP-050] → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md) — AC7 (Apple's AC1–AC3 on Linux).
+**Epic:** [EP-050] → [`../../Epics/Closed/Epic-EP-050.md`](../../Epics/Closed/Epic-EP-050.md) — AC7 (Apple's AC1–AC3 on Linux).
 **Builds on:** [SP-202] (the measurement: Orca was given the STORED manuscript).
 
 ---
