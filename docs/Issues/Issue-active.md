@@ -46,8 +46,8 @@ stands inside the top paragraph, and the caret's line ended at the top.
 **Fix:** `EditorShell::runRangeEdit` records the caret's height when it is on screen; `EditorShell::placeCaret` scrolls it back
 there (to the nearest line — the view scrolls by lines). Every structural edit and its undo / redo goes through them.
 **Test:** `structural_baseline_smoke` — five scenes of long wrapped paragraphs, the caret a third of the way down, a split: the
-caret within two lines of its height. ✅ Passes on Qt 6.4 and 6.10; with the fix removed it FAILS on Qt 6.10 (the VM's) and
-passes on 6.4 — ⚠️ an earlier one-scene, short-line version did not reproduce it on either. ⏳ The user's re-run of [T-0661].
+caret within two lines of its height. ✅ Passes on Qt 6.4 and 6.10; with the fix removed it FAILS on both — ⚠️ an earlier
+one-scene, short-line version did not reproduce it on either (wrapped paragraphs are what moves the view). ⏳ The user's re-run of [T-0661].
 
 ## I-0348: `[Linux]` After structural edits and a quit, the project reopens in the wrong place
 
