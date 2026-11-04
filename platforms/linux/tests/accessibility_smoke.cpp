@@ -217,7 +217,13 @@ int main(int argc, char** argv)
             big.append(scene(QStringLiteral("b%1").arg(i), QStringLiteral("c%1").arg(i / 20), QString(),
                              QStringLiteral("## Part %1\n\n").arg(i) + para.repeated(20)));
         }
+        QElapsedTimer loadClock;
+        loadClock.start();
         Harness m(big);
+        // [I-0349]: the load (attach + the whole manuscript's first highlight) and the events it raised, settled.
+        for (int i = 0; i < 20; ++i) { QApplication::processEvents(); }
+        std::printf("measure: load of %lld chars, attach + first highlight + its events: %lld ms (accessibility %s)\n",
+                    qint64(m.doc.document()->characterCount()), loadClock.elapsed(), QAccessible::isActive() ? "ON" : "off");
         QElapsedTimer timer;
         timer.start();
         const int n = m.text()->characterCount();
