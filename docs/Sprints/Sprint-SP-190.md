@@ -50,9 +50,9 @@ the window, and leaves the manuscript reading as a flat edit would.
 ## Acceptance Criteria
 
 - [x] AC1 — The Mac's timing source as Q1 rules — ✅ 2026-11-04: `DiagnosticLog` (`ScriviDiag.swift`)
-- [ ] AC2 — ✅ **Mac live pass (user)** — ✅ **RE-RULED 2026-11-04 (user: *"I approve your suggestion"*): on a LOCAL disk** (the two-hop loop is too slow to be useful: the user, 2026-11-04, *"It is too restrictive to be useful"*); the share half is Linux's ([T-0661]). Every step timed, no freeze → `Rig-Live-Pass-Held.md`, the Mac section
+- [x] AC2 — ✅ **Mac live pass (user)** — on a LOCAL disk (re-ruled 2026-11-04) — ✅ PASSED 2026-11-04 (build 1.0.349: 22 edits, every verification 0 corrected, no stall after any)
 - [x] AC3 — ✅ **Rig live pass (user)** over the share: every step timed, no freeze → [T-0661] ([EP-057]) — ✅ PASSED 2026-11-04 (run 2, build 1.0.348); times in [T-0661]
-- [ ] AC4 — Every finding filed and ruled
+- [ ] AC4 — Every finding filed and ruled — ✅ [I-0346], [I-0347], [I-0348] filed, fixed and VERIFIED; ⏳ [I-0349] (the freeze after a load: its accessibility part fixed, its font part open) — to rule
 
 ## Progress log
 

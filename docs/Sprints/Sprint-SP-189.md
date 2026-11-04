@@ -59,7 +59,7 @@ without a notice, without touching the writer's caret or typing elsewhere.
       or an order within a chapter; what a delta cannot fix is logged (✅ Q3: logged, never guessed at)
 - [x] AC3 — A scene typed into meanwhile is never overwritten (Q2)
 - [x] AC4 — Tests on both: forced divergence corrected; no divergence → zero corrections; count guard; mutation-checked
-- [ ] AC5 — ✅ **Live passes (user):** ✅ **the rig over the share — PASSED 2026-11-04** ([T-0661] run 2); ⏳ the Mac (on a local disk, [SP-190] AC2 re-ruled); Mac and rig, over the share — the diagnostic logs show each verification and its cost →
+- [x] AC5 — ✅ **Live passes (user):** ✅ the rig over the share ([T-0661] run 2, 2026-11-04); ✅ the Mac on a local disk (2026-11-04, AC re-ruled) — the logs show each verification and its cost
       `Rig-Live-Pass-Held.md` ([T-0661] for the rig; the Mac's section beside it)
 
 ## Progress log

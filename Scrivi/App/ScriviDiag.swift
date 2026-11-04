@@ -226,7 +226,7 @@ extension ScriviDiag {
     }
 
     private static func stall(_ text: String) {
-        DiagnosticLog.write(thread: "main", text)
+        DiagnosticLog.write(thread: "watchdog", text)   // as Linux's: the watchdog thread writes it, about the main thread
         NSLog("[SCRIVI-STALL] %@", text)
     }
 }

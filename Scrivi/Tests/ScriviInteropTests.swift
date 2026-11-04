@@ -8064,7 +8064,7 @@ extension UndoAfterStructuralOpTests {
         try h.listMatchesDisk("after the split")
         // [SP-190] Q1: the Mac's diagnostic log has the edit and its verification, in Linux's line format.
         let log = try String(contentsOf: DiagnosticLog.file, encoding: .utf8).split(separator: "\n").map(String.init)
-        let line = #/^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d\.\d{3} \[(main|worker)\] /#
+        let line = #/^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d\.\d{3} \[(main|worker|watchdog)\] /#
         #expect(log.contains { $0.wholeMatch(of: #/.* \[main\] structural: .* landed after \d+ ms in all/#) != nil })
         #expect(log.contains { $0.wholeMatch(of: #/.* \[main\] verify: 1 chapter\(s\), 2 scene\(s\) read in \d+ ms — 0 corrected.*/#) != nil })
         #expect(log.allSatisfy { $0.prefixMatch(of: line) != nil }, "every line in Linux's format")
