@@ -257,6 +257,13 @@ jobs:
           platforms/linux/tests/find_smoke.sh \
             ./build/platforms/linux/scrivi_linux_find_smoke
 
+      # Accessibility (SP-203 / T-0659, EP-050 S4): what Orca is given — the page at rest through the one map, every text
+      # member in agreement, the caret both ways. ⚠️ Events need an AT-SPI bus: accessibility_atspi.sh, on the rig.
+      - name: Accessibility smoke test
+        run: |
+          platforms/linux/tests/accessibility_smoke.sh \
+            ./build/platforms/linux/scrivi_linux_accessibility_smoke
+
       # Undo / redo (SP-178 / T-0605, EP-026 S2): a real EditorShell and real keys — one step per sentence, Ctrl+Z /
       # Ctrl+Shift+Z (not Ctrl+Y), paste and cross-scene delete as one step, persistence + the session warning, barriers.
       - name: Undo / redo smoke test

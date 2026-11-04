@@ -125,6 +125,9 @@ qt_add_executable(scrivi_linux
     src/FindBar.hpp
     src/ManuscriptFind.cpp
     src/ManuscriptFind.hpp
+    # SP-203 (EP-050 S4): Orca reads the page through the same map — shared with accessibility_smoke.
+    src/ManuscriptAccessibility.cpp
+    src/ManuscriptAccessibility.hpp
     # SP-067 (EP-023): the scene navigator with app-mediated drag-reorder.
     src/NavigatorTree.cpp
     src/NavigatorTree.hpp
@@ -552,6 +555,46 @@ target_link_libraries(scrivi_linux_find_smoke
 
 target_include_directories(scrivi_linux_find_smoke PRIVATE src)
 target_compile_features(scrivi_linux_find_smoke PRIVATE cxx_std_23)
+
+# accessibility_smoke (EP-050 S4 / SP-203, T-0659) — what Orca is given: the page at rest, every member through one map,
+# the caret both ways, Qt's events translated. Driven by accessibility_smoke.sh (offscreen).
+qt_add_executable(scrivi_linux_accessibility_smoke
+    tests/accessibility_smoke.cpp
+    src/AppSupport.cpp
+    src/AppSupport.hpp
+    src/SessionStore.cpp
+    src/SessionStore.hpp
+    src/ScriviBridge.cpp
+    src/ScriviBridge.hpp
+    src/DiagnosticLog.cpp
+    src/DiagnosticLog.hpp
+    src/ManuscriptAccessibility.cpp
+    src/ManuscriptAccessibility.hpp
+    src/ManuscriptEditor.cpp
+    src/ManuscriptEditor.hpp
+    src/ManuscriptEscapes.cpp
+    src/ManuscriptEscapes.hpp
+    src/ManuscriptFind.cpp
+    src/ManuscriptFind.hpp
+    src/ManuscriptPresenter.cpp
+    src/ManuscriptPresenter.hpp
+    src/MarkdownAnalysis.hpp
+    src/SceneDocument.cpp
+    src/SceneDocument.hpp
+)
+
+target_link_libraries(scrivi_linux_accessibility_smoke
+    PRIVATE
+        ScriviCore
+        Qt6::Core
+        Qt6::Gui
+        Qt6::Qml            # ScriviBridge header pulls <qqmlintegration.h>
+        Qt6::Widgets
+        Qt6::Test
+)
+
+target_include_directories(scrivi_linux_accessibility_smoke PRIVATE src)
+target_compile_features(scrivi_linux_accessibility_smoke PRIVATE cxx_std_23)
 
 # --- Headless per-scene save smoke (SP-062 / T-0239, EP-022 AC3) -----------
 # Drives create → open → saveScene(new body) → reopen and asserts the new bytes

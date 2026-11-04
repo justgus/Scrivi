@@ -49,6 +49,16 @@ ManuscriptEditor::ManuscriptEditor(QWidget* parent) : QPlainTextEdit(parent)
             this, &ManuscriptEditor::normalizeCaret);
 }
 
+void ManuscriptEditor::placeCaret(int pos)
+{
+    int home = sceneDoc_ != nullptr ? sceneDoc_->nearestEditablePosition(pos) : pos;
+    home = snapCaret(home, home);
+    lastCaretPos_ = home;   // normalizeCaret then sees no step
+    QTextCursor cursor = textCursor();
+    cursor.setPosition(home);
+    setTextCursor(cursor);
+}
+
 void ManuscriptEditor::normalizeCaret()
 {
     if (sceneDoc_ == nullptr || normalizingCaret_ || mouseSelecting_) {

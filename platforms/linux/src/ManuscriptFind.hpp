@@ -58,6 +58,18 @@ public:
     // The presented units (tests and the measurement).
     int length() const;
 
+    // ── EP-050 S4 ([SP-203]): the WHOLE PAGE, for accessibility (Apple's `PresentedLayout`, one map with Find, its Q3) ──
+    // Each scene's BOUNDARY before it (its "lead") + its body: chapter titles as they are on the page (Apple Q1), a scene
+    // divider as WORDS — "Scene break" (Apple Q2). Find never sees a lead. ⚠️ Valid after `refresh()` (not a slice).
+    int pageLength() const { return pageLength_; }
+    QString pageText(int start, int end) const;
+    // The first page unit at or after document position `pos`.
+    int pageIndex(int pos) const;
+    // The document position of page unit `k`; `pageLength()` or beyond → the document's end.
+    int documentPosition(int k) const;
+    // Document range [start, end) changed: every scene it touches is rebuilt at the next refresh.
+    void markEditedRange(const SceneDocument& doc, int start, int end);
+
 private:
     struct Scene {
         QString sceneID;
@@ -67,12 +79,19 @@ private:
         QString text;          // as presented
         QVector<int> rel;      // position of each presented unit, relative to bodyStart
         QVector<bool> escaped; // the unit's hidden escape backslash sits just before it
+        int gapStart = 0;      // EP-050 S4: where the boundary before this body starts (the previous body's end)
+        QString lead;          // that boundary as presented
+        QVector<int> leadRel;  // document position of each lead unit, relative to gapStart
     };
+    static void buildLead(Scene& scene, QTextDocument* doc, int gapStart, int bodyStart, bool sceneBreak);
     static void buildScene(Scene& scene, QTextDocument* doc, int bodyStart, int bodyLength,
                            const ManuscriptPresenter* presenter);
     // Brings scene `i` up to date with segment `i`; true when it was rebuilt.
     bool refreshScene(int i, const SceneDocument& doc, QTextDocument* text, const ManuscriptPresenter* presenter);
     QVector<Scene> scenes_;
+    QVector<int> pageStarts_;   // page index of each scene's lead
+    int pageLength_ = 0;
+    int docEnd_ = 0;
 };
 
 }   // namespace ManuscriptFind

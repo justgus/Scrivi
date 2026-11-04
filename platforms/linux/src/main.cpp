@@ -15,6 +15,7 @@
 #include "AppEnvironment.hpp"
 #include "AppSupport.hpp"
 #include "LandingWindow.hpp"
+#include "ManuscriptAccessibility.hpp"
 #include "RecentsStore.hpp"
 #include "ScriviWindow.hpp"
 
@@ -75,6 +76,8 @@ int main(int argc, char* argv[])
     QApplication::setOrganizationName(QStringLiteral("Caposoft"));
     // ✅ EP-048 S5a ([SP-182]): the bundled manuscript faces (compiled in from Resources/Fonts, `fonts.json`'s list).
     BundledFonts::registerAll();
+    // ✅ EP-050 S4 ([SP-203]): Orca reads the manuscript as the page shows it, not as it is stored.
+    ManuscriptAccessibility::install();
     // [SP-185] T-0612: the diagnostic log (~/.local/state/scrivi/scrivi.log) — from here to the end of the session.
     DiagnosticLog::start(buildStamp());
     // [SP-188] AC11: every GUI-thread core call that took time, touched a file or waited for the project's lock.

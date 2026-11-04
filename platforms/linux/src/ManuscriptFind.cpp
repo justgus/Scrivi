@@ -52,12 +52,45 @@ int PresentedText::refresh(const SceneDocument& sceneDoc, const ManuscriptPresen
 {
     // ⚠️ `document()` is non-const on SceneDocument; reading text does not change it.
     QTextDocument* doc = const_cast<SceneDocument&>(sceneDoc).document();
-    scenes_.resize(sceneDoc.segments().size());
+    const auto& segs = sceneDoc.segments();
+    scenes_.resize(segs.size());
+    pageStarts_.resize(segs.size());
+    pageLength_ = 0;
     int rebuilt = 0;
-    for (int i = 0; i < sceneDoc.segments().size(); ++i) {
+    for (int i = 0; i < segs.size(); ++i) {
         rebuilt += refreshScene(i, sceneDoc, doc, presenter) ? 1 : 0;
+        // EP-050 S4: the boundary before the body. A scene after the first of its chapter has a divider (the separator
+        // `SceneDocument::sceneSeparatorPositions` draws); a chapter's first scene, its title.
+        const int gapStart = i > 0 ? segs[i - 1].bodyStart + segs[i - 1].bodyLength : 0;
+        buildLead(scenes_[i], doc, gapStart, segs[i].bodyStart, i > 0 && segs[i].chapterID == segs[i - 1].chapterID);
+        pageStarts_[i] = pageLength_;
+        pageLength_ += int(scenes_[i].lead.size() + scenes_[i].text.size());
     }
+    docEnd_ = doc->characterCount() - 1;
     return rebuilt;
+}
+
+void PresentedText::buildLead(Scene& scene, QTextDocument* doc, int gapStart, int bodyStart, bool sceneBreak)
+{
+    const int gapLen = bodyStart - gapStart;
+    if (sceneBreak && gapLen == 2 && scene.gapStart == gapStart && !scene.lead.isEmpty()) {
+        return;   // a divider's words do not change; a chapter title is re-read (one per chapter)
+    }
+    scene.gapStart = gapStart;
+    scene.lead.clear();
+    scene.leadRel.clear();
+    if (sceneBreak && gapLen == 2) {
+        // The two separators around the divider's blank block; the words are the blank block (Apple: the divider character).
+        scene.lead = QStringLiteral("\nScene break\n");
+        scene.leadRel.fill(1, scene.lead.size());
+        scene.leadRel[0] = 0;
+        return;
+    }
+    scene.lead = textOf(doc, gapStart, bodyStart);
+    scene.leadRel.reserve(gapLen);
+    for (int k = 0; k < gapLen; ++k) {
+        scene.leadRel.append(k);
+    }
 }
 
 int PresentedText::refreshSlice(const SceneDocument& sceneDoc, const ManuscriptPresenter* presenter, int from, int budgetMs)
@@ -182,6 +215,79 @@ QString PresentedText::presentedOf(int start, int end) const
         }
     }
     return parts.join(QLatin1Char('\n'));
+}
+
+QString PresentedText::pageText(int start, int end) const
+{
+    start = std::max(0, start);
+    end = std::min(end, pageLength_);
+    QString out;
+    if (start >= end) {
+        return out;
+    }
+    auto i = int(std::upper_bound(pageStarts_.begin(), pageStarts_.end(), start) - pageStarts_.begin()) - 1;
+    for (; i < scenes_.size() && pageStarts_[i] < end; ++i) {
+        const Scene& s = scenes_[i];
+        const int a = std::max(start - pageStarts_[i], 0);
+        const int b = end - pageStarts_[i];
+        const int leadLen = int(s.lead.size());
+        if (a < leadLen) {
+            out += s.lead.mid(a, std::min(b, leadLen) - a);
+        }
+        if (b > leadLen) {
+            const int ta = std::max(a - leadLen, 0);
+            out += s.text.mid(ta, b - leadLen - ta);
+        }
+    }
+    return out;
+}
+
+int PresentedText::pageIndex(int pos) const
+{
+    if (scenes_.isEmpty() || pos <= 0) {
+        return 0;
+    }
+    if (pos >= docEnd_) {
+        return pageLength_;
+    }
+    // The last scene whose boundary starts at or before `pos`.
+    auto it = std::upper_bound(scenes_.begin(), scenes_.end(), pos, [](int p, const Scene& s) { return p < s.gapStart; });
+    const auto i = int(it - scenes_.begin()) - 1;
+    if (i < 0) {
+        return 0;
+    }
+    const Scene& s = scenes_[i];
+    if (pos < s.bodyStart) {
+        const auto j = int(std::lower_bound(s.leadRel.begin(), s.leadRel.end(), pos - s.gapStart) - s.leadRel.begin());
+        return pageStarts_[i] + j;
+    }
+    const auto j = int(std::lower_bound(s.rel.begin(), s.rel.end(), pos - s.bodyStart) - s.rel.begin());
+    return pageStarts_[i] + int(s.lead.size()) + j;
+}
+
+int PresentedText::documentPosition(int k) const
+{
+    if (k >= pageLength_ || scenes_.isEmpty()) {
+        return docEnd_;
+    }
+    k = std::max(k, 0);
+    const auto i = int(std::upper_bound(pageStarts_.begin(), pageStarts_.end(), k) - pageStarts_.begin()) - 1;
+    const Scene& s = scenes_[i];
+    const int local = k - pageStarts_[i];
+    if (local < s.lead.size()) {
+        return s.gapStart + s.leadRel[local];
+    }
+    return s.bodyStart + s.rel[local - int(s.lead.size())];
+}
+
+void PresentedText::markEditedRange(const SceneDocument& doc, int start, int end)
+{
+    const auto& segs = doc.segments();
+    for (int i = 0; i < segs.size() && i < scenes_.size(); ++i) {
+        if (segs[i].bodyStart <= end && segs[i].bodyStart + segs[i].bodyLength >= start) {
+            scenes_[i].edited = true;
+        }
+    }
 }
 
 int PresentedText::length() const

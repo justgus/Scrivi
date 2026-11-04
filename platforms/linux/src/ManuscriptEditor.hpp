@@ -51,6 +51,13 @@ public:
     // its REVEAL with the selection (L6).
     void setPresenter(ManuscriptPresenter* presenter) { presenter_ = presenter; }
 
+    // EP-050 S4 ([SP-203]): what the accessibility layer (`ManuscriptAccessibility`) reads the page through.
+    SceneDocument* sceneDocument() const { return sceneDoc_; }
+    const ManuscriptPresenter* presenter() const { return presenter_; }
+    // A caret an assistive technology PLACES lands where Scrivi's caret rules put it (Apple AC2) — sent home as a
+    // PLACEMENT (from itself), never read as an arrow step from the previous caret (which would move it one on).
+    void placeCaret(int pos);
+
     // Edit ▸ Cut. ⛔ [I-0270] `QPlainTextEdit::cut()` is not virtual and never passes the
     // keyPressEvent edit guard, so a menu cut across a scene break deleted heading and
     // separator text and desynchronised the offset map. Routes through the guard instead.
