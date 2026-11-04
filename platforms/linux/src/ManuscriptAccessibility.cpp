@@ -281,12 +281,13 @@ void forward(QAccessibleEvent* event)
 
 // Qt's text control reports the editor's caret and edits in STORED positions. They are re-sent in page positions once
 // the edit has settled (the scene map and the presenter catch up after Qt's event).
-// ✅ [I-0349]: COALESCED — every event of one turn is collected and handled ONCE at its end. A highlight pass raises a
-// `TextUpdated` for every block (a load: the whole manuscript, thousands), and handling each — a page refresh, a text
-// extraction — held the window 5.5 s after every load. Per turn: ONE insert or removal (a keystroke) is re-sent, in page
-// positions, with its text as presented; a burst (a load, a structural edit, a Replace All) re-sends NO text — Orca re-reads
-// the caret's line. A `TextUpdated` (format only, or a same-length replace) is never re-sent. The caret and the selection
-// are re-sent once, as they are at the end of the turn.
+// ✅ [I-0349]: COALESCED — the events of one turn are collected and handled ONCE at its end, against ONE refresh of the page
+// map. Handling each on its own (a refresh + a text extraction apiece) held the window 5.5 s after a load: a highlight pass
+// raises a `TextUpdated` per block — thousands for a whole manuscript. A turn with a few edits (a keystroke is a balanced
+// replace, so a `TextUpdated`, plus the highlighter's) re-sends each, in page positions with its text as presented; a BURST
+// (a load, a Replace All) re-sends no text — Orca re-reads the caret's line. The caret and the selection go once, as they
+// are at the end of the turn.
+constexpr std::size_t kBurst = 50;
 struct Pending {
     QAccessible::Event type;
     int pos = 0, length = 0;
@@ -294,39 +295,46 @@ struct Pending {
 };
 QPointer<ManuscriptEditor> pendingEditor;
 std::vector<Pending> pending;
+std::size_t pendingEdits = 0;   // every edit of the turn, kept or not
+bool scheduled = false;
 
 void flush()
 {
     const DiagnosticLog::Span span("accessibility: a turn's events re-sent in page positions");
     const QPointer<ManuscriptEditor> editor = std::exchange(pendingEditor, nullptr);
     const std::vector<Pending> events = std::exchange(pending, {});
+    const std::size_t edits = std::exchange(pendingEdits, 0);
+    scheduled = false;
     QAccessibleInterface* iface = editor ? QAccessible::queryAccessibleInterface(editor) : nullptr;
     QAccessibleTextInterface* t = iface != nullptr ? iface->textInterface() : nullptr;
     if (t == nullptr) {
         return;
     }
-    auto* self = static_cast<Interface*>(t);
+    const ManuscriptFind::PresentedText* map = static_cast<Interface*>(t)->page();   // refreshed ONCE for the turn
+    const auto toPage = [map](int pos) { return map != nullptr ? map->pageIndex(pos) : pos; };
+    const auto textOf = [map, t](int a, int b) { return map != nullptr ? map->pageText(a, b) : t->text(a, b); };
     bool caret = false, selection = false;
-    std::vector<const Pending*> edits;
     for (const Pending& p : events) {
         caret = caret || p.type == QAccessible::TextCaretMoved;
         selection = selection || p.type == QAccessible::TextSelectionChanged;
-        if (p.type == QAccessible::TextInserted || p.type == QAccessible::TextRemoved) {
-            edits.push_back(&p);
-        }
     }
-    if (edits.size() == 1) {
-        const Pending& p = *edits.front();
-        const int a = self->toPage(p.pos);
+    for (const Pending& p : events) {
+        if (edits > kBurst) {
+            break;
+        }
+        const int a = toPage(p.pos);
         if (p.type == QAccessible::TextInserted) {
-            QAccessibleTextInsertEvent e(iface, a, t->text(a, self->toPage(p.pos + p.length)));
+            QAccessibleTextInsertEvent e(iface, a, textOf(a, toPage(p.pos + p.length)));
             forward(&e);
-        } else {
+        } else if (p.type == QAccessible::TextRemoved) {
             QAccessibleTextRemoveEvent e(iface, a, p.removed);
             forward(&e);
+        } else if (p.type == QAccessible::TextUpdated) {
+            QAccessibleTextUpdateEvent e(iface, a, p.removed, textOf(a, toPage(p.pos + p.length)));
+            forward(&e);
         }
     }
-    if (caret || edits.size() > 1) {
+    if (caret || edits > kBurst) {
         QAccessibleTextCursorEvent e(iface, t->cursorPosition());
         forward(&e);
     }
@@ -350,9 +358,6 @@ void translate(QAccessibleEvent* event)
         forward(event);
         return;
     }
-    if (type == QAccessible::TextUpdated) {
-        return;   // a format change (the highlighter) or a same-length replace: nothing for Orca to say
-    }
     if (pendingEditor != nullptr && pendingEditor != editor) {
         flush();   // another window's turn: its events first
     }
@@ -365,11 +370,21 @@ void translate(QAccessibleEvent* event)
         const auto* e = static_cast<QAccessibleTextRemoveEvent*>(event);
         p.pos = e->changePosition();
         p.removed = e->textRemoved();
+    } else if (type == QAccessible::TextUpdated) {
+        const auto* e = static_cast<QAccessibleTextUpdateEvent*>(event);
+        p.pos = e->changePosition();
+        p.length = int(e->textInserted().size());
+        p.removed = e->textRemoved();
     }
-    if (pending.empty()) {
+    if (!scheduled) {
+        scheduled = true;
         QTimer::singleShot(0, QCoreApplication::instance(), &flush);   // not the editor: a closed window must not strand the queue
     }
     pendingEditor = editor;
+    const bool isEdit = type != QAccessible::TextCaretMoved && type != QAccessible::TextSelectionChanged;
+    if (isEdit && ++pendingEdits > kBurst) {
+        return;   // a burst: its edits are not re-sent, so not kept
+    }
     pending.push_back(std::move(p));
 }
 
