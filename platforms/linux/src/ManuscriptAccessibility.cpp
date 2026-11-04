@@ -3,6 +3,7 @@
 #include <QAbstractTextDocumentLayout>
 #include <QAccessible>
 #include <QAccessibleWidget>
+#include <QCoreApplication>
 #include <QPointer>
 #include <QScrollBar>
 #include <QTextBlock>
@@ -12,6 +13,7 @@
 #include <QTimer>
 
 #include <algorithm>
+#include <vector>
 
 #include "DiagnosticLog.hpp"
 #include "ManuscriptEditor.hpp"
@@ -278,8 +280,65 @@ void forward(QAccessibleEvent* event)
 }
 
 // Qt's text control reports the editor's caret and edits in STORED positions. They are re-sent in page positions once
-// the edit has settled (the scene map and the presenter catch up after Qt's event): a caret move reports the caret as it
-// is then; an edit, its page position and its text as presented.
+// the edit has settled (the scene map and the presenter catch up after Qt's event).
+// ✅ [I-0349]: COALESCED — every event of one turn is collected and handled ONCE at its end. A highlight pass raises a
+// `TextUpdated` for every block (a load: the whole manuscript, thousands), and handling each — a page refresh, a text
+// extraction — held the window 5.5 s after every load. Per turn: ONE insert or removal (a keystroke) is re-sent, in page
+// positions, with its text as presented; a burst (a load, a structural edit, a Replace All) re-sends NO text — Orca re-reads
+// the caret's line. A `TextUpdated` (format only, or a same-length replace) is never re-sent. The caret and the selection
+// are re-sent once, as they are at the end of the turn.
+struct Pending {
+    QAccessible::Event type;
+    int pos = 0, length = 0;
+    QString removed;
+};
+QPointer<ManuscriptEditor> pendingEditor;
+std::vector<Pending> pending;
+
+void flush()
+{
+    const DiagnosticLog::Span span("accessibility: a turn's events re-sent in page positions");
+    const QPointer<ManuscriptEditor> editor = std::exchange(pendingEditor, nullptr);
+    const std::vector<Pending> events = std::exchange(pending, {});
+    QAccessibleInterface* iface = editor ? QAccessible::queryAccessibleInterface(editor) : nullptr;
+    QAccessibleTextInterface* t = iface != nullptr ? iface->textInterface() : nullptr;
+    if (t == nullptr) {
+        return;
+    }
+    auto* self = static_cast<Interface*>(t);
+    bool caret = false, selection = false;
+    std::vector<const Pending*> edits;
+    for (const Pending& p : events) {
+        caret = caret || p.type == QAccessible::TextCaretMoved;
+        selection = selection || p.type == QAccessible::TextSelectionChanged;
+        if (p.type == QAccessible::TextInserted || p.type == QAccessible::TextRemoved) {
+            edits.push_back(&p);
+        }
+    }
+    if (edits.size() == 1) {
+        const Pending& p = *edits.front();
+        const int a = self->toPage(p.pos);
+        if (p.type == QAccessible::TextInserted) {
+            QAccessibleTextInsertEvent e(iface, a, t->text(a, self->toPage(p.pos + p.length)));
+            forward(&e);
+        } else {
+            QAccessibleTextRemoveEvent e(iface, a, p.removed);
+            forward(&e);
+        }
+    }
+    if (caret || edits.size() > 1) {
+        QAccessibleTextCursorEvent e(iface, t->cursorPosition());
+        forward(&e);
+    }
+    if (selection) {
+        int a = 0, b = 0;
+        t->selection(0, &a, &b);
+        QAccessibleTextSelectionEvent e(iface, a, b);
+        e.setCursorPosition(t->cursorPosition());
+        forward(&e);
+    }
+}
+
 void translate(QAccessibleEvent* event)
 {
     auto* editor = qobject_cast<ManuscriptEditor*>(event->object());
@@ -291,56 +350,27 @@ void translate(QAccessibleEvent* event)
         forward(event);
         return;
     }
-    int pos = 0, length = 0;
-    QString removed;
+    if (type == QAccessible::TextUpdated) {
+        return;   // a format change (the highlighter) or a same-length replace: nothing for Orca to say
+    }
+    if (pendingEditor != nullptr && pendingEditor != editor) {
+        flush();   // another window's turn: its events first
+    }
+    Pending p{type};
     if (type == QAccessible::TextInserted) {
         const auto* e = static_cast<QAccessibleTextInsertEvent*>(event);
-        pos = e->changePosition();
-        length = int(e->textInserted().size());
+        p.pos = e->changePosition();
+        p.length = int(e->textInserted().size());
     } else if (type == QAccessible::TextRemoved) {
         const auto* e = static_cast<QAccessibleTextRemoveEvent*>(event);
-        pos = e->changePosition();
-        removed = e->textRemoved();
-    } else if (type == QAccessible::TextUpdated) {
-        const auto* e = static_cast<QAccessibleTextUpdateEvent*>(event);
-        pos = e->changePosition();
-        length = int(e->textInserted().size());
-        removed = e->textRemoved();
+        p.pos = e->changePosition();
+        p.removed = e->textRemoved();
     }
-    QTimer::singleShot(0, editor, [editor = QPointer<ManuscriptEditor>(editor), type, pos, length, removed]() {
-        // [I-0346]: named, so a stall here is attributed (the watchdog had said "nothing Scrivi has marked").
-        const DiagnosticLog::Span span("accessibility: an event re-sent in page positions");
-        QAccessibleInterface* iface = editor ? QAccessible::queryAccessibleInterface(editor) : nullptr;
-        QAccessibleTextInterface* t = iface != nullptr ? iface->textInterface() : nullptr;
-        if (t == nullptr) {
-            return;
-        }
-        auto* self = static_cast<Interface*>(t);
-        const int caret = t->cursorPosition();
-        if (type == QAccessible::TextCaretMoved) {
-            QAccessibleTextCursorEvent e(iface, caret);
-            forward(&e);
-        } else if (type == QAccessible::TextSelectionChanged) {
-            int a = 0, b = 0;
-            t->selection(0, &a, &b);
-            QAccessibleTextSelectionEvent e(iface, a, b);
-            e.setCursorPosition(caret);
-            forward(&e);
-        } else {
-            const int a = self->toPage(pos);
-            const QString inserted = t->text(a, self->toPage(pos + length));
-            if (type == QAccessible::TextInserted) {
-                QAccessibleTextInsertEvent e(iface, a, inserted);
-                forward(&e);
-            } else if (type == QAccessible::TextRemoved) {
-                QAccessibleTextRemoveEvent e(iface, a, removed);
-                forward(&e);
-            } else {
-                QAccessibleTextUpdateEvent e(iface, a, removed, inserted);
-                forward(&e);
-            }
-        }
-    });
+    if (pending.empty()) {
+        QTimer::singleShot(0, QCoreApplication::instance(), &flush);   // not the editor: a closed window must not strand the queue
+    }
+    pendingEditor = editor;
+    pending.push_back(std::move(p));
 }
 
 }   // namespace
