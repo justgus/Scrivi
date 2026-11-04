@@ -58,6 +58,7 @@ struct Harness {
         window.setCentralWidget(editor);
         window.resize(900, 600);
         window.show();
+        window.activateWindow();   // key input (accessibility_atspi types into its own X server) and Orca's focus
         QTest::qWaitForWindowExposed(&window);
         editor->setFocus();
         QApplication::processEvents();
