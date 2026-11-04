@@ -512,10 +512,7 @@ struct ScriviApp: App {
         CommandGroup(replacing: .appInfo) {
             Button("About Scrivi") { AboutPanel.show() }
         }
-        CommandGroup(after: .appInfo) {
-            Button("User Manual") { }
-                .disabled(true)
-        }
+        HelpCommands()   // ⚠️ one entry: a `CommandsBuilder` takes at most ten
     }
     #endif
 
@@ -701,3 +698,18 @@ private struct iOSRootView: View {
 }
 #endif
 
+#if os(macOS)
+/// The app menu's User Manual and Help ▸ Show Log Folder ([SP-190] Q1: the diagnostic log, for a writer to send with a
+/// report — Linux: Help ▸ Show Log Folder).
+private struct HelpCommands: Commands {
+    var body: some Commands {
+        CommandGroup(after: .appInfo) {
+            Button("User Manual") { }
+                .disabled(true)
+        }
+        CommandGroup(after: .help) {
+            Button("Show Log Folder") { NSWorkspace.shared.activateFileViewerSelecting([DiagnosticLog.file]) }
+        }
+    }
+}
+#endif

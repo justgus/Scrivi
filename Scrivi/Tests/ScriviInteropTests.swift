@@ -8062,6 +8062,12 @@ extension UndoAfterStructuralOpTests {
         try await verified(h, past: 0)
         #expect(h.loader.verifyStats.corrected == 0 && h.loader.verifyStats.uncorrectable == 0)
         try h.listMatchesDisk("after the split")
+        // [SP-190] Q1: the Mac's diagnostic log has the edit and its verification, in Linux's line format.
+        let log = try String(contentsOf: DiagnosticLog.file, encoding: .utf8).split(separator: "\n").map(String.init)
+        let line = #/^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d\.\d{3} \[(main|worker)\] /#
+        #expect(log.contains { $0.wholeMatch(of: #/.* \[main\] structural: .* landed after \d+ ms in all/#) != nil })
+        #expect(log.contains { $0.wholeMatch(of: #/.* \[main\] verify: 1 chapter\(s\), 2 scene\(s\) read in \d+ ms — 0 corrected.*/#) != nil })
+        #expect(log.allSatisfy { $0.prefixMatch(of: line) != nil }, "every line in Linux's format")
     }
 
     @Test("[SP-189] the disk changed behind the list: the disk wins, silently, the caret where it was")

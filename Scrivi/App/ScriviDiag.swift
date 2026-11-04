@@ -168,7 +168,6 @@ extension ScriviDiag {
 
     /// `let span = ScriviDiag.begin("…"); defer { ScriviDiag.end(span) }` — a span over a whole function.
     static func begin(_ name: String, always: Bool = false) -> SpanToken? {
-        guard timingEnabled else { return nil }
         let token = SpanToken(name: name, since: Date(), onMain: Thread.isMainThread, always: always)
         if always { note("\(name) started") }
         if token.onMain { watch.withLock { $0.running.append((name, token.since)) } }
@@ -182,15 +181,16 @@ extension ScriviDiag {
         if token.always || ms >= slowSpanMs { note(String(format: "%@ took %.0f ms", token.name, ms)) }
     }
 
-    /// One line, from any thread.
+    /// One line, from any thread — into the diagnostic log (always), and the console with `SCRIVI_DIAG_TIMING`.
     static func note(_ text: String) {
-        guard timingEnabled else { return }
-        NSLog("[SCRIVI-SPAN] [%@] %@", Thread.isMainThread ? "main" : "worker", text)
+        let thread = Thread.isMainThread ? "main" : "worker"
+        DiagnosticLog.write(thread: thread, text)
+        if timingEnabled { NSLog("[SCRIVI-SPAN] [%@] %@", thread, text) }
     }
 
-    /// Starts the watchdog thread (once, at launch).
+    /// Starts the diagnostic log and the watchdog thread (once, at launch).
     static func startWatchdog() {
-        guard timingEnabled else { return }
+        DiagnosticLog.start()
         let thread = Thread {
             while true {
                 Thread.sleep(forTimeInterval: 0.1)
@@ -208,7 +208,7 @@ extension ScriviDiag {
                     return String(format: "⚠ the window is not answering (%.0f ms so far); running: %@", ms,
                                   running.isEmpty ? "nothing named" : running.joined(separator: " > "))
                 }
-                if let stalled { NSLog("[SCRIVI-STALL] %@", stalled) }
+                if let stalled { stall(stalled) }
             }
         }
         thread.name = "ScriviDiag watchdog"
@@ -222,6 +222,48 @@ extension ScriviDiag {
             guard w.stallReported, let sent = w.pingSent else { return nil }
             return now.timeIntervalSince(sent) * 1000
         }
-        if let after { NSLog("[SCRIVI-STALL] the window is answering again, after %.0f ms", after) }
+        if let after { stall(String(format: "the window is answering again, after %.0f ms", after)) }
+    }
+
+    private static func stall(_ text: String) {
+        DiagnosticLog.write(thread: "main", text)
+        NSLog("[SCRIVI-STALL] %@", text)
+    }
+}
+
+/// EP-053 S5 ([SP-190] Q1): THE MAC'S DIAGNOSTIC LOG — the structural steps, the verification, the main thread's core calls and
+/// its stalls, in Linux's format (`DiagnosticLog.cpp`): `yyyy-MM-dd HH:mm:ss.SSS [thread] text`, one file,
+/// `~/Library/Logs/Scrivi/scrivi.log` (in the app's container), always on; the previous session kept as `scrivi.log.1`.
+/// Help ▸ Show Log Folder opens the folder. ⛔ NEVER THE WRITER'S TEXT. ⚠️ Every line is one `write()` to an O_APPEND
+/// descriptor — unbuffered, so what was written survives a crash.
+enum DiagnosticLog {
+    private static let fd = Mutex<Int32>(-1)
+
+    static var folder: URL {
+        FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask)[0].appendingPathComponent("Logs/Scrivi")
+    }
+    static var file: URL { folder.appendingPathComponent("scrivi.log") }
+
+    static func start() {
+        fd.withLock { fd in
+            guard fd < 0 else { return }
+            try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            let path = file.path(percentEncoded: false)
+            rename(path, path + ".1")
+            fd = open(path, O_WRONLY | O_CREAT | O_APPEND | O_CLOEXEC, 0o644)
+        }
+        let info = Bundle.main.infoDictionary ?? [:]
+        write(thread: "main", "==== Scrivi log — Scrivi (macOS) \(info["CFBundleShortVersionString"] as? String ?? "—") "
+                              + "(\(info["ScriviCommit"] as? String ?? "—")) — pid \(getpid())")
+    }
+
+    static func write(thread: String, _ text: String) {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss.SSS"
+        let line = Array("\(formatter.string(from: Date())) [\(thread)] \(text)\n".utf8)
+        fd.withLock { fd in
+            guard fd >= 0 else { return }
+            _ = line.withUnsafeBytes { Darwin.write(fd, $0.baseAddress, $0.count) }
+        }
     }
 }
