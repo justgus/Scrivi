@@ -13,8 +13,9 @@ export BIN HERE
 
 echo "== Accessibility over AT-SPI (GetText, lines, caret, text-caret-moved) =="
 dbus-run-session -- bash -c '
-    # ⛔ Its OWN runtime folder: at-spi-bus-launcher puts its socket at $XDG_RUNTIME_DIR/at-spi/bus, and on exit removes it.
-    # Under the desktop's /run/user/<uid> that deleted the DESKTOP's bus socket (2026-11-04: Orca then aborted at start).
+    # ⛔ Its OWN runtime folder: at-spi-bus-launcher puts its socket at $XDG_RUNTIME_DIR/at-spi/bus and removes it on exit.
+    # Under /run/user/UID that deleted the bus socket OF THE DESKTOP (2026-11-04: Orca then aborted at start).
+    # ⚠️ No apostrophes in here: this is a single-quoted bash -c string.
     export XDG_RUNTIME_DIR="$(mktemp -d)"
     Xvfb :97 -screen 0 1280x800x24 -nolisten tcp >/dev/null 2>&1 & X=$!
     export DISPLAY=:97   # the bus, the registry (key synthesis) and the checker all on this display
