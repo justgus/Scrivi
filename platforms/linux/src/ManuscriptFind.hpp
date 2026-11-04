@@ -13,6 +13,7 @@
 // patched per edit for the same reason ([SP-171] Plan 1(c)).
 // ⛔ No widgets here — `find_smoke` tests it directly; `FindBar` drives it.
 
+#include <QSet>
 #include <QString>
 #include <QVector>
 
@@ -38,8 +39,10 @@ public:
     // The whole manuscript. `presenter` nullptr = drawn as stored (nothing hidden).
     static PresentedText build(const SceneDocument& doc, const ManuscriptPresenter* presenter);
 
-    // Bring it up to date with `doc`: a scene is rebuilt when it was marked edited, or its id or body length no longer
-    // match (a structural change — insert, delete, move — shows up as one of those). Returns how many scenes were rebuilt.
+    // Bring it up to date with `doc`: a scene is rebuilt when it was marked edited, it is new, or its body length changed.
+    // ✅ [I-0346]: scenes are matched to the list by SCENE ID, so a split or merge rebuilds only what it touched — matched by
+    // position, every scene after the edit no longer lined up and the rest of the manuscript was rebuilt (~0.4 s on the VM,
+    // after every structural edit while accessibility was on). Returns how many scenes were rebuilt.
     int refresh(const SceneDocument& doc, const ManuscriptPresenter* presenter);
     // ✅ [T-0613]: the same, a SLICE at a time — from scene `from`, until `budgetMs` has passed (at least one scene).
     // Returns the scene to resume from; at `doc.segments().size()` call `refresh()` once more, which then only checks.
@@ -84,6 +87,9 @@ private:
         QVector<int> leadRel;  // document position of each lead unit, relative to gapStart
     };
     static void buildLead(Scene& scene, QTextDocument* doc, int gapStart, int bodyStart, bool sceneBreak);
+    // [I-0346] Lines `scenes_` up with the list by scene ID; the scenes marked edited since are flagged.
+    void align(const SceneDocument& doc);
+    QSet<QString> editedIDs_;   // marked by scene ID: positions shift under a structural edit
     static void buildScene(Scene& scene, QTextDocument* doc, int bodyStart, int bodyLength,
                            const ManuscriptPresenter* presenter);
     // Brings scene `i` up to date with segment `i`; true when it was rebuilt.

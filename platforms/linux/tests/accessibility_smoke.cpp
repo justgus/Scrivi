@@ -18,6 +18,7 @@
 
 #include "ManuscriptAccessibility.hpp"
 #include "ManuscriptEditor.hpp"
+#include "ManuscriptFind.hpp"
 #include "ManuscriptPresenter.hpp"
 #include "SceneDocument.hpp"
 #include "ScriviBridge.hpp"
@@ -232,6 +233,27 @@ int main(int argc, char** argv)
         const qint64 keystroke = timer.elapsed();
         std::printf("measure: %lld stored chars → %d page units; first query %lld ms; keystroke + caret/line/word %lld ms\n",
                     qint64(m.doc.document()->characterCount()), n, first, keystroke);
+
+        // ✅ [I-0346]: a STRUCTURAL edit mid-book (a split, as a range call's delta lands) rebuilds only what it touched —
+        // matched by position, every scene after it was rebuilt (~0.4 s on the VM, after every edit while Orca was on).
+        const SceneSegment& mid = m.doc.segments().at(600);
+        RangeDelta split;
+        RangeDelta::Scene head{RangeDelta::Change::Rewritten, mid.sceneID, mid.chapterID, mid.title, mid.chapterTitle,
+                               mid.metadataPath, mid.contentPath, mid.chapterMetadataPath,
+                               m.doc.segments().at(599).sceneID, mid.text.left(40), true};
+        RangeDelta::Scene tail{RangeDelta::Change::Created, QStringLiteral("split-tail"), mid.chapterID, QString(), mid.chapterTitle,
+                               QString(), QString(), mid.chapterMetadataPath, mid.sceneID, mid.text.mid(40), true};
+        split.scenes = {head, tail};
+        m.doc.applyRangeDelta(split);
+        QApplication::processEvents();
+        timer.restart();
+        const QString after = m.text()->text(0, m.text()->characterCount());
+        const qint64 structural = timer.elapsed();
+        const ManuscriptFind::PresentedText fresh = ManuscriptFind::PresentedText::build(m.doc, &m.presenter);
+        check(after == fresh.pageText(0, fresh.pageLength()), QStringLiteral("I-0346: after a split the page is a fresh build's"));
+        check(structural * 10 < first, QStringLiteral("I-0346: a split costs under a tenth of a full build (%1 ms vs %2 ms)")
+                                          .arg(structural).arg(first));
+        std::printf("measure: a split mid-book, then the page: %lld ms (a full build: %lld ms)\n", structural, first);
     }
 
     if (failures == 0) {

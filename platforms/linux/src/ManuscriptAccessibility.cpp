@@ -13,6 +13,7 @@
 
 #include <algorithm>
 
+#include "DiagnosticLog.hpp"
 #include "ManuscriptEditor.hpp"
 #include "ManuscriptFind.hpp"
 #include "SceneDocument.hpp"
@@ -307,6 +308,8 @@ void translate(QAccessibleEvent* event)
         removed = e->textRemoved();
     }
     QTimer::singleShot(0, editor, [editor = QPointer<ManuscriptEditor>(editor), type, pos, length, removed]() {
+        // [I-0346]: named, so a stall here is attributed (the watchdog had said "nothing Scrivi has marked").
+        const DiagnosticLog::Span span("accessibility: an event re-sent in page positions");
         QAccessibleInterface* iface = editor ? QAccessible::queryAccessibleInterface(editor) : nullptr;
         QAccessibleTextInterface* t = iface != nullptr ? iface->textInterface() : nullptr;
         if (t == nullptr) {

@@ -1,6 +1,7 @@
 #include "ManuscriptFind.hpp"
 
 #include <QElapsedTimer>
+#include <QHash>
 #include <QSet>
 #include <QTextCursor>
 #include <QTextDocument>
@@ -53,7 +54,7 @@ int PresentedText::refresh(const SceneDocument& sceneDoc, const ManuscriptPresen
     // ⚠️ `document()` is non-const on SceneDocument; reading text does not change it.
     QTextDocument* doc = const_cast<SceneDocument&>(sceneDoc).document();
     const auto& segs = sceneDoc.segments();
-    scenes_.resize(segs.size());
+    align(sceneDoc);
     pageStarts_.resize(segs.size());
     pageLength_ = 0;
     int rebuilt = 0;
@@ -97,7 +98,7 @@ int PresentedText::refreshSlice(const SceneDocument& sceneDoc, const ManuscriptP
 {
     QTextDocument* doc = const_cast<SceneDocument&>(sceneDoc).document();
     const int n = int(sceneDoc.segments().size());
-    scenes_.resize(n);   // ⚠️ the manuscript may have changed since the last slice; `refresh()`'s checks catch it after
+    align(sceneDoc);   // ⚠️ the manuscript may have changed since the last slice
     QElapsedTimer t;
     t.start();
     int i = std::max(0, from);
@@ -108,6 +109,34 @@ int PresentedText::refreshSlice(const SceneDocument& sceneDoc, const ManuscriptP
         refreshScene(i, sceneDoc, doc, presenter);
     }
     return i;
+}
+
+void PresentedText::align(const SceneDocument& doc)
+{
+    const auto& segs = doc.segments();
+    bool same = scenes_.size() == segs.size();
+    for (int i = 0; same && i < segs.size(); ++i) {
+        same = scenes_[i].sceneID == segs[i].sceneID;
+    }
+    if (!same) {
+        QHash<QString, int> at;
+        for (int k = 0; k < scenes_.size(); ++k) {
+            at.insert(scenes_[k].sceneID, k);
+        }
+        QVector<Scene> next(segs.size());
+        for (int i = 0; i < segs.size(); ++i) {
+            if (const auto it = at.constFind(segs[i].sceneID); it != at.constEnd()) {
+                next[i] = std::move(scenes_[*it]);
+            }
+        }
+        scenes_ = std::move(next);
+    }
+    for (int i = 0; !editedIDs_.isEmpty() && i < segs.size(); ++i) {
+        if (editedIDs_.contains(segs[i].sceneID)) {
+            scenes_[i].edited = true;
+        }
+    }
+    editedIDs_.clear();
 }
 
 bool PresentedText::refreshScene(int i, const SceneDocument& sceneDoc, QTextDocument* doc, const ManuscriptPresenter* presenter)
@@ -127,8 +156,8 @@ bool PresentedText::refreshScene(int i, const SceneDocument& sceneDoc, QTextDocu
 void PresentedText::markEdited(const SceneDocument& doc, int pos)
 {
     const int i = doc.sceneIndexForEditablePosition(pos);
-    if (i >= 0 && i < scenes_.size()) {
-        scenes_[i].edited = true;
+    if (i >= 0) {
+        editedIDs_.insert(doc.segments()[i].sceneID);
     }
 }
 
@@ -283,9 +312,9 @@ int PresentedText::documentPosition(int k) const
 void PresentedText::markEditedRange(const SceneDocument& doc, int start, int end)
 {
     const auto& segs = doc.segments();
-    for (int i = 0; i < segs.size() && i < scenes_.size(); ++i) {
+    for (int i = 0; i < segs.size(); ++i) {
         if (segs[i].bodyStart <= end && segs[i].bodyStart + segs[i].bodyLength >= start) {
-            scenes_[i].edited = true;
+            editedIDs_.insert(segs[i].sceneID);
         }
     }
 }
