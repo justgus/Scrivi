@@ -2,7 +2,8 @@
 """accessibility_atspi.py — EP-050 S4 (SP-203, T-0659): the manuscript read OVER AT-SPI, the way Orca reads it.
 
 Run by accessibility_atspi.sh while scrivi_linux_accessibility_smoke holds its fixture on screen. Uses the same calls
-Orca makes: GetText, GetStringAtOffset (line), SetCaretOffset / GetCaretOffset, and the object:text-caret-moved event.
+Orca makes: GetText, GetStringAtOffset (line), SetCaretOffset / GetCaretOffset, and the object:text-caret-moved and
+text-changed:insert events.
 Prints `atspi-ok` when every check passes.
 """
 import sys
@@ -82,6 +83,21 @@ def main():
     check(Atspi.Text.get_caret_offset(editor) == soft,
           f"the caret set at 'soft' ({soft}) reads back at {Atspi.Text.get_caret_offset(editor)}")
     check(moved and moved[-1] == soft, f"text-caret-moved carries the page position {soft}: {moved}")
+
+    # An edit, typed into this display's own X server (never the desktop): its event carries the page position.
+    inserted = []
+
+    def on_insert(event):
+        if event.source == editor:
+            inserted.append((event.detail1, event.any_data))
+
+    typing = Atspi.EventListener.new(on_insert)
+    typing.register("object:text-changed:insert")
+    Atspi.generate_keyboard_event(0, "q", Atspi.KeySynthType.STRING)
+    GLib.timeout_add(1500, lambda: (Atspi.event_quit(), False)[1])
+    Atspi.event_main()
+    check(inserted and inserted[-1][0] == soft, f"text-changed:insert at the page position {soft}: {inserted}")
+    check("and qsoft here." in Atspi.Text.get_text(editor, 0, -1), "the typed character is on the page")
 
     if failures:
         return 1

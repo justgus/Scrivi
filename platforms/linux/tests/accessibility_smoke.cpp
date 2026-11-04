@@ -3,7 +3,8 @@
 // Drives the REAL ManuscriptEditor + SceneDocument + ManuscriptPresenter, wired as EditorShell wires them, and reads them
 // through `QAccessibleTextInterface` — the interface Qt's AT-SPI bridge answers Orca from ([SP-202]'s measurement route).
 // ✅ The page at rest (Apple A1): no escapes, no `##`, no emphasis markers; chapter titles; a divider as "Scene break".
-// ✅ Every member agrees with that text (AC1) · the caret both ways (AC2) · Qt's events arrive in page positions · cost.
+// ✅ Every member agrees with that text (AC1) · the caret both ways (AC2) · cost. ⚠️ Qt's events need a platform bridge
+// (offscreen has none: Qt sends nothing) — accessibility_atspi.sh checks them over AT-SPI.
 
 #include <QAccessible>
 #include <QAccessibleInterface>
@@ -14,7 +15,6 @@
 #include <QTextCursor>
 
 #include <cstdio>
-#include <vector>
 
 #include "ManuscriptAccessibility.hpp"
 #include "ManuscriptEditor.hpp"
@@ -37,16 +37,6 @@ void check(bool cond, const QString& what)
 void same(const QString& actual, const QString& expected, const QString& what)
 {
     check(actual == expected, QStringLiteral("%1\n   got:      «%2»\n   expected: «%3»").arg(what, actual, expected));
-}
-
-// What the platform would have been sent — the handler `install()` forwards to.
-struct Sent { QAccessible::Event type; int position; };
-std::vector<Sent> sent;
-void capture(QAccessibleEvent* e)
-{
-    if (e->type() == QAccessible::TextCaretMoved || e->type() == QAccessible::TextInserted) {
-        sent.push_back({e->type(), static_cast<QAccessibleTextCursorEvent*>(e)->cursorPosition()});
-    }
 }
 
 struct Harness {
@@ -97,7 +87,6 @@ SceneDocument::Input scene(const QString& id, const QString& chapter, const QStr
 int main(int argc, char** argv)
 {
     QApplication app(argc, argv);
-    QAccessible::installUpdateHandler(&capture);   // first, so `install()` forwards to it
     ManuscriptAccessibility::install();
     QAccessible::setActive(true);
 
@@ -204,30 +193,8 @@ int main(int argc, char** argv)
     t->removeSelection(0);
     check(t->selectionCount() == 0, QStringLiteral("removeSelection"));
 
-    // ── Qt's events arrive in page positions ── ⚠️ only with a platform bridge (offscreen has none: Qt sends nothing);
-    // accessibility_atspi.sh checks them over AT-SPI.
-    const bool events = QAccessible::isActive();
-    if (!events) {
-        std::printf("events: not checked here (no platform accessibility)\n");
-    }
-    sent.clear();
-    h.caret(h.stored(0, s1, QStringLiteral("soft")));
-    QApplication::processEvents();
-    const int softPage = int(page.indexOf(QStringLiteral("soft")));
-    bool sawCaret = false;
-    for (const Sent& e : sent) {
-        if (e.type == QAccessible::TextCaretMoved) {
-            sawCaret = true;
-            check(e.position == softPage, QStringLiteral("a caret move is sent at the page position (got %1, want %2)")
-                                              .arg(e.position).arg(softPage));
-        }
-    }
-    check(sawCaret || !events, QStringLiteral("a caret move was sent"));
-
     // ── An edit: the page follows it ──
     h.caret(h.stored(0, s1, QStringLiteral(" here.")) + 5);   // before the '.'
-
-    sent.clear();
     QTest::keyClicks(h.editor, QStringLiteral("X"));
     QApplication::processEvents();
     check(h.page().contains(QStringLiteral("and soft hereX.")), QStringLiteral("a typed character is on the page: ") + h.page().left(60));
@@ -240,14 +207,6 @@ int main(int argc, char** argv)
         QApplication::processEvents();
         check(h.page().contains(QStringLiteral("and soft hereZ.")), QStringLiteral("a same-length edit is on the page: ") + h.page().left(60));
     }
-    for (const Sent& e : sent) {
-        if (e.type == QAccessible::TextInserted) {
-            const int want = int(QStringLiteral("Chapter One\n\nMr. Smith said bold and soft hereX").size());
-            check(e.position == want, QStringLiteral("an insertion is sent at the page position (got %1, want %2)")
-                                          .arg(e.position).arg(want));
-        }
-    }
-
     // ── Cost: ~1.8 MB, the way a first Orca query and a keystroke's queries meet it (Apple AC3: recorded) ──
     {
         QList<SceneDocument::Input> big;
