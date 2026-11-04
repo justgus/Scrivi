@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # accessibility_atspi.sh — EP-050 S4 (SP-203, T-0659): the manuscript read over a REAL AT-SPI bus, as Orca reads it.
 #
-# Its own D-Bus session, accessibility bus and Xvfb display: nothing reaches the desktop, its Orca or its log.
+# Its own D-Bus session, runtime folder, accessibility bus and Xvfb display: nothing reaches the desktop, its Orca or its log.
 # Needs Xvfb, at-spi2-core and python3-gi + gir1.2-atspi-2.0 (the rig and scrivi-vm; not the CI image).
 #
 # Usage: accessibility_atspi.sh <path-to-scrivi_linux_accessibility_smoke>
@@ -13,6 +13,9 @@ export BIN HERE
 
 echo "== Accessibility over AT-SPI (GetText, lines, caret, text-caret-moved) =="
 dbus-run-session -- bash -c '
+    # ⛔ Its OWN runtime folder: at-spi-bus-launcher puts its socket at $XDG_RUNTIME_DIR/at-spi/bus, and on exit removes it.
+    # Under the desktop's /run/user/<uid> that deleted the DESKTOP's bus socket (2026-11-04: Orca then aborted at start).
+    export XDG_RUNTIME_DIR="$(mktemp -d)"
     Xvfb :97 -screen 0 1280x800x24 -nolisten tcp >/dev/null 2>&1 & X=$!
     export DISPLAY=:97   # the bus, the registry (key synthesis) and the checker all on this display
     sleep 1
@@ -23,6 +26,8 @@ dbus-run-session -- bash -c '
     sleep 4
     python3 -I "$HERE/accessibility_atspi.py"; R=$?
     kill $APP $B $X 2>/dev/null
+    wait 2>/dev/null
+    rm -rf "$XDG_RUNTIME_DIR"
     exit $R
 ' | tee /dev/stderr | grep -qx 'atspi-ok' || { echo "FAIL: AT-SPI did not report atspi-ok"; exit 1; }
 echo "PASS: over AT-SPI, Orca is given the page the writer reads."
