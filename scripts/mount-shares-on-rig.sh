@@ -2,7 +2,7 @@
 #
 # mount-shares-on-rig.sh — mount this Mac's Scrivi SMB shares on the Linux rig.
 #
-# Run this FROM THE MAC. It drives oathkeeper over SSH and mounts:
+# Run this FROM THE MAC. It drives the rig over SSH — scrivi-vm by default, oathkeeper with --rig — and mounts:
 #
 #   //<mac>/ScriviLinux   -> /mnt/scrivi-net      (projects + appsupport + worlds subdir)
 #   //<mac>/ScriviWorlds  -> /mnt/scrivi-worlds   (the "Scrivi-Worlds" USB volume)
@@ -30,12 +30,19 @@
 # radius of a test that kills a share mid-use.
 #   ./scripts/mount-shares-on-rig.sh --status        # what is mounted right now
 #   ./scripts/mount-shares-on-rig.sh --unmount       # unmount both
+#   ./scripts/mount-shares-on-rig.sh --rig oathkeeper [option]   # the same, on oathkeeper
 #
-# Host defaults match deploy-to-rig.sh: SCRIVI_RIG=oathkeeper.
+# The rig is an SSH HOST ALIAS from ~/.ssh/config (`scrivi-vm`, `oathkeeper`) — ⚠️ never a bare IP: `ssh 192.168.64.2`
+# skips the alias's IdentityFile, so the VM's key is not offered. --rig, else $SCRIVI_RIG, else scrivi-vm (2026-11-04).
 #
 set -euo pipefail
 
-RIG="${SCRIVI_RIG:-192.168.64.2}"
+RIG="${SCRIVI_RIG:-scrivi-vm}"
+if [ "${1:-}" = "--rig" ]; then
+    [ -n "${2:-}" ] || { printf '!!  --rig needs a host alias (scrivi-vm, oathkeeper)\n' >&2; exit 1; }
+    RIG="$2"
+    shift 2
+fi
 MAC_HOST="${SCRIVI_MAC_HOST:-$(scutil --get LocalHostName 2>/dev/null || hostname -s)}.local"
 SMB_USER="${SCRIVI_SMB_USER:-$(id -un)}"
 
@@ -459,7 +466,7 @@ case "${1:-}" in
     --only)        [ -n "${2:-}" ] || die "--only needs a share name (see --help)"
                    ONLY_SHARE="$2"; do_mount ;;
     --help|-h)
-        sed -n '2,29p' "$0" | sed 's/^# \{0,1\}//'
+        sed -n '2,36p' "$0" | sed 's/^# \{0,1\}//'
         ;;
     "")            do_mount ;;
     *)             die "unknown option: $1  (try --help)" ;;
