@@ -1,7 +1,8 @@
 ---
 sprint: SP-182
 epic: EP-048
-status: Active
+status: Closed
+closed: 2026-10-21
 activated: 2026-10-15
 platform: Linux
 created: 2026-10-15

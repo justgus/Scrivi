@@ -226,6 +226,8 @@ private slots:
 
 private:
     // Places a mark per line for `branchPositions_` — laid-out, on-screen lines only (step 0: geometry before the line).
+    // The first and last block numbers on screen ([SP-204], [I-0351]): cull by these BEFORE asking for a block's geometry.
+    std::pair<int, int> visibleBlockNumbers() const;
     void placeBranchMarks();
     QWidget* gutter_ = nullptr;
     QList<int> branchPositions_;

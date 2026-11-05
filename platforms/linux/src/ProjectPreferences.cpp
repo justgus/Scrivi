@@ -24,6 +24,13 @@ ProjectPreferences::ProjectPreferences(ScriviBridge* bridge, QString projectRoot
     textSize_ = has(kTextSizeKey) ? document_.value(QLatin1String(kTextSizeKey)).toDouble(ManuscriptTypography::kDefaultSize)
                                   : ManuscriptTypography::kDefaultSize;
     markupHints_ = has(kMarkupHintsKey) ? document_.value(QLatin1String(kMarkupHintsKey)).toBool(true) : true;
+    if (has(kParagraphIndentKey)) {
+        paragraphIndent_ = document_.value(QLatin1String(kParagraphIndentKey)).toString(paragraphIndent_);
+    }
+    indentEm_ = has(kIndentEmKey) ? document_.value(QLatin1String(kIndentEmKey)).toDouble(ManuscriptTypography::kDefaultIndentEm)
+                                  : ManuscriptTypography::kDefaultIndentEm;
+    paragraphIndentChosen_ = has(kParagraphIndentKey);
+    indentEmChosen_ = has(kIndentEmKey);
     subtitleChosen_ = has(kSubtitleKey);
     typefaceChosen_ = has(kTypefaceKey);
     textSizeChosen_ = has(kTextSizeKey);
@@ -77,6 +84,29 @@ void ProjectPreferences::setTextSize(double size)
     emit typographyChanged();
 }
 
+void ProjectPreferences::setParagraphIndent(const QString& mode)
+{
+    if (mode == paragraphIndent_ && paragraphIndentChosen_) {
+        return;
+    }
+    paragraphIndent_ = mode;
+    paragraphIndentChosen_ = true;
+    save();
+    emit typographyChanged();
+}
+
+void ProjectPreferences::setIndentEm(double em)
+{
+    em = std::clamp(em, ManuscriptTypography::kMinIndentEm, ManuscriptTypography::kMaxIndentEm);
+    if (em == indentEm_ && indentEmChosen_) {
+        return;
+    }
+    indentEm_ = em;
+    indentEmChosen_ = true;
+    save();
+    emit typographyChanged();
+}
+
 void ProjectPreferences::setMarkupHints(bool on)
 {
     if (on == markupHints_ && markupHintsChosen_) {
@@ -94,6 +124,8 @@ void ProjectPreferences::save()
     if (typefaceChosen_) { document_.insert(QLatin1String(kTypefaceKey), typeface_); }
     if (textSizeChosen_) { document_.insert(QLatin1String(kTextSizeKey), textSize_); }
     if (markupHintsChosen_) { document_.insert(QLatin1String(kMarkupHintsKey), markupHints_); }
+    if (paragraphIndentChosen_) { document_.insert(QLatin1String(kParagraphIndentKey), paragraphIndent_); }
+    if (indentEmChosen_) { document_.insert(QLatin1String(kIndentEmKey), indentEm_); }
     if (bridge_ == nullptr) {
         return;
     }

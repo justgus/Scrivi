@@ -1082,14 +1082,8 @@ void ManuscriptEditor::setBranchMarkPositions(const QList<int>& positions)
     placeBranchMarks();
 }
 
-void ManuscriptEditor::placeBranchMarks()
+std::pair<int, int> ManuscriptEditor::visibleBlockNumbers() const
 {
-    // Each line's centre, in the gutter's (= the viewport's) y. ⚠️ Step 0: `QPlainTextEdit` lays out lazily, and
-    // `blockBoundingGeometry` WALKS from the first visible block to the one asked for, laying out every block between —
-    // so a branch far off screen would lay out the manuscript up to it on every placement. ✅ Culled by block NUMBER
-    // against the visible range first (the blocks painting has laid out anyway); then the geometry; then the line, valid.
-    QList<qreal> lines;
-    QList<qreal> heights;
     const int vpHeight = viewport()->height();
     QTextBlock visible = firstVisibleBlock();
     const int firstNumber = visible.blockNumber();
@@ -1099,6 +1093,19 @@ void ManuscriptEditor::placeBranchMarks()
         lastNumber = visible.blockNumber();
         top += blockBoundingRect(visible).height();
     }
+    return {firstNumber, lastNumber};
+}
+
+void ManuscriptEditor::placeBranchMarks()
+{
+    // Each line's centre, in the gutter's (= the viewport's) y. ⚠️ Step 0: `QPlainTextEdit` lays out lazily, and
+    // `blockBoundingGeometry` WALKS from the first visible block to the one asked for, laying out every block between —
+    // so a branch far off screen would lay out the manuscript up to it on every placement. ✅ Culled by block NUMBER
+    // against the visible range first (the blocks painting has laid out anyway); then the geometry; then the line, valid.
+    QList<qreal> lines;
+    QList<qreal> heights;
+    const int vpHeight = viewport()->height();
+    const auto [firstNumber, lastNumber] = visibleBlockNumbers();
     for (const int pos : std::as_const(branchPositions_)) {
         const QTextBlock block = document()->findBlock(pos);
         if (!block.isValid() || block.blockNumber() < firstNumber || block.blockNumber() > lastNumber) {
@@ -1184,6 +1191,10 @@ void ManuscriptEditor::paintEvent(QPaintEvent* event)
 
     const QRectF vp = viewport()->rect();
     QTextDocument* doc = document();
+    // ⛔ [I-0351]: `blockBoundingGeometry` walks from the first visible block to the one asked for, so asking it about every
+    // separator before culling laid out the whole manuscript on every paint. ✅ Culled by block NUMBER first ([SP-204]'s
+    // rule for the branch marks).
+    const auto [firstNumber, lastNumber] = visibleBlockNumbers();
 
     for (const int pos : separators) {
         // The separator's blank block is the one immediately BEFORE the following scene's
@@ -1193,7 +1204,7 @@ void ManuscriptEditor::paintEvent(QPaintEvent* event)
             continue;
         }
         const QTextBlock gapBlock = sceneBlock.previous();
-        if (!gapBlock.isValid()) {
+        if (!gapBlock.isValid() || gapBlock.blockNumber() < firstNumber || gapBlock.blockNumber() > lastNumber) {
             continue;
         }
         // Block geometry is document-relative; translate by contentOffset() to viewport

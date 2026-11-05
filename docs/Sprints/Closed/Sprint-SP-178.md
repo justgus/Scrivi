@@ -1,7 +1,8 @@
 ---
 sprint: SP-178
 epic: EP-026
-status: Active
+status: Closed
+closed: 2026-10-21
 activated: 2026-10-11
 platform: Linux
 created: 2026-10-11
@@ -12,7 +13,7 @@ created: 2026-10-11
 **Status:** ✅ **CLOSED 2026-10-21** (user, 2026-10-21: *"close all five sprints and keep I-0308 open."*) · ✅ COMPLETE 2026-10-21 (every AC met; ⏳ close awaits the user) · 🟡 **ACTIVE 2026-10-11** (user: *"activate SP-178"*) — ⚠️ IMPLEMENTED; ✅ [I-0287] found and fixed here (user: *"Fix I-0287 in SP-178."*) — created 2026-10-11 (user: *"We are ready to plan EP-026 S2."*). ✅ Q1–Q4 ruled 2026-10-11.
 **Carries:** [T-0605] → [`../Tasks/Task-active.md`](../../Tasks/Task-active.md).
 **Epic:** [EP-026] `[Linux]` Undo/Redo History, Copy Buffers & Structured Cut/Copy/Paste →
-[`../Epics/Epic-active.md`](../../Epics/Epic-active.md). ➡️ Unblocks [EP-048] S4b (Replace / Replace All needs grouped undo).
+[`../../Epics/Closed/Epic-EP-026.md`](../../Epics/Closed/Epic-EP-026.md). ➡️ Unblocks [EP-048] S4b (Replace / Replace All needs grouped undo).
 **Builds on:** [SP-177] (S1) — WHEN an undo step ends is ScriviCore's (`scrivi_capture_*`); Linux gets Apple's granularity by
 CALLING it, not by porting it. ✅ EP-026 Q3 (keys) ruled: undo **Ctrl+Z** · redo **Ctrl+Shift+Z** · ⛔ no Ctrl+Y.
 **Authority:** [`../Scrivi_UndoRedo_History_and_Copy_Buffers_Design_v0_1.md`](../../Scrivi_UndoRedo_History_and_Copy_Buffers_Design_v0_1.md)

@@ -1,5 +1,7 @@
 # Task Backlog
 
+*Last Updated: 2026-11-05 (**T-0610 → active** with [SP-183]'s activation; it left this file.)*
+
 *Last Updated: 2026-11-05 (**T-0663 filed** and Q1–Q5 ruled: the project's file facts in the Properties tab.)*
 
 *Last Updated: 2026-11-05 (**T-0662 → active** with [SP-204]'s activation; it left this file.)*
@@ -40,7 +42,6 @@ status changes on its own layer.
 | **T-0472** | ⚠️ **`[Linux]` Surface for custom relationship types** — build the UI that calls `scrivi_upsert_relation_type`. ⚠️ **The endpoint is fully implemented and has NEVER had a caller on any platform** | **EP-037** | 🔵 **Backlog** — ⚠️ **user ruling 2026-08-25: a REAL FEATURE owed a surface, not dead code**; ⚠️ **moved EP-035 → EP-037 by the three-way split** |
 | **T-0473** | ⚠️ **`[Apple]` Timeline endpoint parity** — reach `resolve_timeline_project_times`, `set_timeline_epoch_offset`, `set_world_epoch_offset`. ⚠️ **Unreached on Apple; bridged on Linux by SP-121** | ⚠️ **None — no Epic** | 🔵 **Backlog** — ⚠️ **user ruling 2026-08-25: tracked, NOT scheduled** |
 | **T-0497** | ⚠️ **`[Linux]` World CREATION** — the one Worlds action SP-127 deliberately deferred. ⚠️ **Apple entangles it with `WorldBookmarkStore` (macOS sandbox grants, NO Linux equivalent)**, and ✅ **AC3 asks for added / status read / relinked, not created**. ⚠️ **PRIORITY ARGUMENT CHANGED BY THE T-0496 LIVE PASS (2026-09-01):** ⚠️ **the user hit this as a DEAD END while setting up a test** — `Project ▸ Manage Worlds…` offers **no create affordance**, so ⚠️ **a project with no world cannot proceed on Linux at all**: there is nothing to *add* or *relink*. ✅ **Apple detects the no-world case and PROMPTS the writer to create one** — ⚠️ **the deferral assumed add+relink were enough to be USABLE, and they are not.** ⚠️ **The step-7 test could not be completed on Linux alone; the world (`Alpha Centauri`) had to be created in the APPLE app** — ⚠️ **the sharpest evidence available that this is a gap, not a nicety.** | **EP-035** | 🔵 **Backlog** — ⚠️ **unscheduled, but ⚠️ NOW BLOCKING a Linux-only writer** |
-| T-0610 | `[Linux]` EP-048 S5b: line spacing and the first-line indent | EP-048 ([SP-183], 🔵 Planning) | 🔵 Backlog |
 | T-0611 | `[Linux]` EP-048 S5c: Show chapter titles, and the chapter-ending divider | EP-048 ([SP-184], 🔵 Planning) | 🔵 Backlog |
 | T-0621 | `[Cross]` Explore a whole-manuscript history view (a tree, or a branching timeline) | ⚠️ None yet | 🔵 Backlog — exploration |
 | T-0628 | `[Cross]` EP-052: keep a held queue on local disk and push it when the project returns | EP-052 (unscheduled) | 🔵 Backlog |
@@ -366,17 +367,6 @@ task rather than reviving T-0216.
 
 ---
 
-
-## 🔵 T-0610 — `[Linux]` EP-048 S5b: line spacing and the first-line indent
-
-**Epic:** [EP-048] (S5b, L10) · **Status:** 🔵 Backlog · **Sprint:** [SP-183] (🔵 Planning) →
-[`../Sprints/Sprint-SP-183.md`](../Sprints/Sprint-SP-183.md) · **Date Requested:** 2026-10-15 (user: *"plan EP-048 fully."*)
-
-**What:** line spacing fixed at 1.45 × size, and EP-047's first-line indent on Linux (None · Every · Book convention, the
-amount in ems, the small gap), with zero characters in the file and no dirty scene or history step. Both are Qt block
-formats, so the mechanism is measured first and ruled from the numbers ([SP-183] Q1–Q2). Adds the dialog's indent rows.
-
----
 
 ## 🔵 T-0611 — `[Linux]` EP-048 S5c: Show chapter titles, and the chapter-ending divider
 

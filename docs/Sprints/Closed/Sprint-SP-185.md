@@ -15,7 +15,7 @@ created: 2026-10-17
 paste's undo takes 40 s over the share), [I-0309] (closing a window mid-load frees memory its worker uses; found by plan step 0), [I-0310] (a shown window torn down crashed)
 → [`../../Issues/Verified/`](../../Issues/Verified/) (all verified) · [T-0612] (a diagnostic
 log) · [T-0613] (the find bar never freezes while the writer types) → [`../../Tasks/Verified/`](../../Tasks/Verified/) (both verified).
-**Epic:** [EP-026] → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md). Two of the three are its structured cut, copy and
+**Epic:** [EP-026] → [`../../Epics/Closed/Epic-EP-026.md`](../../Epics/Closed/Epic-EP-026.md). Two of the three are its structured cut, copy and
 paste. [I-0308] (the find-bar crash) was carried until 2026-10-22; it is in the backlog, not reproducible (user).
 **Size:** M–L. ⚠️ Every acceptance needs the **rig**: each finding showed only on the writer's 1,186-scene project over the
 network share. The rig is away until 2026-10-18 evening; Docker work runs meanwhile.

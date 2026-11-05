@@ -92,9 +92,21 @@ ManuscriptTypography::ManuscriptTypography()
 {
 }
 
-ManuscriptTypography::ManuscriptTypography(QString name, double pointSize)
-    : faceName(std::move(name)), size(std::clamp(pointSize, kMinSize, kMaxSize))
+ManuscriptTypography::ManuscriptTypography(QString name, double pointSize, ParagraphIndent mode, double em)
+    : faceName(std::move(name)), size(std::clamp(pointSize, kMinSize, kMaxSize)), indent(mode),
+      indentEm(std::clamp(em, kMinIndentEm, kMaxIndentEm))
 {
+}
+
+ManuscriptTypography::ParagraphIndent ManuscriptTypography::indentFromName(const QString& name)
+{
+    if (name == QLatin1String("every")) {
+        return ParagraphIndent::Every;
+    }
+    if (name == QLatin1String("none")) {
+        return ParagraphIndent::None;
+    }
+    return ParagraphIndent::Book;   // `book`, absent, or a value from a later Scrivi (Apple: `?? defaultIndent`)
 }
 
 QFont ManuscriptTypography::bodyFont() const

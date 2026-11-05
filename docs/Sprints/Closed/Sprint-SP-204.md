@@ -11,7 +11,7 @@ created: 2026-11-05
 
 **Status:** ✅ **CLOSED 2026-11-05** (user, 2026-11-05: *"yes to both."*) — activated 2026-11-05 (user: *"Activate SP-204 and run step 0"*), created 2026-11-05 (user: *"plan EP-026 S3"*). ✅ Q1–Q3 ruled 2026-11-05 (as recommended); ✅ step 0 measured 2026-11-05; ✅ Q4 ruled 2026-11-05 — every question ruled.
 **Carries:** [T-0662] ✅ → [`../../Tasks/Verified/Task-verified-0662.md`](../../Tasks/Verified/Task-verified-0662.md) · ➕ [I-0350] ✅ (found 2026-11-05, added explicitly: Linux CI red since [I-0346]) → [`../../Issues/Verified/Issue-verified-0341-0350.md`](../../Issues/Verified/Issue-verified-0341-0350.md).
-**Epic:** [EP-026] → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md) — its last open Sprint. ✅ [EP-048] stays open until
+**Epic:** [EP-026] → [`../../Epics/Closed/Epic-EP-026.md`](../../Epics/Closed/Epic-EP-026.md) — its last open Sprint. ✅ [EP-048] stays open until
 EP-026 lands (user, 2026-10-11).
 **Builds on:** [SP-178] (S2: undo/redo, `HistoryCapture` over `scrivi_capture_*`) · [SP-182] (S5a: Linux's Project Settings
 dialog, which gains the Undo History section — EP-026 Q4).

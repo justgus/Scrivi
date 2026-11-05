@@ -13,7 +13,7 @@ created: 2026-10-11
 **Status:** ✅ **CLOSED 2026-10-11** (user: *"no, I do not want the rule changed.  Everything behaved as it should.  That verifies the Sprint.  Close SP-177."*) — complete 2026-10-11, Mac live pass passed · ACTIVATED 2026-10-11 (user: *"close SP-176 and activate SP-177"*) — created 2026-10-11 (user: *"plan EP-026 S1"*). ✅ Q1–Q4 ruled 2026-10-11.
 **Carries:** [T-0604] → [`../../Tasks/Verified/Task-verified-0604.md`](../../Tasks/Verified/Task-verified-0604.md).
 **Epic:** [EP-026] `[Linux]` Undo/Redo History, Copy Buffers & Structured Cut/Copy/Paste →
-[`../../Epics/Epic-active.md`](../../Epics/Epic-active.md). ✅ EP-026 **Q1** (ruled 2026-10-11): *the capture rules move into the
+[`../../Epics/Closed/Epic-EP-026.md`](../../Epics/Closed/Epic-EP-026.md). ✅ EP-026 **Q1** (ruled 2026-10-11): *the capture rules move into the
 core first, Apple re-pointed with no visible change, then Linux wires to them* — [SP-174]'s pattern.
 **Authority:** [`../../Scrivi_UndoRedo_History_and_Copy_Buffers_Design_v0_1.md`](../../Scrivi_UndoRedo_History_and_Copy_Buffers_Design_v0_1.md)
 §4.a (event model, triggers), §4.a.1 (T-0396: autosave does not seal; 45 s idle), §4.d (disk may lead by one session), §8.

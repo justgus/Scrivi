@@ -108,6 +108,8 @@ qt_add_executable(scrivi_linux
     src/OpenProjectRegistry.hpp
     src/SceneDocument.cpp
     src/SceneDocument.hpp
+    src/ManuscriptLayout.cpp
+    src/ManuscriptLayout.hpp
     # SP-062 (EP-022): the editable writing surface with boundary integrity.
     src/ManuscriptEditor.cpp
     src/ManuscriptPresenter.cpp
@@ -355,6 +357,8 @@ qt_add_executable(scrivi_linux_scene_load_smoke
     src/ScriviBridge.hpp
     src/SceneDocument.cpp
     src/SceneDocument.hpp
+    src/ManuscriptLayout.cpp
+    src/ManuscriptLayout.hpp
 )
 
 target_link_libraries(scrivi_linux_scene_load_smoke
@@ -378,6 +382,8 @@ qt_add_executable(scrivi_linux_editor_map_smoke
     tests/editor_map_smoke.cpp
     src/SceneDocument.cpp
     src/SceneDocument.hpp
+    src/ManuscriptLayout.cpp
+    src/ManuscriptLayout.hpp
 )
 
 target_link_libraries(scrivi_linux_editor_map_smoke
@@ -416,6 +422,8 @@ qt_add_executable(scrivi_linux_escape_smoke
     src/ManuscriptEscapes.hpp
     src/SceneDocument.cpp
     src/SceneDocument.hpp
+    src/ManuscriptLayout.cpp
+    src/ManuscriptLayout.hpp
     src/ThemeColours.hpp
 )
 
@@ -456,6 +464,8 @@ qt_add_executable(scrivi_linux_presenter_smoke
     src/ManuscriptEscapes.hpp
     src/SceneDocument.cpp
     src/SceneDocument.hpp
+    src/ManuscriptLayout.cpp
+    src/ManuscriptLayout.hpp
     src/ThemeColours.hpp
 )
 
@@ -497,6 +507,8 @@ qt_add_executable(scrivi_linux_format_smoke
     src/ManuscriptEscapes.hpp
     src/SceneDocument.cpp
     src/SceneDocument.hpp
+    src/ManuscriptLayout.cpp
+    src/ManuscriptLayout.hpp
     src/ThemeColours.hpp
 )
 
@@ -542,6 +554,8 @@ qt_add_executable(scrivi_linux_find_smoke
     src/ManuscriptEscapes.hpp
     src/SceneDocument.cpp
     src/SceneDocument.hpp
+    src/ManuscriptLayout.cpp
+    src/ManuscriptLayout.hpp
     src/ThemeColours.hpp
 )
 
@@ -583,6 +597,8 @@ qt_add_executable(scrivi_linux_accessibility_smoke
     src/MarkdownAnalysis.hpp
     src/SceneDocument.cpp
     src/SceneDocument.hpp
+    src/ManuscriptLayout.cpp
+    src/ManuscriptLayout.hpp
 )
 
 target_link_libraries(scrivi_linux_accessibility_smoke
@@ -643,6 +659,8 @@ qt_add_executable(scrivi_linux_scene_create_smoke
     src/ScriviBridge.hpp
     src/SceneDocument.cpp
     src/SceneDocument.hpp
+    src/ManuscriptLayout.cpp
+    src/ManuscriptLayout.hpp
 )
 
 target_link_libraries(scrivi_linux_scene_create_smoke
@@ -676,6 +694,8 @@ qt_add_executable(scrivi_linux_scene_delete_smoke
     src/ScriviBridge.hpp
     src/SceneDocument.cpp
     src/SceneDocument.hpp
+    src/ManuscriptLayout.cpp
+    src/ManuscriptLayout.hpp
 )
 
 target_link_libraries(scrivi_linux_scene_delete_smoke
@@ -709,6 +729,8 @@ qt_add_executable(scrivi_linux_scene_rename_smoke
     src/ScriviBridge.hpp
     src/SceneDocument.cpp
     src/SceneDocument.hpp
+    src/ManuscriptLayout.cpp
+    src/ManuscriptLayout.hpp
 )
 
 target_link_libraries(scrivi_linux_scene_rename_smoke
@@ -745,6 +767,8 @@ qt_add_executable(scrivi_linux_scene_reorder_smoke
     src/ScriviBridge.hpp
     src/SceneDocument.cpp
     src/SceneDocument.hpp
+    src/ManuscriptLayout.cpp
+    src/ManuscriptLayout.hpp
 )
 
 target_link_libraries(scrivi_linux_scene_reorder_smoke
@@ -778,6 +802,8 @@ qt_add_executable(scrivi_linux_chapter_reorder_smoke
     src/ScriviBridge.hpp
     src/SceneDocument.cpp
     src/SceneDocument.hpp
+    src/ManuscriptLayout.cpp
+    src/ManuscriptLayout.hpp
 )
 
 target_link_libraries(scrivi_linux_chapter_reorder_smoke
@@ -809,6 +835,8 @@ qt_add_executable(scrivi_linux_scene_merge_smoke
     src/ScriviBridge.hpp
     src/SceneDocument.cpp
     src/SceneDocument.hpp
+    src/ManuscriptLayout.cpp
+    src/ManuscriptLayout.hpp
 )
 
 target_link_libraries(scrivi_linux_scene_merge_smoke
@@ -1097,6 +1125,8 @@ qt_add_executable(scrivi_linux_dumas_world_fixture
     src/OpenProjectRegistry.hpp
     src/SceneDocument.cpp
     src/SceneDocument.hpp
+    src/ManuscriptLayout.cpp
+    src/ManuscriptLayout.hpp
     src/ManuscriptEditor.cpp
     src/ManuscriptPresenter.cpp
     src/ManuscriptPresenter.hpp
@@ -1186,6 +1216,8 @@ qt_add_executable(scrivi_linux_open_progress_smoke
     src/OpenProjectRegistry.hpp
     src/SceneDocument.cpp
     src/SceneDocument.hpp
+    src/ManuscriptLayout.cpp
+    src/ManuscriptLayout.hpp
     src/ManuscriptEditor.cpp
     src/ManuscriptPresenter.cpp
     src/ManuscriptPresenter.hpp
@@ -1271,6 +1303,8 @@ qt_add_executable(scrivi_linux_undo_smoke
     src/OpenProjectRegistry.hpp
     src/SceneDocument.cpp
     src/SceneDocument.hpp
+    src/ManuscriptLayout.cpp
+    src/ManuscriptLayout.hpp
     src/ManuscriptEditor.cpp
     src/ManuscriptPresenter.cpp
     src/ManuscriptPresenter.hpp
@@ -1357,6 +1391,8 @@ qt_add_executable(scrivi_linux_structured_paste_smoke
     src/OpenProjectRegistry.hpp
     src/SceneDocument.cpp
     src/SceneDocument.hpp
+    src/ManuscriptLayout.cpp
+    src/ManuscriptLayout.hpp
     src/ManuscriptEditor.cpp
     src/ManuscriptPresenter.cpp
     src/ManuscriptPresenter.hpp
@@ -1442,6 +1478,8 @@ qt_add_executable(scrivi_linux_structural_baseline_smoke
     src/OpenProjectRegistry.hpp
     src/SceneDocument.cpp
     src/SceneDocument.hpp
+    src/ManuscriptLayout.cpp
+    src/ManuscriptLayout.hpp
     src/ManuscriptEditor.cpp
     src/ManuscriptPresenter.cpp
     src/ManuscriptPresenter.hpp
@@ -1527,6 +1565,8 @@ qt_add_executable(scrivi_linux_replace_smoke
     src/OpenProjectRegistry.hpp
     src/SceneDocument.cpp
     src/SceneDocument.hpp
+    src/ManuscriptLayout.cpp
+    src/ManuscriptLayout.hpp
     src/ManuscriptEditor.cpp
     src/ManuscriptPresenter.cpp
     src/ManuscriptPresenter.hpp
@@ -1617,6 +1657,8 @@ qt_add_executable(scrivi_linux_buffers_smoke
     src/OpenProjectRegistry.hpp
     src/SceneDocument.cpp
     src/SceneDocument.hpp
+    src/ManuscriptLayout.cpp
+    src/ManuscriptLayout.hpp
     src/ManuscriptEditor.cpp
     src/ManuscriptPresenter.cpp
     src/ManuscriptPresenter.hpp
@@ -1714,6 +1756,8 @@ qt_add_executable(scrivi_linux_background_wait_smoke
     src/OpenProjectRegistry.hpp
     src/SceneDocument.cpp
     src/SceneDocument.hpp
+    src/ManuscriptLayout.cpp
+    src/ManuscriptLayout.hpp
     src/ManuscriptEditor.cpp
     src/ManuscriptPresenter.cpp
     src/ManuscriptPresenter.hpp
@@ -1809,6 +1853,8 @@ qt_add_executable(scrivi_linux_settings_smoke
     src/OpenProjectRegistry.hpp
     src/SceneDocument.cpp
     src/SceneDocument.hpp
+    src/ManuscriptLayout.cpp
+    src/ManuscriptLayout.hpp
     src/ManuscriptEditor.cpp
     src/ManuscriptPresenter.cpp
     src/ManuscriptPresenter.hpp
@@ -1904,6 +1950,8 @@ qt_add_executable(scrivi_linux_branch_smoke
     src/OpenProjectRegistry.hpp
     src/SceneDocument.cpp
     src/SceneDocument.hpp
+    src/ManuscriptLayout.cpp
+    src/ManuscriptLayout.hpp
     src/ManuscriptEditor.cpp
     src/ManuscriptPresenter.cpp
     src/ManuscriptPresenter.hpp
@@ -1958,6 +2006,104 @@ target_include_directories(scrivi_linux_branch_smoke PRIVATE src ${CMAKE_CURRENT
 add_dependencies(scrivi_linux_branch_smoke scrivi_version)
 target_compile_features(scrivi_linux_branch_smoke PRIVATE cxx_std_23)
 scrivi_add_bundled_fonts(scrivi_linux_settings_smoke)
+
+# indent_smoke (EP-048 S5b / SP-183, T-0610) — the fixed line heights and first-line indent (`ManuscriptLayout`), with zero
+# characters in the file, and [I-0351] (a repaint walked the whole document). REAL project windows through AppEnvironment;
+# what is drawn read from the laid-out lines; every file claim FROM DISK. Driven by indent_smoke.sh (offscreen).
+qt_add_executable(scrivi_linux_indent_smoke
+    tests/indent_smoke.cpp
+    src/AppSupport.cpp
+    src/AppSupport.hpp
+    src/AppEnvironment.hpp
+    src/SessionStore.cpp
+    src/SessionStore.hpp
+    src/ProjectWindowManager.hpp
+    src/RecentsStore.cpp
+    src/RecentsStore.hpp
+    src/ScriviBridge.cpp
+    src/ScriviBridge.hpp
+    src/AppEnvironment.cpp
+    src/LandingWindow.cpp
+    src/LandingWindow.hpp
+    src/ScriviWindow.cpp
+    src/DiagnosticLog.cpp
+    src/DiagnosticLog.hpp
+    src/ProjectSettingsDialog.cpp
+    src/ProjectSettingsDialog.hpp
+    src/ScriviWindow.hpp
+    src/BuffersPalette.cpp
+    src/BuffersPalette.hpp
+    src/EditorShell.cpp
+    src/ManuscriptTypography.cpp
+    src/ManuscriptTypography.hpp
+    src/ProjectPreferences.cpp
+    src/ProjectPreferences.hpp
+    src/HistoryCapture.cpp
+    src/HistoryCapture.hpp
+    src/BufferService.cpp
+    src/BufferService.hpp
+    src/EditorShell.hpp
+    src/ProjectSession.hpp
+    src/OpenProjectRegistry.cpp
+    src/OpenProjectRegistry.hpp
+    src/SceneDocument.cpp
+    src/SceneDocument.hpp
+    src/ManuscriptLayout.cpp
+    src/ManuscriptLayout.hpp
+    src/ManuscriptEditor.cpp
+    src/ManuscriptPresenter.cpp
+    src/ManuscriptPresenter.hpp
+    src/MarkdownAnalysis.hpp
+    src/ManuscriptEditor.hpp
+    src/ManuscriptEscapes.cpp
+    src/ManuscriptEscapes.hpp
+    src/FormatMenu.cpp
+    src/FormatMenu.hpp
+    src/FindBar.cpp
+    src/FindBar.hpp
+    src/ManuscriptFind.cpp
+    src/ManuscriptFind.hpp
+    src/NavigatorTree.cpp
+    src/NavigatorTree.hpp
+    src/SceneInspector.cpp
+    src/HistorySection.cpp
+    src/HistorySection.hpp
+    src/SceneInspector.hpp
+    src/ObjectKindScope.cpp
+    src/ObjectKindScope.hpp
+    src/InspectorLayoutStore.cpp
+    src/InspectorLayoutStore.hpp
+    src/WorldsDialog.cpp
+    src/WorldsDialog.hpp
+    src/WorldStatusText.hpp
+    src/ThemeColours.hpp
+    src/PackageFolderDialog.hpp
+    src/TimelinePanel.cpp
+    src/TimelinePanel.hpp
+    src/TimeDeltaPicker.cpp
+    src/TimeDeltaPicker.hpp
+    src/StoryStructures.cpp
+    src/StoryStructures.hpp
+    src/HistoricalEventDialog.cpp
+    src/HistoricalEventDialog.hpp
+    src/EpochOffsetDialog.cpp
+    src/EpochOffsetDialog.hpp
+)
+
+target_link_libraries(scrivi_linux_indent_smoke
+    PRIVATE
+        ScriviCore
+        Qt6::Quick
+        Qt6::Widgets
+        Qt6::QuickWidgets
+        Qt6::Concurrent
+        Qt6::Test
+)
+
+target_include_directories(scrivi_linux_indent_smoke PRIVATE src ${CMAKE_CURRENT_BINARY_DIR}/generated)
+add_dependencies(scrivi_linux_indent_smoke scrivi_version)
+target_compile_features(scrivi_linux_indent_smoke PRIVATE cxx_std_23)
+scrivi_add_bundled_fonts(scrivi_linux_indent_smoke)
 
 # --- Live-pass fixture builder (SP-125, EP-035 AC9) -------------------------
 # NOT a test — it asserts nothing. Builds a throwaway project whose first scene

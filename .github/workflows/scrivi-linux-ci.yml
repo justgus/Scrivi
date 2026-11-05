@@ -320,6 +320,13 @@ jobs:
           platforms/linux/tests/settings_smoke.sh \
             ./build/platforms/linux/scrivi_linux_settings_smoke
 
+      # The paragraph indent and line heights (SP-183 / T-0610, EP-048 S5b): drawn by ManuscriptLayout, zero characters in
+      # the file; and [I-0351] (a repaint no longer walks the whole manuscript).
+      - name: Indent smoke test
+        run: |
+          platforms/linux/tests/indent_smoke.sh \
+            ./build/platforms/linux/scrivi_linux_indent_smoke
+
       # ✅ 2026-10-10 (user: "add the missing smokes to CI too") — these eleven smokes existed but CI never ran them.
 
       # ABI parity (EP-034 / SP-121, T-0464).

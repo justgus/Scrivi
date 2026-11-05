@@ -1,5 +1,7 @@
 # Unverified Tasks
 
+*Last Updated: 2026-11-05 (**T-0610 → 🟠** ([SP-183], EP-048 S5b).)*
+
 *Last Updated: 2026-11-05 (**T-0662 → ✅ Verified and archived** → `Verified/Task-verified-0662.md` ([SP-204] closed).)*
 
 *Last Updated: 2026-11-05 (**T-0662 → 🟠** ([SP-204], EP-026 S3).)*
@@ -29,6 +31,25 @@ Tasks that are **implemented and awaiting user verification** before being archi
 ⚠️ This file must not disagree with [`Task-active.md`](Task-active.md) or
 [`Task-backlog.md`](Task-backlog.md). A Task implemented but unverified belongs **here** — not left
 in the backlog carrying a 🟠 status.
+
+---
+
+## 🟠 T-0610 — `[Linux]` EP-048 S5b: line spacing and the first-line indent
+
+**Epic:** [EP-048] (S5b, L10) · **Status:** 🟠 **Implemented - Not Verified** · **Sprint:** [SP-183] (🟡 Active 2026-11-05) →
+[`../Sprints/Sprint-SP-183.md`](../Sprints/Sprint-SP-183.md) · **Date Requested:** 2026-10-15 (user: *"plan EP-048 fully."*)
+
+**What:** line spacing fixed at 1.45 × size, and EP-047's first-line indent on Linux (None · Every · Book convention, the
+amount in ems, the small gap), with zero characters in the file and no dirty scene or history step. Both are Qt block
+formats, so the mechanism is measured first and ruled from the numbers ([SP-183] Q1–Q2). Adds the dialog's indent rows.
+
+**Done (2026-11-05):** [SP-183] Q1 = (B): `ManuscriptLayout` (`platforms/linux/src/ManuscriptLayout.cpp:7`), a
+`QPlainTextDocumentLayout` that re-lays each block Qt has laid out, with the first line indented and every line on a fixed
+pitch; what each line gets is decided by the presenter while it highlights (`ManuscriptPresenter.cpp:343` `lineStyle`, Apple's
+`isBody` and book rule at `:328`) and left on the block as user data, never a document edit; the next paragraph is redrawn
+after an edit to the one before (`:511`). The setting is Apple's `paragraphIndent` / `indentEm` in `project-settings.json`
+(`ProjectPreferences`); the dialog's Paragraph indent and Indent rows (`ProjectSettingsDialog.cpp:75`). Tested by
+`tests/indent_smoke.*` (in CI), 5 of 5 mutations caught. With it, [I-0351] fixed.
 
 ---
 

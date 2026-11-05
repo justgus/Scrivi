@@ -1,7 +1,8 @@
 ---
 sprint: SP-136
 epic: EP-040
-status: Active
+status: Closed
+closed: 2026-09-23
 activated: 2026-09-22
 task: T-0546
 planned: 2026-09-22

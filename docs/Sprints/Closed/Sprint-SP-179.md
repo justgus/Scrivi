@@ -13,7 +13,7 @@ created: 2026-10-12
 **Status:** ✅ **CLOSED 2026-10-15** (user: *"close SP-179"*) · ACTIVATED 2026-10-12 (user: *"I'll go with Option A. Fix it here."*) — created 2026-10-12 (user: *"fix the Epic record and start planning S5"*). ✅ Q1–Q4 ruled and the plan accepted 2026-10-12. ✅ Step 0 complete: [I-0289], [I-0290], [I-0291] all VERIFIED (Apple). ✅ Linux steps 1–7 IMPLEMENTED 2026-10-12 (user: *"proceed with the SP-179 implementation."*); ✅ AC8 rig live pass PASSED 2026-10-13 (user).
 **Carries:** [T-0606] → [`../../Tasks/Verified/Task-verified-0606.md`](../../Tasks/Verified/Task-verified-0606.md).
 **Epic:** [EP-026] `[Linux]` Undo/Redo History, Copy Buffers & Structured Cut/Copy/Paste →
-[`../../Epics/Epic-active.md`](../../Epics/Epic-active.md). ⚠️ **Planned BEFORE S3 and S4** on my recommendation (user: *"start planning S5"*): it depends least on
+[`../../Epics/Closed/Epic-EP-026.md`](../../Epics/Closed/Epic-EP-026.md). ⚠️ **Planned BEFORE S3 and S4** on my recommendation (user: *"start planning S5"*): it depends least on
 [SP-178]'s not-yet-live-passed undo path, and its key chords can be measured on the rig in the same session as SP-178's pass.
 **Builds on:** [SP-178] (S2) — a cut into a slot and a paste from one are UNDO steps, through S2's `HistoryCapture`.
 ⚠️ SP-178 is implemented but not live-passed; a defect its pass finds in the undo path may touch this Sprint.

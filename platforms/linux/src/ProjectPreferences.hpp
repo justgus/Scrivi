@@ -42,7 +42,16 @@ public:
     void setTypeface(const QString& name);
     [[nodiscard]] double textSize() const { return textSize_; }
     void setTextSize(double size);
-    [[nodiscard]] ManuscriptTypography typography() const { return {typeface_, textSize_}; }
+    // ✅ EP-047 P3, P10 ([SP-183]): the first-line indent — `book` · `every` · `none` (absent = `book`; a value this build
+    // does not know is KEPT, and drawn as `book`) and its amount in ems (absent = 1.5).
+    [[nodiscard]] QString paragraphIndent() const { return paragraphIndent_; }
+    void setParagraphIndent(const QString& mode);
+    [[nodiscard]] double indentEm() const { return indentEm_; }
+    void setIndentEm(double em);
+    [[nodiscard]] ManuscriptTypography typography() const
+    {
+        return {typeface_, textSize_, ManuscriptTypography::indentFromName(paragraphIndent_), indentEm_};
+    }
 
     // ✅ EP-047 P11: Markup Hints — absent = ON. View ▸ Show Markup Hints (Ctrl+Shift+H).
     [[nodiscard]] bool markupHints() const { return markupHints_; }
@@ -55,6 +64,8 @@ public:
     static constexpr const char* kTypefaceKey = "typeface";
     static constexpr const char* kTextSizeKey = "textSize";
     static constexpr const char* kMarkupHintsKey = "markupHints";
+    static constexpr const char* kParagraphIndentKey = "paragraphIndent";
+    static constexpr const char* kIndentEmKey = "indentEm";
 
 signals:
     void typographyChanged();
@@ -73,8 +84,12 @@ private:
     QString typeface_;
     double textSize_ = ManuscriptTypography::kDefaultSize;
     bool markupHints_ = true;
+    QString paragraphIndent_ = QStringLiteral("book");
+    double indentEm_ = ManuscriptTypography::kDefaultIndentEm;
     bool subtitleChosen_ = false;
     bool typefaceChosen_ = false;
     bool textSizeChosen_ = false;
     bool markupHintsChosen_ = false;
+    bool paragraphIndentChosen_ = false;
+    bool indentEmChosen_ = false;
 };

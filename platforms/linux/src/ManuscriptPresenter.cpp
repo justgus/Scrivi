@@ -2,10 +2,12 @@
 
 #include <QGuiApplication>
 #include <QPalette>
+#include <QScreen>
 #include <QTextBlock>
 #include <QTextDocument>
 
 #include "ManuscriptEscapes.hpp"
+#include "ManuscriptLayout.hpp"
 #include "SceneDocument.hpp"
 #include "ThemeColours.hpp"
 
@@ -305,9 +307,79 @@ QTextCharFormat ManuscriptPresenter::chapterTitleFormat() const
     return f;
 }
 
+// ✅ Apple's `isBody`: a block is BODY TEXT unless it opens with a heading or a list item, or is a quote, a table or a fence.
+bool ManuscriptPresenter::isBody(const Block& b) const
+{
+    const MarkdownAnalysis& a = info(b.text).a;
+    if (std::any_of(a.headings.cbegin(), a.headings.cend(), [](const auto& h) { return h.line.start == 0; })
+        || std::any_of(a.listItems.cbegin(), a.listItems.cend(), [](const auto& li) { return li.line.start == 0; })) {
+        return false;
+    }
+    int i = 0;
+    while (i < b.text.size() && b.text.at(i) == QLatin1Char(' ')) {
+        ++i;
+    }
+    const QStringView rest = QStringView(b.text).mid(i);
+    return !(rest.startsWith(u'>') || rest.startsWith(u'|') || rest.startsWith(u"```") || rest.startsWith(u"~~~"));
+}
+
+// ✅ Apple's P10 book rule: the PREVIOUS block in the SAME scene (blank lines skipped) is body text — false at a scene's
+// start and after a chapter title (neither is scene text).
+bool ManuscriptPresenter::followsBody(const Block& b) const
+{
+    const QTextDocument* doc = document();
+    const QTextBlock first = doc->findBlock(b.start);
+    const int scene = sceneOf(first);
+    for (QTextBlock p = first.previous(); p.isValid() && sceneOf(p) == scene; p = p.previous()) {
+        if (!ManuscriptEscapes::isBlankLine(p.text())) {
+            const auto prev = blockAt(p.position());
+            return prev && isBody(*prev);
+        }
+    }
+    return false;
+}
+
+// What `ManuscriptLayout` draws this line with (Apple: the paragraph style `textParagraphWith` gives it).
+ManuscriptLineStyle* ManuscriptPresenter::lineStyle(const QTextBlock& line, const QString& text) const
+{
+    using T = ManuscriptTypography;
+    auto* style = new ManuscriptLineStyle;
+    const QScreen* screen = QGuiApplication::primaryScreen();
+    const double body = document()->defaultFont().pointSizeF() * (screen != nullptr ? screen->logicalDotsPerInchY() : 96.0) / 72.0;
+    const bool indenting = indent_ != T::ParagraphIndent::None;
+    style->pitch = body * T::kLineSpacing;
+    if (sceneDoc_ != nullptr && sceneOf(line) < 0) {
+        if (!ManuscriptEscapes::isBlankLine(text)) {
+            style->pitch = body * headingScale(1) * T::kHeadingLineSpacing;   // a chapter title: Heading 1's line
+        }
+        return style;   // a scene separator: a body line
+    }
+    if (ManuscriptEscapes::isBlankLine(text)) {
+        if (indenting) {
+            style->pitch = body * T::kLineSpacing * T::kGapFraction;   // P10: the stored blank line as a small gap
+        }
+        return style;
+    }
+    const auto b = blockAt(line.position());
+    if (!b) {
+        return style;
+    }
+    const int off = line.position() - b->start;
+    for (const auto& h : info(b->text).a.headings) {
+        if (h.line.start == off) {
+            style->pitch = body * headingScale(h.level) * T::kHeadingLineSpacing;   // P9: a heading on its own line height
+        }
+    }
+    if (off == 0 && indenting && isBody(*b) && (indent_ == T::ParagraphIndent::Every || followsBody(*b))) {
+        style->indent = indentEm_ * body;
+    }
+    return style;
+}
+
 void ManuscriptPresenter::highlightBlock(const QString& text)
 {
     const QTextBlock line = currentBlock();
+    setCurrentBlockUserData(lineStyle(line, text));   // ✅ [SP-183]: user data is never a document edit
     const auto b = blockAt(line.position());
     if (!b && sceneDoc_ != nullptr && !ManuscriptEscapes::isBlankLine(text) && sceneOf(line) < 0) {
         // Not scene text and not blank: a chapter title (scene separators are blank lines).
@@ -433,6 +505,14 @@ void ManuscriptPresenter::rehighlightRange(int from, int to)
     for (QTextBlock line = first; line.isValid(); line = line.next()) {
         rehighlightBlock(line);
         if (line == last) {
+            break;
+        }
+    }
+    // ✅ [SP-183] Book convention: the next block's first-line indent depends on THIS block's kind (made a heading, a blank
+    // line removed), so it is drawn again too.
+    for (QTextBlock next = last.next(); next.isValid() && sceneOf(next) >= 0; next = next.next()) {
+        if (!ManuscriptEscapes::isBlankLine(next.text())) {
+            rehighlightBlock(next);
             break;
         }
     }

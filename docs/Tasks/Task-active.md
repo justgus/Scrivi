@@ -1,5 +1,9 @@
 # Active Tasks
 
+*Last Updated: 2026-11-05 (**T-0610 → 🟠** → `Task-unverified.md` ([SP-183] built; the live pass is the user's).)*
+
+*Last Updated: 2026-11-05 (**T-0610 → active** with SP-183's activation (EP-048 S5b).)*
+
 *Last Updated: 2026-11-05 (**T-0662 → 🟠** → `Task-unverified.md` ([SP-204] built; Mac string check and live pass pending).)*
 
 *Last Updated: 2026-11-05 (**T-0662 → active** with SP-204's activation (EP-026 S3).)*

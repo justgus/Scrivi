@@ -49,18 +49,35 @@ const Face* face(const QString& name);
 // and the presenter sizes headings, emphasis and chapter titles from that default. ⛔ A second source is the trap EP-047
 // recorded: a face that vanishes on undo, on reload or on Replace All.
 // ✅ Rulings: P2/P8 per project, P5a bundled faces, P6 default Literata, P7 headings and chapter titles in the face, P9 16 pt.
-// ⚠️ P9's fixed 1.45 line height is a BLOCK format on Qt → [SP-183] (Q3); Qt's default line spacing until then.
+// ✅ P3, P9, P10 ([SP-183]): the fixed line heights and the first-line indent are drawn by `ManuscriptLayout` (Q1: a layout,
+// never a block format, which Qt's plain layout ignores and which is a document edit).
 struct ManuscriptTypography {
     static constexpr double kDefaultSize = 16.0;
     static constexpr double kMinSize = 10.0;
     static constexpr double kMaxSize = 32.0;
 
+    // ✅ EP-047 S3 (P3, P10): which body paragraphs get a first-line indent — Apple's `ParagraphIndent`, stored by its raw
+    // value (`book` · `every` · `none`; absent or unknown = `book`).
+    enum class ParagraphIndent { Book, Every, None };
+    static ParagraphIndent indentFromName(const QString& name);
+    static constexpr double kDefaultIndentEm = 1.5;
+    static constexpr double kMinIndentEm = 0.5;
+    static constexpr double kMaxIndentEm = 4.0;
+    // P9: body lines sit on a FIXED 1.45 × size line, the same for every face; headings and chapter titles on 1.25 × their
+    // own size. P10: with an indent on, a stored blank line between paragraphs draws at ⅓ of a body line.
+    static constexpr double kLineSpacing = 1.45;
+    static constexpr double kHeadingLineSpacing = 1.25;
+    static constexpr double kGapFraction = 1.0 / 3.0;
+
     // The face's NAME as stored in `project-settings.json` — kept even when this build does not bundle it.
     QString faceName;
     double size = kDefaultSize;
+    ParagraphIndent indent = ParagraphIndent::Book;
+    double indentEm = kDefaultIndentEm;   // in ems: it follows the size and the face
 
     ManuscriptTypography();   // the defaults (P6, P9)
-    ManuscriptTypography(QString faceName, double size);
+    ManuscriptTypography(QString faceName, double size, ParagraphIndent indent = ParagraphIndent::Book,
+                         double indentEm = kDefaultIndentEm);
 
     // The face drawn — the stored one, or the default if this build does not bundle it.
     const BundledFonts::Face* face() const { return BundledFonts::face(faceName); }

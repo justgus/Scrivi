@@ -1,7 +1,8 @@
 ---
 sprint: SP-180
 epic: EP-026
-status: Active
+status: Closed
+closed: 2026-10-21
 platform: Linux
 created: 2026-10-13
 ---
@@ -11,7 +12,7 @@ created: 2026-10-13
 **Status:** ✅ **CLOSED 2026-10-21** (user, 2026-10-21: *"close all five sprints and keep I-0308 open."*) · ✅ COMPLETE 2026-10-21 (every AC met; ⏳ close awaits the user) · 🟡 **ACTIVE 2026-10-13** (user: *"yes, as step 0 for both platforms."*) — created 2026-10-13 (user: *"start planning EP-026 S4"*). ✅ Q1–Q4 ruled. ✅ AC0–AC8 met 2026-10-13 ([I-0293]–[I-0296] Verified 2026-10-15); ⏳ AC9 rig live pass.
 **Carries:** [T-0607] → [`../Tasks/Task-unverified.md`](../../Tasks/Task-unverified.md) (🟠 Implemented - Not Verified) · [I-0293] `[ScriviCore]` · [I-0294] `[Apple]` · [I-0295] `[Apple]` · [I-0296] `[ScriviCore]`.
 **Epic:** [EP-026] `[Linux]` Undo/Redo History, Copy Buffers & Structured Cut/Copy/Paste →
-[`../Epics/Epic-active.md`](../../Epics/Epic-active.md). EP-026 Q2 (ruled 2026-10-11): EP-029's Linux follow-on is in this Epic.
+[`../../Epics/Closed/Epic-EP-026.md`](../../Epics/Closed/Epic-EP-026.md). EP-026 Q2 (ruled 2026-10-11): EP-029's Linux follow-on is in this Epic.
 **Builds on:**
 - [SP-178] (S2): undo. A structured paste is a reversible structural history node.
 - [SP-179] (S5): the copy buffers. A cross-scene slot holds a fragment.

@@ -9,9 +9,11 @@
 #include <functional>
 #include <optional>
 
+#include "ManuscriptTypography.hpp"
 #include "MarkdownAnalysis.hpp"
 
 class SceneDocument;
+struct ManuscriptLineStyle;
 
 // EP-048 L3–L6, L9 part (SP-166, T-0595) — the Linux manuscript PRESENTER.
 //
@@ -87,6 +89,15 @@ public:
     // Block-relative offsets of the hidden ESCAPE backslashes alone (a match starting at an escaped mark takes its `\`).
     QSet<int> escapesOf(const QString& blockText) const { return info(blockText).escapes; }
 
+    // ✅ [SP-183] (EP-047 P3, P9, P10): the paragraph indent and its amount. Each line's indent and line height are decided
+    // while it is highlighted and left on its block for `ManuscriptLayout` (Apple: the presenter's paragraph styles).
+    // The caller re-highlights after a change.
+    void setParagraphs(ManuscriptTypography::ParagraphIndent indent, double indentEm)
+    {
+        indent_ = indent;
+        indentEm_ = indentEm;
+    }
+
     // Body text height multipliers, Apple's SP-161 Q1 sizes over its 13 pt body: H1 22 · H2 18 · H3 16.
     static double headingScale(int level);
 
@@ -103,6 +114,9 @@ private:
     struct Info { MarkdownAnalysis a; QSet<int> escapes; };   // block-relative
     const Info& info(const QString& blockText) const;
     int sceneOf(const QTextBlock& b) const;
+    bool isBody(const Block& b) const;
+    bool followsBody(const Block& b) const;
+    ManuscriptLineStyle* lineStyle(const QTextBlock& line, const QString& text) const;
     QVector<MarkdownRange> revealSpans(int selStart, int selEnd) const;
     bool lineRevealed(int blockNumber) const { return revealedLines_.contains(blockNumber); }
     void onContentsChange(int from, int removed, int added);
@@ -119,5 +133,7 @@ private:
     QVector<MarkdownRange> revealedSpans_;    // document positions
     bool rehighlighting_ = false;
     bool hintsEnabled_ = true;
+    ManuscriptTypography::ParagraphIndent indent_ = ManuscriptTypography::ParagraphIndent::Book;
+    double indentEm_ = ManuscriptTypography::kDefaultIndentEm;
     QMetaObject::Connection edits_;
 };

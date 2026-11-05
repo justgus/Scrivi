@@ -1,5 +1,7 @@
 #include "SceneDocument.hpp"
 
+#include "ManuscriptLayout.hpp"
+
 #include <QPlainTextDocumentLayout>
 #include <QSet>
 #include <QTextCursor>
@@ -12,7 +14,8 @@ SceneDocument::SceneDocument()
     // QTextDocument defaults to the rich-text layout, which QPlainTextEdit refuses
     // in setDocument() (leaving the viewport blank). Install the plain layout up
     // front; the document takes ownership.
-    doc_.setDocumentLayout(new QPlainTextDocumentLayout(&doc_));
+    // ✅ [SP-183]: Scrivi's own plain layout, which also draws the fixed line heights and the first-line indent.
+    doc_.setDocumentLayout(new ManuscriptLayout(&doc_));
 }
 
 namespace {

@@ -3119,13 +3119,17 @@ void EditorShell::unlockAfterWork()
 
 void EditorShell::applyTypography()
 {
-    const QFont font = prefs_ != nullptr ? prefs_->typography().bodyFont() : ManuscriptTypography().bodyFont();
+    const ManuscriptTypography type = prefs_ != nullptr ? prefs_->typography() : ManuscriptTypography();
+    const QFont font = type.bodyFont();
     // ✅ Not an edit: Qt reports no text change for a font or a re-highlight, so nothing is dirtied or reported (measured:
     // `settings_smoke` §3, and a guard here caught no mutation).
     viewport_->setFont(font);
     viewport_->document()->setDefaultFont(font);
-    if (presenter_ != nullptr && presenter_->document() != nullptr) {
-        presenter_->rehighlight();   // headings, emphasis and chapter titles are sized from the default font
+    if (presenter_ != nullptr) {
+        presenter_->setParagraphs(type.indent, type.indentEm);   // ✅ [SP-183]: drawn by `ManuscriptLayout`, never stored
+        if (presenter_->document() != nullptr) {
+            presenter_->rehighlight();   // headings, emphasis, chapter titles, line heights and indents follow the type
+        }
     }
 }
 

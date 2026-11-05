@@ -2,12 +2,15 @@
 
 #include <QApplication>
 #include <QComboBox>
+#include <QDoubleSpinBox>
 #include <QDialogButtonBox>
 #include <QFormLayout>
 #include <QGroupBox>
 #include <QLineEdit>
 #include <QSpinBox>
 #include <QVBoxLayout>
+
+#include <algorithm>
 
 #include <QLabel>
 
@@ -53,8 +56,24 @@ ProjectSettingsDialog::ProjectSettingsDialog(ProjectPreferences* prefs, QWidget*
     size_->setRange(int(ManuscriptTypography::kMinSize), int(ManuscriptTypography::kMaxSize));
     size_->setSuffix(tr(" pt"));
     size_->setValue(int(prefs->textSize()));
+    // ✅ EP-047 S3 (P3, P10), [SP-183]: drawn, never typed — zero characters in the manuscript. Apple's rows and order.
+    indent_ = new QComboBox(type);
+    indent_->addItem(tr("Book convention"), QStringLiteral("book"));
+    indent_->addItem(tr("Every paragraph"), QStringLiteral("every"));
+    indent_->addItem(tr("None"), QStringLiteral("none"));
+    // A mode from a later Scrivi is drawn as Book convention and shown as such (Apple's Picker shows no row for it).
+    indent_->setCurrentIndex(std::max(0, indent_->findData(prefs->paragraphIndent())));
+    indentEm_ = new QDoubleSpinBox(type);
+    indentEm_->setRange(ManuscriptTypography::kMinIndentEm, ManuscriptTypography::kMaxIndentEm);
+    indentEm_->setSingleStep(0.5);
+    indentEm_->setDecimals(1);
+    indentEm_->setSuffix(tr(" em"));
+    indentEm_->setValue(prefs->indentEm());
+    indentEm_->setEnabled(indent_->currentData().toString() != QLatin1String("none"));
     typeForm->addRow(tr("Typeface"), typeface_);
     typeForm->addRow(tr("Text size"), size_);
+    typeForm->addRow(tr("Paragraph indent"), indent_);
+    typeForm->addRow(tr("Indent"), indentEm_);
     layout->addWidget(type);
 
     // ── Undo History (EP-026 S3, [SP-204]; Apple's section, its wording) ──
@@ -107,6 +126,12 @@ ProjectSettingsDialog::ProjectSettingsDialog(ProjectPreferences* prefs, QWidget*
     connect(typeface_, &QComboBox::activated, this,
             [this](int index) { prefs_->setTypeface(typeface_->itemData(index).toString()); });
     connect(size_, &QSpinBox::valueChanged, this, [this](int v) { prefs_->setTextSize(v); });
+    connect(indent_, &QComboBox::activated, this, [this](int index) {
+        const QString mode = indent_->itemData(index).toString();
+        indentEm_->setEnabled(mode != QLatin1String("none"));
+        prefs_->setParagraphIndent(mode);
+    });
+    connect(indentEm_, &QDoubleSpinBox::valueChanged, this, [this](double v) { prefs_->setIndentEm(v); });
 }
 
 void ProjectSettingsDialog::done(int result)
