@@ -1,4 +1,5 @@
 #include "SceneInspector.hpp"
+#include "HistorySection.hpp"
 
 #include "AsyncCall.hpp"   // I-0193: core reads off the UI thread
 
@@ -194,6 +195,10 @@ QWidget* SceneInspector::buildWritingTab()
     writingStatus_->setEnabled(false);
     layout->addWidget(writingStatus_);
 
+    // EP-026 S3 ([SP-204] Q1): History, at the foot of the Writing tab — Apple's History card is in the Writing stack.
+    historySection_ = new HistorySection(tab);
+    layout->addWidget(historySection_);
+
     return tab;
 }
 
@@ -366,6 +371,7 @@ void SceneInspector::setScene(const QString& sceneID)
     flushPendingEdits();
 
     sceneID_ = sceneID;
+    historySection_->setScene(sceneID);   // a re-filter only ([I-0331])
     reload();   // ✅ SP-197: the notes come in the same read
 }
 

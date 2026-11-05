@@ -13,6 +13,7 @@
 class QLabel;
 class QLineEdit;
 class QTabWidget;
+class HistorySection;
 class QTextEdit;
 class QTreeWidget;
 class QTreeWidgetItem;
@@ -131,6 +132,8 @@ public:
     // Re-entrant and cheap when the scene has not changed: a repeat of the
     // current sceneID is a no-op, so scroll traffic does not re-hit the backend.
     void setScene(const QString& sceneID);
+    // EP-026 S3 ([SP-204]): the Writing tab's History section (the shell hands it the history and the caret).
+    [[nodiscard]] HistorySection* historySection() const { return historySection_; }
 
     // ✅ [I-0315]: the scene the panel shows was REMOVED (a merge, an undo of a paste) — drop it WITHOUT flushing, so no
     // note is written to a scene that is gone. The next setScene() loads its successor.
@@ -222,6 +225,8 @@ private:
         bool    pending = false;
         QString pendingStatus;  // core's WorldStatus name when pending
     };
+
+    HistorySection* historySection_ = nullptr;
 
     // Tab bodies, built once in the constructor.
     QWidget* buildWritingTab();

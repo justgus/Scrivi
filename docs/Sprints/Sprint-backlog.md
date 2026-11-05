@@ -1,6 +1,6 @@
 # Sprint Backlog
 
-*Last Updated: 2026-11-04 (**SP-189, SP-190 removed** — closed 2026-11-04.)*
+*Last Updated: 2026-11-05 (**SP-204 removed** — activated 2026-11-05.)*
 
 Sprints listed here are in 🔵 Planning status — defined and ready to activate, but not yet started.
 

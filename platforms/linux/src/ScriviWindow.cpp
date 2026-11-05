@@ -410,6 +410,16 @@ void ScriviWindow::buildMenuBar()
     });
     editorOnlyActions_.append(settings);
 
+    // ✅ EP-026 S3 ([SP-204]; Apple: EP-047 SP-167 Q1) — an ACTION, not a setting: its own dialog.
+    QAction* purgeStale = project->addAction(tr("Purge Stale History Branches…"));
+    purgeStale->setObjectName(QStringLiteral("purgeStaleBranchesAction"));
+    connect(purgeStale, &QAction::triggered, this, [this]() {
+        if (editor_ != nullptr) {
+            editor_->purgeStaleBranches();
+        }
+    });
+    editorOnlyActions_.append(purgeStale);
+
     // --- Project ▸ Manage Worlds… (EP-035 AC3, SP-127 / T-0494) ----------
     //
     // ⚠️ The surface that closes `capability_without_surface` for worlds:

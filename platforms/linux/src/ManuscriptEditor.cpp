@@ -7,6 +7,7 @@
 #include <QMouseEvent>
 #include <QPaintEvent>
 #include <QPainter>
+#include <QPainterPath>
 #include <QPalette>
 
 #include "ThemeColours.hpp"
@@ -25,8 +26,11 @@
 #include <QApplication>
 #include <QClipboard>
 
+#include <QAbstractButton>
 #include <QInputMethodEvent>
 #include <QMimeData>
+#include <QResizeEvent>
+#include <QTextLayout>
 
 namespace {
 // Horizontal inset (px) at each end of the rule, matching Apple's DividerAttachmentCell
@@ -38,11 +42,57 @@ const QString kSourceMime = QStringLiteral("application/x-scrivi-manuscript-sour
 // EP-026 S4 ([SP-180] Q1): a cross-scene copy's clipboard data carries this editor's token for the Range it holds —
 // ✅ never the Range itself (T2=A: the system clipboard carries flat text only).
 const QString kFragmentTokenMime = QStringLiteral("application/x-scrivi-fragment-token");
+
+// EP-026 S3 ([SP-204]): a branch-point mark — Apple's `arrow.triangle.branch` button, drawn in the secondary colour (light
+// and dark). A real button, so the tooltip, the click and the accessible name come with it ([T-0620] Q3, Q4).
+class BranchMark : public QAbstractButton
+{
+public:
+    explicit BranchMark(QWidget* parent) : QAbstractButton(parent)
+    {
+        const QString label = ManuscriptEditor::tr("Ctrl+Shift+Z will ask which branch to redo");
+        setToolTip(label);
+        setAccessibleName(label);
+        setCursor(Qt::PointingHandCursor);
+        setFocusPolicy(Qt::NoFocus);   // the caret stays in the text; Ctrl+Shift+Z is the keyboard path
+    }
+
+protected:
+    void paintEvent(QPaintEvent*) override
+    {
+        QPainter p(this);
+        p.setRenderHint(QPainter::Antialiasing);
+        p.setPen(QPen(ThemeColours::deemphasised(palette()), 1.5, Qt::SolidLine, Qt::RoundCap));
+        const qreal w = width(), h = height();
+        const QPointF stemTop(w * 0.32, h * 0.18), stemBottom(w * 0.32, h * 0.86), fork(w * 0.32, h * 0.62);
+        const QPointF branchEnd(w * 0.76, h * 0.22);
+        p.drawLine(stemBottom, stemTop);
+        QPainterPath branch(fork);
+        branch.cubicTo(QPointF(w * 0.32, h * 0.40), QPointF(w * 0.76, h * 0.48), branchEnd);
+        p.drawPath(branch);
+        p.drawLine(stemTop, stemTop + QPointF(-w * 0.12, h * 0.12));   // the arrowheads
+        p.drawLine(stemTop, stemTop + QPointF(w * 0.12, h * 0.12));
+        p.drawLine(branchEnd, branchEnd + QPointF(-w * 0.17, 0));
+        p.drawLine(branchEnd, branchEnd + QPointF(0, h * 0.17));
+    }
+};
 }   // namespace
 
 ManuscriptEditor::ManuscriptEditor(QWidget* parent) : QPlainTextEdit(parent)
 {
     document()->setUndoRedoEnabled(false);   // Ctrl+Z is the custom history's (EP-026 S2) — see keyPressEvent
+
+    // EP-026 S3 ([SP-204] Q4): the branch gutter, always present, painted as the page so it reads as one surface.
+    setViewportMargins(kGutterWidth, 0, 0, 0);
+    gutter_ = new QWidget(this);
+    gutter_->setObjectName(QStringLiteral("branchGutter"));
+    gutter_->setBackgroundRole(QPalette::Base);
+    gutter_->setAutoFillBackground(true);
+    connect(this, &QPlainTextEdit::updateRequest, this, [this](const QRect&, int dy) {
+        if (dy != 0 || !branchMarks_.isEmpty()) {   // a scroll, or marks that may have moved with a relayout
+            placeBranchMarks();
+        }
+    });
 
     // Keep the caret out of protected boundary text (T-0246).
     connect(this, &QPlainTextEdit::cursorPositionChanged,
@@ -1016,6 +1066,88 @@ void ManuscriptEditor::insertFromMimeData(const QMimeData* source)
         return;
     }
     QPlainTextEdit::insertFromMimeData(source);
+}
+
+void ManuscriptEditor::resizeEvent(QResizeEvent* event)
+{
+    QPlainTextEdit::resizeEvent(event);
+    const QRect r = contentsRect();
+    gutter_->setGeometry(r.left(), r.top(), kGutterWidth, r.height());
+    placeBranchMarks();
+}
+
+void ManuscriptEditor::setBranchMarkPositions(const QList<int>& positions)
+{
+    branchPositions_ = positions;
+    placeBranchMarks();
+}
+
+void ManuscriptEditor::placeBranchMarks()
+{
+    // Each line's centre, in the gutter's (= the viewport's) y. ⚠️ Step 0: `QPlainTextEdit` lays out lazily, and
+    // `blockBoundingGeometry` WALKS from the first visible block to the one asked for, laying out every block between —
+    // so a branch far off screen would lay out the manuscript up to it on every placement. ✅ Culled by block NUMBER
+    // against the visible range first (the blocks painting has laid out anyway); then the geometry; then the line, valid.
+    QList<qreal> lines;
+    QList<qreal> heights;
+    const int vpHeight = viewport()->height();
+    QTextBlock visible = firstVisibleBlock();
+    const int firstNumber = visible.blockNumber();
+    int lastNumber = firstNumber;
+    for (qreal top = blockBoundingGeometry(visible).translated(contentOffset()).top(); visible.isValid() && top <= vpHeight;
+         visible = visible.next()) {
+        lastNumber = visible.blockNumber();
+        top += blockBoundingRect(visible).height();
+    }
+    for (const int pos : std::as_const(branchPositions_)) {
+        const QTextBlock block = document()->findBlock(pos);
+        if (!block.isValid() || block.blockNumber() < firstNumber || block.blockNumber() > lastNumber) {
+            continue;
+        }
+        const QRectF geometry = blockBoundingGeometry(block).translated(contentOffset());
+        if (geometry.bottom() < 0 || geometry.top() > vpHeight) {
+            continue;
+        }
+        const int at = pos - block.position();
+        QTextLine line = block.layout()->lineForTextPosition(at);
+        if (!line.isValid() && at > 0) {
+            line = block.layout()->lineForTextPosition(at - 1);   // at the very end: the line of the one before (Apple's)
+        }
+        if (!line.isValid()) {
+            continue;
+        }
+        const qreal y = geometry.top() + line.y() + line.height() / 2;
+        if (std::any_of(lines.cbegin(), lines.cend(), [y](qreal other) { return std::abs(other - y) < 1; })) {
+            continue;   // one mark per line ([SP-192] Q1)
+        }
+        lines.append(y);
+        heights.append(line.height());
+    }
+    while (branchMarks_.size() > lines.size()) {
+        delete branchMarks_.takeLast();
+    }
+    while (branchMarks_.size() < lines.size()) {
+        auto* mark = new BranchMark(gutter_);
+        mark->setObjectName(QStringLiteral("branchMark"));
+        connect(mark, &QAbstractButton::clicked, this, [this, mark] {
+            emit branchMarkClicked(QRect(gutter_->mapTo(this, mark->geometry().topLeft()), mark->size()));
+        });
+        branchMarks_.append(mark);
+    }
+    for (int i = 0; i < lines.size(); ++i) {
+        const int side = int(std::min<qreal>(heights.at(i), 18));
+        branchMarks_.at(i)->setGeometry(kGutterWidth - side - 6, int(std::round(lines.at(i) - side / 2.0)), side, side);
+        branchMarks_.at(i)->show();
+    }
+}
+
+QList<QRect> ManuscriptEditor::branchMarkRects() const
+{
+    QList<QRect> rects;
+    for (const QAbstractButton* mark : branchMarks_) {
+        rects.append(QRect(gutter_->mapTo(this, mark->geometry().topLeft()), mark->size()));
+    }
+    return rects;
 }
 
 void ManuscriptEditor::paintEvent(QPaintEvent* event)

@@ -31,6 +31,7 @@ public:
     ProjectPreferences(ScriviBridge* bridge, QString projectRootPath, const QString& title, const QVariantMap& fetch,
                        QObject* parent = nullptr);
 
+    [[nodiscard]] const QString& projectRootPath() const { return root_; }
     [[nodiscard]] QString title() const { return title_; }
     void setTitle(const QString& title);
     [[nodiscard]] QString subtitle() const { return subtitle_; }

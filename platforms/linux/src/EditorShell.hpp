@@ -4,6 +4,7 @@
 #include <optional>
 #include <functional>
 #include <QList>
+#include <QPointer>
 #include <QSet>
 #include <QString>
 #include <QVariantMap>
@@ -28,6 +29,7 @@ class QSplitter;
 class ScriviBridge;
 class ManuscriptEditor;
 class HistoryCapture;
+class QMenu;
 class BufferService;
 class ManuscriptPresenter;
 class SceneInspector;
@@ -189,6 +191,9 @@ public:
     // session-boundary warning. No-ops when no history is open.
     void undo();
     void redo();
+    // EP-026 S3 ([SP-204]): Project ▸ Purge Stale History Branches… — Apple's `StaleBranchesSheet`: scan (off the GUI
+    // thread), list, and purge each only after its confirmation.
+    void purgeStaleBranches();
     [[nodiscard]] bool canUndo() const;
     // ✅ [I-0302]: Edit ▸ Undo is available at a barrier too — the undo then shows the barrier's notice (Apple's rule).
     [[nodiscard]] bool undoAvailable() const;
@@ -775,6 +780,8 @@ private:
     // ✅ Owned here, not by `session_`: `ProjectSession` holds state and never talks to the core; this does.
     // Created on a project's first load; closed and released in `releaseProject()`.
     HistoryCapture*         history_ = nullptr;
+    QPointer<QMenu>         branchChooser_;            // EP-026 S3: the open branch chooser, if any
+    bool                    branchMarksScheduled_ = false;
     // EP-026 S5 (SP-179): this project's copy buffers — owned here for the same reason as `history_`. Created on load,
     // released in `releaseProject()`.
     BufferService*          buffers_ = nullptr;
@@ -799,6 +806,16 @@ private:
     int storedOffset(int index, int docPos) const;
     // Apply one undo/redo result (Apple's `apply(step:)`).
     void applyHistoryStep(const QVariantMap& step, bool isUndo);
+    // ── EP-026 S3 ([SP-204]): branching ──
+    // [I-0320]: the chooser for `fork` (a `redoFork`), a `QMenu` (Q2) at `anchor` (the editor's coordinates). Choosing
+    // re-primaries the fork, then redoes onto it; Esc or a click away redoes nothing.
+    void showBranchChooser(const QVariantMap& fork, const QRect& anchor);
+    void redoBranch(const QString& forkNodeID, const QString& childEventID);
+    // Where the chooser opens: the mark nearest the caret, else the caret ([SP-192]).
+    [[nodiscard]] QRect branchChooserAnchor() const;
+    // [T-0620]: the marks follow every report, after the turn (a report can come before its step is applied).
+    void scheduleBranchMarks();
+    void refreshBranchMarks();
     // Undo/redo crossed a structural node — ✅ [SP-191] its inverse range call, off the GUI thread, the delta applied (Apple's
     // `applyStructuralInverse`); an old fragment node is converted to a Range ([SP-187] Q2).
     void applyStructuralInverse(const QVariantMap& inverse, bool isUndo);

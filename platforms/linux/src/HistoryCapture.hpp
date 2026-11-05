@@ -83,7 +83,7 @@ public:
                                                const QHash<QString, QString>& sceneTexts,
                                                const QJsonObject& structuralPayload = {},
                                                const QHash<QString, QString>& sceneTextsBefore = {});
-    void adopt(const QVariantMap& state) { if (open_) { take(state); } }
+    void adopt(const QVariantMap& state) { if (open_) { take(state); emit historyChanged(); } }   // a node was appended
 
     // ── Undo / Redo — the shell applies what comes back ──
     // {} when history is closed or the call failed.
@@ -91,6 +91,23 @@ public:
     QVariantMap redo();
     // After applying an undo/redo: the caret rests in `sceneID`, which now reads `text`.
     void noteApplied(const QString& sceneID, const QString& text);
+
+    // ── Branching (EP-026 S3, SP-204) — Apple's `redoFork` / `redoForkNow` / `selectBranch` / `purgeBranch` ──
+    // [I-0320]: the branches the next redo could take when there are two or more ({} = a plain redo):
+    // {nodeID, children:[{eventID, preview, timestamp, isPrimary, sceneID, changeOffsetUtf8}]}. Asked fresh.
+    QVariantMap redoFork();
+    // The branch point the LAST report named — the margin mark's (no core call).
+    [[nodiscard]] const QVariantMap& redoForkNow() const { return redoFork_; }
+    // Re-primaries `forkNodeID` onto `childEventID`; moves nothing (redo walks it). False when it failed.
+    bool selectBranch(const QString& forkNodeID, const QString& childEventID);
+    // Erases a stale branch (user-confirmed). False when the core refused it.
+    bool purgeBranch(const QString& branchRootEventID);
+
+signals:
+    // After every report from the core — the margin mark follows the history pointer (Apple's `onReport`).
+    void reported();
+    // The tree changed: a commit, an undo/redo, a barrier, a branch selected or purged (Apple's `revision`, I-0105).
+    void historyChanged();
 
 private:
     // Takes the core's report: the can-state, and re-arms the idle timer at its deadline.
@@ -105,5 +122,6 @@ private:
     bool canRedo_ = false;
     bool hasPending_ = false;
     QString undoCrossesSessionAt_;
+    QVariantMap redoFork_;
     QTimer* idleTimer_ = nullptr;
 };

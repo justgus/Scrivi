@@ -1,5 +1,9 @@
 # Active Tasks
 
+*Last Updated: 2026-11-05 (**T-0662 → 🟠** → `Task-unverified.md` ([SP-204] built; Mac string check and live pass pending).)*
+
+*Last Updated: 2026-11-05 (**T-0662 → active** with SP-204's activation (EP-026 S3).)*
+
 *Last Updated: 2026-11-04 (**T-0658 → 🟠** → `Task-unverified.md` (SP-202 measured and ruled).)*
 
 *Last Updated: 2026-11-04 (**T-0658 filed → active** with SP-202's activation (EP-050 S3).)*

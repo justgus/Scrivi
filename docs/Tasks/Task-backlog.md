@@ -1,5 +1,11 @@
 # Task Backlog
 
+*Last Updated: 2026-11-05 (**T-0663 filed** and Q1–Q5 ruled: the project's file facts in the Properties tab.)*
+
+*Last Updated: 2026-11-05 (**T-0662 → active** with [SP-204]'s activation; it left this file.)*
+
+*Last Updated: 2026-11-05 (**T-0662 filed** with [SP-204] (🔵 Planning), [EP-026] S3.)*
+
 *Last Updated: 2026-11-04 (**T-0617, T-0618 → 🟠** → `Task-unverified.md` ([SP-189], [SP-190] activated and built); **T-0660, T-0661** filed under [EP-057].)*
 
 Tasks listed here are **documented, unstarted, and not assigned to an active Sprint.**
@@ -39,6 +45,7 @@ status changes on its own layer.
 | T-0621 | `[Cross]` Explore a whole-manuscript history view (a tree, or a branching timeline) | ⚠️ None yet | 🔵 Backlog — exploration |
 | T-0628 | `[Cross]` EP-052: keep a held queue on local disk and push it when the project returns | EP-052 (unscheduled) | 🔵 Backlog |
 | T-0657 | `[Cross]` Navigator: collapsible chapters, the current one open, the writer's choices remembered per device | ⚠️ None yet | 🔵 Backlog |
+| T-0663 | `[Cross]` Properties tab: the project's file facts (folder, path, dates, size) | ⚠️ None yet | 🔵 Backlog — Q1–Q5 ruled |
 
 > ✅ **T-0477 – T-0479 LEFT this file 2026-08-31 when SP-124 was ACTIVATED**, per the standing rule that
 > active Tasks never sit in the backlog. ✅ **They are now VERIFIED (2026-09-10) and ARCHIVED** →
@@ -759,4 +766,39 @@ must be decided against collapsed chapters before building.
 hosts `SceneNavigatorView` in a `UIHostingController` in a 320 × 1000 `UIWindow` and times `layoutIfNeeded` over a few
 runs; `sample <pid>` on the simulator process during a loop gives the profile. Baseline 2026-11-03: ~75 ms (simulator),
 bare List 12 ms.
+
+## 🔵 T-0663 — `[Cross]` Properties tab: the project's file facts (folder, path, dates, size)
+
+**Epic:** ⚠️ none yet · **Status:** 🔵 Backlog (proposed enhancement) · **Date Requested:** 2026-11-05 (user, during [SP-204]:
+*"we need to add file information (project folder name, created/modified dates, approximate size, pathname etc.) to the
+properties panel since we may be working with multiple files that contain similar data."*)
+
+**Why:** two projects with similar contents (a copy, a backup, the rig's test copy) look identical in the Inspector today. The
+writer needs to see which package is open.
+
+**What the user asked for:**
+- The project's **folder name**, **full path**, **created and modified dates**, and **approximate size**.
+- These are **project facts, not scene facts**: they belong in the Properties tab's existing **Project** section
+  ([T-0647]: `projectProperties`, `ScenePropertiesView.swift:125`; Linux `SceneInspector.cpp`), and do not change as the
+  scene changes.
+- **Read once, when the project opens.** The size may be slow, so it is computed on a **separate background thread** and
+  shows a pending state until it is known.
+
+**Shape (recommended):**
+- A new core endpoint (for example `scrivi_get_project_file_info`), not new fields in `scrivi_get_project_metrics`. The
+  metrics are re-read on every scene read, and a folder walk must not run that often. The walk is C++ (`std::filesystem`),
+  so both platforms share it; each platform calls it off the main thread once per open and caches the result.
+- Folder name and path are known at once; only the size (and the modified date, if it comes from the walk) waits.
+
+**Rulings (user, 2026-11-05):**
+1. **Created** is `project.json`'s `createdAt`, not the folder's filesystem date.
+2. **Modified** is the newest file's mtime from the walk, labelled **"Last modified before this session"**: read once at
+   open, so the writer's own autosaves do not count.
+3. **Size** counts the **whole package**, `.git` snapshots and the undo-history log included ("≈ 48 MB on disk").
+4. **Shared worlds:** each World section shows the world package's **path only** (no dates or size).
+5. **A slow walk stops after a time limit** and the size (and modified date) show **"Unknown"**. The limit is **10 seconds**
+   (user, 2026-11-05).
+
+**Scope:** Apple (Mac and iOS) and Linux, the same shape (Linux adopts Apple's). The path is selectable for copying, like the
+scene timestamps, and read-only.
 

@@ -1,5 +1,7 @@
 # Unverified Tasks
 
+*Last Updated: 2026-11-05 (**T-0662 → 🟠** ([SP-204], EP-026 S3).)*
+
 *Last Updated: 2026-11-04 (**T-0616, T-0617, T-0618 → ✅ Verified and archived** (user, 2026-11-04: *"Steps 1-8 on the Mac pass."* — the Mac on a local disk, build 1.0.349 `ef79dca`))*
 
 *Last Updated: 2026-11-04 (**T-0658, T-0659 → ✅ Verified and archived** (user, 2026-11-04: *"this is a pass. We should be able to close SP-202 and SP-203."*))*
@@ -25,6 +27,26 @@ Tasks that are **implemented and awaiting user verification** before being archi
 ⚠️ This file must not disagree with [`Task-active.md`](Task-active.md) or
 [`Task-backlog.md`](Task-backlog.md). A Task implemented but unverified belongs **here** — not left
 in the backlog carrying a 🟠 status.
+
+---
+
+## 🟠 T-0662 — `[Linux]` EP-026 S3: branching — chooser, margin mark, History section, stale purge, Undo History settings
+
+**Epic:** [EP-026] (S3) · **Status:** 🟠 **Implemented - Not Verified** · **Sprint:** [SP-204] →
+[`../Sprints/Sprint-SP-204.md`](../Sprints/Sprint-SP-204.md) · **Date Requested:** 2026-11-05 (user: *"plan EP-026 S3"*)
+
+**What:** bind the six branching endpoints; Ctrl+Shift+Z at a branch point opens the branch chooser ([I-0320]); the
+branch-point margin mark ([T-0620]'s Linux half); a History section in the Writing tab; Project ▸ Purge Stale History
+Branches…; Project Settings ▸ Undo History. `[Apple]` too ([SP-204] Q3): `HistoryCard.swift:207`'s stale-badge text names
+Project ▸ Purge Stale History Branches…, not Project Settings. Tested by a new `branch_smoke`, mutation-checked.
+
+**Done (2026-11-05):** built as [SP-204]'s plan; AC1–AC7 met on Docker + macOS evidence (all 40 Linux smoke steps, `branch_smoke`
+5/5 mutations caught, ctest macOS 806 + Linux 810, interop 337). Files: `ScriviBridge`, `HistoryCapture`, `EditorShell`,
+`ManuscriptEditor`, `HistorySection` (new), `ProjectSettingsDialog`, `ProjectPreferences`, `SceneInspector`, `ScriviWindow`,
+`tests/branch_smoke.*`, CMake, Linux CI; `[Apple]` `Scrivi/Views/Inspector/HistoryCard.swift:207`. ⏳ The Mac look at the badge
+string (Apple half) · the Linux live pass (AC8 → [EP-057] at close).
+
+---
 
 ---
 

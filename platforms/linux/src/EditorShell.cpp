@@ -9,6 +9,8 @@
 #include <QAction>
 #include <QApplication>
 #include <QDebug>
+#include <QDialog>
+#include <QDialogButtonBox>
 #include <QDir>
 #include <QFile>
 #include <QFileDialog>
@@ -22,6 +24,7 @@
 #include <QJsonObject>
 #include <QJsonValue>
 #include <QLabel>
+#include <QListWidget>
 #include <QCursor>
 #include <QMenu>
 #include <QMessageBox>
@@ -47,6 +50,7 @@
 #include "EpochOffsetDialog.hpp"
 #include "BufferService.hpp"
 #include "HistoryCapture.hpp"
+#include "HistorySection.hpp"
 #include "HistoricalEventDialog.hpp"
 #include "ManuscriptEditor.hpp"
 #include "ManuscriptEscapes.hpp"
@@ -368,6 +372,16 @@ EditorShell::EditorShell(QWidget* parent, AppEnvironment* env)
     // (Apple: `beginPasteOrCut` … `flush`, `recordGroupedEdit`).
     connect(viewport_, &ManuscriptEditor::undoRequested, this, &EditorShell::undo);
     connect(viewport_, &ManuscriptEditor::redoRequested, this, &EditorShell::redo);
+    // EP-026 S3 ([T-0620] Q3): a click on a branch mark opens the chooser there, as Ctrl+Shift+Z.
+    connect(viewport_, &ManuscriptEditor::branchMarkClicked, this, [this](const QRect& anchor) {
+        if (history_ == nullptr || loading_ || rangeEditInFlight_) {
+            return;
+        }
+        const QVariantMap fork = history_->redoFork();
+        if (!fork.value(QStringLiteral("children")).toList().isEmpty()) {
+            showBranchChooser(fork, anchor);
+        }
+    });
     connect(viewport_, &ManuscriptEditor::pasteOrCutBegins, this, [this](const QString& kind, const QString& bufferID) {
         if (history_ != nullptr) { history_->beginPasteOrCut(kind, bufferID); }
     });
@@ -823,6 +837,7 @@ void EditorShell::applyLoadedProject(const QString& projectPath,
         connect(prefs_, &ProjectPreferences::markupHintsChanged, this, [this](bool on) {
             const QTextCursor c = viewport_->textCursor();
             presenter_->setHintsEnabled(on, c.selectionStart(), c.selectionEnd());
+            scheduleBranchMarks();   // EP-026 S3 [T-0620] Q2: the marks show only with the hints
         });
         connect(prefs_, &ProjectPreferences::titleChanged, this, [this](const QString& t) {
             if (auto* l = findChild<QLabel*>(QStringLiteral("editorTitle"))) {
@@ -863,7 +878,11 @@ void EditorShell::applyLoadedProject(const QString& projectPath,
             history_->deleteLater();
         }
         history_ = new HistoryCapture(projectPath, this);
+        connect(history_, &HistoryCapture::reported, this, &EditorShell::scheduleBranchMarks);   // EP-026 S3 [T-0620]
         history_->adoptOpened(payload.historyOpened);
+        if (inspector_ != nullptr) {
+            inspector_->historySection()->setHistory(history_);
+        }
     }
     historyText_.clear();
     grouping_ = false;
@@ -1511,6 +1530,12 @@ void EditorShell::onCursorMoved()
     if (history_ != nullptr && seg >= 0 && !grouping_ && !applyingLoad_) {
         const Span historySpan("history: caret moved");
         history_->caretMoved(sceneDoc_.segments().at(seg).sceneID, editInFlight_);
+    }
+    // EP-026 S3: the History section bolds the event the caret is in — a scene-local UTF-8 byte.
+    if (inspector_ != nullptr && seg >= 0) {
+        const int local = storedOffset(seg, viewport_->textCursor().position());
+        inspector_->historySection()->setCaret(sceneDoc_.segments().at(seg).sceneID,
+                                               int(sceneDoc_.bodyText(seg).left(local).toUtf8().size()));
     }
     promoteActiveScene(seg);
 }
@@ -2631,8 +2656,112 @@ void EditorShell::redo()
         return;
     }
     if (history_ != nullptr && !loading_) {
+        // ✅ [I-0320] (user, 2026-10-24): the branch chooser is a REDO question — asked here, never as an undo lands.
+        const QVariantMap fork = history_->redoFork();
+        if (!fork.value(QStringLiteral("children")).toList().isEmpty()) {
+            showBranchChooser(fork, branchChooserAnchor());
+            return;
+        }
         applyHistoryStep(history_->redo(), /*isUndo=*/false);
     }
+}
+
+QRect EditorShell::branchChooserAnchor() const
+{
+    const QRect caret(viewport_->viewport()->mapTo(viewport_, viewport_->cursorRect().topLeft()), viewport_->cursorRect().size());
+    const QList<QRect> marks = viewport_->branchMarkRects();
+    if (marks.isEmpty()) {
+        return caret;   // the branch's line is not on screen
+    }
+    return *std::min_element(marks.cbegin(), marks.cend(), [&caret](const QRect& a, const QRect& b) {
+        return std::abs(a.center().y() - caret.center().y()) < std::abs(b.center().y() - caret.center().y());
+    });
+}
+
+void EditorShell::showBranchChooser(const QVariantMap& fork, const QRect& anchor)
+{
+    if (branchChooser_ != nullptr) {
+        branchChooser_->close();
+    }
+    const QString forkNodeID = fork.value(QStringLiteral("nodeID")).toString();
+    auto* menu = new QMenu(this);
+    menu->setObjectName(QStringLiteral("branchChooser"));
+    menu->setAttribute(Qt::WA_DeleteOnClose);
+    menu->setAccessibleName(tr("Redo into which branch?"));
+    // A disabled row, not `addSection` — some styles draw a section's text as a bare separator. The keys skip it.
+    menu->addAction(tr("Redo into which branch?"))->setEnabled(false);
+    menu->addSeparator();
+    QAction* primary = nullptr;
+    for (const QVariant& v : fork.value(QStringLiteral("children")).toList()) {
+        const QVariantMap child = v.toMap();
+        QString preview = child.value(QStringLiteral("preview")).toString().simplified();
+        if (preview.isEmpty()) {
+            preview = tr("(no preview)");
+        }
+        preview = menu->fontMetrics().elidedText(preview, Qt::ElideRight, 360);
+        const bool isPrimary = child.value(QStringLiteral("isPrimary")).toBool();
+        const QString when = HistoryCapture::friendlyTimestamp(child.value(QStringLiteral("timestamp")).toString());
+        QAction* row = menu->addAction(isPrimary ? tr("%1 — primary").arg(preview) : preview);
+        row->setData(child.value(QStringLiteral("eventID")).toString());
+        row->setCheckable(true);
+        row->setChecked(isPrimary);
+        if (!when.isEmpty()) {
+            row->setText(row->text() + QStringLiteral("  ·  ") + when);
+        }
+        if (isPrimary || primary == nullptr) {
+            primary = row;
+        }
+    }
+    menu->addSeparator();
+    menu->addAction(tr("↑↓ to choose · Return to redo · Esc to dismiss"))->setEnabled(false);
+    connect(menu, &QMenu::triggered, this, [this, forkNodeID](QAction* row) {
+        const QString eventID = row->data().toString();
+        if (!eventID.isEmpty()) {
+            redoBranch(forkNodeID, eventID);
+        }
+    });
+    branchChooser_ = menu;
+    menu->setActiveAction(primary);   // the highlight starts on the primary branch, as Apple's
+    menu->popup(viewport_->mapToGlobal(QPoint(anchor.right() + 4, anchor.top())));
+}
+
+void EditorShell::redoBranch(const QString& forkNodeID, const QString& childEventID)
+{
+    if (history_ == nullptr || loading_ || !history_->selectBranch(forkNodeID, childEventID)) {
+        return;
+    }
+    applyHistoryStep(history_->redo(), /*isUndo=*/false);
+}
+
+void EditorShell::scheduleBranchMarks()
+{
+    if (branchMarksScheduled_) {
+        return;
+    }
+    branchMarksScheduled_ = true;
+    QTimer::singleShot(0, this, [this] {
+        branchMarksScheduled_ = false;
+        refreshBranchMarks();
+    });
+}
+
+void EditorShell::refreshBranchMarks()
+{
+    QList<int> positions;
+    const QVariantMap fork = history_ != nullptr && markupHints() ? history_->redoForkNow() : QVariantMap();
+    for (const QVariant& v : fork.value(QStringLiteral("children")).toList()) {
+        const QVariantMap child = v.toMap();
+        const int idx = sceneDoc_.sceneIndexForScene(child.value(QStringLiteral("sceneID")).toString());
+        if (idx < 0) {
+            continue;   // a branch in a scene this manuscript does not hold
+        }
+        // A scene-local UTF-8 byte → the UTF-16 offset in the scene's text.
+        const QByteArray utf8 = sceneDoc_.bodyText(idx).toUtf8();
+        const int bytes = std::clamp(child.value(QStringLiteral("changeOffsetUtf8")).toInt(), 0, int(utf8.size()));
+        const SceneSegment& seg = sceneDoc_.segments().at(idx);
+        positions.append(seg.bodyStart + std::min(int(QString::fromUtf8(utf8.left(bytes)).size()), seg.bodyLength));
+    }
+    viewport_->setBranchMarkPositions(positions);
 }
 
 void EditorShell::flushHistory()
@@ -3231,6 +3360,9 @@ bool EditorShell::placeCaret(const QString& sceneID, qint64 byteOffset)
 void EditorShell::applyHistoryStep(const QVariantMap& step, bool isUndo)
 {
     const Span span("apply history step");
+    if (branchChooser_ != nullptr) {
+        branchChooser_->close();   // [I-0320]: a step moves off any fork the chooser was offered for
+    }
     if (history_ == nullptr || step.isEmpty()) {
         return;
     }
@@ -3251,7 +3383,6 @@ void EditorShell::applyHistoryStep(const QVariantMap& step, bool isUndo)
         return;
     }
 
-    // ✅ [SP-178] Q3: `forkAhead` (the branch chooser) is S3's — redo follows the primary branch meanwhile.
     const QVariantList changes = step.value(QStringLiteral("changes")).toList();
     if (!step.value(QStringLiteral("moved")).toBool() || changes.isEmpty()) {
         return;
@@ -3303,6 +3434,113 @@ void EditorShell::applyHistoryStep(const QVariantMap& step, bool isUndo)
         history_->noteApplied(first.sceneID, first.text);
     }
     history_->setApplying(false);
+}
+
+void EditorShell::purgeStaleBranches()
+{
+    if (history_ == nullptr || !history_->isOpen()) {
+        historyNotice(this, tr("Undo history isn't open for this project."));
+        return;
+    }
+    QDialog dlg(this);
+    dlg.setObjectName(QStringLiteral("staleBranchesDialog"));
+    dlg.setWindowTitle(tr("Stale History Branches"));
+    dlg.setMinimumWidth(460);
+    auto* layout = new QVBoxLayout(&dlg);
+    auto* list = new QListWidget(&dlg);
+    list->setObjectName(QStringLiteral("staleBranches"));
+    list->setAccessibleName(tr("Stale history branches"));
+    auto* footer = new QLabel(tr("Abandoned undo branches older than the \"Stale after\" threshold in Project Settings."), &dlg);
+    footer->setWordWrap(true);
+    footer->setEnabled(false);
+    auto* buttons = new QDialogButtonBox(&dlg);
+    QPushButton* purge = buttons->addButton(tr("Purge…"), QDialogButtonBox::DestructiveRole);
+    purge->setObjectName(QStringLiteral("purgeBranch"));
+    QPushButton* rescan = buttons->addButton(tr("Rescan"), QDialogButtonBox::ResetRole);
+    buttons->addButton(QDialogButtonBox::Close);
+    layout->addWidget(list, 1);
+    layout->addWidget(footer);
+    layout->addWidget(buttons);
+    connect(buttons, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
+
+    const QString root = history_->projectRootPath();
+    const auto scan = [&dlg, list, purge, rescan, root] {
+        list->clear();
+        auto* scanning = new QListWidgetItem(tr("Scanning…"), list);
+        scanning->setFlags(Qt::NoItemFlags);
+        purge->setEnabled(false);
+        rescan->setEnabled(false);
+        // ⛔ Off the GUI thread: it walks the whole project's history.
+        AsyncCall::run<QVariantMap>(
+            &dlg, [root]() { return ScriviBridge::historyListStaleBranches(root); },
+            [list, purge, rescan](const QVariantMap& r) {
+                list->clear();
+                rescan->setEnabled(true);
+                const QVariantList branches = r.value(QStringLiteral("branches")).toList();   // ⚠️ absent when empty
+                if (branches.isEmpty()) {
+                    auto* none = new QListWidgetItem(tr("No stale branches."), list);
+                    none->setFlags(Qt::NoItemFlags);
+                    return;
+                }
+                for (const QVariant& v : branches) {
+                    const QVariantMap b = v.toMap();
+                    const int steps = b.value(QStringLiteral("nodeCount")).toInt();
+                    QString preview = b.value(QStringLiteral("preview")).toString().simplified();
+                    if (preview.isEmpty()) {
+                        preview = tr("(no preview)");
+                    }
+                    // "3 steps · last edited on Jul 2 at 4:10 PM" (Apple's `staleSubtitle`)
+                    QString subtitle = steps == 1 ? tr("1 step") : tr("%1 steps").arg(steps);
+                    const QString when = HistoryCapture::friendlyTimestamp(b.value(QStringLiteral("tipTimestamp")).toString());
+                    if (!when.isEmpty()) {
+                        subtitle += tr(" · last edited %1").arg(when);
+                    }
+                    auto* item = new QListWidgetItem(preview + QLatin1Char('\n') + subtitle, list);
+                    item->setData(Qt::UserRole, b.value(QStringLiteral("branchRootEventID")).toString());
+                    item->setData(Qt::UserRole + 1, steps);
+                }
+                list->setCurrentRow(0);
+                purge->setEnabled(true);
+            },
+            [list, rescan] {
+                list->clear();
+                auto* failed = new QListWidgetItem(tr("Couldn't read the undo history."), list);
+                failed->setFlags(Qt::NoItemFlags);
+                rescan->setEnabled(true);
+            });
+    };
+    connect(rescan, &QPushButton::clicked, &dlg, scan);
+    connect(purge, &QPushButton::clicked, &dlg, [this, &dlg, list, purge] {
+        QListWidgetItem* item = list->currentItem();
+        if (item == nullptr || item->data(Qt::UserRole).toString().isEmpty() || history_ == nullptr) {
+            return;
+        }
+        const int steps = item->data(Qt::UserRole + 1).toInt();
+        QMessageBox confirm(&dlg);
+        confirm.setObjectName(QStringLiteral("purgeConfirm"));
+        confirm.setIcon(QMessageBox::Warning);
+        confirm.setText(tr("Purge this branch?"));
+        confirm.setInformativeText(tr("This permanently discards the abandoned branch and its edits. It cannot be undone."));
+        QPushButton* yes = confirm.addButton(steps == 1 ? tr("Purge 1 step") : tr("Purge %1 steps").arg(steps),
+                                             QMessageBox::DestructiveRole);
+        QPushButton* cancel = confirm.addButton(QMessageBox::Cancel);
+        confirm.setDefaultButton(cancel);   // a destructive act is never the default
+        confirm.setEscapeButton(cancel);
+        confirm.exec();
+        if (confirm.clickedButton() != yes) {
+            return;
+        }
+        if (history_->purgeBranch(item->data(Qt::UserRole).toString())) {
+            delete item;
+            purge->setEnabled(list->count() > 0);
+            if (list->count() == 0) {
+                auto* none = new QListWidgetItem(tr("No stale branches."), list);
+                none->setFlags(Qt::NoItemFlags);
+            }
+        }
+    });
+    scan();
+    dlg.exec();
 }
 
 bool EditorShell::confirmEarlierSessionUndo(const QString& timestamp)

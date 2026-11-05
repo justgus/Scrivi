@@ -521,8 +521,8 @@ public:
     //
     // ✅ **The undo history is bound by [EP-026]** (its Linux story, ruled 2026-10-11) — Sprint by Sprint, never ahead
     // of its surface (the lesson of I-0144): S2 ([SP-178]) binds the history lifecycle and the 12 `scrivi_capture_*`
-    // below (`historyOpen` … `captureState`). ⛔ Still absent: `scrivi_history_get_tree`, `_list_stale_branches`,
-    // `_purge_branch`, `_select_branch`, `_get_settings`/`_set_settings` (S3). ✅ S5 ([SP-179]) binds the four
+    // below (`historyOpen` … `captureState`). ✅ S3 ([SP-204]) binds the six branching calls (`historySelectBranch` …
+    // `historySetSettings`). ✅ S5 ([SP-179]) binds the four
     // `scrivi_buffers_*` (`buffersLoad` … `buffersClear`, below).
 
     Q_INVOKABLE QVariantMap addComment(const QString& projectRootPath, const QString& scopeKind, const QString& targetID, const QString& body);
@@ -644,6 +644,22 @@ public:
     static QVariantMap captureRedo(const QString& projectRootPath);
     static QVariantMap captureNoteApplied(const QString& projectRootPath, const QString& sceneID, const QString& text);
     static QVariantMap captureState(const QString& projectRootPath);
+
+    // ── EP-026 S3 (SP-204 / T-0662): branching — static and best-effort, as the capture calls above ──
+    // Re-primaries a fork; moves nothing (redo walks it). {ok, forkNodeID, childEventID, canRedo}
+    static QVariantMap historySelectBranch(const QString& projectRootPath, const QString& forkNodeID,
+                                           const QString& childEventID);
+    // The windowed tree around the current node: {rootID, currentNodeID, totalNodeCount, truncated, nodes:[…]}.
+    // ⚠️ A leaf's `childIDs` is ABSENT (I-0094). ⛔ Not on the GUI thread: it reads the whole project's history.
+    static QVariantMap historyGetTree(const QString& projectRootPath, int maxNodes = 200);
+    // {staleBranchDays, branches:[{branchRootEventID, forkNodeID, preview, tipTimestamp, nodeCount}]} — ⚠️ `branches`
+    // ABSENT when empty. ⛔ Not on the GUI thread.
+    static QVariantMap historyListStaleBranches(const QString& projectRootPath);
+    // {ok, branchRootEventID, purgedCount, canUndo, canRedo}
+    static QVariantMap historyPurgeBranch(const QString& projectRootPath, const QString& branchRootEventID);
+    // {capacityEvents, staleBranchDays, idleRolloverHours} — `project.json` is canonical.
+    static QVariantMap historyGetSettings(const QString& projectRootPath);
+    static QVariantMap historySetSettings(const QString& projectRootPath, const QVariantMap& settings);
 
     // ── EP-026 S5 (SP-179 / T-0606): the copy buffers 1–9 (`scrivi_buffers_*`, `history/buffers.json`) ──
     // ✅ Static and best-effort, as the capture calls above: a failure is logged and returns {} (⛔ never `errorOccurred`).

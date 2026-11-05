@@ -1,5 +1,6 @@
 #include "ProjectSettingsDialog.hpp"
 
+#include <QApplication>
 #include <QComboBox>
 #include <QDialogButtonBox>
 #include <QFormLayout>
@@ -8,8 +9,12 @@
 #include <QSpinBox>
 #include <QVBoxLayout>
 
+#include <QLabel>
+
+#include "AsyncCall.hpp"
 #include "ManuscriptTypography.hpp"
 #include "ProjectPreferences.hpp"
+#include "ScriviBridge.hpp"
 
 ProjectSettingsDialog::ProjectSettingsDialog(ProjectPreferences* prefs, QWidget* parent)
     : QDialog(parent), prefs_(prefs)
@@ -52,6 +57,46 @@ ProjectSettingsDialog::ProjectSettingsDialog(ProjectPreferences* prefs, QWidget*
     typeForm->addRow(tr("Text size"), size_);
     layout->addWidget(type);
 
+    // ── Undo History (EP-026 S3, [SP-204]; Apple's section, its wording) ──
+    auto* history = new QGroupBox(tr("Undo History"), this);
+    auto* historyForm = new QFormLayout(history);
+    const auto hint = [history](const QString& text) {
+        auto* l = new QLabel(text, history);
+        l->setWordWrap(true);
+        l->setEnabled(false);
+        return l;
+    };
+    capacity_ = new QSpinBox(history);
+    capacity_->setObjectName(QStringLiteral("historyCapacity"));
+    capacity_->setRange(0, 10000000);
+    capacity_->setEnabled(false);
+    staleDays_ = new QSpinBox(history);
+    staleDays_->setObjectName(QStringLiteral("historyStaleDays"));
+    staleDays_->setRange(0, 36500);
+    staleDays_->setEnabled(false);
+    historyForm->addRow(tr("Maximum undo events"), capacity_);
+    historyForm->addRow(hint(tr("Oldest edits fall off once this limit is reached. The current text is always kept.")));
+    historyForm->addRow(tr("Stale after (days)"), staleDays_);
+    historyForm->addRow(hint(tr("Abandoned branches untouched for this many days can be purged from Project ▸ Purge "
+                                "Stale History Branches….")));
+    layout->addWidget(history);
+    // ⛔ Not on the GUI thread: `project.json` may be on a share.
+    const QString root = prefs->projectRootPath();
+    AsyncCall::run<QVariantMap>(
+        this, [root]() { return ScriviBridge::historyGetSettings(root); },
+        [this](const QVariantMap& s) {
+            if (s.isEmpty()) {
+                return;   // unread: the boxes stay disabled and nothing is written on close
+            }
+            historySettings_ = s;
+            capacity_->setValue(s.value(QStringLiteral("capacityEvents")).toInt());
+            staleDays_->setValue(s.value(QStringLiteral("staleBranchDays")).toInt());
+            capacity_->setEnabled(true);
+            staleDays_->setEnabled(true);
+            historyLoaded_ = true;
+        },
+        {});
+
     auto* buttons = new QDialogButtonBox(QDialogButtonBox::Close, this);
     connect(buttons, &QDialogButtonBox::rejected, this, &QDialog::reject);
     layout->addWidget(buttons);
@@ -62,4 +107,19 @@ ProjectSettingsDialog::ProjectSettingsDialog(ProjectPreferences* prefs, QWidget*
     connect(typeface_, &QComboBox::activated, this,
             [this](int index) { prefs_->setTypeface(typeface_->itemData(index).toString()); });
     connect(size_, &QSpinBox::valueChanged, this, [this](int v) { prefs_->setTextSize(v); });
+}
+
+void ProjectSettingsDialog::done(int result)
+{
+    // Apple's `saveHistorySettings` (on Done): only what was read, and only when it changed; `idleRolloverHours` kept.
+    if (historyLoaded_ && (capacity_->value() != historySettings_.value(QStringLiteral("capacityEvents")).toInt()
+                           || staleDays_->value() != historySettings_.value(QStringLiteral("staleBranchDays")).toInt())) {
+        QVariantMap s = historySettings_;
+        s.insert(QStringLiteral("capacityEvents"), capacity_->value());
+        s.insert(QStringLiteral("staleBranchDays"), staleDays_->value());
+        const QString root = prefs_->projectRootPath();
+        // Written off the GUI thread; the write outlives the dialog (its context is the application).
+        AsyncCall::run<QVariantMap>(qApp, [root, s]() { return ScriviBridge::historySetSettings(root, s); }, {}, {}, 0);
+    }
+    QDialog::done(result);
 }

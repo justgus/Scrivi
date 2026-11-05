@@ -472,6 +472,7 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-201** | `[Cross]` **[EP-052]** — Replace All without holding the window, no main-thread lock waits (I-0333, I-0334) | EP-052 | 2026-11-01 | 2026-11-02 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-201.md) |
 | **SP-202** | `[Linux]` **[EP-050] S3** — AC6: measure what Orca is given, then rule (T-0658) | EP-050 | 2026-11-04 | 2026-11-04 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-202.md) |
 | **SP-203** | `[Linux]` **[EP-050] S4** — Orca reads the page at rest (T-0659) | EP-050 | 2026-11-04 | 2026-11-04 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-203.md) |
+| **SP-204** | `[Linux]` **[EP-026] S3** — branching: chooser, margin mark, History section, stale purge, Undo History settings (T-0662) | EP-026 | 2026-11-05 | — | 🟡 **ACTIVE** → [`Sprint-SP-204.md`](Sprint-SP-204.md) |
 | **SP-160** | `[Linux]` **[EP-049] S1** — Linux writes Apple's manuscript format: escaping, paste/copy, pair deletion, Return/⌫, shared corpus (T-0586); + I-0276 | EP-049 | 2026-10-04 | 2026-10-04 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-160.md) |
 
 ## Statistics
@@ -511,6 +512,8 @@ by status, read the table.**
 > on neither time. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-11-05 (**SP-204 created in Planning** — [EP-026] S3 (user: *"plan EP-026 S3"*); T-0662 filed.)*
 
 *Last Updated: 2026-11-03 (**SP-198, SP-199 → ✅ CLOSED** (user, 2026-11-03: *"close both sprints."*).)*
 

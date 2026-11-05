@@ -45,14 +45,20 @@ struct Harness {
     QMainWindow window;
     ManuscriptEditor* editor = new ManuscriptEditor;
     ManuscriptPresenter presenter{&ScriviBridge::analyzeMarkdown};
+    bool applyingDelta = false;
 
     explicit Harness(const QList<SceneDocument::Input>& in)
     {
         doc.build(in);
         editor->setDocument(doc.document());
         editor->setSceneDocument(&doc);
-        QObject::connect(editor->document(), &QTextDocument::contentsChange,
-                         [this](int pos, int removed, int added) { doc.applyContentsChange(pos, removed, added); });
+        // ⚠️ Not while a delta is applied: its document edits are the core's, already in the scene list — the shell holds
+        // `loading_` for the same reason (`EditorShell::applyDelta`). Re-reported, they corrupt the list (CI red since I-0346).
+        QObject::connect(editor->document(), &QTextDocument::contentsChange, [this](int pos, int removed, int added) {
+            if (!applyingDelta) {
+                doc.applyContentsChange(pos, removed, added);
+            }
+        });
         presenter.setSceneDocument(&doc);
         presenter.attach(doc.document());
         editor->setPresenter(&presenter);
@@ -250,7 +256,9 @@ int main(int argc, char** argv)
         RangeDelta::Scene tail{RangeDelta::Change::Created, QStringLiteral("split-tail"), mid.chapterID, QString(), mid.chapterTitle,
                                QString(), QString(), mid.chapterMetadataPath, mid.sceneID, mid.text.mid(40), true};
         split.scenes = {head, tail};
+        m.applyingDelta = true;
         m.doc.applyRangeDelta(split);
+        m.applyingDelta = false;
         QApplication::processEvents();
         timer.restart();
         const QString after = m.text()->text(0, m.text()->characterCount());

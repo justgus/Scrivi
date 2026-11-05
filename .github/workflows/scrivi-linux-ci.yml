@@ -271,6 +271,14 @@ jobs:
           platforms/linux/tests/undo_smoke.sh \
             ./build/platforms/linux/scrivi_linux_undo_smoke
 
+      # Branching undo (SP-204 / T-0662, EP-026 S3): Ctrl+Shift+Z at a branch point opens the chooser (never an undo), the
+      # branch mark in the gutter (hints on only; a line never laid out is skipped), a branch written before the window
+      # opened, the History section, Project Settings ▸ Undo History, Project ▸ Purge Stale History Branches….
+      - name: Branching undo smoke test
+        run: |
+          platforms/linux/tests/branch_smoke.sh \
+            ./build/platforms/linux/scrivi_linux_branch_smoke
+
       # Copy buffers 1–9 (SP-179 / T-0606, EP-026 S5): two real project windows through AppEnvironment and real keys —
       # Ctrl+N copy, Ctrl+Shift+N paste, Alt+N cut, View ▸ Show Buffers and the palette following the front project.
       - name: Copy buffers smoke test

@@ -34,6 +34,8 @@ class SceneDocument;
 // The editor holds a non-owning pointer to the SceneDocument (owned by EditorShell)
 // and consults it read-only; it never rebuilds the map. Offset-map maintenance on
 // accepted edits happens in EditorShell via the document's contentsChange signal.
+class QAbstractButton;
+
 class ManuscriptEditor : public QPlainTextEdit
 {
     Q_OBJECT
@@ -57,6 +59,15 @@ public:
     // A caret an assistive technology PLACES lands where Scrivi's caret rules put it (Apple AC2) — sent home as a
     // PLACEMENT (from itself), never read as an arrow step from the previous caret (which would move it one on).
     void placeCaret(int pos);
+
+    // ── EP-026 S3 ([SP-204], T-0620's Linux half): the branch-point marks ──
+    // ✅ Q4 (user, 2026-11-05): a viewport margin, ALWAYS present (Apple's `textContainerInset` is), that the marks sit in —
+    // drawn, never in the text. Measured in step 0: the wrap, the presenter, the caret and Orca are unchanged; 6 ms.
+    static constexpr int kGutterWidth = 28;
+    // Where a branch of the current branch point parts (document positions); empty = no marks. One mark per line.
+    void setBranchMarkPositions(const QList<int>& positions);
+    // The marks on screen, in this widget's coordinates (the chooser opens at the one nearest the caret).
+    [[nodiscard]] QList<QRect> branchMarkRects() const;
 
     // Edit ▸ Cut. ⛔ [I-0270] `QPlainTextEdit::cut()` is not virtual and never passes the
     // keyPressEvent edit guard, so a menu cut across a scene break deleted heading and
@@ -180,6 +191,8 @@ signals:
     void bufferCutRequested(const QString& bufferID);
     // EP-026 S4: paste `range` at the caret, rebuilding its scenes and chapters — the shell's. Emitted by `pasteClipboard`.
     void structuredPasteRequested(const QJsonObject& range);
+    // EP-026 S3: a branch mark was clicked — open the chooser at `anchor` (this widget's coordinates), as Ctrl+Shift+Z.
+    void branchMarkClicked(const QRect& anchor);
 
 protected:
     // Claims the buffer chords in ShortcutOverride, so no window shortcut takes them while the editor has focus.
@@ -198,6 +211,8 @@ protected:
     // Purely visual: no document text or offset-map change (positions come from
     // SceneDocument::sceneSeparatorPositions()).
     void paintEvent(QPaintEvent* event) override;
+    // Keeps the branch gutter over the viewport margin.
+    void resizeEvent(QResizeEvent* event) override;
     // EP-048 (SP-166): no snap and no reveal MID-DRAG (Apple: never while `stillSelecting`) — applied on release.
     void mousePressEvent(QMouseEvent* event) override;
     void mouseReleaseEvent(QMouseEvent* event) override;
@@ -210,6 +225,12 @@ private slots:
     void normalizeCaret();
 
 private:
+    // Places a mark per line for `branchPositions_` — laid-out, on-screen lines only (step 0: geometry before the line).
+    void placeBranchMarks();
+    QWidget* gutter_ = nullptr;
+    QList<int> branchPositions_;
+    QList<QAbstractButton*> branchMarks_;
+
     // True if the given key event would modify document text (typed char, Enter,
     // Backspace, Delete, cut, paste-shortcut) as opposed to pure navigation/copy.
     static bool isModifyingKey(const QKeyEvent* event);

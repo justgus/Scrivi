@@ -65,11 +65,51 @@ void HistoryCapture::take(const QVariantMap& r)
     canRedo_ = r.value(QStringLiteral("canRedo")).toBool();
     hasPending_ = r.value(QStringLiteral("hasPending")).toBool();
     undoCrossesSessionAt_ = r.value(QStringLiteral("undoCrossesSessionAt")).toString();
+    redoFork_ = r.value(QStringLiteral("redoFork")).toMap();
     idleTimer_->stop();
     const qint64 deadline = r.value(QStringLiteral("idleDeadlineMs"), -1).toLongLong();
     if (deadline >= 0) {
         idleTimer_->start(static_cast<int>(std::clamp<qint64>(deadline - nowMs(), 0, INT_MAX)));
     }
+    if (r.value(QStringLiteral("committed")).toBool()) {
+        emit historyChanged();
+    }
+    emit reported();
+}
+
+QVariantMap HistoryCapture::redoFork()
+{
+    if (!open_) {
+        return {};
+    }
+    refreshState();
+    return redoFork_;
+}
+
+bool HistoryCapture::selectBranch(const QString& forkNodeID, const QString& childEventID)
+{
+    if (!open_) {
+        return false;
+    }
+    const bool ok = ScriviBridge::historySelectBranch(root_, forkNodeID, childEventID).value(QStringLiteral("ok")).toBool();
+    refreshState();
+    if (ok) {
+        emit historyChanged();   // the primary spine changed
+    }
+    return ok;
+}
+
+bool HistoryCapture::purgeBranch(const QString& branchRootEventID)
+{
+    if (!open_) {
+        return false;
+    }
+    const bool ok = ScriviBridge::historyPurgeBranch(root_, branchRootEventID).value(QStringLiteral("ok")).toBool();
+    refreshState();
+    if (ok) {
+        emit historyChanged();   // a subtree was erased
+    }
+    return ok;
 }
 
 void HistoryCapture::refreshState()
@@ -173,6 +213,7 @@ void HistoryCapture::recordBarrier(const QString& kind, const QString& note, con
         return;
     }
     take(ScriviBridge::captureRecordBarrier(root_, barrierParams(kind, note, sceneTexts, structuralPayload, sceneTextsBefore)));
+    emit historyChanged();   // a barrier node was appended
 }
 
 QString HistoryCapture::barrierParams(const QString& kind, const QString& note, const QHash<QString, QString>& sceneTexts,
@@ -206,6 +247,7 @@ QVariantMap HistoryCapture::undo()
     // The core commits any pending edit first, so the newest keystrokes are not discarded.
     const QVariantMap r = ScriviBridge::captureUndo(root_);
     refreshState();
+    emit historyChanged();   // the current-node pointer moved
     return r;
 }
 
@@ -216,6 +258,7 @@ QVariantMap HistoryCapture::redo()
     }
     const QVariantMap r = ScriviBridge::captureRedo(root_);
     refreshState();
+    emit historyChanged();   // the current-node pointer moved
     return r;
 }
 

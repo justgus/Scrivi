@@ -204,7 +204,8 @@ private struct HistoryCardBody: View {
                 .foregroundStyle(.secondary)
 
             // Stated plainly so the count is never read as scoped to this scene.
-            Text("Across the whole project — manage in Project Settings…")
+            // ✅ [SP-204] Q3: purge left Project Settings for the Project menu in [SP-167]; the badge names where it went.
+            Text("Across the whole project — Project ▸ Purge Stale History Branches…")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
                 .fixedSize(horizontal: false, vertical: true)

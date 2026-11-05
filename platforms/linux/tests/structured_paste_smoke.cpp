@@ -36,6 +36,7 @@
 #include <QJsonObject>
 #include <QMessageBox>
 #include <QMimeData>
+#include <QMenu>
 #include <QTest>
 #include <QTextCursor>
 #include <QTextDocument>
@@ -245,11 +246,27 @@ QList<QJsonObject> structuralPayloads(const QString& projectDir)
     return out;
 }
 
+// ✅ [SP-204] / [I-0320]: Ctrl+Shift+Z at a branch point opens the chooser; these steps take the primary (the newest) —
+// Return, as Apple's `structuralEditsUndoAndRedo` answers `onRedoFork`. branch_smoke tests the chooser itself.
+void armBranchChooserAnswer(QObject* owner)
+{
+    auto* t = new QTimer(owner);
+    t->setInterval(10);
+    QObject::connect(t, &QTimer::timeout, [] {
+        if (auto* menu = qobject_cast<QMenu*>(QApplication::activePopupWidget());
+            menu != nullptr && menu->objectName() == QStringLiteral("branchChooser")) {
+            QTest::keyClick(menu, Qt::Key_Return);
+        }
+    });
+    t->start();
+}
+
 }  // namespace
 
 int main(int argc, char** argv)
 {
     QApplication app(argc, argv);
+    armBranchChooserAnswer(&app);
     std::setvbuf(stdout, nullptr, _IONBF, 0);
     if (argc < 2) {
         std::fprintf(stderr, "usage: structured_paste_smoke <projectDir>\n");

@@ -2326,3 +2326,40 @@ QVariantMap ScriviBridge::captureState(const QString& root)
 {
     return historyEnvelope("scrivi_capture_state", scrivi_capture_state(u8(root).constData()));
 }
+
+// ── EP-026 S3 (SP-204 / T-0662): branching ──
+QVariantMap ScriviBridge::historySelectBranch(const QString& root, const QString& forkNodeID, const QString& childEventID)
+{
+    return historyEnvelope("scrivi_history_select_branch",
+                           scrivi_history_select_branch(u8(root).constData(), u8(forkNodeID).constData(),
+                                                        u8(childEventID).constData()));
+}
+
+QVariantMap ScriviBridge::historyGetTree(const QString& root, int maxNodes)
+{
+    const QByteArray params =
+        QJsonDocument(QJsonObject{{QStringLiteral("maxNodes"), maxNodes}}).toJson(QJsonDocument::Compact);
+    return historyEnvelope("scrivi_history_get_tree", scrivi_history_get_tree(u8(root).constData(), params.constData()));
+}
+
+QVariantMap ScriviBridge::historyListStaleBranches(const QString& root)
+{
+    return historyEnvelope("scrivi_history_list_stale_branches", scrivi_history_list_stale_branches(u8(root).constData()));
+}
+
+QVariantMap ScriviBridge::historyPurgeBranch(const QString& root, const QString& branchRootEventID)
+{
+    return historyEnvelope("scrivi_history_purge_branch",
+                           scrivi_history_purge_branch(u8(root).constData(), u8(branchRootEventID).constData()));
+}
+
+QVariantMap ScriviBridge::historyGetSettings(const QString& root)
+{
+    return historyEnvelope("scrivi_history_get_settings", scrivi_history_get_settings(u8(root).constData()));
+}
+
+QVariantMap ScriviBridge::historySetSettings(const QString& root, const QVariantMap& settings)
+{
+    const QByteArray json = QJsonDocument(QJsonObject::fromVariantMap(settings)).toJson(QJsonDocument::Compact);
+    return historyEnvelope("scrivi_history_set_settings", scrivi_history_set_settings(u8(root).constData(), json.constData()));
+}

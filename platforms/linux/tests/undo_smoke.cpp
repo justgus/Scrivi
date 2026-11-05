@@ -26,6 +26,7 @@
 #include <QClipboard>
 #include <QEventLoop>
 #include <QMessageBox>
+#include <QMenu>
 #include <QTest>
 #include <QTextCursor>
 #include <QTextDocument>
@@ -164,11 +165,27 @@ struct Rig {
     static void settle() { QTest::qWait(60); }   // the notice catcher and queued work
 };
 
+// ✅ [SP-204] / [I-0320]: Ctrl+Shift+Z at a branch point opens the chooser; these steps take the primary (the newest) —
+// Return, as Apple's `structuralEditsUndoAndRedo` answers `onRedoFork`. branch_smoke tests the chooser itself.
+void armBranchChooserAnswer(QObject* owner)
+{
+    auto* t = new QTimer(owner);
+    t->setInterval(10);
+    QObject::connect(t, &QTimer::timeout, [] {
+        if (auto* menu = qobject_cast<QMenu*>(QApplication::activePopupWidget());
+            menu != nullptr && menu->objectName() == QStringLiteral("branchChooser")) {
+            QTest::keyClick(menu, Qt::Key_Return);
+        }
+    });
+    t->start();
+}
+
 }  // namespace
 
 int main(int argc, char** argv)
 {
     QApplication app(argc, argv);
+    armBranchChooserAnswer(&app);
     std::setvbuf(stdout, nullptr, _IONBF, 0);   // a crash must not swallow the FAIL lines
     if (argc < 2) {
         std::fprintf(stderr, "usage: undo_smoke <projectDir>\n");
