@@ -1,10 +1,10 @@
 # Active Sprints
 
+*Last Updated: 2026-11-05 (**SP-204 → ✅ CLOSED** (user, 2026-11-05: *"yes to both."*).)*
+
+_No Sprint is active._
+
 *Last Updated: 2026-11-05 (**SP-204 → 🟡 ACTIVE** (user: *"Activate SP-204 and run step 0"*).)*
-
-## SP-204 — `[Linux]` [EP-026] S3: branching — chooser, margin mark, History section, stale purge, Undo History settings
-
-🟡 **ACTIVE 2026-11-05** → [`Sprint-SP-204.md`](Sprint-SP-204.md) · carries [T-0662] · ✅ Q1–Q3 ruled · ✅ Q1–Q4 ruled · ✅ built, AC1–AC7 met (Docker + macOS evidence) · ⏳ Mac string check, AC8 live pass · ➕ [I-0350]
 
 *Last Updated: 2026-11-04 (**SP-189, SP-190 → ✅ CLOSED** (user, 2026-11-04: *"yes, backlog that don't attach it to SP-190. Then close SP-189 and SP-190."*))*
 

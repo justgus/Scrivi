@@ -12,6 +12,7 @@ Issues the user has VERIFIED, archived out of `Issue-active.md`.
 | **I-0346** | `[Linux]` ⛔ **The window stops answering for 350–630 ms after EVERY structural edit over the share** — each stall begins ~150 ms after `applied` and ends ~15–40 ms after the [SP-189] background verification's `verify:` line (its read: ~300 ms over the share); no main-thread core call is logged during it. Found in [T-0661]'s pass, scrivi-vm build 1.0.342. → [details](#i-0346) | High | [SP-189] | ✅ **Verified 2026-11-04** ([T-0661] re-run: Pass) |
 | **I-0347** | `[Linux]` **Split Scene moves the caret's line to the TOP of the viewport** (the edit is right; the view jumps). Found in [T-0661] step 1. → [details](#i-0347) | Medium | [SP-190] | ✅ **Verified 2026-11-04** ([T-0661] re-run: Pass) |
 | **I-0348** | `[Linux]` ⛔ **After structural edits and a quit, the project reopens in the wrong place** — left at *"Thanksgiving"* in chapter 6's last scene; reopened near chapter 14. Found in [T-0661] step 8. (Apple's [I-0328] was the Mac's close path; this is Linux's quit.) → [details](#i-0348) | High | [SP-190] | ✅ **Verified 2026-11-04** ([T-0661] re-run: Pass) |
+| **I-0350** | `[Linux]` **Linux CI red since [I-0346]: the accessibility smoke's harness re-reported a delta's own edits** — its "split mid-book" step corrupted the scene list, fatal under `SCRIVI_VERIFY_SCENE_TEXT` (CI's setting). Test-only; the app guards it (`EditorShell::applyDelta`). → [details](#i-0350) | Medium | [SP-204] | ✅ **Verified 2026-11-05** (Linux CI on `main` green, run 42089629645; user approved) |
 
 ---
 
@@ -158,3 +159,19 @@ carries it, as Apple's does.
 **Test:** `structural_baseline_smoke` — 40 scenes of wrapped paragraphs; a session reads through the book; the caret in scene
 30, stamped as quitting does; reopened in a fresh shell: the caret in that scene, ON SCREEN, and the window showing it. ⛔ Before
 the fix it FAILED on Qt 6.10 (the caret 287 px above the window). ✅ Passes on Qt 6.4 and 6.10. ✅ **Verified 2026-11-04** (user, 2026-11-04: *"all the checkes passed"* — [T-0661] re-run on scrivi-vm, build 1.0.348).
+
+## I-0350: `[Linux]` Linux CI red since [I-0346]: the accessibility smoke re-reported a delta's own edits
+
+✅ **Evidence (2026-11-05):** Linux CI on `main` for `6c5f3ab` (run 42089629645) **passed**, the first green run since
+[I-0346]. ✅ Verified by the user 2026-11-05.
+
+**Found:** 2026-11-05, running every CI smoke for [SP-204]. ✅ Not [SP-204]'s: it fails identically with HEAD's
+`ManuscriptEditor`, and `gh run list` shows Linux CI red on `main` at every push since `589d280` ([I-0346], 2026-11-04 21:29),
+failing step "Accessibility smoke test":
+`SceneDocument: scene 600's text (40 chars) is not its body in the document (40 chars) — EP-053 S2a`.
+**Cause:** [I-0346]'s check applies a split delta (`SceneDocument::applyRangeDelta`) in the smoke's harness, whose
+`contentsChange` handler re-reports EVERY document edit to `applyContentsChange` — including the delta's own rebuild, which is
+already in the scene list. The shell holds `loading_` for exactly this (`EditorShell::applyDelta`); the harness had no guard.
+**Fix (test only):** `tests/accessibility_smoke.cpp` — `Harness::applyingDelta` set around the delta; the handler skips it.
+**Evidence:** all 40 CI smoke steps green in Docker as non-root with `SCRIVI_VERIFY_SCENE_TEXT=1` (2026-11-05).
+**Status:** ✅ **Verified 2026-11-05** (user, 2026-11-05: *"yes to both."*).

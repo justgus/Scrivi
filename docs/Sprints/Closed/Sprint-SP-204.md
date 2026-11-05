@@ -1,16 +1,17 @@
 ---
 sprint: SP-204
 epic: EP-026
-status: Active
+status: Closed
+closed: 2026-11-05
 platform: Linux
 created: 2026-11-05
 ---
 
 # SP-204 — `[Linux]` [EP-026] **S3**: branching — the branch chooser, its margin mark, the History section, the stale-branch purge, Undo History settings
 
-**Status:** 🟡 **ACTIVE 2026-11-05** (user: *"Activate SP-204 and run step 0"*) — created 2026-11-05 (user: *"plan EP-026 S3"*). ✅ Q1–Q3 ruled 2026-11-05 (as recommended); ✅ step 0 measured 2026-11-05; ✅ Q4 ruled 2026-11-05 — every question ruled.
-**Carries:** [T-0662] → [`../Tasks/Task-unverified.md`](../Tasks/Task-unverified.md) · ➕ [I-0350] (found 2026-11-05, added explicitly: Linux CI red since [I-0346]) → [`../Issues/Issue-active.md`](../Issues/Issue-active.md).
-**Epic:** [EP-026] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md) — its last open Sprint. ✅ [EP-048] stays open until
+**Status:** ✅ **CLOSED 2026-11-05** (user, 2026-11-05: *"yes to both."*) — activated 2026-11-05 (user: *"Activate SP-204 and run step 0"*), created 2026-11-05 (user: *"plan EP-026 S3"*). ✅ Q1–Q3 ruled 2026-11-05 (as recommended); ✅ step 0 measured 2026-11-05; ✅ Q4 ruled 2026-11-05 — every question ruled.
+**Carries:** [T-0662] ✅ → [`../../Tasks/Verified/Task-verified-0662.md`](../../Tasks/Verified/Task-verified-0662.md) · ➕ [I-0350] ✅ (found 2026-11-05, added explicitly: Linux CI red since [I-0346]) → [`../../Issues/Verified/Issue-verified-0341-0350.md`](../../Issues/Verified/Issue-verified-0341-0350.md).
+**Epic:** [EP-026] → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md) — its last open Sprint. ✅ [EP-048] stays open until
 EP-026 lands (user, 2026-10-11).
 **Builds on:** [SP-178] (S2: undo/redo, `HistoryCapture` over `scrivi_capture_*`) · [SP-182] (S5a: Linux's Project Settings
 dialog, which gains the Undo History section — EP-026 Q4).
@@ -145,8 +146,11 @@ to the core · Windows.
 - [x] AC6 — Project Settings ▸ Undo History: Maximum undo events, Stale after (days), shared with the Mac through the project —
       ✅ `branch_smoke` §5 (through the core; `project.json` is canonical)
 - [x] AC7 — `branch_smoke` in CI, mutation-checked; ctest green on macOS and Linux (second image, non-root); all Linux smokes
-      green; `run-interop-tests.sh` green — ✅ (log, 2026-11-05) · ⏳ **the Mac check of Apple's corrected string (user)**
-- [ ] AC8 — Live pass (user) on the VM or the rig, against a log branched on the Mac → an [EP-057] Task at close
+      green; `run-interop-tests.sh` green — ✅ (log, 2026-11-05) · ✅ **the Mac check of Apple's corrected string passed (user,
+      2026-11-05)**
+- [x] AC8 — Live pass (user) on the VM or the rig, against a log branched on the Mac — ✅ **passed on scrivi-vm, all steps
+      (user, 2026-11-05)**, build 1.0.357 (`6c5f3ab`); log kept at `~/evidence-2026-11-05/sp204-scrivi.log` on the VM. No
+      [EP-057] Task needed.
 
 ## Progress log
 
@@ -215,5 +219,14 @@ User: *"no no, always present is correct. yes, start step 1. In fact implement S
 | ScriviCore ctest, macOS | ✅ 806/806 |
 | ScriviCore ctest, Linux (Docker, non-root) | ✅ 810/810 |
 | `scripts/run-interop-tests.sh` (macOS) | ✅ 337 tests in 45 suites |
-⚠️ This is evidence, not a live pass (Sprint-GUIDELINES). ⏳ AC7's Mac look at the corrected string · AC8.
+⚠️ This is evidence, not a live pass (Sprint-GUIDELINES). ⏳ AC7's Mac look at the corrected string.
+
+### ✅ 2026-11-05 — AC8: the Linux live pass passed
+
+The user ran the pass on scrivi-vm against a branch point made on the Mac (steps A–C as given in chat: the chooser on
+Ctrl+Shift+Z, ↓/Return and Esc, no chooser on undo, the margin mark with hints on and off and its click, the History
+section's re-primary, Undo History settings round-trip, purge with Cancel as default): **all steps pass**. Build 1.0.357
+(`6c5f3ab`); the log has no errors and is kept at `~/evidence-2026-11-05/sp204-scrivi.log`. ✅ The Mac pass (AC7's string
+check) ran first and passed too (user, 2026-11-05). ✅ Linux CI on `main` for `6c5f3ab`: run 42089629645, **success** (the
+first green run since [I-0350]). **All eight ACs met.** ✅ T-0662 and [I-0350] verified; **closed 2026-11-05** (user, 2026-11-05: *"yes to both."*).
 
