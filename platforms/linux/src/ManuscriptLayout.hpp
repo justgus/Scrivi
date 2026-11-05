@@ -17,6 +17,11 @@ struct ManuscriptLineStyle : QTextBlockUserData
 {
     double indent = 0;   // the first line's indent, px
     double pitch = 0;    // every line's height, px (0 = Qt's own layout)
+    // Where our layout left the first line, AS QT REPORTS IT BACK: positions are stored in 1/64 px, so an exact compare with
+    // these (never with values computed here) is what says "still ours". ⛔ [SP-183] live pass: a computed compare failed on
+    // every call, and each re-lay shrank the paragraph by the rounding.
+    double laidX = -1;
+    double laidY = -1;
 };
 
 class ManuscriptLayout : public QPlainTextDocumentLayout
@@ -31,6 +36,7 @@ public:
     [[nodiscard]] int boundingRectCalls() const { return calls_; }
 
 private:
+    mutable double availableWidth_ = 0;   // Qt's line width (its `layoutBlock`: the text width less a margin each side)
     mutable int relayouts_ = 0;
     mutable int calls_ = 0;
 };

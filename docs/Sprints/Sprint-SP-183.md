@@ -225,3 +225,38 @@ is indented under Book convention, as on the Mac.
 gaps between lines (Qt paints a selection to each line's natural height, not the pitch), and where the glyphs sit in a line
 beside the Mac.
 
+### 🟡 2026-11-05 — Live pass 1 (user, scrivi-vm, build 1.0.359 `8bf0518`): one defect, fixed; two questions
+
+The user: *"4. no gaps in selection between lines within a paragraph. Slight gaps between paragraphs. 5. As I type at the end of
+the manuscript, the text above the caret seemed to get reformatted avery couple of keystrokes. As I typed, the top paragraph
+got narrower and narrower. When I selected text there the selection and the displayed text were not synchronized. But there
+was no lag."* Log kept at `~/evidence-2026-11-05/sp183-scrivi.log` on the VM.
+
+⛔ **Defect (step 5), in `ManuscriptLayout`, fixed:** it recognised its own layout by comparing the first line's position with
+values it COMPUTED, to 0.01 px — but Qt stores positions in 1/64 px, so the compare failed on layouts that were already ours,
+and every failure re-laid the block, with its width read back from our own (rounded) lines. **Measured** (Docker, Qt 6.4.2,
+typing at the end of a 200-scene manuscript): **96 re-lays per keystroke at 16 pt, 59 at 17 pt** (every visible paragraph, on
+every paint) against 1 at 13.5 pt. Docker's fonts give whole-pixel widths, so nothing narrowed there; on the VM's metrics each
+re-lay shaved the width, and painting and hit-testing ran on different layouts (the unsynchronised selection).
+**Fix:** the first line's position as Qt REPORTS IT BACK after our layout is kept on the line style and compared EXACTLY; the
+width is Qt's own (remembered whenever Qt lays a block, its lines at exactly (margin, 0)), never read from our lines. After it:
+**4 re-lays per keystroke** at every size. **Tests:** `indent_smoke` §1 (5 passes over every block: no re-lay; the first line
+spans the text width less the indent) and §5 (re-lays per keystroke bounded) — ✅ the old compare put back in a COPY fails §1
+(10 re-lays in 5 passes); the fixed code passes.
+⚠️ Not reproduced through the real window on dumas-prose in Docker (stable widths, 16 re-lays per keystroke) — the VM's
+re-test confirms the fix.
+
+**Separators (the user: *"On the VM the paragraph separators are not displaying"*):** ✅ clarified (user, 2026-11-05): *"the blue
+one between chapters. I see the grey ones between scenes no problem. … If Chapter headings are hidden it will be impossible to
+distinguish between a chapter break and a scene break."* — ✅ **Not this Sprint's, and not a regression:** Linux has never drawn
+the chapter-ending divider ([T-0575]); it is [SP-184]'s (S5c, [T-0611]), planned with Show chapter titles for exactly the
+user's reason.
+
+**The Mac's Heading 1 (the user: *"when I select "Format->Heading 1" with nothing selected, the screen flashes at me"*):** not
+this Sprint's — the core REFUSES a heading on an empty line (measured; with the caret in text and nothing selected it works).
+Filed as [I-0353] (backlog), a question for the user. ⚠️ The live-pass steps given in chat said to choose Heading 1 THEN type,
+which is the refused case — my error.
+
+**Evidence after the fix (2026-11-05):** `indent_smoke` ✅; all 41 Linux smoke steps ✅ 0 failed (⚠️ one batch run just before
+reported 13 failed with no assertion printed — the output was not kept; a re-run with full output: 0 failed).
+

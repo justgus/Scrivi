@@ -287,6 +287,28 @@ int main(int argc, char** argv)
     check(near(gap.pitch, body / 3.0), QStringLiteral("§1 a blank line between paragraphs is ⅓ of a body line (%1)").arg(px(gap.pitch)));
     const Drawn separator = drawn(doc, lineOf(doc, QStringLiteral("Scene two opens.")).previous());
     check(near(separator.pitch, body), QStringLiteral("§1 a scene separator is a body line (%1)").arg(px(separator.pitch)));
+    {
+        // ⛔ [SP-183] live pass: a layout that failed to recognise itself re-laid on every call, and each pass narrowed the
+        // paragraph by Qt's 1/64 px rounding. Asked again and again, a drawn paragraph is NOT re-laid, and keeps its width.
+        auto* layout = dynamic_cast<ManuscriptLayout*>(doc->documentLayout());
+        const QTextBlock second = lineOf(doc, QStringLiteral("Second para two."));
+        for (QTextBlock b = doc->begin(); b.isValid(); b = b.next()) {
+            drawn(doc, b);
+        }
+        const int relaid = layout != nullptr ? layout->relayouts() : -1;
+        for (int i = 0; i < 5; ++i) {
+            for (QTextBlock b = doc->begin(); b.isValid(); b = b.next()) {
+                drawn(doc, b);
+            }
+        }
+        check(layout != nullptr && layout->relayouts() == relaid,
+              QStringLiteral("§1 a drawn block is not re-laid when asked again (%1 re-lays in 5 passes over %2 blocks)")
+                  .arg(layout ? layout->relayouts() - relaid : -1).arg(doc->blockCount()));
+        const double full = ea->viewport()->width() - 2 * doc->documentMargin();   // Qt's text width is the viewport's
+        check(qAbs(second.layout()->lineAt(0).width() - (full - indent)) < 0.5,
+              QStringLiteral("§1 … and its first line spans the text width less the indent (%1, want %2)")
+                  .arg(px(second.layout()->lineAt(0).width()), px(full - indent)));
+    }
     check(doc->toPlainText() == textBefore, QStringLiteral("§1 drawing it changed no text"));
     check(wa->editorShell()->dirtySceneCount() == 0, QStringLiteral("§1 … dirtied no scene (%1)").arg(wa->editorShell()->dirtySceneCount()));
     wa->editorShell()->saveDirtyScenes();
@@ -446,6 +468,14 @@ int main(int argc, char** argv)
         settle();
         const int calls = layout->boundingRectCalls() - before;
         check(calls < 1000, QStringLiteral("§5 one keystroke asked for %1 block rectangles (80 scenes; the walk asked for tens of thousands)").arg(calls));
+        // ⛔ [SP-183] live pass: re-laying every visible block on every paint (a layout that failed to recognise itself).
+        const int relaid = layout->relayouts();
+        for (int i = 0; i < 10; ++i) {
+            QTest::keyClick(ed, Qt::Key_X);
+            QTest::qWait(15);
+        }
+        const double perKey = (layout->relayouts() - relaid) / 10.0;
+        check(perKey < 20, QStringLiteral("§5 a keystroke re-lays %1 blocks (the edited block and its neighbours, not the screen)").arg(perKey));
     }
 
     env.quitApplication();
