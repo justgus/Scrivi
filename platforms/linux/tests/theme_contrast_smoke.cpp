@@ -126,7 +126,7 @@ int main(int argc, char** argv)
 
         // ✅ [SP-184] Q3: the divider that closes a chapter — `Highlight` at 60%, as the Mac's accent at 60%. ⚠️ MEASURED
         // 2026-11-05: 60% of an accent lands at 2.1–2.4:1 on light and dark pages alike (the Mac's default blue on white
-        // 2.29:1), BELOW the scene rule's 3:1 — so its floor is the Mac's own level, 2.0:1, not 3:1 (raised with the user).
+        // 2.29:1), BELOW the scene rule's 3:1 — so its floor is the Mac's own level, 2.0:1, not 3:1 (✅ [SP-184] Q7, ruled 2026-11-06).
         {
             const QColor end = ThemeColours::chapterEnd(pal);
             const double e = contrast(end, base);

@@ -1,5 +1,7 @@
 # Sprint Backlog
 
+*Last Updated: 2026-11-06 (**EP-048's empty section removed** — every Sprint closed; EP-048 closed (Audit Check F5).)*
+
 *Last Updated: 2026-11-05 (**SP-184 removed** — activated 2026-11-05; EP-048's section now holds no Sprint.)*
 
 *Last Updated: 2026-11-05 (**SP-183 removed** — activated 2026-11-05.)*
@@ -7,16 +9,6 @@
 *Last Updated: 2026-11-05 (**SP-204 removed** — activated 2026-11-05.)*
 
 Sprints listed here are in 🔵 Planning status — defined and ready to activate, but not yet started.
-
----
-
-## 🔵 EP-048 — S5a–S5c (created 2026-10-15)
-
-| Sprint | Scope | Record | Waits on |
-| ------ | ----- | ------ | -------- |
-
-SP-183 activated and closed 2026-11-05; SP-184 activated 2026-11-05. [EP-026] S3 (Undo History section) needs SP-182's dialog. Each live
-pass needs the rig; the implementation does not.
 
 ---
 

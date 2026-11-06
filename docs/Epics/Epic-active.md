@@ -1,5 +1,7 @@
 # Active Epics
 
+*Last Updated: 2026-11-06 (**EP-048 → ✅ CLOSED** (user, 2026-11-06: *"F1–F5 as recommended, close EP-048."*) → `Closed/Epic-EP-048.md`.)*
+
 ## EP-057: `[Linux]` **Linux Rig Verification** — every Linux live pass waiting for the rig, held here and nowhere else
 
 **Status:** 🟡 **ACTIVE 2026-11-02**, standing (user, 2026-11-02: *"1 and 2 approved"* — a standing rig Epic, and the Mac
@@ -149,56 +151,3 @@ access (Files, iCloud Drive, external drives on iPad); iPad multi-window; a phon
 (AC1–AC4) · S2 structural edits, undo/redo, Find (AC5) · then AC6–AC9 as the audit orders them. Each with live passes.
 **Depends on:** [EP-054] S1–S2 (the archive) for moving projects onto an iPad, unless Q2's iCloud Drive route is enough
 (not needed for S1: the iOS Landing view already opens a project through `.fileImporter`, `LandingView.swift:84`).
-
----
-
-## EP-048: `[Linux]` ⚠️ **Manuscript Renderer Parity**
-
-**Status:** 🟡 **ACTIVE** since 2026-10-07 — S1, S2 and SP-173 closed; S3a closed (SP-174, 2026-10-10); S3b closed (SP-175, 2026-10-11); S4 (Find) closed (SP-176, 2026-10-11). L1–L7 and L9 met (S3b, 2026-10-10; Linux has no undo yet and no structured cross-scene paste — recorded in SP-175); L8 and L10 open — ✅ L8's Find half met (S4, [SP-176], rig live pass 2026-10-11); its Replace half is S4b ([SP-181], ✅ closed 2026-10-21). L10 is S5a–S5c: S5a ([SP-182]) ✅ closed 2026-10-21; S5b ([SP-183]) ✅ closed 2026-11-05; S5c ([SP-184]) 🔵 Planning. ✅ **EP-048 stays open until EP-026 lands** (user, 2026-10-11) — ✅ EP-026 closed 2026-11-05; S5b ([SP-183]) closed the same day; S5c ([SP-184]) remains.
-**Sprints:**
-
-| Sprint | Scope | Status |
-| ------ | ----- | ------ |
-| **[SP-165]** | **S1** — md4c analyzer in ScriviCore + `scrivi_analyze_markdown` + agreement test: L1, L2 (no rig) | ✅ **CLOSED 2026-10-07** (user-approved) → [`../Sprints/Closed/Sprint-SP-165.md`](../Sprints/Closed/Sprint-SP-165.md) · ✅ [T-0594] verified · ✅ L1, L2 met |
-| **[SP-166]** | **S2** — the presenter: L3, L4, L5, L6 (⚠️ live pass needs the rig) | ✅ **CLOSED 2026-10-09** (user-approved) → [`../Sprints/Closed/Sprint-SP-166.md`](../Sprints/Closed/Sprint-SP-166.md) · ✅ L3–L6, L9 (part) met; [T-0595] verified |
-| **[SP-173]** | `[Cross]` **I-0285** (found in S2): project load — no frozen UI, timeline built once, load measured; core calls synchronised (both platforms) | ✅ **CLOSED 2026-10-10** (user-approved) → [`../Sprints/Closed/Sprint-SP-173.md`](../Sprints/Closed/Sprint-SP-173.md) · ✅ I-0285 verified: load 172 s → 15.4 s |
-| **[SP-174]** | **S3a** — `[Cross]` the command and balanced-edit logic moves into ScriviCore; Apple re-pointed (no visible change) | ✅ **CLOSED 2026-10-10** (user-approved) → [`../Sprints/Closed/Sprint-SP-174.md`](../Sprints/Closed/Sprint-SP-174.md) · ✅ Q1–Q5 ruled |
-| **[SP-175]** | **S3b** — `[Linux]` the Format commands (L7) and balanced edits + copy (L9 rest) on the core logic; navigator toggle moves off Ctrl+Alt+N; rig live pass | ✅ **CLOSED 2026-10-11** (user-approved) → [`../Sprints/Closed/Sprint-SP-175.md`](../Sprints/Closed/Sprint-SP-175.md) · ✅ [T-0602] verified · ✅ L7, L9 met |
-| **[SP-176]** | **S4** — `[Linux]` **Find** over the presented text: L8's Find half | ✅ **CLOSED 2026-10-11** (user-approved) → [`../Sprints/Closed/Sprint-SP-176.md`](../Sprints/Closed/Sprint-SP-176.md) · ✅ Q1–Q4 ruled; ✅ split ruled 2026-10-11 · ✅ rig live pass passed; [T-0603] verified · ✅ L8 Find half met |
-| **[SP-181]** | **S4b** — `[Linux]` **Replace / Replace All** over the presented text: L8's Replace half — escaped, balanced, Replace All ONE undo step. ✅ Unblocked: Linux undo's grouped edit passed the rig ([SP-178], 2026-10-13) | ✅ **CLOSED 2026-10-21** (user-approved) → [`../Sprints/Closed/Sprint-SP-181.md`](../Sprints/Closed/Sprint-SP-181.md) · ✅ Q1–Q3 ruled 2026-10-15 · ⚠️ `[Apple]` [I-0303] fixed first (Replace All writes off the main thread) · ✅ rig live pass 2026-10-21 |
-| **[SP-182]** | **S5a** — `[Linux]` L10's character half: ✅ **builds Linux's Project Settings dialog** (replacing the *"coming soon"* stub; Project + Typography), the bundled typefaces and size, Markup Hints. EP-026 later adds its Undo History section | ✅ **CLOSED 2026-10-21** (user-approved) → [`../Sprints/Closed/Sprint-SP-182.md`](../Sprints/Closed/Sprint-SP-182.md) · ✅ Q1–Q5 ruled 2026-10-15 (incl. the S5 split) · ✅ Q6 ruled 2026-10-21 (synthesized bold) · ✅ rig live pass 2026-10-21 |
-| **[SP-183]** | **S5b** — `[Linux]` L10's block half: line spacing 1.45 and the first-line indent (Qt block formats — measured before the mechanism is ruled) | ✅ **CLOSED 2026-11-05** (user-approved) → [`../Sprints/Closed/Sprint-SP-183.md`](../Sprints/Closed/Sprint-SP-183.md) · [T-0610] ✅ · ➕ [I-0351] ✅ |
-| **[SP-184]** | **S5c** — `[Linux]` the **"Show chapter titles" toggle** ([EP-026] Q4) and the chapter-ending divider ([T-0575]) | 🟡 **ACTIVE 2026-11-05** → [`../Sprints/Sprint-SP-184.md`](../Sprints/Sprint-SP-184.md) · ✅ Q1 (re-ruled: titles on by default, every platform) – Q6 ruled · ✅ built, AC1–AC5 met · ⏳ Q7, live pass |
-
-**Tasks:** ✅ [T-0594] (SP-165 — VERIFIED, archived) · ✅ [T-0595] (SP-166 — VERIFIED, archived) · ✅ [T-0601] (SP-174 — VERIFIED, archived) · ✅ [T-0602] (SP-175 — VERIFIED, archived) · ✅ [T-0603] (SP-176 — VERIFIED, archived) · ✅ [T-0608] (SP-181 — VERIFIED 2026-10-21, archived) · ✅ [T-0609] (SP-182 — VERIFIED 2026-10-21, archived) · 🔵 [T-0610] (SP-183) · 🔵 [T-0611] (SP-184).
-**Issues:** ✅ [I-0285] (SP-173 — VERIFIED, archived) · ✅ [I-0280] (found + fixed in SP-165, Apple and core — VERIFIED, archived) · ✅ [I-0281] `[Apple]` (found by L2; fixed in [SP-169] — VERIFIED, archived).
-This Epic is the escape layer's DISPLAY half on Linux; the WRITE half was [EP-049] (closed 2026-10-05). The design for both platforms was ruled in [SP-159].
-**Authority:** → [`../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md`](../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md) §9.
-
-**Goal:** ✅ **The same manuscript surface on Linux.**
-
-**Why:** `feedback_linux_adopts_apple_shape` — a shape change on Apple is made the same way on Linux. Where Qt cannot match
-Apple's mechanism, the RESULT is matched and the difference recorded.
-
-**Established (design: [`../Scrivi_Manuscript_Renderer_E2_Design_v0_1.md`](../Scrivi_Manuscript_Renderer_E2_Design_v0_1.md) §2.4, §9):**
-- The parser is **md4c inside ScriviCore**, reached through `scrivi_analyze_markdown` (Linux is a C ABI client); the core
-  analyzer agrees with Apple's parser over the shared corpora (L2).
-- The presenter is a `QSyntaxHighlighter` on `ManuscriptEditor` — presentation only; stored text and save bytes untouched (L3).
-- ⛔ `QTextDocument::toMarkdown()` is NOT a save path (it re-wraps and writes escapes unescaped); Linux saves Apple's format.
-- Measured differences, recorded: no hanging indent for list items (a block format is a document edit — ✅ accepted, SP-174 Q3);
-  heading sizes are Apple's ratios over the body size.
-
-| AC | Criterion |
-| -- | --------- |
-| **L1** | **A source-mapped Markdown analyzer in ScriviCore (md4c)**: per block → kind, markers, bold, italic, prefixes, spans; ⚠️ first measurement: how md4c reports escaped characters |
-| **L2** | **Agreement test:** the core analyzer and Apple's `AttributedString` parser agree over the AC3 corpus + the S5 corpus (interop test) |
-| **L3** | **The Linux presenter:** a `QSyntaxHighlighter` on `ManuscriptEditor`; the document's stored text and formats untouched; save bytes unchanged |
-| **L4** | **Escape backslashes hidden** (Linux shows them today) with E1's rule; hard-break backslash per E1 AC6 |
-| **L5** | **Hidden-run caret snap** (W3 measured the same invisible stops as Apple) |
-| **L6** | **Headings + bold/italic render; re-entry span/line** (Q-E2-1) via `rehighlightBlock`; AC7 prose demotion |
-| **L7** | **Commands** as EP-046 AC6 (Ctrl in place of ⌘) and Option/Alt-Return = hard break (Q-E2-4). ✅ **The Alt-Return STORAGE half is done** — matched in [SP-163] (2026-10-05) with the shared corpus, `escape_smoke` PASS |
-| **L8** | **Find/Replace on presented text** (Q-E2-5) |
-| **L9** | ✅ **ADDED 2026-10-07 (user, [SP-166] Q1)** — **Markers are atomic and edits stay balanced** (EP-046 AC12, design §3.6): ⌫/⌦ never delete a hidden marker alone (→ S2); balanced edits and copy without markers (→ S3, with the commands) |
-| **L10** | ✅ **ADDED 2026-10-07 (user, [EP-047] P4)** — **[EP-047]'s preferences rendered on Linux**: the project typeface, the first-line indent (None · Every · Book convention), Markup Hints on/off — read from the shared `project-settings.json`. ⚠️ Qt's first-line indent is a BLOCK format (a document format, not a highlighter one — the SP-166 hanging-indent finding); measure it before ruling the mechanism |
-
-Measured (SP-166): attach + first highlight of 1.8 MB ≈ 185 ms (Docker), a keystroke ~1 ms; the load as a whole → [SP-173].

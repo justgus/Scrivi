@@ -764,7 +764,7 @@ archive files reconstructed after the fact from secondary sources.
 | T-0608 | `[Linux]` EP-048 S4b: Replace and Replace All over the presented text | ✅ **SP-181** | **EP-048** | ✅ **Verified 2026-10-21** | [`Task-verified-0608.md`](Verified/Task-verified-0608.md) |
 | T-0609 | `[Linux]` EP-048 S5a: Project Settings dialog, the bundled typefaces, Markup Hints | ✅ **SP-182** | **EP-048** | ✅ **Verified 2026-10-21** | [`Task-verified-0609.md`](Verified/Task-verified-0609.md) |
 | T-0610 | `[Linux]` EP-048 S5b: line spacing and the first-line indent | ✅ **SP-183** | **EP-048** | ✅ Verified 2026-11-05 | [`Task-verified-0610.md`](Verified/Task-verified-0610.md) |
-| T-0611 | `[Cross]` EP-048 S5c: Show chapter titles (on by default), and the chapter-ending divider | 🟡 **SP-184** | **EP-048** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
+| T-0611 | `[Cross]` EP-048 S5c: Show chapter titles (on by default), and the chapter-ending divider | ✅ **SP-184** | **EP-048** | ✅ Verified 2026-11-06 | [`Task-verified-0611.md`](Verified/Task-verified-0611.md) |
 | T-0612 | `[Linux]` A diagnostic log: timed operations and a main-thread stall watchdog | ✅ **SP-185** | **EP-026** | ✅ **Verified 2026-10-22** | [`Task-verified-0612.md`](Verified/Task-verified-0612.md) |
 | T-0613 | `[Linux]` Find bar: search after a 500 ms pause; the searchable text built ahead, never on a keystroke | ✅ **SP-185** | **EP-026** | ✅ **Verified 2026-10-21** | [`Task-verified-0613.md`](Verified/Task-verified-0613.md) |
 | T-0614 | `[ScriviCore]` EP-053 S1: the Range (`scrivi.range.v1`) and the aggregate range operations | ✅ **SP-186** | **EP-053** | ✅ **Verified 2026-10-20** | [`Task-verified-0614.md`](Verified/Task-verified-0614.md) |

@@ -109,7 +109,7 @@ never used). **This is not a filing defect** — do not re-open it as one.
 | 26 | I-0251 – I-0260 | [`Issue-verified-0251-0260.md`](Verified/Issue-verified-0251-0260.md) | 10 |
 | 27 | I-0261 – I-0270 | [`Issue-verified-0261-0270.md`](Verified/Issue-verified-0261-0270.md) | 9 |
 | 28 | I-0271 – I-0280 | [`Issue-verified-0271-0280.md`](Verified/Issue-verified-0271-0280.md) | 8 |
-| 29 | I-0281 – I-0290 | [`Issue-verified-0281-0290.md`](Verified/Issue-verified-0281-0290.md) | 8 |
+| 29 | I-0281 – I-0290 | [`Issue-verified-0281-0290.md`](Verified/Issue-verified-0281-0290.md) | 9 |
 | 30 | I-0291 – I-0300 | [`Issue-verified-0291-0300.md`](Verified/Issue-verified-0291-0300.md) | 10 |
 | 31 | I-0301 – I-0310 | [`Issue-verified-0301-0310.md`](Verified/Issue-verified-0301-0310.md) | 8 |
 | 32 | I-0311 – I-0320 | [`Issue-verified-0311-0320.md`](Verified/Issue-verified-0311-0320.md) | 7 |
@@ -173,6 +173,8 @@ stands as a marker.**
 | [`Issue-closed-0312.md`](Closed/Issue-closed-0312.md) | I-0312 — ⚪ **OBE** (`keyBetween` vs legacy undotted keys; no project uses that scheme; closed 2026-10-24) |
 
 ---
+
+*Last Updated: 2026-11-06 (batch 29 re-counted 8 → 9 — EP-048's Audit Check F4.)*
 
 *Last Updated: 2026-11-05 (**I-0351 → ✅ Verified** and archived to the new batch 36; batch 35 re-counted 7 → 8 (I-0350, archived when [SP-204] closed, was not counted).)*
 

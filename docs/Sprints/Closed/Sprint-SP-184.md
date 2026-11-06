@@ -1,7 +1,8 @@
 ---
 sprint: SP-184
 epic: EP-048
-status: Active
+status: Closed
+closed: 2026-11-06
 activated: 2026-11-05
 platform: Cross
 created: 2026-10-15
@@ -9,12 +10,12 @@ created: 2026-10-15
 
 # SP-184 — `[Cross]` [EP-048] **S5c**: Show chapter titles, and the divider that closes a chapter
 
-**Status:** 🟡 **ACTIVE 2026-11-05** (user, 2026-11-05: *"If that ends the rulings you may activate and implement SP-184."*) — created 2026-10-15 (user: *"plan EP-048 fully."*). ✅ The S5 split was ruled 2026-10-15
+**Status:** ✅ **CLOSED 2026-11-06** (user, 2026-11-06: *"yes, close SP-184, then audit check EP-048."*) — activated 2026-11-05 (user, 2026-11-05: *"If that ends the rulings you may activate and implement SP-184."*) — created 2026-10-15 (user: *"plan EP-048 fully."*). ✅ The S5 split was ruled 2026-10-15
 ([SP-182] Q2). ✅ Q1–Q2 ruled 2026-10-15, both as recommended. ✅ **Re-planned 2026-11-05** against today's code (user: *"yes, close SP-183 and
 plan SP-184"*): the last open Sprint of [EP-048]. ✅ Q3–Q4 ruled 2026-11-05; ⛔ **Q1 RE-RULED 2026-11-05: titles ON by default, on the Mac, Linux and iOS** — which makes this
 Sprint `[Cross]`. ✅ Q5–Q6 ruled 2026-11-05 — every question ruled.
-**Carries:** [T-0611] → [`../Tasks/Task-active.md`](../Tasks/Task-active.md).
-**Epic:** [EP-048] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md). ✅ [EP-026] Q4 (ruled 2026-10-11): EP-048 S5 builds
+**Carries:** [T-0611] ✅ → [`../../Tasks/Verified/Task-verified-0611.md`](../../Tasks/Verified/Task-verified-0611.md).
+**Epic:** [EP-048] → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md). ✅ [EP-026] Q4 (ruled 2026-10-11): EP-048 S5 builds
 the dialog **with the "Show chapter titles" toggle** (deferred since [EP-023]).
 **Builds on:** [SP-182] (S5a): the dialog and `ProjectPreferences`.
 **Authority:** [EP-047] P9 (chapter titles at Heading 1 size, in the text colour) · [T-0575] (the chapter-ending divider) ·
@@ -140,7 +141,7 @@ each chapter, and every structural operation behaves the same either way.
 | - | -------- | -------------- |
 | **Q5** | ✅ **RULED 2026-11-05 (as recommended): honour every stored value; the Mac stops pinning the key.** ➕ **A `false` the Mac pinned without the writer choosing it** cannot be told from one the writer chose. | ✅ **Recommended: honour every stored value, and stop the pinning** — the Mac writes `showChapterTitles` only once the writer changes it (Linux's rule, and the Mac's own for the other keys), so no NEW project is pinned off. Existing projects that read `false` stay off until the writer turns titles on (once, in Project Settings). Alternative: a one-time flip of stored `false` to on (overrides any writer who did choose off) |
 | **Q6** | ✅ **RULED 2026-11-05: the SAME string on both — the Mac's existing *"End of chapter"*** (the user: a screen reader speaks no capitals; the Mac is unchanged). ➕ **The words' capitalisation.** The Mac says *"End of chapter"* (`ManuscriptPresentedMap.swift:297`); the ruling says *"End of Chapter"*. | ✅ **Recommended: one string on both platforms** — *"End of Chapter"* on the Mac too, with its interop test, since what a screen reader says should not differ by platform. Alternative: Apple's *"End of chapter"* on Linux |
-| **Q7** | ➕ **The chapter end's contrast (found while building, 2026-11-05).** 60% of the accent is 2.1–2.4:1 against the page on every theme measured — the Mac's own default blue on white 2.29:1 — below the 3:1 the scene rule is held to (WCAG 1.4.11, non-text); full strength is ≥ 3.65:1 everywhere. | ✅ **Recommended: keep 60% on both platforms** — it is the Mac's, softened from full strength on the user's own pass ([T-0575]: *"The tinted divider may be too much"*), and it is a mark that must not compete with prose, not a control; the Linux smoke holds it to the Mac's 2.0:1. Alternative: 85% on both, the lowest opacity that reaches 3:1 on every theme measured (3.03:1 at worst; 75% gives only 2.6–2.9:1) — noticeably stronger than the Mac shows today |
+| **Q7** | ✅ **RULED 2026-11-06: keep 60% on both platforms** (user: *"60% on both platforms is correct."*). ➕ **The chapter end's contrast (found while building, 2026-11-05).** 60% of the accent is 2.1–2.4:1 against the page on every theme measured — the Mac's own default blue on white 2.29:1 — below the 3:1 the scene rule is held to (WCAG 1.4.11, non-text); full strength is ≥ 3.65:1 everywhere. | ✅ **Recommended: keep 60% on both platforms** — it is the Mac's, softened from full strength on the user's own pass ([T-0575]: *"The tinted divider may be too much"*), and it is a mark that must not compete with prose, not a control; the Linux smoke holds it to the Mac's 2.0:1. Alternative: 85% on both, the lowest opacity that reaches 3:1 on every theme measured (3.03:1 at worst; 75% gives only 2.6–2.9:1) — noticeably stronger than the Mac shows today |
 
 ⛔ **NOT in this Sprint:** chapter titles editable in place (Apple's are drawn, not edited; Rename Chapter stays the path) ·
 any change to how untitled chapters are numbered.
@@ -161,7 +162,9 @@ any change to how untitled chapters are numbered.
 - [x] AC5 — `chapter_titles_smoke` in CI, mutation-checked; `theme_contrast_smoke` covers the new colour; ctest green on macOS
       and Linux; all Linux smokes green — ✅ (log, 2026-11-05; ⚠️ the contrast is measured only under a real GTK theme — it skips
       in Docker — so on scrivi-vm; ctest not re-run: no core change)
-- [ ] AC6 — **Live pass (user) on scrivi-vm**, against the same project on the Mac
+- [x] AC6 — **Live pass (user) on scrivi-vm**, against the same project on the Mac — ✅ user, 2026-11-06: *"All tests pass."*
+      The chapter end is ORANGE on the VM: it is the desktop accent (`accent-color 'orange'`, Yaru), as the Mac's is
+      `controlAccentColor` — parity, not a defect
 
 ## Progress log
 
@@ -222,3 +225,11 @@ user, 2026-11-05: *"…if you must make it the same on both platforms (Q6). Q5: 
 blue on white **2.29:1**, Yaru orange 2.20:1, GNOME blue 2.13:1 (dark pages 2.33–2.44:1) — below the 3:1 the scene rule is held
 to (WCAG 1.4.11's floor for a non-text mark); at full strength every one is ≥ 3.65:1. `theme_contrast_smoke` holds the chapter
 end to **2.0:1** (the Mac's own level) until ruled.
+
+### ✅ 2026-11-06 — AC6 passed (user); contrast measured on scrivi-vm
+
+User: *"All tests pass."* Step 6's line could not be copied (the Mac ↔ VM clipboard), so `theme_contrast_smoke.sh` was run on
+the VM over SSH (it supplies its own display): Yaru-dark chapter end `#9d4324` on `#2a2a2a` **2.23:1**, light `#f19778` on
+`#fcfcfc` **2.17:1** — both pass the 2.0:1 floor, both below 3:1, as Q7 says. Q7 ruled the same day: 60% on both (user: *"60% on both platforms is correct."*). ⏳ Only the close remains
+(user approval).
+**All seven ACs met** (AC1–AC6, Q7 ruled); T-0611 verified. ✅ **Closed 2026-11-06** (user, 2026-11-06: *"yes, close SP-184, then audit check EP-048."*).

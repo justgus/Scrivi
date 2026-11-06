@@ -1,5 +1,7 @@
 # Active Sprints
 
+*Last Updated: 2026-11-06 (**SP-184 → ✅ CLOSED** (user, 2026-11-06: *"yes, close SP-184, then audit check EP-048."*).)*
+
 *Last Updated: 2026-11-05 (**SP-183 → ✅ CLOSED** (user, 2026-11-05: *"yes, close SP-183 and plan SP-184"*).)*
 
 *Last Updated: 2026-11-05 (**SP-204 → ✅ CLOSED** (user, 2026-11-05: *"yes to both."*).)*
@@ -7,11 +9,6 @@
 *Last Updated: 2026-11-05 (**SP-183 → 🟡 ACTIVE** (user, 2026-11-05: *"Activate SP-183 and run step 0."*).)*
 
 *Last Updated: 2026-11-05 (**SP-184 → 🟡 ACTIVE** (user, 2026-11-05: *"If that ends the rulings you may activate and implement SP-184."*).)*
-
-## SP-184 — `[Cross]` [EP-048] S5c: Show chapter titles (on by default), and the divider that closes a chapter
-
-🟡 **ACTIVE 2026-11-05** → [`Sprint-SP-184.md`](Sprint-SP-184.md) · carries [T-0611] · ✅ Q1 (re-ruled) – Q6 ruled · ✅ built, AC1–AC5 met · ⏳ Q7 (contrast) · ⏳ AC6 live pass (user)
-
 
 *Last Updated: 2026-11-05 (**SP-204 → 🟡 ACTIVE** (user: *"Activate SP-204 and run step 0"*).)*
 
