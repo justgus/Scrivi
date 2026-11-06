@@ -5408,7 +5408,8 @@ struct ProjectSettingsTravelTests {
     func fresh() throws {
         let f = try Fixture(); defer { f.cleanUp() }
         let p = f.prefs()
-        #expect(p.projectTitle == "Schema Title" && p.projectSubtitle.isEmpty && !p.showChapterTitles)
+        // ✅ [SP-184] Q1 (re-ruled 2026-11-05): chapter titles show by default.
+        #expect(p.projectTitle == "Schema Title" && p.projectSubtitle.isEmpty && p.showChapterTitles)
         #expect(try f.engine.getProjectSettings(projectRootPath: f.root).status == .absent)
     }
 
@@ -5417,10 +5418,21 @@ struct ProjectSettingsTravelTests {
         let f = try Fixture(); defer { f.cleanUp() }
         let p = f.prefs()
         p.projectSubtitle = "A Novel"
-        p.showChapterTitles = true
+        p.showChapterTitles = false
         let again = f.prefs()
-        #expect(again.projectSubtitle == "A Novel" && again.showChapterTitles)
+        #expect(again.projectSubtitle == "A Novel" && !again.showChapterTitles)
         #expect(f.settings()?["subtitle"] as? String == "A Novel")
+    }
+
+    @Test("[SP-184] Q5: a save of another setting does not pin Show chapter titles; a stored value is honoured")
+    func chapterTitlesNotPinned() throws {
+        let f = try Fixture(); defer { f.cleanUp() }
+        let p = f.prefs()
+        p.projectSubtitle = "A Novel"   // a save, the toggle untouched
+        #expect(f.settings()?["subtitle"] as? String == "A Novel")
+        #expect(f.settings()?["showChapterTitles"] == nil, "the default is not written until the writer chooses")
+        p.showChapterTitles = true      // chosen: written, even though it equals the default
+        #expect(f.settings()?["showChapterTitles"] as? Bool == true)
     }
 
     @Test("a save keeps keys this build did not write (another platform's) — [I-0215]")

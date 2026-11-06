@@ -2105,6 +2105,104 @@ add_dependencies(scrivi_linux_indent_smoke scrivi_version)
 target_compile_features(scrivi_linux_indent_smoke PRIVATE cxx_std_23)
 scrivi_add_bundled_fonts(scrivi_linux_indent_smoke)
 
+# chapter_titles_smoke (EP-048 S5c / SP-184, T-0611) — Show chapter titles (on by default) and the divider that closes a
+# chapter: painted colours read from the viewport, Orca's words from the presented page, files FROM DISK. Driven by
+# chapter_titles_smoke.sh (offscreen). (Every structural edit with titles OFF is structural_baseline_smoke's second run.)
+qt_add_executable(scrivi_linux_chapter_titles_smoke
+    tests/chapter_titles_smoke.cpp
+    src/AppSupport.cpp
+    src/AppSupport.hpp
+    src/AppEnvironment.hpp
+    src/SessionStore.cpp
+    src/SessionStore.hpp
+    src/ProjectWindowManager.hpp
+    src/RecentsStore.cpp
+    src/RecentsStore.hpp
+    src/ScriviBridge.cpp
+    src/ScriviBridge.hpp
+    src/AppEnvironment.cpp
+    src/LandingWindow.cpp
+    src/LandingWindow.hpp
+    src/ScriviWindow.cpp
+    src/DiagnosticLog.cpp
+    src/DiagnosticLog.hpp
+    src/ProjectSettingsDialog.cpp
+    src/ProjectSettingsDialog.hpp
+    src/ScriviWindow.hpp
+    src/BuffersPalette.cpp
+    src/BuffersPalette.hpp
+    src/EditorShell.cpp
+    src/ManuscriptTypography.cpp
+    src/ManuscriptTypography.hpp
+    src/ProjectPreferences.cpp
+    src/ProjectPreferences.hpp
+    src/HistoryCapture.cpp
+    src/HistoryCapture.hpp
+    src/BufferService.cpp
+    src/BufferService.hpp
+    src/EditorShell.hpp
+    src/ProjectSession.hpp
+    src/OpenProjectRegistry.cpp
+    src/OpenProjectRegistry.hpp
+    src/SceneDocument.cpp
+    src/SceneDocument.hpp
+    src/ManuscriptLayout.cpp
+    src/ManuscriptLayout.hpp
+    src/ManuscriptEditor.cpp
+    src/ManuscriptPresenter.cpp
+    src/ManuscriptPresenter.hpp
+    src/MarkdownAnalysis.hpp
+    src/ManuscriptEditor.hpp
+    src/ManuscriptEscapes.cpp
+    src/ManuscriptEscapes.hpp
+    src/FormatMenu.cpp
+    src/FormatMenu.hpp
+    src/FindBar.cpp
+    src/FindBar.hpp
+    src/ManuscriptFind.cpp
+    src/ManuscriptFind.hpp
+    src/NavigatorTree.cpp
+    src/NavigatorTree.hpp
+    src/SceneInspector.cpp
+    src/HistorySection.cpp
+    src/HistorySection.hpp
+    src/SceneInspector.hpp
+    src/ObjectKindScope.cpp
+    src/ObjectKindScope.hpp
+    src/InspectorLayoutStore.cpp
+    src/InspectorLayoutStore.hpp
+    src/WorldsDialog.cpp
+    src/WorldsDialog.hpp
+    src/WorldStatusText.hpp
+    src/ThemeColours.hpp
+    src/PackageFolderDialog.hpp
+    src/TimelinePanel.cpp
+    src/TimelinePanel.hpp
+    src/TimeDeltaPicker.cpp
+    src/TimeDeltaPicker.hpp
+    src/StoryStructures.cpp
+    src/StoryStructures.hpp
+    src/HistoricalEventDialog.cpp
+    src/HistoricalEventDialog.hpp
+    src/EpochOffsetDialog.cpp
+    src/EpochOffsetDialog.hpp
+)
+
+target_link_libraries(scrivi_linux_chapter_titles_smoke
+    PRIVATE
+        ScriviCore
+        Qt6::Quick
+        Qt6::Widgets
+        Qt6::QuickWidgets
+        Qt6::Concurrent
+        Qt6::Test
+)
+
+target_include_directories(scrivi_linux_chapter_titles_smoke PRIVATE src ${CMAKE_CURRENT_BINARY_DIR}/generated)
+add_dependencies(scrivi_linux_chapter_titles_smoke scrivi_version)
+target_compile_features(scrivi_linux_chapter_titles_smoke PRIVATE cxx_std_23)
+scrivi_add_bundled_fonts(scrivi_linux_chapter_titles_smoke)
+
 # --- Live-pass fixture builder (SP-125, EP-035 AC9) -------------------------
 # NOT a test — it asserts nothing. Builds a throwaway project whose first scene
 # has objects of several kinds related to it, so the AC9 live click-through runs

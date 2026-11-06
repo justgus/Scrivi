@@ -903,6 +903,7 @@ private:
     void unlockAfterWork();
     // [SP-182]: the project's face and size become the editor's font and the document's default font (THE one source,
     // EP-047 AC4); the presenter re-presents. No document edit, no dirty scene, no history event.
+    void applyChapterTitles(bool on);   // [SP-184]
     void applyTypography();
     ProjectPreferences* prefs_ = nullptr;   // owned (Qt parent); one per loaded project
     // [I-0305]: brackets one piece of background work; the last `end` runs the `whenBackgroundWorkDone` waiters.

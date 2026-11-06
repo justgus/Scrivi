@@ -1,6 +1,7 @@
 #include "ProjectSettingsDialog.hpp"
 
 #include <QApplication>
+#include <QCheckBox>
 #include <QComboBox>
 #include <QDoubleSpinBox>
 #include <QDialogButtonBox>
@@ -36,6 +37,14 @@ ProjectSettingsDialog::ProjectSettingsDialog(ProjectPreferences* prefs, QWidget*
     projectForm->addRow(tr("Title"), title_);
     projectForm->addRow(tr("Subtitle"), subtitle_);
     layout->addWidget(project);
+
+    // ── Writing Surface ([SP-184]; Apple's section, label and place) ──
+    auto* surface = new QGroupBox(tr("Writing Surface"), this);
+    auto* surfaceForm = new QVBoxLayout(surface);
+    chapterTitles_ = new QCheckBox(tr("Show chapter titles in manuscript"), surface);
+    chapterTitles_->setChecked(prefs->showChapterTitles());
+    surfaceForm->addWidget(chapterTitles_);
+    layout->addWidget(surface);
 
     // ── Typography (EP-047 P2, P5a, P8: a BUNDLED face and a size, per project — it travels) ──
     auto* type = new QGroupBox(tr("Typography"), this);
@@ -131,6 +140,7 @@ ProjectSettingsDialog::ProjectSettingsDialog(ProjectPreferences* prefs, QWidget*
         indentEm_->setEnabled(mode != QLatin1String("none"));
         prefs_->setParagraphIndent(mode);
     });
+    connect(chapterTitles_, &QCheckBox::toggled, this, [this](bool on) { prefs_->setShowChapterTitles(on); });
     connect(indentEm_, &QDoubleSpinBox::valueChanged, this, [this](double v) { prefs_->setIndentEm(v); });
 }
 

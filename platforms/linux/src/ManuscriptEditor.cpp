@@ -1165,58 +1165,38 @@ void ManuscriptEditor::paintEvent(QPaintEvent* event)
     if (sceneDoc_ == nullptr) {
         return;
     }
-    const QList<int> separators = sceneDoc_->sceneSeparatorPositions();
-    if (separators.isEmpty()) {
+    const QList<SceneDocument::Divider> dividers = sceneDoc_->dividers();
+    if (dividers.isEmpty()) {
         return;
     }
 
     QPainter painter(viewport());
     painter.setRenderHint(QPainter::Antialiasing, false);   // crisp 1px hairline
-    // ⛔ [I-0252] Linux half (2026-09-29) — THIS WAS `palette().color(QPalette::Mid)`,
-    // and that is the defect `ThemeColours` exists to prevent.
-    //
-    // ⚠️ USER: *"on Linux it is only barely visible in dark mode."*
-    // ⛔ `Mid` is a STRUCTURAL role with NO contrast guarantee — ✅ [I-0186] already
-    // MEASURED it at **1.07:1** on Yaru-dark (`ThemeColours.hpp`), which is the same
-    // invisibility, in the same theme, for the same reason.
-    // ⚠️ The old comment called `Mid` *"the Qt analogue of NSColor.separatorColor"* —
-    // ⛔ and `separatorColor` is exactly what [I-0252] removed on macOS.
-    //
-    // ✅ DERIVED from `WindowText` on `Base`, so it is correct in a light theme, a
-    // dark theme, and a theme nobody has written yet.
-    // ⚠️ Deliberately fainter than `deemphasised()`: a divider is a MARK, not text,
-    // and must not compete with prose (macOS settled the same band by measurement).
-    const QColor ruleColor = ThemeColours::rule(palette());
-    painter.setPen(QPen(ruleColor, 1));
+    // ⛔ [I-0252] Linux half (2026-09-29): `palette().color(QPalette::Mid)` measured 1.07:1 on Yaru-dark; ✅ the rule is
+    // DERIVED (`ThemeColours::rule`), and the chapter end is the accent at 60% ([SP-184] Q3, `ThemeColours::chapterEnd`).
+    const QColor sceneRule = ThemeColours::rule(palette());
+    const QColor chapterRule = ThemeColours::chapterEnd(palette());
 
     const QRectF vp = viewport()->rect();
     QTextDocument* doc = document();
     // ⛔ [I-0351]: `blockBoundingGeometry` walks from the first visible block to the one asked for, so asking it about every
-    // separator before culling laid out the whole manuscript on every paint. ✅ Culled by block NUMBER first ([SP-204]'s
-    // rule for the branch marks).
+    // divider before culling laid out the whole manuscript on every paint. ✅ Culled by block NUMBER first ([SP-204]'s rule).
     const auto [firstNumber, lastNumber] = visibleBlockNumbers();
 
-    for (const int pos : separators) {
-        // The separator's blank block is the one immediately BEFORE the following scene's
-        // first block (that scene begins at `pos`). Take the block just above it.
-        const QTextBlock sceneBlock = doc->findBlock(pos);
-        if (!sceneBlock.isValid()) {
-            continue;
-        }
-        const QTextBlock gapBlock = sceneBlock.previous();
+    for (const SceneDocument::Divider& d : dividers) {
+        // ✅ [SP-184]: the divider's blank block follows the previous body directly — before a chapter's title when titles
+        // show, as Apple's `renderedPrefix` puts the divider before the title.
+        const QTextBlock gapBlock = doc->findBlock(d.pos);
         if (!gapBlock.isValid() || gapBlock.blockNumber() < firstNumber || gapBlock.blockNumber() > lastNumber) {
             continue;
         }
-        // Block geometry is document-relative; translate by contentOffset() to viewport
-        // coordinates (the standard QPlainTextEdit mapping used by line-number gutters).
-        const QRectF r =
-            blockBoundingGeometry(gapBlock).translated(contentOffset());
+        const QRectF r = blockBoundingGeometry(gapBlock).translated(contentOffset());
         if (r.bottom() < vp.top() || r.top() > vp.bottom()) {
             continue;   // off-screen — skip (viewport-culled)
         }
         const qreal y = std::round(r.center().y()) + 0.5;   // pixel-center the hairline
-        painter.drawLine(QPointF(r.left() + kRuleInset, y),
-                         QPointF(r.right() - kRuleInset, y));
+        painter.setPen(QPen(d.chapterEnd ? chapterRule : sceneRule, 1));
+        painter.drawLine(QPointF(r.left() + kRuleInset, y), QPointF(r.right() - kRuleInset, y));
     }
 }
 

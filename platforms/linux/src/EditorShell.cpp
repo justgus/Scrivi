@@ -824,13 +824,9 @@ void EditorShell::applyLoadedProject(const QString& projectPath,
         viewport_->setPresenter(presenter_);
     }
     presenter_->attach(nullptr);
-    loadLog("main: sceneDoc build start");
-    sceneDoc_.build(inputs);
-    loadLog("main: sceneDoc built");
-    viewport_->setDocument(sceneDoc_.document());
-    loadLog("main: setDocument done");
     // EP-048 S5a ([SP-182]): the project's settings — kept across a reload of the same project (an open dialog holds them),
-    // and the type applied to EVERY new document, so a reload never resets the face.
+    // and the type applied to EVERY new document, so a reload never resets the face. ✅ [SP-184]: read BEFORE the build, which
+    // lays the chapter boundaries out with or without titles.
     if (prefs_ == nullptr) {
         prefs_ = new ProjectPreferences(bridge_, projectPath, payload.projectTitle, payload.settings, this);
         connect(prefs_, &ProjectPreferences::typographyChanged, this, &EditorShell::applyTypography);
@@ -839,12 +835,19 @@ void EditorShell::applyLoadedProject(const QString& projectPath,
             presenter_->setHintsEnabled(on, c.selectionStart(), c.selectionEnd());
             scheduleBranchMarks();   // EP-026 S3 [T-0620] Q2: the marks show only with the hints
         });
+        connect(prefs_, &ProjectPreferences::chapterTitlesChanged, this, &EditorShell::applyChapterTitles);
         connect(prefs_, &ProjectPreferences::titleChanged, this, [this](const QString& t) {
             if (auto* l = findChild<QLabel*>(QStringLiteral("editorTitle"))) {
                 l->setText(t.trimmed().isEmpty() ? tr("Project") : t);
             }
         });
     }
+    sceneDoc_.setShowChapterTitles(prefs_->showChapterTitles());
+    loadLog("main: sceneDoc build start");
+    sceneDoc_.build(inputs);
+    loadLog("main: sceneDoc built");
+    viewport_->setDocument(sceneDoc_.document());
+    loadLog("main: setDocument done");
     // The title shown is `project.json`'s (a rename in the dialog is there; the recents' copy may be older).
     if (auto* l = findChild<QLabel*>(QStringLiteral("editorTitle")); l != nullptr && !prefs_->title().trimmed().isEmpty()) {
         l->setText(prefs_->title());
@@ -3131,6 +3134,38 @@ void EditorShell::applyTypography()
             presenter_->rehighlight();   // headings, emphasis, chapter titles, line heights and indents follow the type
         }
     }
+}
+
+// ✅ [SP-184]: Writing Surface ▸ Show chapter titles in manuscript. Presentation only — every chapter boundary is rewritten in
+// place under the `loading_` guard (no scene dirtied, no history step, nothing written but the setting), and the caret and the
+// top of the view are kept as scene-local positions, since a title's lines move everything after it.
+void EditorShell::applyChapterTitles(bool on)
+{
+    if (sceneDoc_.showChapterTitles() == on || sceneDoc_.segments().isEmpty()) {
+        sceneDoc_.setShowChapterTitles(on);
+        return;
+    }
+    const Span span("chapter titles");
+    const auto anchor = [this](int pos) {
+        const int i = std::max(0, sceneDoc_.sceneIndexForCaret(pos));
+        const SceneSegment& seg = sceneDoc_.segments().at(i);
+        return std::pair{i, std::clamp(pos - seg.bodyStart, 0, seg.bodyLength)};
+    };
+    const auto at = [this](std::pair<int, int> a) { return sceneDoc_.segments().at(a.first).bodyStart + a.second; };
+    const QTextCursor c = viewport_->textCursor();
+    const auto caret = anchor(c.position());
+    const auto top = anchor(viewport_->cursorForPosition(QPoint(0, 0)).position());
+
+    viewport_->removePendingPair();   // SP-175: a rebuild of the boundaries drops the pending pair (Apple: a rebuild does)
+    const bool wasLoading = loading_;
+    loading_ = true;
+    sceneDoc_.setShowChapterTitles(on);
+    QTextCursor moved(sceneDoc_.document());
+    moved.setPosition(at(caret));
+    viewport_->setTextCursor(moved);
+    viewport_->verticalScrollBar()->setValue(sceneDoc_.document()->findBlock(at(top)).firstLineNumber());
+    loading_ = wasLoading;
+    scheduleBranchMarks();
 }
 
 bool EditorShell::markupHints() const

@@ -16,3 +16,7 @@ export SCRIVI_VERIFY_SCENE_TEXT=1
 
 echo "== Structural operations: the EP-053 baseline =="
 "$BIN" "$WORKDIR/projects/baseline.scrivi"
+
+# ✅ [SP-184]: every structural edit, undo and redo again with chapter titles OFF (the project's settings say so, as the Mac's).
+echo "== Structural operations with chapter titles OFF =="
+SCRIVI_SMOKE_TITLES=off "$BIN" "$WORKDIR/projects/baseline-untitled.scrivi"

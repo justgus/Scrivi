@@ -22,9 +22,10 @@ import Foundation
     /// this class does not overwrite it on open either — only an explicit change by the writer does.
     private(set) var unreadableMessage: String?
 
-    // Writing surface
+    // Writing surface. ✅ [SP-184] Q1 (re-ruled 2026-11-05): ABSENT = titles ON (the Mac, iOS and Linux alike). ✅ Q5: written only
+    // once the writer changes it, like the type — so a save of another setting never pins today's default into the file.
     var showChapterTitles: Bool {
-        didSet { save() }
+        didSet { showChapterTitlesChosen = true; save() }
     }
 
     // Project identity. The title is `project.json`'s; a rename is written there through the core.
@@ -63,6 +64,7 @@ import Foundation
     }
 
     /// Whether the file holds an explicit choice — so a save of ANOTHER setting never pins today's default into it.
+    @ObservationIgnored private var showChapterTitlesChosen = false
     @ObservationIgnored private var typefaceChosen = false
     @ObservationIgnored private var textSizeChosen = false
     @ObservationIgnored private var paragraphIndentChosen = false
@@ -120,7 +122,8 @@ import Foundation
 
         document = doc
         unreadableMessage = fetch?.status == .unreadable ? (fetch?.message ?? "unreadable") : nil
-        showChapterTitles = doc[Self.showChapterTitlesKey] as? Bool ?? false
+        showChapterTitles = doc[Self.showChapterTitlesKey] as? Bool ?? true
+        showChapterTitlesChosen = doc[Self.showChapterTitlesKey] != nil
         projectSubtitle = doc[Self.subtitleKey] as? String ?? ""
         typeface = doc[Self.typefaceKey] as? String ?? BundledFonts.manifest.default
         textSize = (doc[Self.textSizeKey] as? NSNumber)?.doubleValue ?? Double(ManuscriptTypography.defaultSize)
@@ -137,7 +140,7 @@ import Foundation
 
     private func save() {
         document[Self.subtitleKey] = projectSubtitle
-        document[Self.showChapterTitlesKey] = showChapterTitles
+        if showChapterTitlesChosen { document[Self.showChapterTitlesKey] = showChapterTitles }
         if typefaceChosen { document[Self.typefaceKey] = typeface }
         if textSizeChosen { document[Self.textSizeKey] = textSize }
         if paragraphIndentChosen { document[Self.paragraphIndentKey] = paragraphIndent }

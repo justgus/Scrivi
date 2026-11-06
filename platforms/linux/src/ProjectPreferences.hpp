@@ -17,8 +17,8 @@ class ScriviBridge;
 // ⚠️ The document is shared with the Mac and with later builds, so it is kept WHOLE: a save merges this class's keys into
 // the document it read and writes all of it back ([I-0215]: never drop a key you did not write).
 // ⚠️ A key is written only once the writer has CHOSEN it, so a save of another setting never pins today's default.
-// (⚠️ Apple always writes `subtitle` and `showChapterTitles` on a save; Linux does not write `showChapterTitles` at all
-// until [SP-184] builds it, and writes `subtitle` only once edited — the same file either way.)
+// (⚠️ Apple always writes `subtitle` on a save, and — until [SP-184] Q5 — `showChapterTitles`; Linux writes each only once
+// chosen — the same file either way.)
 // ⛔ An UNREADABLE file is never overwritten on open; only an explicit change by the writer replaces it.
 //
 // One per open project, owned by its `EditorShell`; built from the settings the load's worker read.
@@ -53,6 +53,10 @@ public:
         return {typeface_, textSize_, ManuscriptTypography::indentFromName(paragraphIndent_), indentEm_};
     }
 
+    // ✅ [SP-184] Q1 (re-ruled 2026-11-05): Writing Surface ▸ Show chapter titles in manuscript — absent = ON, as on the Mac and iOS.
+    [[nodiscard]] bool showChapterTitles() const { return showChapterTitles_; }
+    void setShowChapterTitles(bool on);
+
     // ✅ EP-047 P11: Markup Hints — absent = ON. View ▸ Show Markup Hints (Ctrl+Shift+H).
     [[nodiscard]] bool markupHints() const { return markupHints_; }
     void setMarkupHints(bool on);
@@ -64,12 +68,14 @@ public:
     static constexpr const char* kTypefaceKey = "typeface";
     static constexpr const char* kTextSizeKey = "textSize";
     static constexpr const char* kMarkupHintsKey = "markupHints";
+    static constexpr const char* kShowChapterTitlesKey = "showChapterTitles";
     static constexpr const char* kParagraphIndentKey = "paragraphIndent";
     static constexpr const char* kIndentEmKey = "indentEm";
 
 signals:
     void typographyChanged();
     void markupHintsChanged(bool on);
+    void chapterTitlesChanged(bool on);
     void titleChanged(const QString& title);
 
 private:
@@ -84,12 +90,14 @@ private:
     QString typeface_;
     double textSize_ = ManuscriptTypography::kDefaultSize;
     bool markupHints_ = true;
+    bool showChapterTitles_ = true;
     QString paragraphIndent_ = QStringLiteral("book");
     double indentEm_ = ManuscriptTypography::kDefaultIndentEm;
     bool subtitleChosen_ = false;
     bool typefaceChosen_ = false;
     bool textSizeChosen_ = false;
     bool markupHintsChosen_ = false;
+    bool showChapterTitlesChosen_ = false;
     bool paragraphIndentChosen_ = false;
     bool indentEmChosen_ = false;
 };

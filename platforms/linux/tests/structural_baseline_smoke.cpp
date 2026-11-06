@@ -45,6 +45,9 @@
 namespace {
 
 int failures = 0;
+// ✅ [SP-184]: the script runs this harness twice — titles on (the default) and OFF (`SCRIVI_SMOKE_TITLES=off`, written to the
+// project's settings as the Mac would), so every structural edit, undo and redo is checked with and without chapter titles.
+const bool titlesOn = qgetenv("SCRIVI_SMOKE_TITLES") != "off";
 
 void check(bool cond, const QString& what)
 {
@@ -219,7 +222,8 @@ struct Rig {
                                                                                      bold ? QStringLiteral("a heading")
                                                                                           : QStringLiteral("body text")));
         }
-        check(headings == chapterCount(), QStringLiteral("%1: one heading per chapter").arg(what));
+        check(headings == (titlesOn ? chapterCount() : 0),
+              QStringLiteral("%1: %2 (%3 drawn)").arg(what, titlesOn ? QStringLiteral("one heading per chapter") : QStringLiteral("no heading with titles off")).arg(headings));
     }
     // Runs `act`, lets any background work and reload land, then prints the baseline. Returns the GUI-thread core calls.
     qint64 measured(const char* what, const std::function<void()>& act, bool structural = true)
@@ -324,6 +328,10 @@ int main(int argc, char* argv[])
     }
     // A TITLED chapter, as dumas's: a split must not carry its title onto the new chapter, or the new one's back onto it.
     r.bridge.renameChapter(r.projectDir, first.value(QStringLiteral("chapterMetadataPath")).toString(), QStringLiteral("The Abbé"));
+    if (!titlesOn) {
+        r.bridge.putProjectSettings(r.projectDir, QStringLiteral(R"({"showChapterTitles":false})"));
+        std::printf("== titles OFF ==\n");
+    }
     // ✅ [I-0344]: the load reads the Inspector's layout and the copy buffers on its worker — the UI thread's build read them
     // from disk (0.6 s, then 1.8 s waiting for the project lock, on dumas over a share).
     QStringList loadGuiReads;
@@ -501,7 +509,8 @@ int main(int argc, char* argv[])
         r.headingsDrawnRight(QStringLiteral("two chapters"));
         check(r.landing([&] { r.caretAt(QStringLiteral("Beta ")); r.shell->splitChapter(); }),
               QStringLiteral("a chapter inserted before chapter 2"));
-        check(r.editor->document()->toPlainText().contains(QStringLiteral("Chapter 3")), QStringLiteral("(renumbered to 3)"));
+        check(r.editor->document()->toPlainText().contains(QStringLiteral("Chapter 3")) == titlesOn,
+              titlesOn ? QStringLiteral("(renumbered to 3)") : QStringLiteral("(no title drawn with titles off)"));
         r.headingsDrawnRight(QStringLiteral("after the insert"));
         check(r.landing([&] { r.control(Qt::Key_Z); }), QStringLiteral("(undone)"));
         r.headingsDrawnRight(QStringLiteral("after its undo"));

@@ -8,10 +8,13 @@ Issues awaiting **user verification**. An Issue leaves this file only when the u
 
 | ID | Title | Severity | Sprint | Status |
 | -- | ----- | -------- | ------ | ------ |
-| **I-0351** | `[Linux]` **Every repaint of the manuscript walks the whole document: the scene-break rules ask Qt for each separator's geometry, then drop the off-screen ones** — ~95,000 `blockBoundingRect` calls per keystroke on 1,186 scenes. Found in [SP-183] step 0. → [details](#i-0351) | Medium | [SP-183] | 🟠 Resolved - Not Verified |
 | **I-0242** | `[Linux]` ⛔ **THE WRITER'S CARD STACK IS IGNORED — Linux ENUMERATES KINDS instead of honouring the chosen stack, and DROPS any card that is empty.** ⚠️ **FOUND BY THE USER on the real rig, 2026-09-21**, during [SP-142]'s live pass on `the-stairs-of-tintagael` — ⛔ **not by any test.** ✅ **USER RULING (2026-09-21), and it is the whole specification:** ⚠️ ***"The writer chooses which Card elements to display and in what order they appear. Therefore, if the writer chooses to display an empty card in the stack, then it should be displayed with an appropriate 'No Objects to Display' message. Apple already does this. Linux must as well."*** ⚠️ **REPORTED AS 'Factions is missing'; ⛔ THAT IS THE SYMPTOM, NOT THE DEFECT.** ✅ **Linux CAN render factions** — it derives kinds from `ObjectKindScope`/`kAllStorableKinds` and hardcodes nothing (the standing rule WAS followed). ⛔ **THE DEFECT IS THAT IT NEVER ASKS WHAT THE WRITER CHOSE.** ✅ **`SceneInspector.cpp:551` lists the CORE's kinds and `:577` skips any with no entries in this scene** (*"a kind with nothing in this scene is simply not a row"*) — ⚠️ **so the stack is DERIVED FROM DATA, while Apple's is DECLARED BY THE WRITER.** ⚠️ **APPLE IS THE REFERENCE AND IT IS EXPLICIT:** `ObjectCard.swift:450` renders *"No <kind> in this scene yet."* with the comment ⚠️ ***"§2: empty is a normal state, not an error."*** ⛔ **THE ROOT CAUSE IS A DANGLING READ.** ✅ **`inspector-layout.json` HOLDS the answer — `defaultStacks` and per-scene `scenes` — and [T-0537] just proved Linux ROUND-TRIPS both LOSSLESSLY.** ⚠️ **But `InspectorLayoutStore` exposes ONLY `selectedTab`: ⛔ ZERO reads of `defaultStacks` or `scenes` anywhere in `platforms/linux/`.** ✅ **So Linux has been faithfully PRESERVING a document it does not consult** — ⚠️ **`project_capability_without_surface` in its exact form: a dangling read with no reader.** ⚠️ **CONSEQUENCE BEYOND THE MISSING CARD: ORDER IS ALSO WRONG.** ⛔ **Linux emits kinds in the CORE's order; the writer's chosen order is in `defaultStacks` and is ignored** — ✅ **the user's ruling names order explicitly.** ⚠️ **AND IT BLOCKS THE STACK PICKER ([EP-036] AC4b): a '+' menu that adds a card to a stack nothing reads would change nothing on screen.** ⛔ **That picker had NO Task number; ⚠️ an earlier draft of this row cited `T-0543`, which is now [SP-134]'s — ✅ corrected 2026-09-22.** | **Medium** | ⛔ **UNASSIGNED** — ⚠️ **candidate for [EP-036]; ✅ it is the PREREQUISITE for T-0543, so they should sequence together** | 🔵 **Open** |
 |  **I-0244** | `[Linux]` ⚠️ **THE LINUX APP HAS NONE OF [EP-040]'s EDITOR SHELL, AND NOTHING TRACKS THE GAP.** ⚠️ **RAISED 2026-09-22 from the user's own observation during [SP-135]'s live pass:** ⚠️ ***"I did not toggle the panels on Linux or any of the more recent UI changes because many of them have not been made on Linux yet."*** ✅ **MEASURED THE SAME DAY, not asserted:** ⛔ **Linux has ZERO `QToolBar`/`addToolBar` in `platforms/linux/src/`** · ⛔ **ZERO navigator-visibility state** · ⚠️ **Apple now has a `.toolbar` with 3 `ControlGroup`s and SIX `safeAreaBar`s.** ⚠️ **THIS IS NOT A DEFECT IN EITHER PLATFORM.** ✅ **[EP-040] is scoped `[Apple]` DELIBERATELY** — ⛔ **but four Sprints of shell work ([SP-134] toolbar · [SP-135] bars · [SP-136] inspector column · [SP-137] detail sheet) have no Linux counterpart, and NO Epic, Sprint or Issue records that.** ⚠️ **`feedback_linux_adopts_apple_shape` is the standing rule: *Apple is the reference for architecture; a shape change on Apple must be made the same way on Linux in the SAME work.*** ⛔ **That has not happened, and the divergence is now FOUR SPRINTS DEEP AND GROWING.** ✅ **WHAT THE APPLE WORK ALREADY PROVED, and Linux will re-earn without it:** ⚠️ **[I-0203]'s root cause was that bars were STACK SIBLINGS** — ✅ **Linux's `EditorShell` uses the same layout idiom** — ⚠️ **and the Navigator was unrecoverable because NOTHING OWNED ITS VISIBILITY STATE.** ⛔ **Linux's pane visibility is SESSION-SCOPED ONLY (SP-078/T-0320), which is the same class of gap.** ⚠️ **IT IS NOT [EP-043]'s EITHER:** ✅ **that Epic is the SESSION (multi-window, restore, geometry)** — ⛔ **this is the SHELL (toolbar, bars, panes).** ✅ **They are adjacent and both wait on the same `EditorShell` rework, which is an argument for SEQUENCING them together, not for merging them.** ⚠️ **NOT URGENT AND NOT A REGRESSION** — ✅ **Linux works as it did** — ⛔ **but an untracked divergence is how a port silently falls behind, which is exactly what the Porting Outline exists to prevent.** ---- ⚠️ **A PERFORMANCE EXPECTATION IS INHERITED FROM [I-0213]** (⚠️ *`[Apple]` chapter create froze the app ~2.7 s on a 1,174-scene manuscript; now `~305–400 ms` of work*) **AND IS RECORDED HERE SO LINUX DOES NOT RE-DISCOVER IT AS A DEFECT.** ✅ **[I-0213] was VERIFIED on Apple 2026-09-24 with `createChapter WORK=396.7 ms` on 1,179 scenes, ⚠️ measured DELIBERATELY from a USB mount as a WORST-CASE FLOOR.** ⚠️ **The user named what follows:** *"On Linux it will be even worse because it has to also come through this computer's operating system."* ✅ **SO A LINUX FIGURE WORSE THAN `396.7 ms` ON THE SAME FIXTURE IS ANTICIPATED — ⛔ NOT a regression against [I-0213], and NOT a new Issue on its own.** ⛔ **NOTHING HAS BEEN MEASURED ON LINUX YET; ✅ this is an EXPECTATION TO TEST AGAINST, not a claim about the rig.** ⚠️ **When the Linux editor shell is built, the structural ops MUST be timed with the SAME `[SCRIVI-STRUCT]`-style instrumentation** — ✅ **[I-0213] proved the cost was UNATTRIBUTABLE until each op reported its own number, and that three code-read diagnoses were wrong before it did.** | **Low** | ⛔ **UNASSIGNED — awaiting its OWN Epic.** ✅ **SCOPE RULED 2026-09-26 ([EP-043] [R-Q5], user-approved): it becomes its OWN `[Linux]` Epic, SEQUENCED AFTER [EP-043]** — ⛔ **NOT ACs inside it.** ⚠️ **THIS ROW PREVIOUSLY SAID *"sequenced WITH or after"*; ✅ it is AFTER, and [EP-043]'s record now says the same** — ⛔ **the two records disagreed and no longer do.** ✅ **WHY NOT FOLDED IN: this Issue is FOUR Apple Sprints deep ([SP-134]–[SP-137]), and folding it into a SESSION Epic would repeat the [EP-035] AC1 collapse [I-0178] cites.** ✅ **THE COLLISION IS ALREADY HANDLED: [SP-145] carries a NAMED CARVE-OUT** — ⚠️ **its extraction takes `inspectorVisible_` + `timelineVisible_` onto the session object** (⛔ **per-project state, not per-widget**), ✅ **so this Epic will NOT have to re-open `EditorShell` for pane state.** ⚠️ **Of this Issue's THREE measured gaps, ONLY pane-visibility overlapped, and that is the carve-out** | 🔵 **Open**  |
 
+
+*Last Updated: 2026-11-05 — **I-0351 → ✅ Verified and archived** → `Verified/Issue-verified-0351-0360.md` ([SP-183] closed).*
+
+*Last Updated: 2026-11-05 — **I-0351 → ✅ Verified** (the user's live pass); archived when [SP-183] closes.*
 
 *Last Updated: 2026-11-05 — **I-0351 → 🟠 Resolved - Not Verified** ([SP-183]).*
 
@@ -197,34 +200,6 @@ scoped **together with I-0131 and I-0132**, which are the same underlying questi
 
 
 
-
----
-
-## I-0351: `[Linux]` Every repaint of the manuscript walks the whole document for the scene-break rules
-
-**Found:** 2026-11-05, [SP-183] step 0 (`indent_probe`, a throwaway in a copy of the repo: the real `ManuscriptEditor` and
-`ManuscriptPresenter` over 1,186 scenes, ~17,500 blocks, Docker, Qt 6.4.2 and 6.10.2, Debug).
-**What:** `ManuscriptEditor::paintEvent` (`platforms/linux/src/ManuscriptEditor.cpp:1188–1205`) draws each scene-break rule by
-calling `blockBoundingGeometry` for **every** separator in the manuscript, and only then skips the off-screen ones
-(`:1204`). [SP-204] found that `blockBoundingGeometry` walks from the first visible block to the one asked for, laying out
-every block between, so every paint walks the whole document.
-**Measured** (a backtrace from inside the walk confirms `ManuscriptEditor::paintEvent` is the caller):
-
-| | Today | Culled by block number first (probe only) |
-|---|---|---|
-| `blockBoundingRect` calls per keystroke | ~95,000 | ~180 |
-| 20 keystrokes | 88 ms | 16 ms |
-| Blocks laid out after the first show | 1,243 | 39 |
-
-**Why it matters:** about 3.6 ms per keystroke on synthetic text, more on a real book. [SP-183]'s indent layout runs per laid-out
-block, so with this walk in place a keystroke cost 18 ms instead of 1 ms; [SP-184] adds chapter dividers to the same loop.
-**Fix (proposed):** the same as [SP-204]'s branch marks: cull each separator by block number against the visible range before
-asking for its geometry. Tested by counting layout calls per keystroke, with a mutation that removes the cull.
-**Fix (2026-11-05):** `ManuscriptEditor::paintEvent` culls each separator by block number before its geometry
-(`platforms/linux/src/ManuscriptEditor.cpp:1207`), through `visibleBlockNumbers()`, now shared with [SP-204]'s branch marks.
-**Evidence:** `indent_smoke` §5 (80 scenes): one keystroke asks for a bounded number of block rectangles; the mutation that
-removes the cull is caught (3,772). On a dumas-sized manuscript (1,186 scenes), 20 keystrokes 88 → 21 ms (Qt 6.4.2, Docker).
-**Status:** 🟠 Resolved - Not Verified — ✅ kept by [SP-183] Q3.
 
 ---
 

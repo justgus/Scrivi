@@ -4,6 +4,7 @@
 #include <QVariantMap>
 
 class ProjectPreferences;
+class QCheckBox;
 class QComboBox;
 class QDoubleSpinBox;
 class QLineEdit;
@@ -11,7 +12,7 @@ class QSpinBox;
 
 // EP-048 S5a (SP-182, T-0609) — Project ▸ Project Settings… on Linux. ✅ Apple's sheet (`ProjectSettingsSheet.swift`), with
 // only what Linux has built ([SP-182] Q2): Project (Title, Subtitle) and Typography (Typeface, Text size, and [SP-183]'s
-// Paragraph indent and Indent), [SP-184] "Show chapter titles". ✅ EP-026 S3 ([SP-204]) adds Undo History: the two values Apple's sheet
+// Paragraph indent and Indent), [SP-184] Writing Surface ▸ "Show chapter titles in manuscript". ✅ EP-026 S3 ([SP-204]) adds Undo History: the two values Apple's sheet
 // holds, read off the GUI thread and written when the dialog closes (Apple writes them on Done).
 // Changes apply LIVE, as Apple's do — each control writes its preference as it changes; Close only closes.
 class ProjectSettingsDialog : public QDialog
@@ -27,6 +28,7 @@ public:
     QComboBox* typefaceBox() const { return typeface_; }
     QSpinBox* sizeBox() const { return size_; }
     QComboBox* indentBox() const { return indent_; }
+    QCheckBox* chapterTitlesBox() const { return chapterTitles_; }
     QDoubleSpinBox* indentEmBox() const { return indentEm_; }
     QSpinBox* capacityBox() const { return capacity_; }
     QSpinBox* staleDaysBox() const { return staleDays_; }
@@ -43,6 +45,7 @@ private:
     QComboBox* typeface_;
     QSpinBox* size_;
     QComboBox* indent_;
+    QCheckBox* chapterTitles_;
     QDoubleSpinBox* indentEm_;
     QSpinBox* capacity_;
     QSpinBox* staleDays_;

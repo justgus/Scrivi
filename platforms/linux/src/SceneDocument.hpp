@@ -345,14 +345,16 @@ public:
     // caller-managed "programmatic" window (no dirty churn).
     void reflowAllChapterHeadings();
 
-    // Character positions of the within-chapter scene separators — the blank gap that
-    // build()/reflow place BEFORE each scene that is NOT its chapter's first scene (EP-028
-    // SP-076, T-0308). Each returned position is that following scene's bodyStart; the
-    // faint separator rule is drawn centered in the blank block just above it. Chapter
-    // boundaries are excluded (they show a heading, not a rule — macOS parity, where the
-    // DividerAttachmentCell sits only between same-chapter scenes). The editor's
-    // paintEvent maps each position to a block rectangle and strokes the rule there.
-    QList<int> sceneSeparatorPositions() const;
+    // ✅ [SP-184] (T-0575): the DIVIDERS — one before every scene but the first, as Apple's `renderedPrefix` draws them. Each
+    // is the blank block right after the previous body (before a chapter's title, when titles show); `chapterEnd` marks the
+    // one that closes a chapter (drawn in the accent, read as "End of chapter"). The editor paints each in that block.
+    struct Divider { int pos = 0; bool chapterEnd = false; };
+    QList<Divider> dividers() const;
+
+    // ✅ [SP-184] Q1 (re-ruled 2026-11-05: ON by default): whether chapter titles show. A change rewrites every chapter
+    // boundary in place (presentation only — no scene text moves); runs inside a caller-managed "programmatic" window.
+    bool showChapterTitles() const { return showChapterTitles_; }
+    void setShowChapterTitles(bool on);
 
     // The DISPLAY heading for segment `index`'s chapter: the trimmed custom chapterTitle
     // if non-empty, else the derived ordinal "Chapter N" where N is the chapter's 1-based
@@ -389,5 +391,6 @@ private:
     QList<SceneSegment> segments_;
     std::optional<PendingPair> pending_;
     bool pendingEdit_ = false;
+    bool showChapterTitles_ = true;
     int builds_ = 0;
 };

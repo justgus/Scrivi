@@ -60,10 +60,12 @@ int PresentedText::refresh(const SceneDocument& sceneDoc, const ManuscriptPresen
     int rebuilt = 0;
     for (int i = 0; i < segs.size(); ++i) {
         rebuilt += refreshScene(i, sceneDoc, doc, presenter) ? 1 : 0;
-        // EP-050 S4: the boundary before the body. A scene after the first of its chapter has a divider (the separator
-        // `SceneDocument::sceneSeparatorPositions` draws); a chapter's first scene, its title.
+        // EP-050 S4: the boundary before the body. Every scene but the first has a divider (`SceneDocument::dividers`);
+        // ✅ [SP-184] the one at a chapter start closes the previous chapter, then that chapter's title when titles show.
         const int gapStart = i > 0 ? segs[i - 1].bodyStart + segs[i - 1].bodyLength : 0;
-        buildLead(scenes_[i], doc, gapStart, segs[i].bodyStart, i > 0 && segs[i].chapterID == segs[i - 1].chapterID);
+        const Divider kind = i == 0 ? Divider::None
+                           : segs[i].chapterID == segs[i - 1].chapterID ? Divider::SceneBreak : Divider::ChapterEnd;
+        buildLead(scenes_[i], doc, gapStart, segs[i].bodyStart, kind);
         pageStarts_[i] = pageLength_;
         pageLength_ += int(scenes_[i].lead.size() + scenes_[i].text.size());
     }
@@ -71,20 +73,31 @@ int PresentedText::refresh(const SceneDocument& sceneDoc, const ManuscriptPresen
     return rebuilt;
 }
 
-void PresentedText::buildLead(Scene& scene, QTextDocument* doc, int gapStart, int bodyStart, bool sceneBreak)
+void PresentedText::buildLead(Scene& scene, QTextDocument* doc, int gapStart, int bodyStart, Divider kind)
 {
     const int gapLen = bodyStart - gapStart;
-    if (sceneBreak && gapLen == 2 && scene.gapStart == gapStart && !scene.lead.isEmpty()) {
+    if (kind == Divider::SceneBreak && gapLen == 2 && scene.gapStart == gapStart && scene.leadKind == kind && !scene.lead.isEmpty()) {
         return;   // a divider's words do not change; a chapter title is re-read (one per chapter)
     }
     scene.gapStart = gapStart;
+    scene.leadKind = kind;
     scene.lead.clear();
     scene.leadRel.clear();
-    if (sceneBreak && gapLen == 2) {
-        // The two separators around the divider's blank block; the words are the blank block (Apple: the divider character).
-        scene.lead = QStringLiteral("\nScene break\n");
+    if (kind != Divider::None && gapLen >= 2) {
+        // The line break that ends the previous body, then the divider's blank block read as Apple's words
+        // (`ManuscriptPresentedMap.words`, ✅ [SP-184] Q4, Q6: "End of chapter" at a chapter end), its own line break after.
+        const QString words = kind == Divider::ChapterEnd ? QStringLiteral("End of chapter") : QStringLiteral("Scene break");
+        scene.lead = QLatin1Char('\n') + words + QLatin1Char('\n');
         scene.leadRel.fill(1, scene.lead.size());
         scene.leadRel[0] = 0;
+        // Then whatever else the boundary holds — a chapter title and its blank line, when titles show.
+        if (gapLen > 2) {
+            const QString rest = textOf(doc, gapStart + 2, bodyStart);
+            scene.lead += rest;
+            for (int k = 0; k < rest.size(); ++k) {
+                scene.leadRel.append(2 + k);
+            }
+        }
         return;
     }
     scene.lead = textOf(doc, gapStart, bodyStart);

@@ -30,6 +30,18 @@ bool verifying()
     static const bool on = qEnvironmentVariableIntValue("SCRIVI_VERIFY_SCENE_TEXT") == 1;
     return on;
 }
+
+// The text BEFORE a body (Apple's `renderedPrefix`, ✅ [SP-184]): nothing before the very first body but its title (when
+// titles show); then a divider's blank line before every later body, followed by its chapter's title at a chapter start when
+// titles show. ⛔ THE ONE BUILDER: every writer of boundary text goes through it, so titles on and off cannot drift.
+QString leadingBoundaryFor(bool first, bool chapterStart, const QString& headingText, bool titles)
+{
+    const bool title = chapterStart && titles;
+    if (first) {
+        return title ? headingText + QStringLiteral("\n\n") : QString();
+    }
+    return title ? QStringLiteral("\n\n") + headingText + QStringLiteral("\n\n") : QStringLiteral("\n\n");
+}
 }   // namespace
 
 void SceneDocument::build(const QList<Input>& inputs)
@@ -52,25 +64,17 @@ void SceneDocument::build(const QList<Input>& inputs)
         // mirroring the Apple manuscript view. Presentation only — the offset map
         // below, not this text, is the scene-ownership authority.
         const bool chapterBoundary = (in.chapterID != lastChapterID);
+        QString heading;
         if (chapterBoundary) {
             ++chapterOrdinal;
-            if (i > 0) {
-                // Blank line between the previous scene body and the new heading.
-                cursor.insertText(QStringLiteral("\n\n"));
-            }
             // Custom title wins; otherwise the derived ordinal "Chapter N" (order is the
             // authority, so untitled chapters renumber implicitly on delete/insert —
             // macOS ManuscriptTextView parity). Matches chapterHeadingText().
             const QString trimmed = in.chapterTitle.trimmed();
-            const QString heading = trimmed.isEmpty()
-                                        ? QStringLiteral("Chapter %1").arg(chapterOrdinal)
-                                        : trimmed;
-            cursor.insertText(heading + QStringLiteral("\n\n"));
+            heading = trimmed.isEmpty() ? QStringLiteral("Chapter %1").arg(chapterOrdinal) : trimmed;
             lastChapterID = in.chapterID;
-        } else if (i > 0) {
-            // Scene separator within a chapter: a blank line.
-            cursor.insertText(QStringLiteral("\n\n"));
         }
+        cursor.insertText(leadingBoundaryFor(i == 0, chapterBoundary, heading, showChapterTitles_));
 
         SceneSegment seg;
         seg.sceneID             = in.sceneID;
@@ -313,13 +317,8 @@ int SceneDocument::insertSceneAfter(int afterIndex,
     // it once the segment is in the list — so the derived ordinal "Chapter N" (which
     // needs the new segment's position) is correct. Both begin with a blank line off the
     // previous body.
-    QString boundary = QStringLiteral("\n\n");
-    if (newChapter) {
-        const QString provisional =
-            chapterTitle.trimmed().isEmpty() ? QStringLiteral("Chapter")
-                                             : chapterTitle.trimmed();
-        boundary += provisional + QStringLiteral("\n\n");
-    }
+    const QString provisional = chapterTitle.trimmed().isEmpty() ? QStringLiteral("Chapter") : chapterTitle.trimmed();
+    const QString boundary = leadingBoundaryFor(false, newChapter, provisional, showChapterTitles_);
 
     QTextCursor cursor(&doc_);
     cursor.beginEditBlock();
@@ -356,27 +355,6 @@ int SceneDocument::insertSceneAfter(int afterIndex,
     return afterIndex + 1;
 }
 
-namespace {
-// The leading-boundary text that build()/insertSceneAfter place BEFORE a segment's
-// body, given its position in the manuscript. `first` = this is the first segment in
-// the document; `chapterStart` = this segment begins a new chapter (heading needed);
-// `headingText` = the chapter title (or "Chapter" when empty). Kept in one place so
-// removeScene/reflow reproduce build() exactly.
-QString leadingBoundaryFor(bool first, bool chapterStart, const QString& headingText)
-{
-    if (first) {
-        // The very first body in the document has no leading gap (build() emits none
-        // before i==0), regardless of chapter — its heading, if any, is emitted with
-        // no preceding blank line. Match that: heading + "\n\n", or nothing.
-        return chapterStart ? headingText + QStringLiteral("\n\n") : QString();
-    }
-    if (chapterStart) {
-        return QStringLiteral("\n\n") + headingText + QStringLiteral("\n\n");
-    }
-    return QStringLiteral("\n\n");   // in-chapter scene separator
-}
-} // namespace
-
 void SceneDocument::reflowBoundaryAt(int index)
 {
     if (index < 0 || index >= segments_.size()) {
@@ -395,7 +373,7 @@ void SceneDocument::reflowBoundaryAt(int index)
     // Derived heading (custom title, else the ordinal "Chapter N") — the same authority
     // the navigator label uses, so an untitled chapter renumbers implicitly here too.
     const QString heading = chapterHeadingText(index);
-    const QString desired = leadingBoundaryFor(first, chapterStart, heading);
+    const QString desired = leadingBoundaryFor(first, chapterStart, heading, showChapterTitles_);
 
     const int oldLen = spanEnd - spanStart;
     if (oldLen == desired.length()) {
@@ -776,20 +754,24 @@ int SceneDocument::firstSegmentOfChapter(const QString& chapterID) const
     return -1;
 }
 
-QList<int> SceneDocument::sceneSeparatorPositions() const
+QList<SceneDocument::Divider> SceneDocument::dividers() const
 {
-    // A scene shows a leading separator rule when it is NOT the first scene of its chapter
-    // (a chapter's first scene shows a heading instead). Segment i is a chapter's first
-    // scene exactly when its chapterID differs from segment i-1's — mirroring build()'s
-    // chapterBoundary test. Return each such following scene's bodyStart; the editor draws
-    // the rule in the blank block just above it.
-    QList<int> out;
+    QList<Divider> out;
     for (int i = 1; i < segments_.size(); ++i) {
-        if (segments_.at(i).chapterID == segments_.at(i - 1).chapterID) {
-            out.append(segments_.at(i).bodyStart);
-        }
+        const SceneSegment& prev = segments_.at(i - 1);
+        // The divider's blank block starts right after the previous body's line break.
+        out.append({prev.bodyStart + prev.bodyLength + 1, segments_.at(i).chapterID != prev.chapterID});
     }
     return out;
+}
+
+void SceneDocument::setShowChapterTitles(bool on)
+{
+    if (on == showChapterTitles_) {
+        return;
+    }
+    showChapterTitles_ = on;
+    reflowAllChapterHeadings();   // every chapter's boundary, rewritten in place
 }
 
 int SceneDocument::applyRangeDelta(const RangeDelta& delta)
@@ -853,7 +835,7 @@ int SceneDocument::applyRangeDelta(const RangeDelta& delta)
     const auto boundary = [&](int j) {
         const bool first = j == 0;
         const bool chapterStart = first || segments_.at(j).chapterID != segments_.at(j - 1).chapterID;
-        return leadingBoundaryFor(first, chapterStart, chapterHeadingText(j));
+        return leadingBoundaryFor(first, chapterStart, chapterHeadingText(j), showChapterTitles_);
     };
     QString built;
     for (int j = oldLo; j <= newHi && j < segments_.size(); ++j) {

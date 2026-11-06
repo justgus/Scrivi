@@ -1,7 +1,8 @@
 ---
 sprint: SP-183
 epic: EP-048
-status: Active
+status: Closed
+closed: 2026-11-05
 activated: 2026-11-05
 platform: Linux
 created: 2026-10-15
@@ -9,10 +10,10 @@ created: 2026-10-15
 
 # SP-183 — `[Linux]` [EP-048] **S5b**: line spacing and the first-line indent
 
-**Status:** 🟡 **ACTIVE 2026-11-05** (user, 2026-11-05: *"Activate SP-183 and run step 0."*) — created 2026-10-15 (user: *"plan EP-048 fully."*); ✅ **re-planned 2026-11-05** against today's code (user: *"plan SP-183 for EP-048"*), the last Sprint before [EP-048] can close besides [SP-184]. ✅ The S5 split was ruled 2026-10-15
+**Status:** ✅ **CLOSED 2026-11-05** (user, 2026-11-05: *"yes, close SP-183 and plan SP-184"*) — activated 2026-11-05 (user, 2026-11-05: *"Activate SP-183 and run step 0."*) — created 2026-10-15 (user: *"plan EP-048 fully."*); ✅ **re-planned 2026-11-05** against today's code (user: *"plan SP-183 for EP-048"*), the last Sprint before [EP-048] can close besides [SP-184]. ✅ The S5 split was ruled 2026-10-15
 ([SP-182] Q2). Line spacing is in this Sprint ([SP-182] Q3, ruled). ⏳ Q1–Q2 are ruled AFTER plan step 0's measurement, not before.
-**Carries:** [T-0610] → [`../Tasks/Task-active.md`](../Tasks/Task-active.md) · ➕ [I-0351] (found in step 0; ✅ kept by Q3) → [`../Issues/Issue-active.md`](../Issues/Issue-active.md).
-**Epic:** [EP-048] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md). **L10, its block half:** *"⚠️ Qt's first-line
+**Carries:** [T-0610] ✅ → [`../../Tasks/Verified/Task-verified-0610.md`](../../Tasks/Verified/Task-verified-0610.md) · ➕ [I-0351] (found in step 0; ✅ kept by Q3) ✅ → [`../../Issues/Verified/Issue-verified-0351-0360.md`](../../Issues/Verified/Issue-verified-0351-0360.md).
+**Epic:** [EP-048] → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md). **L10, its block half:** *"⚠️ Qt's first-line
 indent is a BLOCK format (a document format, not a highlighter one — the SP-166 hanging-indent finding); measure it before
 ruling the mechanism."*
 **Builds on:** [SP-182] (S5a): the dialog, `ProjectPreferences` and the one typography source.
@@ -131,7 +132,8 @@ Sprint's mechanism makes it cheap, and then only by ruling) · Show chapter titl
       dirty scene, no scene file written, no history step); dumas-sized open 812 → 814 ms (log, 2026-11-05)
 - [x] AC4 — The dialog's indent rows; smokes in CI, mutation-checked; ctest green on macOS and Linux — ✅ (log, 2026-11-05;
       ctest Linux not re-run: no core change)
-- [ ] AC5 — **Live pass (user) on scrivi-vm**, against the same project on the Mac
+- [x] AC5 — **Live pass (user) on scrivi-vm**, against the same project on the Mac — ✅ passed (user, 2026-11-05: *"all three re-test steps passed."* · *"C1, C2, C3, and C6 all passed."*); build 1.0.359 +
+      the layout fix
 
 ## Progress log
 
@@ -259,4 +261,13 @@ which is the refused case — my error.
 
 **Evidence after the fix (2026-11-05):** `indent_smoke` ✅; all 41 Linux smoke steps ✅ 0 failed (⚠️ one batch run just before
 reported 13 failed with no assertion printed — the output was not kept; a re-run with full output: 0 failed).
+
+### 🟡 2026-11-05 — Live pass 2 (user, scrivi-vm): the re-test passed
+
+The user: *"all three re-test steps passed."* — typing at the end of dumas, the paragraphs above keep their width; a selection
+near the top sits on its text; the grey scene rules appear. ✅ Step 5's defect is fixed on the VM. ✅ [I-0351]: no lag (pass 1,
+*"But there was no lag"*) and the re-test.
+✅ **Then reported (user, 2026-11-05):** *"C1, C2, C3, and C6 all passed."* — Book convention as drawn; the dialog's three modes
+and 2.0 em; Ctrl+Alt+1 on a line with text, then Ctrl+Z; the Mac shows the setting. **All six ACs met; T-0610 and [I-0351]
+verified.** ✅ **Closed 2026-11-05** (user, 2026-11-05: *"yes, close SP-183 and plan SP-184"*).
 

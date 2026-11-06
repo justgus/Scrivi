@@ -31,6 +31,8 @@ ProjectPreferences::ProjectPreferences(ScriviBridge* bridge, QString projectRoot
                                   : ManuscriptTypography::kDefaultIndentEm;
     paragraphIndentChosen_ = has(kParagraphIndentKey);
     indentEmChosen_ = has(kIndentEmKey);
+    showChapterTitles_ = has(kShowChapterTitlesKey) ? document_.value(QLatin1String(kShowChapterTitlesKey)).toBool(true) : true;
+    showChapterTitlesChosen_ = has(kShowChapterTitlesKey);
     subtitleChosen_ = has(kSubtitleKey);
     typefaceChosen_ = has(kTypefaceKey);
     textSizeChosen_ = has(kTextSizeKey);
@@ -107,6 +109,17 @@ void ProjectPreferences::setIndentEm(double em)
     emit typographyChanged();
 }
 
+void ProjectPreferences::setShowChapterTitles(bool on)
+{
+    if (on == showChapterTitles_ && showChapterTitlesChosen_) {
+        return;
+    }
+    showChapterTitles_ = on;
+    showChapterTitlesChosen_ = true;
+    save();
+    emit chapterTitlesChanged(on);
+}
+
 void ProjectPreferences::setMarkupHints(bool on)
 {
     if (on == markupHints_ && markupHintsChosen_) {
@@ -124,6 +137,7 @@ void ProjectPreferences::save()
     if (typefaceChosen_) { document_.insert(QLatin1String(kTypefaceKey), typeface_); }
     if (textSizeChosen_) { document_.insert(QLatin1String(kTextSizeKey), textSize_); }
     if (markupHintsChosen_) { document_.insert(QLatin1String(kMarkupHintsKey), markupHints_); }
+    if (showChapterTitlesChosen_) { document_.insert(QLatin1String(kShowChapterTitlesKey), showChapterTitles_); }
     if (paragraphIndentChosen_) { document_.insert(QLatin1String(kParagraphIndentKey), paragraphIndent_); }
     if (indentEmChosen_) { document_.insert(QLatin1String(kIndentEmKey), indentEm_); }
     if (bridge_ == nullptr) {

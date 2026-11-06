@@ -1,12 +1,16 @@
 # Active Sprints
 
+*Last Updated: 2026-11-05 (**SP-183 → ✅ CLOSED** (user, 2026-11-05: *"yes, close SP-183 and plan SP-184"*).)*
+
 *Last Updated: 2026-11-05 (**SP-204 → ✅ CLOSED** (user, 2026-11-05: *"yes to both."*).)*
 
 *Last Updated: 2026-11-05 (**SP-183 → 🟡 ACTIVE** (user, 2026-11-05: *"Activate SP-183 and run step 0."*).)*
 
-## SP-183 — `[Linux]` [EP-048] S5b: line spacing and the first-line indent
+*Last Updated: 2026-11-05 (**SP-184 → 🟡 ACTIVE** (user, 2026-11-05: *"If that ends the rulings you may activate and implement SP-184."*).)*
 
-🟡 **ACTIVE 2026-11-05** → [`Sprint-SP-183.md`](Sprint-SP-183.md) · carries [T-0610] · ✅ step 0 measured 2026-11-05 · ✅ Q1–Q3 ruled (Q1 = the layout subclass) · ✅ built, AC0–AC4 met · ➕ [I-0351] 🟠 · ⏳ AC5 live pass (user)
+## SP-184 — `[Cross]` [EP-048] S5c: Show chapter titles (on by default), and the divider that closes a chapter
+
+🟡 **ACTIVE 2026-11-05** → [`Sprint-SP-184.md`](Sprint-SP-184.md) · carries [T-0611] · ✅ Q1 (re-ruled) – Q6 ruled · ✅ built, AC1–AC5 met · ⏳ Q7 (contrast) · ⏳ AC6 live pass (user)
 
 
 *Last Updated: 2026-11-05 (**SP-204 → 🟡 ACTIVE** (user: *"Activate SP-204 and run step 0"*).)*

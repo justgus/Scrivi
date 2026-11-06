@@ -207,9 +207,9 @@ protected:
     void inputMethodEvent(QInputMethodEvent* event) override;
     // Draw the faint between-scene separator rule (EP-028 SP-076, T-0308) — the Linux
     // analogue of Apple's DividerAttachmentCell. Runs AFTER the base class paints text,
-    // then strokes a 1px inset line centered in each within-chapter scene-separator gap.
+    // then strokes a 1px inset line centered in each divider gap — the one closing a chapter in the accent ([SP-184]).
     // Purely visual: no document text or offset-map change (positions come from
-    // SceneDocument::sceneSeparatorPositions()).
+    // SceneDocument::dividers()).
     void paintEvent(QPaintEvent* event) override;
     // Keeps the branch gutter over the viewport margin.
     void resizeEvent(QResizeEvent* event) override;

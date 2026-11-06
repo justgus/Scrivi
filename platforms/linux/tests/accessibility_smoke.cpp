@@ -2,7 +2,8 @@
 //
 // Drives the REAL ManuscriptEditor + SceneDocument + ManuscriptPresenter, wired as EditorShell wires them, and reads them
 // through `QAccessibleTextInterface` — the interface Qt's AT-SPI bridge answers Orca from ([SP-202]'s measurement route).
-// ✅ The page at rest (Apple A1): no escapes, no `##`, no emphasis markers; chapter titles; a divider as "Scene break".
+// ✅ The page at rest (Apple A1): no escapes, no `##`, no emphasis markers; chapter titles; a divider as "Scene break", and the
+// one closing a chapter as "End of chapter" ([SP-184] Q4, Apple's words), before the next chapter's title.
 // ✅ Every member agrees with that text (AC1) · the caret both ways (AC2) · cost. ⚠️ Qt's events need a platform bridge
 // (offscreen has none: Qt sends nothing) — accessibility_atspi.sh checks them over AT-SPI.
 
@@ -116,7 +117,7 @@ int main(int argc, char** argv)
     // ── A1: the page at rest ──
     const QString page = QStringLiteral(
         "Chapter One\n\nMr. Smith said bold and soft here.\n\nThe claim stated plainly\n\n- a list item"
-        "\nScene break\nSecond scene.\n\nChapter Two\n\nThe third scene, 1. not a list.");
+        "\nScene break\nSecond scene.\nEnd of chapter\nChapter Two\n\nThe third scene, 1. not a list.");   // ✅ [SP-184] Q4
     same(h.page(), page, QStringLiteral("text(0, n) is the page at rest"));
     check(t->characterCount() == page.size(), QStringLiteral("characterCount = the page's length"));
     same(QAccessible::queryAccessibleInterface(h.editor)->text(QAccessible::Value), page, QStringLiteral("Value = the page"));

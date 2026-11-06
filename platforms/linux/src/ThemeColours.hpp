@@ -84,6 +84,20 @@ inline QColor rule(const QPalette& pal)
                             fg.blueF()  * (1.0 - kBlend) + bg.blueF()  * kBlend);
 }
 
+// ✅ [SP-184] Q3 (T-0575): the divider that CLOSES a chapter — Apple's `controlAccentColor` at 60% (`ManuscriptEditing.swift:313`),
+// a different KIND of mark from `rule()`, not merely a darker line. ✅ Linux: `Highlight` (the selection colour, which follows
+// the desktop's accent on GNOME; Qt 6.4 has no `Accent` role) at 60% over `Base` — blended here, as Apple's alpha is over the
+// page, so the smoke can measure what is drawn.
+inline QColor chapterEnd(const QPalette& pal)
+{
+    const QColor accent = pal.color(QPalette::Active, QPalette::Highlight);
+    const QColor bg = pal.color(QPalette::Active, QPalette::Base);
+    constexpr double kAlpha = 0.6;
+    return QColor::fromRgbF(accent.redF()   * kAlpha + bg.redF()   * (1.0 - kAlpha),
+                            accent.greenF() * kAlpha + bg.greenF() * (1.0 - kAlpha),
+                            accent.blueF()  * kAlpha + bg.blueF()  * (1.0 - kAlpha));
+}
+
 // "Needs attention" text — an unavailable world, a rejected action. A warm amber
 // chosen per theme polarity so it reads as emphasis rather than decoration.
 //

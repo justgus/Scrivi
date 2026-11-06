@@ -1,5 +1,11 @@
 # Unverified Tasks
 
+*Last Updated: 2026-11-05 (**T-0611 → 🟠** ([SP-184], EP-048 S5c).)*
+
+*Last Updated: 2026-11-05 (**T-0610 → ✅ Verified and archived** → `Verified/Task-verified-0610.md` ([SP-183] closed).)*
+
+*Last Updated: 2026-11-05 (**T-0610 → ✅ Verified** (user, 2026-11-05: *"all three re-test steps passed."* · *"C1, C2, C3, and C6 all passed."*); archived when [SP-183] closes.)*
+
 *Last Updated: 2026-11-05 (**T-0610 → 🟠** ([SP-183], EP-048 S5b).)*
 
 *Last Updated: 2026-11-05 (**T-0662 → ✅ Verified and archived** → `Verified/Task-verified-0662.md` ([SP-204] closed).)*
@@ -34,22 +40,23 @@ in the backlog carrying a 🟠 status.
 
 ---
 
-## 🟠 T-0610 — `[Linux]` EP-048 S5b: line spacing and the first-line indent
+## 🟠 T-0611 — `[Cross]` EP-048 S5c: Show chapter titles (on by default), and the chapter-ending divider
 
-**Epic:** [EP-048] (S5b, L10) · **Status:** 🟠 **Implemented - Not Verified** · **Sprint:** [SP-183] (🟡 Active 2026-11-05) →
-[`../Sprints/Sprint-SP-183.md`](../Sprints/Sprint-SP-183.md) · **Date Requested:** 2026-10-15 (user: *"plan EP-048 fully."*)
+**Epic:** [EP-048] (S5c) · **Status:** 🟠 **Implemented - Not Verified** · **Sprint:** [SP-184] (🟡 Active 2026-11-05) →
+[`../Sprints/Sprint-SP-184.md`](../Sprints/Sprint-SP-184.md) · **Date Requested:** 2026-10-15 (user: *"plan EP-048 fully."*)
 
-**What:** line spacing fixed at 1.45 × size, and EP-047's first-line indent on Linux (None · Every · Book convention, the
-amount in ems, the small gap), with zero characters in the file and no dirty scene or history step. Both are Qt block
-formats, so the mechanism is measured first and ruled from the numbers ([SP-183] Q1–Q2). Adds the dialog's indent rows.
+**What:** the dialog's Writing Surface ▸ Show chapter titles in manuscript ([EP-026] Q4), read from the shared settings file
+(absent per [SP-184] Q1). `SceneDocument` builds with or without chapter headings, and every chapter boundary gets Apple's
+full-strength closing divider ([T-0575]). Every structural operation and its undo is tested with titles off and on.
+✅ **2026-11-05 ([SP-184] rulings):** ⛔ Q1 re-ruled — titles **ON by default on the Mac, iOS and Linux** (`[Apple]`:
+`ProjectPreferences.swift:123` `?? false` → on, per Q5); the divider in `QPalette::Highlight` at 60% (Q3); Orca hears *"End of
+chapter"* at a chapter end (Q4, Q6: the Mac's string). Now `[Cross]`.
 
-**Done (2026-11-05):** [SP-183] Q1 = (B): `ManuscriptLayout` (`platforms/linux/src/ManuscriptLayout.cpp:7`), a
-`QPlainTextDocumentLayout` that re-lays each block Qt has laid out, with the first line indented and every line on a fixed
-pitch; what each line gets is decided by the presenter while it highlights (`ManuscriptPresenter.cpp:343` `lineStyle`, Apple's
-`isBody` and book rule at `:328`) and left on the block as user data, never a document edit; the next paragraph is redrawn
-after an edit to the one before (`:511`). The setting is Apple's `paragraphIndent` / `indentEm` in `project-settings.json`
-(`ProjectPreferences`); the dialog's Paragraph indent and Indent rows (`ProjectSettingsDialog.cpp:75`). Tested by
-`tests/indent_smoke.*` (in CI), 5 of 5 mutations caught. With it, [I-0351] fixed.
+**Done (2026-11-05):** [SP-184] as built: one boundary builder with the titles flag (`platforms/linux/src/SceneDocument.cpp:37`), the
+toggle (`:768`), `dividers()` (`:757`), the chapter-end colour (`ThemeColours.hpp:91`), *"End of chapter"* on the presented page
+(`ManuscriptFind.cpp:89`), Writing Surface ▸ Show chapter titles in manuscript, `EditorShell::applyChapterTitles`; `[Apple]`
+`ProjectPreferences.swift` absent = ON and the key written only once chosen. Tested by `tests/chapter_titles_smoke.*` (in CI, 7/7
+mutations caught) and `structural_baseline_smoke`'s second run with titles off.
 
 ---
 

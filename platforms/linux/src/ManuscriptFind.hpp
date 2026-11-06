@@ -74,6 +74,7 @@ public:
     void markEditedRange(const SceneDocument& doc, int start, int end);
 
 private:
+    enum class Divider { None, SceneBreak, ChapterEnd };   // ✅ [SP-184] the divider before a body
     struct Scene {
         QString sceneID;
         int bodyStart = 0;     // refreshed every time — an edit in an earlier scene moves it
@@ -85,8 +86,9 @@ private:
         int gapStart = 0;      // EP-050 S4: where the boundary before this body starts (the previous body's end)
         QString lead;          // that boundary as presented
         QVector<int> leadRel;  // document position of each lead unit, relative to gapStart
+        Divider leadKind = Divider::None;
     };
-    static void buildLead(Scene& scene, QTextDocument* doc, int gapStart, int bodyStart, bool sceneBreak);
+    static void buildLead(Scene& scene, QTextDocument* doc, int gapStart, int bodyStart, Divider kind);
     // [I-0346] Lines `scenes_` up with the list by scene ID; the scenes marked edited since are flagged.
     void align(const SceneDocument& doc);
     QSet<QString> editedIDs_;   // marked by scene ID: positions shift under a structural edit

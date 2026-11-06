@@ -327,6 +327,13 @@ jobs:
           platforms/linux/tests/indent_smoke.sh \
             ./build/platforms/linux/scrivi_linux_indent_smoke
 
+      # Chapter titles (SP-184 / T-0611, EP-048 S5c): Show chapter titles, ON by default, and the divider that closes a chapter
+      # in the accent; Orca's "End of chapter". (structural_baseline_smoke.sh also re-runs every structural edit with titles off.)
+      - name: Chapter titles smoke test
+        run: |
+          platforms/linux/tests/chapter_titles_smoke.sh \
+            ./build/platforms/linux/scrivi_linux_chapter_titles_smoke
+
       # ✅ 2026-10-10 (user: "add the missing smokes to CI too") — these eleven smokes existed but CI never ran them.
 
       # ABI parity (EP-034 / SP-121, T-0464).

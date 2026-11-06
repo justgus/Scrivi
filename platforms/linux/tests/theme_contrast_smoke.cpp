@@ -124,6 +124,22 @@ int main(int argc, char** argv)
             ++failures;
         }
 
+        // ✅ [SP-184] Q3: the divider that closes a chapter — `Highlight` at 60%, as the Mac's accent at 60%. ⚠️ MEASURED
+        // 2026-11-05: 60% of an accent lands at 2.1–2.4:1 on light and dark pages alike (the Mac's default blue on white
+        // 2.29:1), BELOW the scene rule's 3:1 — so its floor is the Mac's own level, 2.0:1, not 3:1 (raised with the user).
+        {
+            const QColor end = ThemeColours::chapterEnd(pal);
+            const double e = contrast(end, base);
+            constexpr double kMinChapterEnd = 2.0;
+            std::printf("  %-13s #%02x%02x%02x on #%02x%02x%02x  %.2f:1  %s\n", "chapter end", end.red(), end.green(), end.blue(),
+                        base.red(), base.green(), base.blue(), e, e >= kMinChapterEnd ? "ok" : "FAIL");
+            if (e < kMinChapterEnd) {
+                std::fprintf(stderr, "FAIL: the chapter-end divider is %.2f:1 against the manuscript background in %s (%.1f:1 is the Mac's own)\n",
+                             e, themeLabel, kMinChapterEnd);
+                ++failures;
+            }
+        }
+
         // ⛔ AND PIN THE REGRESSION: if a future edit reaches for `Mid` again, say so
         // with the number that made it invisible.
         const QColor midOnBase = pal.color(QPalette::Active, QPalette::Mid);
