@@ -341,6 +341,23 @@ TEST_CASE("Archive: worlds travel, and a world already here is bound, not copied
     }
 }
 
+TEST_CASE("Archive: the Mac's trailing slash, and a removed world's leftover folder, export cleanly (SP-206 live pass)",
+          "[archive][capi]") {
+    ArchiveFixture f;
+    f.makeWorld("Eskandar");
+    fs::create_directories(f.root / "worlds" / "world_character_removed");   // Remove Reference keeps the folder
+
+    const auto slashed = f.root.string() + "/";
+    auto exported = ok(scrivi_export_archive(slashed.c_str(), f.archive().c_str(), 1));
+    REQUIRE(exported.arraySize("worlds") == 1);
+    CHECK(exported.arrayItem("worlds", 0).getString("folder") == "Eskandar.scrivworld");
+    CHECK(exported.arraySize("skippedWorlds") == 0);
+
+    auto imported = ok(f.importRaw());
+    REQUIRE(imported.getBool("imported"));
+    CHECK(fs::path(imported.getString("projectRoot")) == f.dest / "Novel.scrivi");
+}
+
 TEST_CASE("Archive: every rejection leaves nothing behind (AC6)", "[archive][capi]") {
     ArchiveFixture f;
 

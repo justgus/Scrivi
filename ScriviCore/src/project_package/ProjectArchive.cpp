@@ -35,6 +35,13 @@ Error invalid(std::string message, const AbsolutePath& path = {}, std::string de
             .detail = std::move(detail)};
 }
 
+// A folder path without its trailing separator: the Mac passes the project as `…/Novel.scrivi/`, whose
+// filename() is empty, and an empty prefix makes every entry name absolute (miniz: "invalid filename").
+fs::path folderPath(const std::string& p) {
+    auto q = fs::path(p).lexically_normal();
+    return q.has_filename() ? q : q.parent_path();
+}
+
 std::string zipError(mz_zip_archive& z) { return mz_zip_get_error_string(mz_zip_get_last_error(&z)); }
 
 struct ZipWriter {
@@ -175,7 +182,7 @@ Result<ArchiveExportResult> ProjectArchive::exportArchive(const AbsolutePath& pr
     auto projectID = projectIDAt(files, projectRoot);
     if (!projectID.ok()) { return R::failure(projectID.error()); }
 
-    const fs::path root = fs::path(projectRoot).lexically_normal();
+    const fs::path root = folderPath(projectRoot);
     const fs::path dest = fs::path(archivePath).lexically_normal();
     const auto inside = dest.lexically_relative(root);
     if (!inside.empty() && *inside.begin() != "..") {
@@ -187,22 +194,23 @@ Result<ArchiveExportResult> ProjectArchive::exportArchive(const AbsolutePath& pr
     std::vector<std::pair<std::string, fs::path>> worldTrees;   // archive folder → package
     if (includeWorlds) {
         worlds::WorldStore store{services_};
-        auto ids = store.listBoundWorldIDs(projectRoot);
-        if (!ids.ok()) { return R::failure(ids.error()); }
+        // listWorlds, not the bare folder list: a removed reference leaves its folder behind with no binding (I-0261).
+        auto bound = store.listWorlds(projectRoot);
+        if (!bound.ok()) { return R::failure(bound.error()); }
         std::set<std::string> folders;
-        for (const auto& id : ids.value()) {
-            auto res = store.resolve(projectRoot, id);
-            if (res.status != worlds::WorldStatus::available) {
-                out.skippedWorlds.push_back({id, worlds::worldStatusName(res.status)});
+        for (const auto& w : bound.value()) {
+            if (w.status != worlds::WorldStatus::available) {
+                out.skippedWorlds.push_back({w.worldID, worlds::worldStatusName(w.status)});
                 continue;
             }
-            auto folder = util::filename(fs::path(res.packagePath).lexically_normal().string());
+            const auto package = folderPath(w.packagePath);
+            auto folder = package.filename().string();
             if (!folders.insert(folder).second) {
                 return R::failure(invalid("two of the project's worlds have the same folder name: " + folder,
-                                          res.packagePath));
+                                          w.packagePath));
             }
-            out.worlds.push_back({id, folder});
-            worldTrees.emplace_back(folder, fs::path(res.packagePath));
+            out.worlds.push_back({w.worldID, folder});
+            worldTrees.emplace_back(folder, package);
         }
     }
 

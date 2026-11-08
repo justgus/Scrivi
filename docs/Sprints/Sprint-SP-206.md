@@ -121,3 +121,14 @@ export formats (S3+).
 - ⚠️ **visionOS does not build — NOT this Sprint's:** `EditorView.swift:563`/`:570` (`.inspector`, `.inspectorColumnWidth`
   are unavailable on visionOS), untouched here; the new files compile there.
 - ⏳ **AC7** — the cross-machine live passes are the user's.
+
+**2026-11-07 — the first live passes found two core defects, both fixed** (`ProjectArchive.cpp`, the export half):
+- **Mac: *"invalid filename"*, no archive.** The Mac passes the project root as `…/Novel.scrivi/`; with the trailing
+  separator `filename()` is empty, so every entry was named `/<path>` and miniz refused it. ✅ `folderPath()` drops the
+  separator, for the project and each world package.
+- **Linux: archive written, *"the world could not be reached"*, though Manage Worlds showed it.** The export walked
+  `worlds/` folder by folder (`listBoundWorldIDs`), and the project holds a removed reference's leftover folder
+  (`world_character_01a09603-e736…`, no `binding.json`) — reported unavailable. Manage Worlds skips those (I-0261). ✅ The
+  export now takes its worlds from `listWorlds`. The bound world itself was never unreachable.
+- **Test:** `ArchiveCApiTests` gains both cases (trailing-slash root + a leftover folder) — `[archive]` 9 cases ✅; ctest 815/815 ✅;
+  macOS app builds ✅. ⏳ The Mac and Linux exports to be re-run (Linux needs a pull + build).

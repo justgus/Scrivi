@@ -1,5 +1,7 @@
 # Active Sprints
 
+*Last Updated: 2026-11-07 (**SP-206 live pass:** two export defects found and fixed in the core — the Mac's trailing slash, a removed world's leftover folder.)*
+
 *Last Updated: 2026-11-06 (**SP-206 built** — AC1–AC6 met; T-0665 → 🟠.)*
 
 *Last Updated: 2026-11-06 (**SP-206 → 🟡 ACTIVE** (user, 2026-11-06: *"Q1–Q3 as recommended, activate and implement SP-206"*).)*

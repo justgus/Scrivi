@@ -1,5 +1,7 @@
 # Unverified Tasks
 
+*Last Updated: 2026-11-07 (**T-0665:** two export defects from the live pass fixed in the core.)*
+
 *Last Updated: 2026-11-06 (**T-0665 → 🟠 Implemented - Not Verified** ([SP-206]); the live passes (AC7) are the user's.)*
 
 *Last Updated: 2026-11-06 (**T-0664 → ✅ Verified** (user, 2026-11-06: *"verify T-0664"*) and archived → `Verified/Task-verified-0664.md`.)*
@@ -64,6 +66,9 @@ Cancel / Rename / Replace, Q1, Q3), `ScriviEngine.exportArchive` / `importArchiv
 Export slot + Landing's Import button, `Info.plist` (`com.caposoft.scrivi.archive`); Linux `EditorShell::exportArchive`,
 `ShellController::importArchive` (`ScriviWindow.cpp`), `ScriviBridge::exportArchive` / `importArchive`, Landing.qml. Evidence:
 interop `archiveRoundTripThroughEngine` ✅, `bridge_parity_smoke` 70/70 ✅ (Docker). ⏳ AC7 live passes (user).
+**Fixed (2026-11-07, live pass):** the export refused a trailing-slash project root (Mac: *"invalid filename"*) and reported
+a removed reference's leftover `worlds/` folder as an unreachable world (Linux) — `ProjectArchive.cpp` (`folderPath`,
+`listWorlds`); `ArchiveCApiTests` covers both.
 
 ---
 
