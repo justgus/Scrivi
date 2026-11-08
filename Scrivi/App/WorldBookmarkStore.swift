@@ -112,6 +112,15 @@ enum WorldBookmarkStore {
         for id in worldIDs { activate(worldID: id) }
     }
 
+    // [SP-206] Every world this Mac holds a grant for — before an archive import, so a world already here is found (by
+    // world ID) and bound instead of unpacked a second time.
+    static func activateEverything() {
+        lock.lock()
+        let ids = Array(bookmarks().keys)
+        lock.unlock()
+        activateAll(worldIDs: ids)
+    }
+
     static func hasBookmark(worldID: String) -> Bool {
         lock.lock()
         defer { lock.unlock() }

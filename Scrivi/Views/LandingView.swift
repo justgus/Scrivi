@@ -34,6 +34,8 @@ struct LandingView: View {
                     showNewProjectSheet = true
                 }
                 .keyboardShortcut("n", modifiers: .command)
+
+                Button("Import Archive…") { env.presentImportArchive() }   // [SP-206]
             }
             .buttonStyle(.borderedProminent)
 
@@ -63,6 +65,13 @@ struct LandingView: View {
                 }
                 .frame(maxWidth: 320)
                 .transition(.opacity)
+            }
+
+            if let working = env.archiveProgress {   // [SP-206] an import started here
+                HStack(spacing: 6) {
+                    ProgressView().controlSize(.small)
+                    Text(working).font(.callout)
+                }
             }
 
             if let err = env.projectError {

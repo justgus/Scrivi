@@ -69,11 +69,21 @@ public:
     // this; Landing.qml listens and calls bridge.chooseFolder + openPath.
     void requestOpenProject() { emit openProjectRequested(); }
 
+    // [SP-206] EP-054 S2 — File ▸ Import Archive… and Landing's Import Archive button (Apple:
+    // `AppEnvironment.importArchive`): the archive (asked for when `archivePath` is empty), then the folder to unpack
+    // into; a clash asks Cancel / Rename / Replace (a world: Cancel / Rename) and calls again; then the project opens
+    // through Landing's own open flow — unless a copy of it is already open (Q1: unpacked, not opened, and said so).
+    Q_INVOKABLE void importArchive(const QString& archivePath = {});
+
 signals:
     void newProjectRequested();
     void openProjectRequested();
+    // [SP-206] Landing opens this path through its own open flow (repair, recents, R3), as its Open button does.
+    void openPathRequested(const QString& path);
 
 private:
+    void runImport(const QString& archivePath, const QString& folder, const QVariantMap& options);
+
     ScriviWindow* window_ = nullptr;
     QString appSupportRoot_;
 

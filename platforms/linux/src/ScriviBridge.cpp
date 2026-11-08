@@ -1611,6 +1611,36 @@ QVariantMap ScriviBridge::listRelationTypes(const QString& projectRootPath)
     return parseEnvelope(envelope.toQString());
 }
 
+// [SP-206] The envelope's result, or — on failure — its message and detail, which parseEnvelope does not keep.
+static QVariantMap withErrorDetail(const QString& json, QVariantMap result, bool failed)
+{
+    if (failed) {
+        const QJsonObject err = QJsonDocument::fromJson(json.toUtf8()).object().value(QStringLiteral("error")).toObject();
+        result.insert(QStringLiteral("errorMessage"), err.value(QStringLiteral("message")).toString());
+        result.insert(QStringLiteral("errorDetail"), err.value(QStringLiteral("detail")).toString());
+    }
+    return result;
+}
+
+QVariantMap ScriviBridge::exportArchive(const QString& projectRootPath, const QString& archivePath, bool includeWorlds)
+{
+    const ScriviString envelope(scrivi_export_archive(projectRootPath.toUtf8().constData(),
+                                                      archivePath.toUtf8().constData(), includeWorlds ? 1 : 0));
+    const QString json = envelope.toQString();
+    QVariantMap result = parseEnvelope(json);
+    return withErrorDetail(json, std::move(result), lastCallFailed());
+}
+
+QVariantMap ScriviBridge::importArchive(const QString& archivePath, const QString& destFolderPath, const QVariantMap& options)
+{
+    const QByteArray opts = QJsonDocument(QJsonObject::fromVariantMap(options)).toJson(QJsonDocument::Compact);
+    const ScriviString envelope(scrivi_import_archive(archivePath.toUtf8().constData(),
+                                                      destFolderPath.toUtf8().constData(), opts.constData()));
+    const QString json = envelope.toQString();
+    QVariantMap result = parseEnvelope(json);
+    return withErrorDetail(json, std::move(result), lastCallFailed());
+}
+
 QVariantMap ScriviBridge::listWorlds(const QString& projectRootPath)
 {
     if (!ready_) {

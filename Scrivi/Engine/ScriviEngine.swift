@@ -126,6 +126,31 @@ public final class ScriviEngine: @unchecked Sendable {
         if let raw { scrivi_free(raw) }
     }
 
+    // MARK: — exportArchive / importArchive (EP-054 S2, SP-206)
+
+    /// Writes `<project>.scrivarchive` at `archivePath`: the project, and (`includeWorlds`) each bound world that is
+    /// available. The core waits for the project's queued writes first. ⚠️ Blocking — call it off the main actor.
+    public func exportArchive(projectRootPath: String, archivePath: String, includeWorlds: Bool) throws -> ExportArchiveResult {
+        let raw = projectRootPath.withCString { prp in
+            archivePath.withCString { ap in scrivi_export_archive(prp, ap, includeWorlds ? 1 : 0) }
+        }
+        return try decodeC(raw)
+    }
+
+    /// Unpacks an archive into `destFolderPath`. A folder-name clash extracts nothing and comes back as `conflict`; the
+    /// caller asks the writer and calls again with `projectFolderName` / `replaceProject` / `worldFolderNames`.
+    /// ⚠️ Blocking — call it off the main actor.
+    public func importArchive(archivePath: String, destFolderPath: String, projectFolderName: String = "",
+                              replaceProject: Bool = false, worldFolderNames: [String: String] = [:]) throws -> ImportArchiveResult {
+        var options: [String: Any] = ["replaceProject": replaceProject, "worldFolderNames": worldFolderNames]
+        if !projectFolderName.isEmpty { options["projectFolderName"] = projectFolderName }
+        let json = String(decoding: try JSONSerialization.data(withJSONObject: options), as: UTF8.self)
+        let raw = archivePath.withCString { ap in
+            destFolderPath.withCString { dp in json.withCString { oj in scrivi_import_archive(ap, dp, oj) } }
+        }
+        return try decodeC(raw)
+    }
+
     // MARK: — openScene
 
     public func openScene(
@@ -1947,6 +1972,8 @@ public final class ScriviEngine: @unchecked Sendable {
     // change that caused it."* ✅ It did. ⛔ The warning is not the fix — see [I-0253]
     // for the guard that makes drift impossible to ship silently.
     public func closeProject(projectRootPath: String) { /* no-op: nothing was ever opened */ }
+    public func exportArchive(projectRootPath: String, archivePath: String, includeWorlds: Bool) throws -> ExportArchiveResult { try unavailable() }
+    public func importArchive(archivePath: String, destFolderPath: String, projectFolderName: String = "", replaceProject: Bool = false, worldFolderNames: [String: String] = [:]) throws -> ImportArchiveResult { try unavailable() }
     public func openSceneForBulkLoad(projectRootPath: String, appSupportRoot: String, projectID: String, sceneID: String) throws -> OpenSceneResult { try unavailable() }
     public func saveScene(projectID: String, projectRootPath: String, appSupportRoot: String, sceneID: String, sceneMetadataPath: String, sceneContentPath: String, markdown: String, selectionAnchor: Int = 0, selectionFocus: Int = 0, scroll: Double = 0, authorshipRef: AuthorshipRef) throws -> SaveSceneResult { try unavailable() }
     public func scanForExternalChanges(projectRootPath: String, appSupportRoot: String, includeGitStatus: Bool = true) throws -> ScanResult { try unavailable() }
@@ -2222,6 +2249,46 @@ public struct SceneInfo: Decodable, Sendable {
         self.contentPath         = contentPath
         self.chapterMetadataPath = chapterMetadataPath
     }
+}
+
+public struct ExportArchiveResult: Decodable, Sendable {
+    public struct World: Decodable, Sendable { public let worldID: String; public let folder: String }
+    public struct Skipped: Decodable, Sendable { public let worldID: String; public let reason: String }
+    public let archivePath: String
+    public let files: Int
+    public let worlds: [World]
+    public let skippedWorlds: [Skipped]
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: K.self)
+        archivePath   = try c.decode(String.self, forKey: .archivePath)
+        files         = try c.decode(Int.self, forKey: .files)
+        worlds        = try c.decodeIfPresent([World].self, forKey: .worlds) ?? []          // OMITTED when empty
+        skippedWorlds = try c.decodeIfPresent([Skipped].self, forKey: .skippedWorlds) ?? []
+    }
+    private enum K: String, CodingKey { case archivePath, files, worlds, skippedWorlds }
+}
+
+public struct ImportArchiveResult: Decodable, Sendable {
+    public struct Conflict: Decodable, Sendable {
+        public let kind: String          // "project" | "world"
+        public let folderName: String
+        public let worldID: String?
+    }
+    public struct World: Decodable, Sendable { public let worldID: String; public let packagePath: String; public let unpacked: Bool }
+    public let imported: Bool
+    public let conflict: Conflict?
+    public let projectRoot: String
+    public let projectID: String
+    public let worlds: [World]
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: K.self)
+        imported    = try c.decode(Bool.self, forKey: .imported)
+        conflict    = try c.decodeIfPresent(Conflict.self, forKey: .conflict)
+        projectRoot = try c.decodeIfPresent(String.self, forKey: .projectRoot) ?? ""
+        projectID   = try c.decodeIfPresent(String.self, forKey: .projectID) ?? ""
+        worlds      = try c.decodeIfPresent([World].self, forKey: .worlds) ?? []             // OMITTED when empty
+    }
+    private enum K: String, CodingKey { case imported, conflict, projectRoot, projectID, worlds }
 }
 
 public struct OpenProjectResult: Decodable, Sendable {

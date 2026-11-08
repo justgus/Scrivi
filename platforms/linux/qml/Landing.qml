@@ -191,6 +191,12 @@ Item {
             var picked = bridge.choosePackage(defaultProjectsFolder)
             window.openPath(picked)
         }
+        // [SP-206] an imported archive's project: the same open as the Open Project button's.
+        function onOpenPathRequested(path) {
+            window.landingError = ""
+            stack.pop(landingPage)
+            window.openPath(path)
+        }
     }
 
     // repairRequired: surface the issue titles and stay on the landing view
@@ -280,6 +286,14 @@ Item {
                             // QFileDialog (reused from the create flow), then open it.
                             var picked = bridge.choosePackage(defaultProjectsFolder)
                             window.openPath(picked)
+                        }
+                    }
+                    Button {
+                        text: qsTr("Import Archive")   // [SP-206] EP-054 S2
+                        enabled: !window.opening
+                        onClicked: {
+                            window.landingError = ""
+                            shell.importArchive("")
                         }
                     }
                     Button {

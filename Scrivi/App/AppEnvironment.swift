@@ -149,6 +149,12 @@ import UniformTypeIdentifiers
     // directly (presentOpenProjectPanel), so this flag is unused there.
     var requestOpenImporter: Bool = false
 
+    // [SP-206] The archive flow (ProjectArchiveFlow.swift): its progress when no project window hosts it (Landing), the
+    // question it is asking (iOS — the Mac uses NSAlert), and which file the iOS archive picker is choosing.
+    var archiveProgress: String?
+    var archivePrompt: ArchivePrompt?
+    var archivePicker: ArchivePicker?
+
     // File ▸ New Project…: ensure the Landing/Welcome surface is present, then ask it to show
     // the New Project sheet. On macOS the Welcome window hosts the sheet. On iOS the app is
     // single-scene — the sheet's host (LandingView) only exists when no project is open, so we
@@ -169,6 +175,16 @@ import UniformTypeIdentifiers
         closeActiveProjectForLanding()
         #endif
         requestOpenImporter = true
+    }
+
+    // File ▸ Import Archive… on iOS: as Open — surface Landing on this single-scene platform, then pick the archive.
+    func presentImportArchive() {
+        #if os(macOS)
+        presentImportArchivePanel()
+        #else
+        closeActiveProjectForLanding()
+        archivePicker = .archive
+        #endif
     }
 
     #if !os(macOS)
@@ -768,12 +784,22 @@ import UniformTypeIdentifiers
     /// Viewer/Alternate rather than Editor/Owner. ✅ Saying so plainly beats
     /// opening the last project and looking like it worked.
     @MainActor
-    private func openProjectFile(at url: URL) async {
+    func openProjectFile(at url: URL) async {
         let path = url.path(percentEncoded: false)
 
         // ⚠️ Decided by EXTENSION, not by probing the directory: a world on an
         // unreachable volume cannot be read, and this message must not depend on
         // the volume being present.
+        // [SP-206] Q3: a double-clicked archive starts Import — it is never opened as a project.
+        if url.pathExtension.lowercased() == "scrivarchive" {
+            #if os(macOS)
+            chooseFolderAndImport(url)
+            #else
+            archivePicker = .folder(archive: url)
+            #endif
+            return
+        }
+
         if url.pathExtension.lowercased() == "scrivworld" {
             projectError = ScriviError(
                 code: -1,

@@ -1,5 +1,13 @@
 # Active Tasks
 
+*Last Updated: 2026-11-06 (**T-0665 → 🟠** → `Task-unverified.md` ([SP-206] built; the live passes are the user's).)*
+
+*Last Updated: 2026-11-06 (**T-0665 → active** with SP-206's activation (EP-054 S2).)*
+
+*Last Updated: 2026-11-06 (**T-0664 → 🟠** → `Task-unverified.md` ([SP-205] built; core only, no live pass).)*
+
+*Last Updated: 2026-11-06 (**T-0664 → active** with SP-205's activation (EP-054 S1).)*
+
 *Last Updated: 2026-11-05 (**T-0611 → 🟠** → `Task-unverified.md` ([SP-184] built; the live pass is the user's).)*
 
 *Last Updated: 2026-11-05 (**T-0611 → active** with SP-184's activation (EP-048 S5c).)*

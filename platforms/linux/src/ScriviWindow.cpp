@@ -6,28 +6,36 @@
 
 #include <QAction>
 #include <QApplication>
-#include <QProgressDialog>
 #include <QCloseEvent>
 #include <QDesktopServices>
-#include <QDir>
-#include <QUrl>
 #include <QDialog>
 #include <QDialogButtonBox>
+#include <QDir>
+#include <QFileDialog>
+#include <QFileInfo>
 #include <QFont>
+#include <QInputDialog>
 #include <QKeySequence>
 #include <QLabel>
+#include <QLineEdit>
 #include <QMenu>
 #include <QMenuBar>
+#include <QMessageBox>
+#include <QProgressDialog>
+#include <QPushButton>
 #include <QQuickWidget>
 #include <QSignalBlocker>
 #include <QStackedWidget>
 #include <QTimer>
+#include <QUrl>
 #include <QVBoxLayout>
 
+#include "AsyncCall.hpp"
 #include "BufferService.hpp"
 #include "DiagnosticLog.hpp"
 #include "EditorShell.hpp"
 #include "ProjectSettingsDialog.hpp"
+#include "ScriviBridge.hpp"
 
 // ---- ShellController --------------------------------------------------------
 
@@ -75,6 +83,112 @@ void ShellController::openEditor(const QString& projectPath, const QString& titl
     if (window_ != nullptr) {
         window_->showEditor(projectPath, title, openedProject);
     }
+}
+
+// ---- [SP-206] Import Archive -------------------------------------------------
+
+void ShellController::importArchive(const QString& archivePath)
+{
+    QWidget* parent = QApplication::activeWindow();
+    QString archive = archivePath;
+    if (archive.isEmpty()) {
+        archive = QFileDialog::getOpenFileName(parent, tr("Import Archive"), QDir::homePath(),
+                                               tr("Scrivi Archive (*.scrivarchive)"));
+        if (archive.isEmpty()) {
+            return;
+        }
+    }
+    const QString folder = QFileDialog::getExistingDirectory(
+        parent, tr("Choose the folder to unpack “%1” into").arg(QFileInfo(archive).completeBaseName()),
+        QFileInfo(archive).absolutePath(), QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+    if (folder.isEmpty()) {
+        return;
+    }
+    runImport(archive, folder, {});
+}
+
+void ShellController::runImport(const QString& archivePath, const QString& folder, const QVariantMap& options)
+{
+    QWidget* parent = QApplication::activeWindow();
+    // AC4: off the GUI thread; the progress dialog only once it has run 400 ms.
+    auto* progress = new QProgressDialog(tr("Importing archive…"), QString(), 0, 0, parent);
+    progress->setWindowModality(Qt::WindowModal);
+    progress->setMinimumDuration(0);
+    progress->setAttribute(Qt::WA_DeleteOnClose);
+    progress->hide();
+    QTimer::singleShot(400, progress, [progress]() { progress->show(); });
+
+    AsyncCall::run<QVariantMap>(
+        this,
+        [archivePath, folder, options]() { return ScriviBridge().importArchive(archivePath, folder, options); },
+        [this, archivePath, folder, options, progress](QVariantMap r) {
+            progress->close();
+            QWidget* parent = QApplication::activeWindow();
+            if (r.contains(QStringLiteral("errorMessage"))) {
+                if (r.value(QStringLiteral("errorDetail")).toString() == QStringLiteral("projectOpen")) {
+                    QMessageBox::warning(parent, tr("Close the project first"),
+                        tr("The project in “%1” that Replace would delete is open. Close its window, then import again.")
+                            .arg(QFileInfo(folder).fileName()));
+                } else {
+                    QMessageBox::warning(parent, tr("The archive could not be imported"),
+                                         r.value(QStringLiteral("errorMessage")).toString());
+                }
+                return;
+            }
+            if (!r.value(QStringLiteral("imported")).toBool()) {
+                const QVariantMap c = r.value(QStringLiteral("conflict")).toMap();
+                const QString name = c.value(QStringLiteral("folderName")).toString();
+                const QString stem = QFileInfo(name).completeBaseName();
+                const bool world = c.value(QStringLiteral("kind")).toString() == QStringLiteral("world");
+                QMessageBox box(QMessageBox::Question, tr("“%1” already exists").arg(name),
+                    world ? tr("“%1” already holds a different world with this name. Rename the imported world?")
+                                .arg(QFileInfo(folder).fileName())
+                          : tr("“%1” already holds a project with this name. Rename the imported project, or replace "
+                               "the one that is there?").arg(QFileInfo(folder).fileName()),
+                    QMessageBox::NoButton, parent);
+                QPushButton* rename  = box.addButton(tr("Rename…"), QMessageBox::AcceptRole);
+                QPushButton* replace = world ? nullptr : box.addButton(tr("Replace"), QMessageBox::DestructiveRole);
+                box.addButton(QMessageBox::Cancel);
+                box.exec();
+                QVariantMap next = options;
+                if (box.clickedButton() == rename) {
+                    bool ok = false;
+                    const QString newName = QInputDialog::getText(parent, tr("Rename"), tr("Folder name:"),
+                                                                  QLineEdit::Normal, stem + QStringLiteral(" 2"), &ok);
+                    if (!ok) {
+                        return;
+                    }
+                    if (world) {
+                        QVariantMap names = next.value(QStringLiteral("worldFolderNames")).toMap();
+                        names.insert(c.value(QStringLiteral("worldID")).toString(), newName);
+                        next.insert(QStringLiteral("worldFolderNames"), names);
+                    } else {
+                        next.insert(QStringLiteral("projectFolderName"), newName);
+                    }
+                } else if (replace != nullptr && box.clickedButton() == replace) {
+                    next.insert(QStringLiteral("replaceProject"), true);
+                } else {
+                    return;   // Cancel: nothing was extracted
+                }
+                runImport(archivePath, folder, next);
+                return;
+            }
+            const QString projectRoot = r.value(QStringLiteral("projectRoot")).toString();
+            // Q1: the open path would raise the window of the copy already open (R3) — say so instead.
+            if (env_ != nullptr) {
+                if (ScriviWindow* open = env_->existingWindowFor(r.value(QStringLiteral("projectID")).toString())) {
+                    const QString openPath = open->editorShell() != nullptr ? open->editorShell()->currentProjectPath()
+                                                                            : QString();
+                    QMessageBox::information(parent, tr("A copy of this project is already open"),
+                        tr("“%1” is open. Close it to open the one you imported, at “%2”.").arg(openPath, projectRoot));
+                    return;
+                }
+                env_->showLanding();
+            }
+            emit openPathRequested(projectRoot);
+        },
+        [progress]() { progress->close(); },
+        0);   // never abandoned: it writes
 }
 
 // ---- ScriviWindow -----------------------------------------------------------
@@ -187,6 +301,16 @@ void ScriviWindow::buildMenuBar()
     connect(exportTimeline, &QAction::triggered, this,
             [this]() { if (editor_ != nullptr) { editor_->exportTimeline(); } });
     editorOnlyActions_.append(exportTimeline);
+
+    // [SP-206] EP-054 S2: the archive — Export is the project in THIS window (Q2); Import asks for the archive.
+    file->addSeparator();
+    QAction* exportArchive = file->addAction(tr("Export Archive…"));
+    connect(exportArchive, &QAction::triggered, this,
+            [this]() { if (editor_ != nullptr) { flushEditor(); editor_->exportArchive(); } });
+    editorOnlyActions_.append(exportArchive);
+    QAction* importArchive = file->addAction(tr("Import Archive…"));
+    connect(importArchive, &QAction::triggered, this,
+            [this]() { if (shell_ != nullptr) { shell_->importArchive(); } });
 
     file->addSeparator();
     QAction* quit = file->addAction(tr("Quit"));

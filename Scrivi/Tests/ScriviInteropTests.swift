@@ -8969,3 +8969,34 @@ struct MainThreadInventoryTests {
         try await measure("opening: Spotlight donation") { h.session.donateSpotlight(projectRootPath: root) }
     }
 }
+
+// MARK: — [SP-206] EP-054 S2: the archive endpoints through ScriviEngine
+
+extension ScriviInteropTests {
+    @Test("SP-206: export then import through ScriviEngine keeps the project ID; a clash is a conflict, Rename imports")
+    func archiveRoundTripThroughEngine() throws {
+        let f = try makeProjectFixture()
+        let projectID = try f.engine.openProject(projectRootPath: f.projectDir.path, appSupportRoot: f.appSupport.path).projectID
+        f.engine.closeProject(projectRootPath: f.projectDir.path)
+        let out = try TempDir(), dest = try TempDir()
+        let archive = out.url.appendingPathComponent("Interop Git Test.scrivarchive").path(percentEncoded: false)
+
+        let exported = try f.engine.exportArchive(projectRootPath: f.projectDir.path, archivePath: archive, includeWorlds: true)
+        #expect(exported.files > 0)
+        #expect(exported.worlds.isEmpty && exported.skippedWorlds.isEmpty)
+
+        let first = try f.engine.importArchive(archivePath: archive, destFolderPath: dest.path)
+        #expect(first.imported)
+        #expect(first.projectID == projectID)
+        #expect(try f.engine.openProject(projectRootPath: first.projectRoot, appSupportRoot: f.appSupport.path).projectID == projectID)
+        f.engine.closeProject(projectRootPath: first.projectRoot)
+
+        let clash = try f.engine.importArchive(archivePath: archive, destFolderPath: dest.path)
+        #expect(!clash.imported)
+        #expect(clash.conflict?.kind == "project")
+
+        let renamed = try f.engine.importArchive(archivePath: archive, destFolderPath: dest.path, projectFolderName: "Second Copy")
+        #expect(renamed.imported)
+        #expect(renamed.projectRoot.hasSuffix("Second Copy.scrivi"))
+    }
+}

@@ -29,6 +29,9 @@ import os
     var openProjectResult: OpenProjectResult?
     var projectRootPath: String?
 
+    // [SP-206] An archive export or import running for this window, once it has run 400 ms (the window's progress row).
+    var archiveProgress: String?
+
     // Viewport scene loader — created on load, cleared on close.
     var viewportLoader: ViewportSceneLoader?
 

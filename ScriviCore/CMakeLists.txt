@@ -19,6 +19,17 @@ FetchContent_Declare(
     SOURCE_SUBDIR not-a-cmake-project
 )
 FetchContent_MakeAvailable(md4c)
+
+# EP-054 / SP-205 (Q7, ruled 2026-11-06) — miniz, the zip reader and writer behind the project archive (and, later,
+# .docx and ePub). The release's amalgamated miniz.c is compiled straight into this static library, as md4c is, so
+# libScriviCore.a stays the app's single link input and no platform needs zlib. PRIVATE — never in a public header.
+FetchContent_Declare(
+    miniz
+    URL https://github.com/richgel999/miniz/releases/download/3.0.2/miniz-3.0.2.zip
+    URL_HASH SHA256=ada38db0b703a56d3dd6d57bf84a9c5d664921d870d8fea4db153979fb5332c5
+    SOURCE_SUBDIR not-a-cmake-project
+)
+FetchContent_MakeAvailable(miniz)
 enable_language(C)
 
 add_library(ScriviCore STATIC)
@@ -43,6 +54,7 @@ target_sources(ScriviCore
         src/project_package/ProjectCreator.cpp
         src/project_package/ProjectValidator.cpp
         src/project_package/ProjectOpener.cpp
+        src/project_package/ProjectArchive.cpp
         src/manuscript/ManuscriptOrderResolver.cpp
         src/manuscript/ProjectIndex.cpp
         src/manuscript/ChapterIndex.cpp
@@ -118,9 +130,13 @@ target_sources(ScriviCore
         src/markdown/Emphasis.cpp
         src/markdown/Editing.cpp
         ${md4c_SOURCE_DIR}/src/md4c.c
+        ${miniz_SOURCE_DIR}/miniz.c
 )
 
 target_include_directories(ScriviCore SYSTEM PRIVATE ${md4c_SOURCE_DIR}/src)
+target_include_directories(ScriviCore SYSTEM PRIVATE ${miniz_SOURCE_DIR})
+# Only mz_* names: the zlib-compatible aliases could collide with a zlib a platform layer links (Qt on Linux).
+target_compile_definitions(ScriviCore PRIVATE MINIZ_NO_ZLIB_COMPATIBLE_NAMES)
 
 # Persistent SecureStore (SP-059 / AC4, per T-0058 trade study). On Linux the
 # in-memory PrototypeSecureStore is replaced by EncryptedFileSecureStore

@@ -29,6 +29,7 @@
 #include <QCoreApplication>
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QString>
 #include <QVariantList>
 #include <QVariantMap>
@@ -318,9 +319,12 @@ int main(int argc, char* argv[])
         ScriviBridge::historyClose(projectPath);
         // Best-effort: a failed call returns {} and sets the flag, and never emits errorOccurred.
         bool emitted = false;
-        QObject::connect(&bridge, &ScriviBridge::errorOccurred, [&emitted](int, const QString&) { emitted = true; });
+        // ⚠️ Disconnected below: `emitted` dies with this block, and a later failing call would write to it (SP-206, ASan).
+        const auto spy =
+            QObject::connect(&bridge, &ScriviBridge::errorOccurred, [&emitted](int, const QString&) { emitted = true; });
         check(ScriviBridge::captureUndo(QString()).isEmpty() && bridge.lastCallFailed() && !emitted,
               "a failed history call is quiet: {} + lastCallFailed, no errorOccurred");
+        QObject::disconnect(spy);
     }
 
     // ================================================================
@@ -362,6 +366,40 @@ int main(int argc, char* argv[])
         // re-opens after the last.
         check(ScriviBridge::markdownBalancePastePieces(pieces, 2) == QStringList({QStringLiteral("**one"), QStringLiteral("two**")}),
               "markdownBalancePastePieces: inside bold, the span closes before the pieces and re-opens after them");
+    }
+
+    // ================================================================
+    // EP-054 S2 (SP-206 / T-0665) — the archive: export, import (same ID), a clash, Rename, a bad archive's detail
+    // ================================================================
+    {
+        bridge.closeProject(projectPath);
+        const QString out = QDir(QFileInfo(projectPath).absolutePath()).filePath(QStringLiteral("archive-out"));
+        const QString dest = QDir(QFileInfo(projectPath).absolutePath()).filePath(QStringLiteral("archive-dest"));
+        QDir().mkpath(out);
+        QDir().mkpath(dest);
+        const QString archive = QDir(out).filePath(QStringLiteral("bridge-parity.scrivarchive"));
+        const QVariantMap exported = bridge.exportArchive(projectPath, archive, true);
+        check(!bridge.lastCallFailed() && exported.value(QStringLiteral("files")).toInt() > 0 && QFile::exists(archive),
+              "exportArchive: the archive is written");
+        const QVariantMap imported = bridge.importArchive(archive, dest, {});
+        check(imported.value(QStringLiteral("imported")).toBool()
+                  && imported.value(QStringLiteral("projectID")).toString() == projectID,
+              "importArchive: imported, and the project KEEPS ITS ID");
+        const QString root = imported.value(QStringLiteral("projectRoot")).toString();
+        check(bridge.openProject(root, appSupport).value(QStringLiteral("projectID")).toString() == projectID,
+              "importArchive: the unpacked project opens");
+        bridge.closeProject(root);
+        const QVariantMap clash = bridge.importArchive(archive, dest, {});
+        check(!clash.value(QStringLiteral("imported")).toBool()
+                  && clash.value(QStringLiteral("conflict")).toMap().value(QStringLiteral("kind")).toString() == QStringLiteral("project"),
+              "importArchive: the same folder name again is a project conflict");
+        const QVariantMap renamed =
+            bridge.importArchive(archive, dest, {{QStringLiteral("projectFolderName"), QStringLiteral("Second Copy")}});
+        check(renamed.value(QStringLiteral("projectRoot")).toString().endsWith(QStringLiteral("Second Copy.scrivi")),
+              "importArchive: Rename imports under the new name");
+        const QVariantMap bad = bridge.importArchive(QDir(out).filePath(QStringLiteral("missing.scrivarchive")), dest, {});
+        check(bridge.lastCallFailed() && !bad.value(QStringLiteral("errorMessage")).toString().isEmpty(),
+              "importArchive: a failure carries its message (and detail) to the flow");
     }
 
     std::fprintf(stderr, "bridge_parity_smoke: %d checks, %d failures\n", checks, failures);

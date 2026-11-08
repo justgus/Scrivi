@@ -316,6 +316,15 @@ struct ScriviApp: App {
 
             Divider()
 
+            // [SP-206] EP-054 S2: the focused window's project (Q2); Import asks for the archive, then the folder.
+            Button("Export Archive…") {
+                if let session = focusedSession { Task { await env.exportArchive(session) } }
+            }
+            .disabled(focusedSession == nil)
+            Button("Import Archive…") { env.presentImportArchive() }
+
+            Divider()
+
             Button("Close Project") {
                 if let pid = focusedSession?.openProjectResult?.projectID {
                     // Close the AppKit window; its windowWillClose delegate tears down the
@@ -543,6 +552,14 @@ struct ScriviApp: App {
 
             Divider()
 
+            Button("Export Archive…") {
+                if let session = env.activeSession { Task { await env.exportArchive(session) } }
+            }
+            .disabled(env.activeSession == nil)
+            Button("Import Archive…") { env.presentImportArchive() }
+
+            Divider()
+
             Button("Close Project") {
                 if let pid = env.activeSession?.openProjectResult?.projectID {
                     env.closeProject(projectID: pid)
@@ -694,6 +711,7 @@ private struct iOSRootView: View {
                 LandingView()
             }
         }
+        .modifier(ArchiveFlowHost(env: env))   // [SP-206] the archive picker and questions, over either surface
     }
 }
 #endif

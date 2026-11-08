@@ -1,5 +1,13 @@
 # Active Epics
 
+*Last Updated: 2026-11-06 (**EP-054: SP-205 (S1) → ✅ CLOSED** (user, 2026-11-06: *"yes, file the issue, then close SP-205."*); the archive endpoints exist, no surface yet.)*
+
+*Last Updated: 2026-11-06 (**EP-054: SP-205 (S1) → 🟡 ACTIVE** (user: *"activate and implement SP-205."*).)*
+
+*Last Updated: 2026-11-06 (**SP-206 (EP-054 S2) → 🟡 Active** (user, 2026-11-06: *"Q1–Q3 as recommended, activate and implement SP-206"*).)*
+
+*Last Updated: 2026-11-06 (**EP-054 planned**: Q1–Q9 ruled as recommended; S1 = [SP-205], S2 = [SP-206] created in 🔵 Planning (user: *"You may complete the planning for EP-054."*).)*
+
 *Last Updated: 2026-11-06 (**EP-048 → ✅ CLOSED** (user, 2026-11-06: *"F1–F5 as recommended, close EP-048."*) → `Closed/Epic-EP-048.md`.)*
 
 ## EP-057: `[Linux]` **Linux Rig Verification** — every Linux live pass waiting for the rig, held here and nowhere else
@@ -27,7 +35,7 @@ being built together. Development stays parallel; only the live pass on real Lin
 
 ## EP-054: `[ScriviCore]` **Import & Export** — projects, worlds and manuscripts in and out
 
-**Status:** 🟡 **ACTIVE** 2026-10-24 — S0 ([SP-193]) ✅ closed 2026-10-25; no Sprint active — created 2026-10-24 (user: *"Lets start planning these features."*). ⚠️ The Epic's own Q1–Q6 are still to rule before S1.
+**Status:** 🟡 **ACTIVE** 2026-10-24 — S0 ([SP-193]) ✅ closed 2026-10-25; **S1 = [SP-205] ✅ closed** 2026-11-06, **S2 = [SP-206]** 🟡 Active — created 2026-10-24 (user: *"Lets start planning these features."*). ✅ **Q1–Q9 ruled 2026-11-06, every one as recommended** (user: *"I agree with your recommendations for all nine. I also agree that there should be two sprints."*).
 **Codebase:** `[ScriviCore]` is home: the archive, the format writers and readers, behind `scrivi_*` endpoints. Each
 platform's File menu / share sheet is its own AC (the [EP-052] precedent; see Q1).
 **Goal:** a writer can **bring existing work in**, **take the manuscript out** in the formats they publish in (including
@@ -61,18 +69,31 @@ and `scrivi_import_from_inbox`. A scene's text is Markdown (`.md`), so Markdown 
 - [ ] AC7 — Every format boundary-tested through `scrivi_*`, with round-trip fixtures
 - [ ] AC8 — The surfaces on Mac, iPad/iPhone and Linux, each live-passed on its platform
 
-**Questions (to rule):**
+**Questions — ✅ all nine ruled as recommended (user, 2026-11-06):**
 
-| # | Question | Recommendation |
+| # | Question | Ruling |
 | - | -------- | -------------- |
 | **Q1** | One Epic with a platform AC each (as [EP-052] was ruled), or one Epic per platform (`Epic-GUIDELINES.md`)? | **One Epic**: the formats live in the core and must be identical everywhere; each surface is a small AC. |
-| **Q2** | **Formatted HTML for fanfic:** which sites (AO3, FanFiction.net, Wattpad, Tumblr …), and paste into a rich-text box or into an HTML field? | ⏳ **OPEN, the user is finding out** (2026-10-24). Known: *"it requires specific `<p></p>` tags for each paragraph."* So every paragraph becomes its own `<p>…</p>`; never `<br>` runs, never bare text. |
+| **Q2** | **Formatted HTML for fanfic:** which sites (AO3, FanFiction.net, Wattpad, Tumblr …), and paste into a rich-text box or into an HTML field? | ✅ **Every paragraph becomes its own `<p>…</p>`**; never `<br>` runs, never bare text (user, 2026-10-24: *"it requires specific `<p></p>` tags for each paragraph."*). ⏳ **Which sites, and rich-text box vs HTML field, still to name — before S3** (S1–S2 do not need it). |
 | **Q3** | **The archive:** a zip with its own extension, history always included? | **Yes:** one `.zip`-based file; history **included** (testers' real histories are the point); world optional, asked at export. |
-| **Q4** | **Opening an archive of a project that already exists** on that machine (same project ID). | **Open it as a copy with a new ID**, named "… (imported)"; never replace. |
+| **Q4** | **Importing an archive whose project folder name already exists in the chosen folder.** | ✅ **Re-ruled 2026-11-06** (user): treat it like saving over a file — **Cancel** (nothing is extracted), **Rename** (the project folder is unpacked under the new name, as the `dumas-prose` / `dumas-prose-timelines` / `dumas-prose-timelines-history` fixtures already are) or **Replace** (the old project folder and all its files are deleted and the archive's put in its place). The project **keeps its ID** — an ID identifies the work, not the folder (user: *"Project IDs exist so that we can determine if two project folders are copies or versions of one another"*). ⛔ The earlier "copy with a new ID, named … (imported)" is withdrawn. |
 | **Q5** | **Order for the alpha.** | Archive + worlds first (testers move work and send you projects); then **HTML** and Markdown; then `.docx`; then PDF and ePub; **Scrivener import last** (the most complex format). |
 | **Q6** | **Where each format is produced.** | In the core: Markdown, HTML, `.docx` and ePub (text and zipped XML). **PDF on each platform** from the HTML (PDFKit / Qt's PDF writer): page layout is a platform strength. |
+| **Q7** | ➕ *(re-plan 2026-11-06)* **The zip library.** ScriviCore has none (its only dependencies are nlohmann/json and md4c), and the archive, `.docx` and ePub are all zip files. | **miniz**, pinned by FetchContent and compiled straight into the static library as md4c is (one `.c` file, MIT, no system dependency), so `libScriviCore.a` stays the app's single link input on every platform. Alternative: the system zlib + minizip (no zlib on iOS without a bundled copy) |
+| **Q8** | ➕ *(re-plan 2026-11-06)* **Where an arriving world goes.** A project's binding records the world's path on the SENDING machine, and a world is a separate package, often shared by several projects. | If a world with the same world ID is already bound or found on this machine, **bind to it and unpack nothing**; otherwise ask where to put it (default: beside the project), unpack it there and `scrivi_relink_world` the binding. Never a second copy of a world the machine already has |
+| **Q9** | ➕ *(re-plan 2026-11-06)* **What the archive leaves out.** | **Out:** `.lock` files, `.cache/`, `indexes/`, OS noise (the package spec's §17 list) — all rebuilt on open. **In:** everything else, including `history/` (Q3) and `.git/` when Git snapshots are on (it IS the snapshot history `snapshots/` points at). The open project's write queue is drained first ([EP-052]), so the archive is never a half-written state |
 
-**Provisional Sprints:** **S0 = [SP-193]** (✅ Closed 2026-10-25): fix before the alpha ([I-0306], [I-0313], [I-0202]) and one version everywhere ([T-0622]) · S1 archive + worlds (core) · S2 archive surfaces (Mac, Linux, iPad) · S3 Markdown + HTML export ·
+**Re-read 2026-11-06** (user: *"plan EP-054"*): still no project, world or manuscript import/export (`scrivi.h`). ⚠️ **No zip
+library in ScriviCore** (→ Q7). The archive's contents are the package as laid out in `Scrivi_Project_Package_Structure_v0_1.md`
+— `history/` already lives inside it (§16a, Trade T6, so undo travels by design) and is excluded only from Git (§17). A world
+binding holds the sending machine's path (`worlds/`, §11.2) and a world is its own package with its own `.lock`
+(`WorldStore.cpp:75`) (→ Q8).
+**S1 = [SP-205] (core only, no surface):** `scrivi_export_archive(projectRoot, destPath, includeWorlds)` and
+`scrivi_import_archive(archivePath, destFolder, …)` → the unpacked project's root, which the platform then opens; Q4's Cancel / Rename / Replace, Q8's world binding, Q9's contents;
+boundary tests through `scrivi_*` with a round trip whose undo/redo replays identically (AC1–AC3 at the core, AC7's first
+fixtures). **S2 = [SP-206]** then puts File ▸ Export Archive… / Import Archive… on the Mac, Linux and iPad.
+
+**Sprints** (S3–S7 provisional): **S0 = [SP-193]** (✅ Closed 2026-10-25): fix before the alpha ([I-0306], [I-0313], [I-0202]) and one version everywhere ([T-0622]) · **S1 = [SP-205]** archive + worlds (core, [T-0664]) ✅ Closed 2026-11-06 · **S2 = [SP-206]** archive surfaces (Mac, Linux, iPad, [T-0665]) 🟡 Active · S3 Markdown + HTML export ·
 S4 `.docx` export · S5 PDF + ePub · S6 Markdown/text + `.docx` import · S7 Scrivener import. Each with live passes.
 **Depends on:** nothing open. ⚠️ [EP-055] needs S1–S2 on iPad to move projects onto it, unless iCloud Drive does (see
 EP-055 Q2).

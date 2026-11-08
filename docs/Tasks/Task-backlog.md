@@ -1,5 +1,11 @@
 # Task Backlog
 
+*Last Updated: 2026-11-06 (**T-0665 → active** with SP-206's activation.)*
+
+*Last Updated: 2026-11-06 (**T-0664 → active** with [SP-205]'s activation; it left this file.)*
+
+*Last Updated: 2026-11-06 (**T-0664, T-0665 filed** with [SP-205], [SP-206] (🔵 Planning), [EP-054] S1–S2.)*
+
 *Last Updated: 2026-11-05 (**T-0611 → active** with [SP-184]'s activation; it left this file.)*
 
 *Last Updated: 2026-11-05 (**T-0610 → active** with [SP-183]'s activation; it left this file.)*
@@ -781,4 +787,3 @@ writer needs to see which package is open.
 
 **Scope:** Apple (Mac and iOS) and Linux, the same shape (Linux adopts Apple's). The path is selectable for copying, like the
 scene timestamps, and read-only.
-

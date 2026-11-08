@@ -121,6 +121,14 @@ struct ProjectToolbar: ToolbarContent {
             .help("View options")
         }
 
+        // [SP-206] EP-040's declared Export slot: the archive (EP-054 S2). On iOS this is the way to it without a keyboard.
+        ToolbarItem(placement: placement) {
+            Button { Task { await env.exportArchive(session) } } label: {
+                Label("Export Archive…", systemImage: "archivebox")
+            }
+            .help("Export this project as a .scrivarchive")
+        }
+
         ToolbarItem(placement: placement) {
             Button(role: .destructive) { closeProject() } label: {
                 Label("Close Project", systemImage: "xmark")

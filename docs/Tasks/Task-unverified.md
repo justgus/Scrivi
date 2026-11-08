@@ -1,5 +1,13 @@
 # Unverified Tasks
 
+*Last Updated: 2026-11-06 (**T-0665 → 🟠 Implemented - Not Verified** ([SP-206]); the live passes (AC7) are the user's.)*
+
+*Last Updated: 2026-11-06 (**T-0664 → ✅ Verified** (user, 2026-11-06: *"verify T-0664"*) and archived → `Verified/Task-verified-0664.md`.)*
+
+*Last Updated: 2026-11-06 (**T-0664**: [SP-205] closed; stays 🟠 — the user verifies it, at the latest in [SP-206]'s live passes.)*
+
+*Last Updated: 2026-11-06 (**T-0664 → 🟠 Implemented - Not Verified** ([SP-205]); core only — the live passes are [SP-206]'s.)*
+
 *Last Updated: 2026-11-06 (**T-0611 → ✅ Verified and archived** → `Verified/Task-verified-0611.md` ([SP-184] closed).)*
 
 *Last Updated: 2026-11-05 (**T-0611 → 🟠** ([SP-184], EP-048 S5c).)*
@@ -39,6 +47,23 @@ Tasks that are **implemented and awaiting user verification** before being archi
 ⚠️ This file must not disagree with [`Task-active.md`](Task-active.md) or
 [`Task-backlog.md`](Task-backlog.md). A Task implemented but unverified belongs **here** — not left
 in the backlog carrying a 🟠 status.
+
+---
+
+## 🟠 T-0665 — `[Cross]` EP-054 S2: Export Archive… / Import Archive… on the Mac, Linux and iPad
+
+**Epic:** [EP-054] (S2) · **Status:** 🟠 Implemented - Not Verified · **Sprint:** [SP-206] (🟡 Active) →
+[`../Sprints/Sprint-SP-206.md`](../Sprints/Sprint-SP-206.md) · **Date Requested:** 2026-11-06 (user: *"You may complete the planning for EP-054."*)
+
+**What:** the two archive endpoints on each platform's own file surfaces — File menu on the Mac and Linux, the share sheet
+and Files on iPad/iPhone — off the main thread with progress, asking whether to include the world (Q3) and where an
+unknown world goes (Q8). Live-passed across machines: Mac → Linux, Linux → Mac, Mac → iPad.
+
+**Implemented (2026-11-06, [SP-206]):** `Scrivi/App/ProjectArchiveFlow.swift` (Mac + iOS: Export / Import, the world question,
+Cancel / Rename / Replace, Q1, Q3), `ScriviEngine.exportArchive` / `importArchive` (`ScriviEngine.swift`), File menu + toolbar
+Export slot + Landing's Import button, `Info.plist` (`com.caposoft.scrivi.archive`); Linux `EditorShell::exportArchive`,
+`ShellController::importArchive` (`ScriviWindow.cpp`), `ScriviBridge::exportArchive` / `importArchive`, Landing.qml. Evidence:
+interop `archiveRoundTripThroughEngine` ✅, `bridge_parity_smoke` 70/70 ✅ (Docker). ⏳ AC7 live passes (user).
 
 ---
 

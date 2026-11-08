@@ -1,5 +1,19 @@
 # Active Sprints
 
+*Last Updated: 2026-11-06 (**SP-206 built** — AC1–AC6 met; T-0665 → 🟠.)*
+
+*Last Updated: 2026-11-06 (**SP-206 → 🟡 ACTIVE** (user, 2026-11-06: *"Q1–Q3 as recommended, activate and implement SP-206"*).)*
+
+*Last Updated: 2026-11-06 (**SP-205 → ✅ CLOSED** (user, 2026-11-06: *"yes, file the issue, then close SP-205."*) → `Closed/Sprint-SP-205.md`.)*
+
+*Last Updated: 2026-11-06 (**SP-205 built** — AC1–AC7 met; T-0664 → 🟠.)*
+
+*Last Updated: 2026-11-06 (**SP-205 → 🟡 ACTIVE** (user: *"activate and implement SP-205."*).)*
+
+## SP-206 — `[Cross]` [EP-054] S2: Export Archive… / Import Archive… on the Mac, Linux and iPad
+
+🟡 **ACTIVE 2026-11-06** → [`Sprint-SP-206.md`](Sprint-SP-206.md) · carries [T-0665] · ✅ Q1–Q3 ruled · ✅ built, AC1–AC6 met · ⏳ AC7 live passes
+
 *Last Updated: 2026-11-06 (**SP-184 → ✅ CLOSED** (user, 2026-11-06: *"yes, close SP-184, then audit check EP-048."*).)*
 
 *Last Updated: 2026-11-05 (**SP-183 → ✅ CLOSED** (user, 2026-11-05: *"yes, close SP-183 and plan SP-184"*).)*

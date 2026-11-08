@@ -49,6 +49,7 @@ add_executable(ScriviCoreTests
     integration/WorldTests.cpp
     integration/SceneNotesTests.cpp
     integration/AssetTests.cpp
+    integration/ArchiveCApiTests.cpp            # EP-054 S1 (SP-205): the project archive through the C ABI
     integration/AssetCApiTests.cpp
     integration/CommentTests.cpp
     integration/InboxTests.cpp
@@ -144,6 +145,10 @@ if(MSVC)
     target_sources(ScriviCoreTests PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/utf8.manifest)
 endif()
+
+# EP-054 S1: ArchiveCApiTests builds hostile zips with miniz, which ScriviCore compiles in.
+target_include_directories(ScriviCoreTests SYSTEM PRIVATE ${miniz_SOURCE_DIR})
+target_compile_definitions(ScriviCoreTests PRIVATE MINIZ_NO_ZLIB_COMPATIBLE_NAMES)
 
 include(CTest)
 include(Catch)

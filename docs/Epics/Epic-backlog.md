@@ -29,12 +29,6 @@ Apple delivery by **TestFlight**; Linux as a **.deb**.
 
 ---
 
-## ➡️ EP-054 — ACTIVATED 2026-10-24, no longer on this backlog
-
-⚠️ **[EP-054] `[ScriviCore]` Import & Export MOVED TO [`Epic-active.md`](Epic-active.md) on 2026-10-24** with [SP-193] (S0).
-
----
-
 ## EP-056: `[Linux]` **Install on Ubuntu** — a `.deb` alpha testers can install, update and remove
 
 **Status:** 🔵 **Draft** — created 2026-10-24. No Sprint assigned.
@@ -73,19 +67,6 @@ download it.
 | **Q5** | **Signing:** a GPG-signed package / repository? | **Not for a downloadable alpha `.deb`** (publish its SHA-256); required if Q2 picks a repository. |
 
 **Depends on:** nothing open. The package is a Debug build (ruled above). Its version comes from [T-0622].
-
----
-
-## ➡️ EP-047 — PLANNED 2026-10-07, no longer on this backlog
-
-⚠️ **[EP-047] `[Apple]` Manuscript Typography & Preferences MOVED TO [`Epic-active.md`](Epic-active.md) on 2026-10-07** — 🔵 Draft with
-acceptance criteria written (user: *"Ok, lets complete the planning for EP-047."*). Not yet activated.
-
----
-
-## ✅ EP-048 — ACTIVATED 2026-10-07, no longer on this backlog
-
-⚠️ **[EP-048] `[Linux]` Manuscript Renderer Parity MOVED TO [`Epic-active.md`](Epic-active.md) on 2026-10-07 (user-approved)** with [SP-165].
 
 ---
 
@@ -160,16 +141,6 @@ or a first-principles question about real hardware**, ⛔ **and the automounted 
 hand-mounted one, so a USB-stick test will not exercise AC4.**
 
 ---
-
-## ✅ EP-043 — ACTIVATED 2026-09-25, no longer on this backlog
-
-⚠️ **[EP-043] `[Linux]` The Session MOVED TO [`Epic-active.md`](Epic-active.md) on 2026-09-25
-(user-approved).** ✅ **Its full record is [`Epic-EP-043.md`](Closed/Epic-EP-043.md)** — ⛔ **the body that used
-to be restated here is deleted rather than kept, because a second copy is what goes stale**
-(`Epic-GUIDELINES.md`: *"strip the active-file entry down to a pointer"*).
-⚠️ **[SP-145] MAY NOT ACTIVATE until FIVE rulings are answered** — ✅ **Q1–Q4 in that record, plus the
-[I-0244] scope question added on activation.**
-
 
 ## [Linux] App — Epic Family (EP-024–EP-026)
 

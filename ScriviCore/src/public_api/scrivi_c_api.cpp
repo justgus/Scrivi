@@ -11,6 +11,7 @@
 #include "platform/AppSupportLayout.hpp"
 #include "platform/LocalFileSystem.hpp"
 #include "platform/SystemUUIDProvider.hpp"
+#include "project_package/ProjectArchive.hpp"
 #if defined(SCRIVI_HAS_ENCRYPTED_SECURE_STORE)
 #include "platform/EncryptedFileSecureStore.hpp"
 #endif
@@ -1094,6 +1095,107 @@ const char* scrivi_close_project(const char* projectRootPath) {
     scrivi::util::JsonDoc doc;
     doc.setBool("closed", wasOpen);
     return heap(okEnvelope(std::move(doc)));
+}
+
+// ---------------------------------------------------------------------------
+// Project archive (EP-054 S1 — SP-205, T-0664)
+// ---------------------------------------------------------------------------
+
+// READ: the guard drains the write queue first (EP-052), so the archive is never a half-written state.
+const char* scrivi_export_archive(const char* projectRootPath, const char* archivePath, int includeWorlds) {
+    SCRIVI_PROJECT_READ(projectRootPath);
+  return guarded([&]() -> const char* {
+    SCRIVI_REQUIRE_PATH(projectRootPath, "projectRootPath");
+    SCRIVI_REQUIRE_PATH(archivePath, "archivePath");
+    auto svc = abiServices();
+    scrivi::project_package::ProjectArchive archive{svc};
+    auto r = archive.exportArchive(S(projectRootPath), S(archivePath), includeWorlds != 0);
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+
+    const auto& v = r.value();
+    scrivi::util::JsonDoc doc;
+    doc.setString("archivePath", v.archivePath);
+    doc.setInt64("files", v.files);
+    for (const auto& w : v.worlds) {
+        scrivi::util::JsonDoc item;
+        item.setString("worldID", w.worldID);
+        item.setString("folder", w.folder);
+        doc.appendToArray("worlds", std::move(item));
+    }
+    for (const auto& w : v.skippedWorlds) {
+        scrivi::util::JsonDoc item;
+        item.setString("worldID", w.worldID);
+        item.setString("reason", w.reason);
+        doc.appendToArray("skippedWorlds", std::move(item));
+    }
+    return heap(okEnvelope(std::move(doc)));
+  });
+}
+
+// True when this process holds `root` open — its history or its index. Compared normalised: a host may pass a
+// trailing slash one time and not the next.
+static bool projectHeldOpen(const std::string& root) {
+    const auto norm = [](const std::string& p) {
+        auto n = std::filesystem::path(p).lexically_normal().string();
+        while (n.size() > 1 && n.back() == '/') { n.pop_back(); }
+        return n;
+    };
+    const auto want = norm(root);
+    {
+        auto& reg = historyRegistry();
+        std::lock_guard<std::mutex> lock(reg.mutex);
+        for (const auto& entry : reg.byRoot) { if (norm(entry.first) == want) return true; }
+    }
+    auto& reg = projectIndexRegistry();
+    std::lock_guard<std::mutex> lock(reg.mutex);
+    for (const auto& entry : reg.byRoot) { if (norm(entry.first) == want) return true; }
+    return false;
+}
+
+const char* scrivi_import_archive(const char* archivePath, const char* destFolderPath, const char* optionsJSON) {
+  return guarded([&]() -> const char* {
+    SCRIVI_REQUIRE_PATH(archivePath, "archivePath");
+    SCRIVI_REQUIRE_PATH(destFolderPath, "destFolderPath");
+    scrivi::project_package::ArchiveImportOptions options;
+    if (*S(optionsJSON) != '\0') {
+        auto parsed = scrivi::util::parseJson(S(optionsJSON));
+        if (!parsed.ok() || !parsed.value().isObject())
+            return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "optionsJSON is not a JSON object"));
+        const auto& o = parsed.value();
+        options.projectFolderName = o.getString("projectFolderName");
+        options.replaceProject    = o.getBool("replaceProject");
+        const auto names = o.getSubDoc("worldFolderNames");
+        for (const auto& id : names.objectKeys()) { options.worldFolderNames[id] = names.getString(id); }
+    }
+    options.isProjectOpen = projectHeldOpen;
+
+    auto svc = abiServices();
+    scrivi::project_package::ProjectArchive archive{svc};
+    auto r = archive.importArchive(S(archivePath), S(destFolderPath), options);
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+
+    const auto& v = r.value();
+    scrivi::util::JsonDoc doc;
+    doc.setBool("imported", v.imported);
+    if (!v.imported) {
+        scrivi::util::JsonDoc conflict;
+        conflict.setString("kind", v.conflict.kind);
+        conflict.setString("folderName", v.conflict.folderName);
+        if (!v.conflict.worldID.empty()) { conflict.setString("worldID", v.conflict.worldID); }
+        doc.setSubDoc("conflict", std::move(conflict));
+        return heap(okEnvelope(std::move(doc)));
+    }
+    doc.setString("projectRoot", v.projectRoot);
+    doc.setString("projectID", v.projectID);
+    for (const auto& w : v.worlds) {
+        scrivi::util::JsonDoc item;
+        item.setString("worldID", w.worldID);
+        item.setString("packagePath", w.packagePath);
+        item.setBool("unpacked", w.unpacked);
+        doc.appendToArray("worlds", std::move(item));
+    }
+    return heap(okEnvelope(std::move(doc)));
+  });
 }
 
 // SP-144 — the shared body of scrivi_open_scene and

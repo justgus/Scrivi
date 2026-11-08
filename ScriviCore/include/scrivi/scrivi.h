@@ -63,6 +63,34 @@ const char* scrivi_open_project(
  * rebuildable from disk (EP-027: the filesystem is authoritative). */
 const char* scrivi_close_project(const char* projectRootPath);
 
+/* ---- Project archive (EP-054 S1 — SP-205) ---------------------------------
+ *
+ * A `.scrivarchive` is a zip of ONE project and, optionally, the worlds it binds. It is never a project: export
+ * writes it, import unpacks it, and the host then opens the unpacked project the ordinary way.
+ *
+ * scrivi_export_archive: waits for the project's queued writes, then writes `archivePath` (the host chooses it,
+ * normally "<project name>.scrivarchive", and has already asked about overwriting). Left out: `.lock` files,
+ * `.cache/`, `indexes/`, OS noise, editor temporaries (package spec §17). Kept: everything else, including
+ * `history/` and `.git/`. includeWorlds != 0 carries each bound world that is available; one that is not is listed
+ * in skippedWorlds with its status, and the export goes on. A failed export leaves no file at `archivePath`.
+ * result: {archivePath, files, worlds?:[{worldID, folder}], skippedWorlds?:[{worldID, reason}]}
+ *
+ * scrivi_import_archive: unpacks into `destFolderPath`, the folder the writer chose. The project KEEPS ITS ID.
+ * optionsJSON (may be empty): {projectFolderName?, replaceProject?, worldFolderNames?: {worldID: name}}
+ *   A folder name already in destFolderPath extracts NOTHING and returns {imported:false, conflict:{kind:"project"|
+ *   "world", folderName, worldID?}}. The host asks the writer and calls again: Rename → projectFolderName (or
+ *   worldFolderNames[worldID]; ".scrivi" / ".scrivworld" is added if missing); Replace → replaceProject:true, which
+ *   deletes the old project only after the archive has unpacked and checked, and is refused (error.detail
+ *   "projectOpen") while that project is open in this process. A world has no Replace.
+ *   A world already here — the same world ID where the binding last saw it, or in destFolderPath — is bound to,
+ *   not unpacked (unpacked:false).
+ *   Rejected with nothing written (error.detail): "notAnArchive", "unsafeEntry" (a path that would leave the
+ *   folder), "badFolderName", "notAProject" (Replace aimed at a folder that is not a project).
+ * result: {imported:true, projectRoot, projectID, worlds?:[{worldID, packagePath, unpacked}]}
+ * WARNING: "worlds" / "skippedWorlds" are OMITTED when empty. */
+const char* scrivi_export_archive(const char* projectRootPath, const char* archivePath, int includeWorlds);
+const char* scrivi_import_archive(const char* archivePath, const char* destFolderPath, const char* optionsJSON);
+
 /* Every scene whose story time is EXPLICITLY SET, in manuscript order.
  *
  * SPARSE: scenes sitting on the derived default chain are OMITTED -- their

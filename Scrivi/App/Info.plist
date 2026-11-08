@@ -66,6 +66,20 @@
 				<string>com.caposoft.scrivi.world</string>
 			</array>
 		</dict>
+		<!-- [SP-206] Q3: the ARCHIVE (EP-054). Opening one starts Import — it is never opened as a project, so the role
+		     is Viewer; Owner, because no other app makes this file. -->
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>CFBundleTypeIconFile</key>
+			<string></string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>com.caposoft.scrivi.archive</string>
+			</array>
+		</dict>
 	</array>
 	<key>CFBundleURLTypes</key>
 	<array>
@@ -130,6 +144,25 @@
 				<key>public.filename-extension</key>
 				<array>
 					<string>scrivworld</string>
+				</array>
+			</dict>
+		</dict>
+		<!-- [SP-206] The ARCHIVE: one FILE (a zip), not a package. -->
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>com.caposoft.scrivi.archive</string>
+			<key>UTTypeDescription</key>
+			<string>Scrivi Archive</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.zip-archive</string>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>scrivarchive</string>
 				</array>
 			</dict>
 		</dict>

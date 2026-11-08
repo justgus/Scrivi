@@ -438,7 +438,7 @@ private struct ManuscriptEditorView: View {
             // An overlay for the same reason as the two above ([I-0263]).
             // ✅ [SP-191] Q5 — a structural edit that has run 400 ms says what it is doing (the editor is read-only meanwhile).
             .overlay(alignment: .topTrailing) {
-                if let working = loader.structuralProgress {
+                if let working = session.archiveProgress ?? loader.structuralProgress {   // [SP-206] an archive too
                     HStack(spacing: 6) {
                         ProgressView().controlSize(.small)
                         Text(working).font(.callout)

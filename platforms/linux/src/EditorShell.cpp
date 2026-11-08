@@ -4442,6 +4442,78 @@ void EditorShell::exportTimeline()
     onExportTimelineRequested();
 }
 
+void EditorShell::exportArchive()
+{
+    if (projectPath_.isEmpty()) {
+        return;
+    }
+    const QString root = projectPath_;
+    const QString name = QFileInfo(root).completeBaseName();
+    bool includeWorlds = false;
+    const QVariantList worlds = bridge_->listWorlds(root).value(QStringLiteral("worlds")).toList();
+    if (!worlds.isEmpty()) {
+        QStringList names;
+        for (const QVariant& w : worlds) {
+            names << QStringLiteral("“%1”").arg(w.toMap().value(QStringLiteral("displayName")).toString());
+        }
+        QMessageBox box(QMessageBox::Question, tr("Include the world?"),
+                        tr("“%1” uses %2. Include %3 in the archive, so %4 with the project?")
+                            .arg(name, names.join(QStringLiteral(", ")),
+                                 worlds.size() == 1 ? tr("it") : tr("them"),
+                                 worlds.size() == 1 ? tr("it travels") : tr("they travel")),
+                        QMessageBox::NoButton, this);
+        QPushButton* include = box.addButton(tr("Include World"), QMessageBox::AcceptRole);
+        QPushButton* only    = box.addButton(tr("Project Only"), QMessageBox::RejectRole);
+        box.addButton(QMessageBox::Cancel);
+        box.exec();
+        if (box.clickedButton() != include && box.clickedButton() != only) {
+            return;
+        }
+        includeWorlds = box.clickedButton() == include;
+    }
+    const QString path = QFileDialog::getSaveFileName(
+        this, tr("Export Archive"),
+        QDir(QFileInfo(root).absolutePath()).filePath(name + QStringLiteral(".scrivarchive")),
+        tr("Scrivi Archive (*.scrivarchive)"));
+    if (path.isEmpty()) {
+        return;
+    }
+
+    if (progressBar_ != nullptr) {
+        progressBar_->setRange(0, 0);
+        progressLabel_->setText(tr("Exporting archive…"));
+    }
+    if (progressDelay_ != nullptr) { progressDelay_->start(); }
+    AsyncCall::run<QVariantMap>(
+        this,
+        [root, path, includeWorlds]() { return ScriviBridge().exportArchive(root, path, includeWorlds); },
+        [this, worlds](QVariantMap r) {
+            hideLoadProgress();
+            if (r.contains(QStringLiteral("errorMessage"))) {
+                QMessageBox::warning(this, tr("The archive could not be exported"),
+                                     r.value(QStringLiteral("errorMessage")).toString());
+                return;
+            }
+            const QVariantList skipped = r.value(QStringLiteral("skippedWorlds")).toList();
+            if (!skipped.isEmpty()) {
+                QStringList names;
+                for (const QVariant& s : skipped) {
+                    const QString id = s.toMap().value(QStringLiteral("worldID")).toString();
+                    for (const QVariant& w : worlds) {
+                        if (w.toMap().value(QStringLiteral("worldID")).toString() == id) {
+                            names << QStringLiteral("“%1”").arg(w.toMap().value(QStringLiteral("displayName")).toString());
+                        }
+                    }
+                }
+                QMessageBox::information(this, tr("The archive has no world"),
+                    tr("%1 could not be reached, so it was left out. The project is in the archive.")
+                        .arg(names.isEmpty() ? tr("A world") : names.join(QStringLiteral(", "))));
+            }
+        },
+        [this]() { hideLoadProgress(); },
+        0);   // never abandoned: the core is writing the file
+}
+
 void EditorShell::onImportTimelineRequested()
 {
     // Pick a .scrivi-timeline.json (QFileDialog — VNC-proven, EP-021). Start in the

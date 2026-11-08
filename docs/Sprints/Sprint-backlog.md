@@ -1,5 +1,13 @@
 # Sprint Backlog
 
+*Last Updated: 2026-11-06 (**SP-206 removed** — activated 2026-11-06; EP-054's section now holds no Sprint.)*
+
+*Last Updated: 2026-11-06 (**SP-206 planned in full** — Q1–Q3 to rule before activation.)*
+
+*Last Updated: 2026-11-06 (**SP-205 removed** — activated 2026-11-06.)*
+
+*Last Updated: 2026-11-06 (**SP-205, SP-206 created in 🔵 Planning** — EP-054 S1, S2.)*
+
 *Last Updated: 2026-11-06 (**EP-048's empty section removed** — every Sprint closed; EP-048 closed (Audit Check F5).)*
 
 *Last Updated: 2026-11-05 (**SP-184 removed** — activated 2026-11-05; EP-048's section now holds no Sprint.)*

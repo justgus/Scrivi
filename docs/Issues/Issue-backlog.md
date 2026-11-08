@@ -1,5 +1,11 @@
 # Issue Backlog
 
+*Last Updated: 2026-11-07 — **I-0356 filed here** (seen during [SP-206]'s builds) (user, 2026-11-07: *"yes, file the visionOS issue"*); not assigned.*
+
+*Last Updated: 2026-11-06 — **I-0355 filed here** (seen during [SP-205]'s ctest runs) (user, 2026-11-06: *"yes, file the issue, then close SP-205."*); not assigned.*
+
+*Last Updated: 2026-11-06 — **I-0354 filed here** (from [EP-054] planning, user: *"File the issue."*; not assigned).*
+
 *Last Updated: 2026-11-05 — **I-0353 widened** (user: *"should apply to all the format options"*; measured: every paragraph format is refused on an empty line, Bold/Italic already work).*
 
 *Last Updated: 2026-11-05 — **I-0353 ruled** (user: Heading on an empty line makes what is typed next the heading).*
@@ -14,6 +20,9 @@ Issues listed here are open and documented but not currently assigned to a Sprin
 
 | ID | Title | Severity | Sprint |
 | -- | ----- | -------- | ------ |
+| **I-0356** | `[Apple]` **The visionOS target does not build: `EditorView.swift` uses `.inspector(isPresented:)` and `.inspectorColumnWidth`, which visionOS does not have** | Medium | — |
+| **I-0355** | `[ScriviCore]` **Two unrelated ctest cases failed once under `ctest --parallel 8` on macOS, passing on re-run; 41 test files name temp folders only by `steady_clock`** | Low | — |
+| **I-0354** | `[Cross]` **Two folders holding the same project (same project ID) collide on one machine: reopen-at-launch, window position, Spotlight and the Linux session are stored under the ID, not the folder** | Medium | — |
 | **I-0353** | `[Cross]` **Every paragraph format (Heading 1–3, Bullet list, Numbered list, Body) is refused on an EMPTY line (the Mac flashes, Linux beeps): the writer must type the text first, then format it** (user, 2026-11-05, [SP-183] live pass). ✅ Ruled: what is typed next takes the format. → [details](#i-0353) | Medium | — |
 | **I-0352** | `[ScriviCore]` **`findByID performs NO directory scan on the happy path` failed once under `ctest --parallel 8` on macOS; not reproduced since** (found 2026-11-05 during [SP-183], which changes no core code). → [details](#i-0352) | Low | — |
 | **I-0349** | `[Linux]` ⛔ **After a load the window freezes ~5.5 s — GNOME offers "Wait or Force Quit"** (user, 2026-11-04: *"It only started happening today"*). ✅ Measured: the first paint of the manuscript loads FALLBACK FONTS one by one through fontconfig (`QFontEngineMulti::ensureEngineAt` → `FT_New_Face`, main-thread stack sampled); present since at least 2026-11-02 (build 1.0.321); the dialog is likely new with today's gnome-shell upgrade. ✅ A part was mine ([SP-203]'s accessibility layer handled each of a load's thousands of events alone) — coalesced. → [details](#i-0349) | High | — |
@@ -27,6 +36,67 @@ Issues listed here are open and documented but not currently assigned to a Sprin
 | **I-0284** | `[Apple]` ⚠️ **A paragraph containing a HARD BREAK renders NO emphasis — its `**`, `*`, `_` markers show raw.** ✅ **MEASURED 2026-10-08** (found by [SP-171]'s AC1 corpus test; `MarkdownBlocks.analyze`): `"A line\nthen _under_ and **b**."` → 4 markers; `"A hard break\\\nthen _under_ and **b**."` (the Option-Return form, [T-0584]) → **0 markers**. The presenter and the presented map agree (both show the markers), so it is the ANALYZER's result, not the drawing. ⚠️ Not yet checked: whether the whole block is affected or only lines after the break; whether headings/lists in such a block are affected; Linux (md4c) behaviour. ✅ Repro: type a bold word, then Option-Return, then another bold word in the same paragraph. ⚠️ Not in SP-171's scope (filed to the backlog first). | Medium | Not Assigned |
 | **I-0275** | `[Apple]` ⚠️ **Keystroke and caret-move cost grows LINEARLY with position in the manuscript — ~20–43 ms at the start, ~89–122 ms at the end of 1.85 MB.** ✅ **MEASURED 2026-10-04** ([SP-157] AC10c, user's run, `dumas-prose-timelines`, 1,855,917 chars): typing 20.0–42.6 ms (scene 0) · 37.1–66.2 ms (scene 291, ~460k) · 89.1–121.7 ms (scenes 1182–1184); Return and ⌫ the same as typing at each place; ⚠️ **arrow keys 0.6–1.7 ms at the start, 89–117 ms at the end — and arrows run NONE of Scrivi's per-keystroke work**, so the scaling is AppKit's (TextKit 2). Scrivi's own work (`[SCRIVI-KEY]`) is flat at 2.3–4.3 ms (→ [T-0583]). ---- ⚠️ **USER'S STANDING (quoted, not inflated):** *"I'm a little worried that we're scanning the whole document at each keystroke"* · *"I didn't say it bites. I said I was kind of concerned."* → *"Let's backlog the Issue for the real cost as well."* ⛔ **NOT ruled as biting.** ---- ✅ **Relation:** [I-0206] (closed not-a-defect) measured `setSel` linear in offset and typing "constant" — ⚠️ this shows typing and arrows are linear too ([I-0206] measured typing at one place). ⚠️ Consistent with [I-0267]'s unexplained fast/slow runs being a caret-POSITION difference — unproven. ---- ✅ **Next step: an Instruments time profile of ONE keystroke and ONE arrow at the end of the manuscript**, to name the AppKit call that grows with position. ⚠️ Only then a design decision; the structural option (not holding the whole manuscript in one text view, with a scene-position map) is Epic-sized. ---- ✅ **BACKGROUND — sync vs async (user asked 2026-10-04; added at the user's request):** ⚠️ **everything per keystroke is SYNCHRONOUS on the main thread, inside `keyDown`**: (1) AppKit's key dispatch → `insertText`; (2) our pre-edit guards in `shouldChangeText` (heading / divider refusal, escape-pair widening); (3) escaping in `insertText`; (4) the storage edit + `EscapeHidingStyler.restyle` (must finish before drawing, or a hidden backslash flashes); (5) **AppKit's own layout / selection / display**; (6) our `textDidChange` bookkeeping (boundary scan, scene lookup, text extract, history `noteEdit`, and on `.`/`!`/`?`/Return a C++ `historyRecordEvent`). ✅ **Already async (debounced `Task`s):** autosave 1 s, Navigator title 300 ms, viewport-scene-after-scroll 120 ms. ✅ **Split at the end of 1.85 MB:** `keyDown` 89–122 ms; Scrivi's (6) 2.3–2.8 ms (≈2.3 ms of it the scan → [T-0583]); (2)–(4) each < 0.5 ms; ⛔ **AppKit ≈ 85–115 ms.** ✅ Arrow keys run none of (2)–(6) and still cost ~90 ms at the end. ✅ **Can it be made async?** ⛔ AppKit's share: NO — `NSTextView`/TextKit are main-thread-only, inside the event; the lever is to find and avoid the offset-linear call, or give the view less text. ⛔ (2)–(4): NO — they decide or change what is stored or drawn. ⚠️ (6): possible, ✅ but after [T-0583] it is ~0.2 ms, and moving the history record off-main risks the EP-019 *"history commits before disk writes"* ordering (§4.d) — not worth it. | Low | Not Assigned |
 | **I-0147** | `[ScriviCore]` ⚠️ **KNOWN LIMITATION (user-ruled 2026-08-21, ACCEPTED — not to be fixed in SP-116).** ⚠️ **For up to `kStaleSeconds` (60 s) after an interrupted world write, the world is ENTIRELY UNWRITABLE and its abandoned `.partial` is unreclaimable.** When a volume vanishes mid-import the writer dies holding the lock, leaving `.lock` on disk with a **fresh** heartbeat. Reattach the drive quickly — the natural thing to do — and the next write is refused `worldLocked`; ⚠️ **T-0433's sweep runs only AFTER a successful acquire**, so the orphan survives until the lock ages out. **Observed on the real rig 2026-08-21**: drive pulled mid-import, reattached within ~60 s, next import refused and a **2.9 GB** `.partial` remained. ✅ **Both halves verified**: staged fresh lock + orphan → `worldLocked`, orphan stays; waited past 60 s → **acquired and swept**. ⚠️ **This is arguably CORRECT, which is why it is accepted:** `kStaleSeconds` exists precisely because the core cannot distinguish *"writer died"* from *"writer is briefly stalled"*, and guessing wrong means two processes writing a shared world at once. It **self-heals** within a minute and loses no data. **The stronger evidence available — the package's own VOLUME was unmounted, which is far better proof of a dead holder than a quiet heartbeat — is not currently used.** ⚠️ **Deferred to the network-worlds design**, which must revisit *"exactly one winner"* regardless; ruling that inside an asset sprint is how a locking model gets set by accident (the lesson of I-0144). ⚠️ **The eventual UI must not present the 60 s wait as an error** — it is a retryable state. | Low | ⚠️ **Deferred — network-worlds design.** 🟡 Accepted limitation (2026-08-21); moved to the backlog 2026-10-03 (user). 🟡 **Accepted limitation (2026-08-21)** — ⚠️ **found by the LIVE RIG PASS**; ⚠️ **my own earlier staged-orphan test PASSED because it created the orphan WITHOUT a matching fresh lock** — not the state a real crash leaves |
+
+## I-0356: `[Apple]` The visionOS target does not build — `.inspector` is unavailable there
+
+**Seen:** 2026-11-06, building `ScriviApp-visionOS` during [SP-206] (`xcodebuild -workspace Scrivi.xcworkspace -scheme
+ScriviApp-visionOS -destination 'generic/platform=visionOS Simulator' build`). The build fails with two errors, both in code
+SP-206 did not touch:
+- `EditorView.swift:563` — `'inspector(isPresented:content:)' is unavailable in visionOS`
+- `EditorView.swift:570` — `'inspectorColumnWidth(min:ideal:max:)' is unavailable in visionOS`
+
+SP-206's new files (`ProjectArchiveFlow.swift`, the engine stub entries) report no errors there.
+**Likely cause (from the history, not bisected):** `b657410` ("SP-199 in progress") changed the modifier's comment from
+"macOS:" to "iOS too, at width regular" (SP-199, EP-055). That change most likely moved `.inspector` out from under a
+platform guard that had kept it off visionOS. `ScriviEngine`'s stub is `#else` for everything that is not macOS or iOS, so
+this view code compiles for visionOS too.
+⚠️ **Why it went unnoticed:** the same reason as [I-0253]. Nothing builds visionOS routinely: Apple CI is lint-only by ruling,
+and `check-engine-stub-parity.sh` guards the engine stub only, not the views.
+**To decide at planning:** what the visionOS editor shows in place of the Inspector column (none, a sheet, or the platform's own
+ornament), and whether a routine visionOS build — or a check like the stub-parity one — should guard against a recurrence.
+**Status:** 🔵 Open.
+
+---
+
+## I-0355: `[ScriviCore]` Intermittent ctest failures — temp folders named only by the clock
+
+**Seen:** 2026-11-06, during [SP-205]: one `ctest --test-dir build-tests --parallel 8` run on macOS (813 cases) failed
+`openProject - returns repairRequired when scene .meta.json is corrupt` (`OpenProjectTests.cpp`) and `applyRepair -
+regenerateMetadata (scene) creates new .meta.json` (`ApplyRepairTests.cpp`). Both passed when re-run alone, and three more
+full parallel runs were green. Neither test touches the archive code SP-205 added.
+**Suspected cause (NOT proven):** both fixtures name their temp folder by `steady_clock::now().time_since_epoch().count()`
+alone (`OpenProjectTests.cpp:28`, `ApplyRepairTests.cpp:34`). ctest runs each case in its own process, so two cases of the
+same file starting together can take the same folder and remove or corrupt each other's files. **41** test files use that
+naming. The newer fixtures add `getpid()` and a counter (`WriteQueueCApiTests.cpp`, `ArchiveCApiTests.cpp`).
+⚠️ May be the same class as [I-0352] (`findByID performs NO directory scan on the happy path`, also intermittent under
+`--parallel 8`). Check that one's fixture when this is planned.
+**To do at planning:** reproduce first (repeat the parallel suite until a failure, and log the folder each fixture took);
+only then change the naming, once, in a shared helper rather than in 41 places.
+**Status:** 🔵 Open.
+
+---
+
+## I-0354: `[Cross]` Two copies of one project collide on one machine
+
+**Found:** 2026-11-06, planning [EP-054] (user: *"File the issue."*). Not from a failure seen in use; from reading the code.
+**Ruled context (user, 2026-11-06):** a project ID identifies the **work**, not the folder — *"Project IDs exist so that we can
+determine if two project folders are copies or versions of one another."* Two folders with the same ID are therefore legitimate:
+an archive imported where the original still lives ([EP-054] Q4), or a `.scrivi` folder duplicated in Finder or a file manager.
+**The defect:** state that belongs to a **folder** is stored under the **work's** ID, so the two copies share or overwrite it:
+- **Mac:** the reopen bookmark (`ProjectBookmarkStore.swift:25`, `:48` — UserDefaults keyed by projectID: opening one copy
+  overwrites the other's path); the launch set (`OpenSessionManifest.swift:15` — IDs only, resolved through that bookmark, so
+  with both open only one comes back); window frames (`ProjectWindowFrameStore.swift:22`); Spotlight items, whose domain is
+  the projectID (`SpotlightDonor.swift:58`), so removing one copy's items removes the other's and a hit may open the wrong copy.
+- **Linux:** the session store's `[project/<projectID>]` groups (`SessionStore.cpp:9`, registered at `EditorShell.cpp:769`),
+  ⚠️ keyed by ID under the earlier ruling [R-Q2] — that ruling is what this Issue revisits.
+**Steps to reproduce (Mac):** duplicate a `.scrivi` folder in Finder; open both; quit; relaunch — one window returns.
+**Expected:** each folder keeps its own reopen path, launch entry, window position and session; the shared ID still says
+they are the same work.
+**To rule at planning:** whether Spotlight follows the folder (two sets of entries) or the work (one set, opening one copy).
+⚠️ Not yet checked: whether the core keys anything machine-wide by project ID (the index registry, [I-0233]).
+**Status:** 🔵 Open.
+
+---
 
 ## I-0353: `[Cross]` A paragraph format on an empty line is refused
 

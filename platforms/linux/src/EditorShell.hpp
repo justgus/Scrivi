@@ -294,6 +294,10 @@ public:
     // bridge). No-op if no project is loaded.
     void importTimeline();
     void exportTimeline();
+    // [SP-206] File ▸ Export Archive… (Apple: `AppEnvironment.exportArchive`): this project, the world question when it
+    // binds one, a save dialog for "<project>.scrivarchive", the call on a worker with the progress row after 400 ms.
+    // The caller has flushed the editor; the core drains the write queue.
+    void exportArchive();
 
 protected:
     // Give the writing surface keyboard focus when the editor page becomes visible
