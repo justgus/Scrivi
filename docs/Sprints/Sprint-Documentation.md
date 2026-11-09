@@ -474,7 +474,7 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-203** | `[Linux]` **[EP-050] S4** — Orca reads the page at rest (T-0659) | EP-050 | 2026-11-04 | 2026-11-04 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-203.md) |
 | **SP-204** | `[Linux]` **[EP-026] S3** — branching: chooser, margin mark, History section, stale purge, Undo History settings (T-0662) | EP-026 | 2026-11-05 | 2026-11-05 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-204.md) |
 | **SP-205** | `[ScriviCore]` **[EP-054] S1** — the project archive and its worlds: `scrivi_export_archive`, `scrivi_import_archive`, miniz (T-0664) | EP-054 | 2026-11-06 | 2026-11-06 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-205.md) |
-| **SP-206** | `[Cross]` **[EP-054] S2** — Export Archive… / Import Archive… on the Mac, Linux and iPad (T-0665) | EP-054 | 2026-11-06 | — | 🟡 **ACTIVE** → [`Sprint-SP-206.md`](Sprint-SP-206.md) |
+| **SP-206** | `[Cross]` **[EP-054] S2** — Export Archive… / Import Archive… on the Mac, Linux and iPad (T-0665) | EP-054 | 2026-11-06 | 2026-11-09 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-206.md) |
 | **SP-160** | `[Linux]` **[EP-049] S1** — Linux writes Apple's manuscript format: escaping, paste/copy, pair deletion, Return/⌫, shared corpus (T-0586); + I-0276 | EP-049 | 2026-10-04 | 2026-10-04 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-160.md) |
 
 ## Statistics
@@ -514,6 +514,8 @@ by status, read the table.**
 > on neither time. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-11-09 (**SP-206 → ✅ CLOSED** (user, 2026-11-09: *"close SP-206"*); T-0665 ✅ Verified.)*
 
 *Last Updated: 2026-11-06 (**SP-206 → 🟡 ACTIVE** (user, 2026-11-06: *"Q1–Q3 as recommended, activate and implement SP-206"*).)*
 

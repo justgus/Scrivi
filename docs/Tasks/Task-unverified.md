@@ -1,5 +1,7 @@
 # Unverified Tasks
 
+*Last Updated: 2026-11-09 (**T-0665 → ✅ Verified** (user, 2026-11-09: *"Step 3 passes on the iPad now.  Steps 4 and 6 pass on all three platforms."*) and archived → `Verified/Task-verified-0665.md`.)*
+
 *Last Updated: 2026-11-07 (**T-0665:** two export defects from the live pass fixed in the core.)*
 
 *Last Updated: 2026-11-06 (**T-0665 → 🟠 Implemented - Not Verified** ([SP-206]); the live passes (AC7) are the user's.)*
@@ -49,26 +51,6 @@ Tasks that are **implemented and awaiting user verification** before being archi
 ⚠️ This file must not disagree with [`Task-active.md`](Task-active.md) or
 [`Task-backlog.md`](Task-backlog.md). A Task implemented but unverified belongs **here** — not left
 in the backlog carrying a 🟠 status.
-
----
-
-## 🟠 T-0665 — `[Cross]` EP-054 S2: Export Archive… / Import Archive… on the Mac, Linux and iPad
-
-**Epic:** [EP-054] (S2) · **Status:** 🟠 Implemented - Not Verified · **Sprint:** [SP-206] (🟡 Active) →
-[`../Sprints/Sprint-SP-206.md`](../Sprints/Sprint-SP-206.md) · **Date Requested:** 2026-11-06 (user: *"You may complete the planning for EP-054."*)
-
-**What:** the two archive endpoints on each platform's own file surfaces — File menu on the Mac and Linux, the share sheet
-and Files on iPad/iPhone — off the main thread with progress, asking whether to include the world (Q3) and where an
-unknown world goes (Q8). Live-passed across machines: Mac → Linux, Linux → Mac, Mac → iPad.
-
-**Implemented (2026-11-06, [SP-206]):** `Scrivi/App/ProjectArchiveFlow.swift` (Mac + iOS: Export / Import, the world question,
-Cancel / Rename / Replace, Q1, Q3), `ScriviEngine.exportArchive` / `importArchive` (`ScriviEngine.swift`), File menu + toolbar
-Export slot + Landing's Import button, `Info.plist` (`com.caposoft.scrivi.archive`); Linux `EditorShell::exportArchive`,
-`ShellController::importArchive` (`ScriviWindow.cpp`), `ScriviBridge::exportArchive` / `importArchive`, Landing.qml. Evidence:
-interop `archiveRoundTripThroughEngine` ✅, `bridge_parity_smoke` 70/70 ✅ (Docker). ⏳ AC7 live passes (user).
-**Fixed (2026-11-07, live pass):** the export refused a trailing-slash project root (Mac: *"invalid filename"*) and reported
-a removed reference's leftover `worlds/` folder as an unreachable world (Linux) — `ProjectArchive.cpp` (`folderPath`,
-`listWorlds`); `ArchiveCApiTests` covers both.
 
 ---
 

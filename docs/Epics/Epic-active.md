@@ -1,5 +1,7 @@
 # Active Epics
 
+*Last Updated: 2026-11-09 (**EP-054: SP-206 (S2) → ✅ CLOSED** (user, 2026-11-09: *"close SP-206"*); archives move between the Mac, Linux and iPad. S3 not yet planned.)*
+
 *Last Updated: 2026-11-06 (**EP-054: SP-205 (S1) → ✅ CLOSED** (user, 2026-11-06: *"yes, file the issue, then close SP-205."*); the archive endpoints exist, no surface yet.)*
 
 *Last Updated: 2026-11-06 (**EP-054: SP-205 (S1) → 🟡 ACTIVE** (user: *"activate and implement SP-205."*).)*
@@ -35,7 +37,7 @@ being built together. Development stays parallel; only the live pass on real Lin
 
 ## EP-054: `[ScriviCore]` **Import & Export** — projects, worlds and manuscripts in and out
 
-**Status:** 🟡 **ACTIVE** 2026-10-24 — S0 ([SP-193]) ✅ closed 2026-10-25; **S1 = [SP-205] ✅ closed** 2026-11-06, **S2 = [SP-206]** 🟡 Active — created 2026-10-24 (user: *"Lets start planning these features."*). ✅ **Q1–Q9 ruled 2026-11-06, every one as recommended** (user: *"I agree with your recommendations for all nine. I also agree that there should be two sprints."*).
+**Status:** 🟡 **ACTIVE** 2026-10-24 — S0 ([SP-193]) ✅ closed 2026-10-25; **S1 = [SP-205] ✅ closed** 2026-11-06, **S2 = [SP-206] ✅ closed** 2026-11-09 — created 2026-10-24 (user: *"Lets start planning these features."*). ✅ **Q1–Q9 ruled 2026-11-06, every one as recommended** (user: *"I agree with your recommendations for all nine. I also agree that there should be two sprints."*).
 **Codebase:** `[ScriviCore]` is home: the archive, the format writers and readers, behind `scrivi_*` endpoints. Each
 platform's File menu / share sheet is its own AC (the [EP-052] precedent; see Q1).
 **Goal:** a writer can **bring existing work in**, **take the manuscript out** in the formats they publish in (including
@@ -93,7 +95,7 @@ binding holds the sending machine's path (`worlds/`, §11.2) and a world is its 
 boundary tests through `scrivi_*` with a round trip whose undo/redo replays identically (AC1–AC3 at the core, AC7's first
 fixtures). **S2 = [SP-206]** then puts File ▸ Export Archive… / Import Archive… on the Mac, Linux and iPad.
 
-**Sprints** (S3–S7 provisional): **S0 = [SP-193]** (✅ Closed 2026-10-25): fix before the alpha ([I-0306], [I-0313], [I-0202]) and one version everywhere ([T-0622]) · **S1 = [SP-205]** archive + worlds (core, [T-0664]) ✅ Closed 2026-11-06 · **S2 = [SP-206]** archive surfaces (Mac, Linux, iPad, [T-0665]) 🟡 Active · S3 Markdown + HTML export ·
+**Sprints** (S3–S7 provisional): **S0 = [SP-193]** (✅ Closed 2026-10-25): fix before the alpha ([I-0306], [I-0313], [I-0202]) and one version everywhere ([T-0622]) · **S1 = [SP-205]** archive + worlds (core, [T-0664]) ✅ Closed 2026-11-06 · **S2 = [SP-206]** archive surfaces (Mac, Linux, iPad, [T-0665]) ✅ Closed 2026-11-09 · S3 Markdown + HTML export ·
 S4 `.docx` export · S5 PDF + ePub · S6 Markdown/text + `.docx` import · S7 Scrivener import. Each with live passes.
 **Depends on:** nothing open. ⚠️ [EP-055] needs S1–S2 on iPad to move projects onto it, unless iCloud Drive does (see
 EP-055 Q2).

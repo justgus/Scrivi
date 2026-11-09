@@ -816,7 +816,7 @@ archive files reconstructed after the fact from secondary sources.
 | T-0661 | `[Linux]` Rig pass: EP-053 over the share — timed, verified, no freeze | — | **EP-057** | ✅ Verified 2026-11-04 | [`Verified/Task-verified-0661.md`](Verified/Task-verified-0661.md) |
 | T-0662 | `[Linux]` EP-026 S3: branching — chooser, margin mark, History section, stale purge, Undo History settings | ✅ **SP-204** | **EP-026** | ✅ Verified 2026-11-05 | [`Task-verified-0662.md`](Verified/Task-verified-0662.md) |
 | T-0664 | `[ScriviCore]` EP-054 S1: the project archive and its worlds — export, import, miniz | ✅ **SP-205** | **EP-054** | ✅ Verified 2026-11-06 | [`Task-verified-0664.md`](Verified/Task-verified-0664.md) |
-| T-0665 | `[Cross]` EP-054 S2: Export Archive… / Import Archive… on the Mac, Linux and iPad | 🟡 **SP-206** | **EP-054** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
+| T-0665 | `[Cross]` EP-054 S2: Export Archive… / Import Archive… on the Mac, Linux and iPad | ✅ **SP-206** | **EP-054** | ✅ Verified 2026-11-09 | [`Verified/Task-verified-0665.md`](Verified/Task-verified-0665.md) |
 | T-0592 | `[Apple]` E2-S3: formatting commands + lists + Option-Return | 🟡 **SP-163** | **EP-046** | ✅ **Verified 2026-10-06** | [`Task-verified-0592.md`](Verified/Task-verified-0592.md) |
 | T-0591 | `[Apple]` Balance emphasis across SCENE boundaries (cross-scene cut/copy/paste) | 🟡 **SP-163** | **EP-046** | ✅ **Verified 2026-10-06** | [`Task-verified-0591.md`](Verified/Task-verified-0591.md) |
 | T-0590 | `[Apple]` E2-S2: bold and italic + span reveal + the split rule | ✅ **SP-162** | **EP-046** | ✅ **Verified 2026-10-05** | [`Task-verified-0590.md`](Verified/Task-verified-0590.md) |
@@ -854,6 +854,8 @@ archive files reconstructed after the fact from secondary sources.
 ⚠️ **This index ended at `T-0485 (next available)` until 2026-09-10 — ✅ that was STALE.** ⚠️ **T-0485–T-0498 had all been taken**, and T-0485–T-0490/T-0492–T-0496 are archived as Verified. ⚠️ **Rows for T-0486–T-0497 are NOT reconstructed here** — ✅ **their Sprints' closed records are authoritative** (`feedback_archive_on_close`).
 
 ---
+
+*Last Updated: 2026-11-09 (**T-0665 → ✅ Verified** (user); archived; [SP-206] ✅ closed.)*
 
 *Last Updated: 2026-11-06 (**T-0665 → 🟠 Implemented - Not Verified** ([SP-206]).)*
 

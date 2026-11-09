@@ -1,16 +1,16 @@
 ---
 sprint: SP-206
 epic: EP-054
-status: Active
+status: Closed
 platform: Cross
 created: 2026-11-06
 ---
 
 # SP-206 — `[Apple]` + `[Linux]` [EP-054] **S2**: Export Archive… and Import Archive… on the Mac, Linux and iPad
 
-**Status:** 🟡 **ACTIVE** 2026-11-06 · ✅ built, AC1–AC6 met · ⏳ AC7 live passes · (user, 2026-11-06: *"Q1–Q3 as recommended, activate and implement SP-206"*) — created 2026-11-06 (user: *"You may complete the planning for EP-054."*); planned in full 2026-11-06 (user: *"proceed to SP-206 planning"*). [SP-205] ✅ closed 2026-11-06. ✅ Q1–Q3 ruled as recommended.
-**Carries:** [T-0665] → [`../Tasks/Task-backlog.md`](../Tasks/Task-backlog.md).
-**Epic:** [EP-054] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md).
+**Status:** ✅ **CLOSED** 2026-11-09 (user, 2026-11-09: *"close SP-206"*) · ✅ AC1–AC7 met · [T-0665] ✅ Verified · activated 2026-11-06 (user, 2026-11-06: *"Q1–Q3 as recommended, activate and implement SP-206"*) — created 2026-11-06 (user: *"You may complete the planning for EP-054."*); planned in full 2026-11-06 (user: *"proceed to SP-206 planning"*). [SP-205] ✅ closed 2026-11-06. ✅ Q1–Q3 ruled as recommended.
+**Carries:** [T-0665] → [`../../Tasks/Verified/Task-verified-0665.md`](../../Tasks/Verified/Task-verified-0665.md).
+**Epic:** [EP-054] → [`../../Epics/Epic-active.md`](../../Epics/Epic-active.md).
 **Builds on:** [SP-205] (S1, ✅ closed): `scrivi_export_archive` / `scrivi_import_archive` — the contract is the comment above them in `scrivi.h`.
 **Authority:** EP-054 Q1 (one Epic, a platform AC each), Q3 (world optional, asked at export), Q4, Q8 (✅ ruled 2026-11-06).
 **Size:** M.
@@ -85,7 +85,7 @@ export formats (S3+).
 - [x] AC4 — Both calls off the main thread with progress; the window never freezes on a large project
 - [x] AC5 — Importing while the same project is open does what Q1 rules, on every platform
 - [x] AC6 — Interop tests and Linux smokes through the wrappers, green; engine stub parity check green
-- [ ] AC7 — ✅ **Live passes (user):** Mac → Linux, Linux → Mac, Mac → iPad; reads, edits, undoes and redoes as it did
+- [x] AC7 — ✅ **Live passes (user):** Mac → Linux, Linux → Mac, Mac → iPad; reads, edits, undoes and redoes as it did
       (EP-054 AC1, AC2, AC3, AC8). The Linux half on the VM or rig → an [EP-057] Task at close (Sprint-GUIDELINES)
 
 ## Progress log
@@ -157,4 +157,41 @@ export formats (S3+).
   in the prompt above, the Mac in an `NSAlert` (`chooseFolderAndImport` — the menu and a double-click), Linux in a
   `QInputDialog` (`ShellController::importArchive`). The name goes to the core as `projectFolderName` (the field Rename
   already used); the clash questions are unchanged. Builds: iOS Simulator ✅, macOS ✅, Linux `ScriviWindow.cpp` compiled
-  on scrivi-vm ✅ (Docker was down). ⏳ Step 3 re-run; ⏳ steps 4 and 6 touch the new prompt.
+  on scrivi-vm ✅ (Docker was down). 
+- ✅ **All of AC7 passes** (user, 2026-11-09: *"Step 3 passes on the iPad now.  Steps 4 and 6 pass on all three platforms."*): Mac → Linux, Linux → Mac, Mac → iPad, name clashes, Q1, double-click —
+  on the Mac, the iPad and Linux (scrivi-vm, which counts for EP-057). T-0665 → ✅ Verified, archived.
+
+## Retrospective
+
+**Completed:** File ▸ Export Archive… / Import Archive… on the Mac, Linux and iPad (Landing, menus, the toolbar's Export
+slot), off the main thread with progress; the world question (Q3), Cancel / Rename / Replace, Q1's *"A copy of this
+project is already open"*, a double-clicked archive (Q3); AC1–AC7. Two core export defects (2026-11-07) and two iOS
+import defects (2026-11-09) found by the live passes and fixed in the Sprint.
+
+**Verified:** [T-0665] ✅ 2026-11-09 (user, 2026-11-09: *"Step 3 passes on the iPad now.  Steps 4 and 6 pass on all three
+platforms."*).
+
+**Returned to backlog:** nothing.
+
+**Added in the Sprint (user, 2026-11-09):** the import asks for the project's name, prefilled, before the folder picker —
+on every platform; on iOS that question also explains the second picker.
+
+**What went well:**
+- The cross-machine passes did their job: all four defects were invisible to the interop tests and smokes (a trailing
+  slash only the Mac sends, a leftover `worlds/` folder only a real project holds, an iOS type declaration, picker timing).
+- The Linux half ran on scrivi-vm, so no rig pass held the Sprint open (EP-057).
+
+**What to improve:**
+- AC3 was ticked with `.scrivarchive` declared only in the Mac's `Info.plist` — I never checked that the iOS target
+  generates its own. An AC that names a platform needs that platform's evidence.
+- On the iPad's "nothing happens" I shipped a timing fix on a guess. It never ran: the pick was dropped one line earlier.
+  The cheaper move was to log each branch first (`feedback_prove_code_is_reached`).
+
+**Carry-forward notes:**
+- iOS declares `.scrivarchive` but not as a document type it opens (`CFBundleDocumentTypes`), so a tap on an archive in
+  Files does not hand it to Scrivi; the import starts from Landing or the menu. Not asked for; the Mac's double-click works.
+- The iOS project and world types (`com.caposoft.scrivi.project`, `…world`) are likewise undeclared on iOS (the code falls
+  back to `.package`); untouched here.
+- The Linux pass was on scrivi-vm (arm64); nothing in the archive path is architecture-specific, so no EP-057 Task.
+- [I-0354] (two copies of one work collide on one machine) is now reachable through import.
+- ⚠️ visionOS does not build (`EditorView.swift:563`/`:570`) — not this Sprint's.
