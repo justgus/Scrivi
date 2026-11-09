@@ -1,5 +1,7 @@
 # Active Tasks
 
+*Last Updated: 2026-11-09 (**T-0666 → ✅ Verified** and archived → `Verified/Task-verified-0666.md` ([SP-207] closed) (user, 2026-11-09: *"I-0357 verified, close SP-207"*))*
+
 *Last Updated: 2026-11-09 (**T-0666 → active** with [SP-207]'s activation (EP-054 S3).)*
 
 *Last Updated: 2026-11-06 (**T-0665 → 🟠** → `Task-unverified.md` ([SP-206] built; the live passes are the user's).)*
@@ -37,14 +39,3 @@
 *Last Updated: 2026-10-31 (**T-0636, T-0637, T-0638 → 🟠 Implemented - Not Verified** → `Task-unverified.md`.)*
 
 *Last Updated: 2026-10-31 (**T-0636, T-0637, T-0638 filed → active** with SP-199's activation (EP-055 S2).)*
-
----
-
-## 🟡 T-0666 — `[Cross]` EP-054 S3: Markdown and HTML export
-
-**Epic:** [EP-054] (S3) · **Status:** 🟡 Active (2026-11-09) · **Sprint:** [SP-207] (🟡 Active) →
-[`../Sprints/Sprint-SP-207.md`](../Sprints/Sprint-SP-207.md) · **Date Requested:** 2026-11-09 (user: *"plan SP-207 for EP-054 S3"*)
-
-**What:** one core endpoint, `scrivi_export_manuscript`, writing the manuscript (or one chapter) as Markdown or as HTML
-built from what the writer sees — every paragraph its own `<p>` (EP-054 Q2) — and File ▸ Export Manuscript… / Copy as HTML
-on the Mac, iPad and Linux. The scope, destinations, scene breaks, titles and tags are SP-207's Q1–Q8 (✅ ruled); the AO3 test page is its step 4.

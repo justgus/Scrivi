@@ -475,7 +475,7 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-204** | `[Linux]` **[EP-026] S3** — branching: chooser, margin mark, History section, stale purge, Undo History settings (T-0662) | EP-026 | 2026-11-05 | 2026-11-05 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-204.md) |
 | **SP-205** | `[ScriviCore]` **[EP-054] S1** — the project archive and its worlds: `scrivi_export_archive`, `scrivi_import_archive`, miniz (T-0664) | EP-054 | 2026-11-06 | 2026-11-06 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-205.md) |
 | **SP-206** | `[Cross]` **[EP-054] S2** — Export Archive… / Import Archive… on the Mac, Linux and iPad (T-0665) | EP-054 | 2026-11-06 | 2026-11-09 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-206.md) |
-| **SP-207** | `[Cross]` **[EP-054] S3** — Markdown and HTML export (T-0666) | EP-054 | 2026-11-09 | — | 🟡 **ACTIVE** → [`Sprint-SP-207.md`](Sprint-SP-207.md) |
+| **SP-207** | `[Cross]` **[EP-054] S3** — Markdown and HTML export (T-0666) | EP-054 | 2026-11-09 | 2026-11-09 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-207.md) |
 | **SP-160** | `[Linux]` **[EP-049] S1** — Linux writes Apple's manuscript format: escaping, paste/copy, pair deletion, Return/⌫, shared corpus (T-0586); + I-0276 | EP-049 | 2026-10-04 | 2026-10-04 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-160.md) |
 
 ## Statistics
@@ -515,6 +515,8 @@ by status, read the table.**
 > on neither time. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-11-09 (**SP-207 → ✅ CLOSED** (user, 2026-11-09: *"I-0357 verified, close SP-207"*) → `Closed/Sprint-SP-207.md`)*
 
 *Last Updated: 2026-11-09 (**SP-207 → 🟡 ACTIVE** (user, 2026-11-09: *"yes, add it and activate SP-207."*))*
 

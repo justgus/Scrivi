@@ -1,16 +1,16 @@
 ---
 sprint: SP-207
 epic: EP-054
-status: Active
+status: Closed
 platform: Cross
 created: 2026-11-09
 ---
 
 # SP-207 — `[ScriviCore]` + `[Apple]` + `[Linux]` [EP-054] **S3**: Markdown and HTML export
 
-**Status:** 🟡 **ACTIVE** 2026-11-09 (user, 2026-11-09: *"yes, add it and activate SP-207."*) · ✅ Q1–Q8 ruled · planned 2026-11-09 (*"plan SP-207 for EP-054 S3"*).
-**Carries:** [T-0666] → [`../Tasks/Task-active.md`](../Tasks/Task-active.md) · [I-0357] (folded in 2026-11-09) → [`../Issues/Issue-active.md`](../Issues/Issue-active.md).
-**Epic:** [EP-054] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md).
+**Status:** ✅ **CLOSED** 2026-11-09 (user, 2026-11-09: *"I-0357 verified, close SP-207"*) · ✅ AC1–AC8 met (AC7's AO3 paste → [T-0667]) · [T-0666] ✅ Verified · [I-0357] ✅ Verified · activated 2026-11-09 (*"yes, add it and activate SP-207."*) · planned 2026-11-09 (*"plan SP-207 for EP-054 S3"*).
+**Carries:** [T-0666] → [`../../Tasks/Verified/Task-verified-0666.md`](../../Tasks/Verified/Task-verified-0666.md) · [I-0357] (folded in 2026-11-09) → [`../../Issues/Verified/Issue-verified-0351-0360.md`](../../Issues/Verified/Issue-verified-0351-0360.md).
+**Epic:** [EP-054] → [`../../Epics/Epic-active.md`](../../Epics/Epic-active.md).
 **Builds on:** [SP-206] (S2, ✅ closed): the export flow's shape on each platform (flush, off the main thread, progress
 after 400 ms, the save panel / share sheet).
 **Authority:** EP-054 Q2 (✅ *"every paragraph becomes its own `<p>…</p>`; never `<br>` runs, never bare text"*; ✅ the sites —
@@ -92,23 +92,23 @@ object references ([EP-032] — none exist yet, so there is nothing to resolve);
 
 ## Acceptance Criteria
 
-- [ ] AC1 — `scrivi_export_manuscript` produces Markdown and HTML for the whole manuscript and for one chapter (Q2), after
+- [x] AC1 — `scrivi_export_manuscript` produces Markdown and HTML for the whole manuscript and for one chapter (Q2), after
       draining the write queue; the same bytes on every platform
-- [ ] AC2 — HTML: every paragraph its own `<p>` (never `<br>` runs, never bare text — EP-054 Q2); a single `\n` → `<br />` (Q4); one block per line, so the source reads and edits by hand (Q1); italic, bold, headings and lists
+- [x] AC2 — HTML: every paragraph its own `<p>` (never `<br>` runs, never bare text — EP-054 Q2); a single `\n` → `<br />` (Q4); one block per line, so the source reads and edits by hand (Q1); italic, bold, headings and lists
       as tags; escapes resolved; every other character escaped (Q4); chapter titles, scene breaks and title page per Q5–Q7;
       a whole page or the body only (Q3)
-- [ ] AC3 — Markdown: the scenes as stored, with chapter titles, scene breaks and title page per Q5–Q6; re-read through
+- [x] AC3 — Markdown: the scenes as stored, with chapter titles, scene breaks and title page per Q5–Q6; re-read through
       `scrivi_analyze_markdown`, every scene presents as it did in Scrivi
-- [ ] AC4 — Boundary tests through `scrivi_*` against golden fixtures (EP-054 AC7), including the characters that must stay
+- [x] AC4 — Boundary tests through `scrivi_*` against golden fixtures (EP-054 AC7), including the characters that must stay
       literal
-- [ ] AC5 — File ▸ Export Manuscript… and Copy as HTML (the HTML source as plain text — Q1) on the Mac, iPad and Linux; flushed first, off the main thread, progress
+- [x] AC5 — File ▸ Export Manuscript… and Copy as HTML (the HTML source as plain text — Q1) on the Mac, iPad and Linux; flushed first, off the main thread, progress
       after 400 ms
-- [ ] AC6 — Interop tests and Linux smokes through the wrappers, green; engine stub parity check green
-- [ ] AC8 — The test page (step 4) applies AO3's sanitizer list and paragraph rule as its source has them, cited by file
-- [ ] AC7 — ✅ **Live passes (user):** a chapter copied as HTML and pasted into the test page (step 4) previews correctly, nothing stripped (EP-054 AC4); the
-      same paste into AO3 itself once it is back online; a Markdown
-      export reads correctly in another Markdown app; on the Mac, iPad and Linux. The Linux half on the VM or rig → an
-      [EP-057] Task at close (Sprint-GUIDELINES)
+- [x] AC6 — Interop tests and Linux smokes through the wrappers, green; engine stub parity check green
+- [x] AC8 — The test page (step 4) applies AO3's sanitizer list and paragraph rule as its source has them, cited by file
+- [x] AC7 — ✅ **Live passes (user):** a chapter copied as HTML and pasted into the test page (step 4) previews correctly, nothing stripped (EP-054 AC4); the
+      same paste into AO3 itself once it is back online → **[T-0667]** (AO3 offline at close); a Markdown
+      export reads correctly in another Markdown app; on the Mac, iPad and Linux. ✅ The Linux half passed on scrivi-vm
+      (build 1.0.367), so no [EP-057] Task
 
 ## Progress log
 
@@ -147,3 +147,33 @@ object references ([EP-032] — none exist yet, so there is nothing to resolve);
 - **2026-11-09** — **[I-0357] folded in and fixed** (user: *"fold I-0357 into SP-207 and fix it"*): `reflowBoundaryAt` shifts the
   scene offsets before the edit. `chapter_titles_smoke` red without the fix (both symptoms), green with it; full Linux
   ctest 826/826 and all 42 Linux smokes green in a scratch copy on scrivi-vm. → 🟠 Resolved - Not Verified.
+
+## Retrospective
+
+**Completed:** `scrivi_export_manuscript` (Markdown and HTML from what the writer sees, one chapter or the whole manuscript, a
+page or the body alone); File ▸ Export Manuscript… and Copy as HTML on the Mac, iPad and Linux, and the toolbar's Export menu;
+the AO3 test page (a private Artifact ported from AO3's own code); [I-0357] folded in and fixed. AC1–AC8.
+
+**Verified:** [T-0666] ✅ 2026-11-09 (the user's live passes on all three platforms: Copy as HTML on the Mac and iOS, the Linux
+pass, *"perfect"* in Ulysses and Safari); [I-0357] ✅ 2026-11-09 (user: *"I-0357 verified, close SP-207"*).
+
+**Returned to backlog / moved out:** AC7's paste into AO3 itself → [T-0667] (AO3 was offline). Nothing else.
+
+**Added in the Sprint (user):** the AO3 test page (step 4, AC8); [I-0357].
+
+**What went well:**
+- Reading AO3's code instead of guessing its rules settled the format: AO3 leaves the inside of `<p>`, lists and headings
+  alone, so Scrivi's output survives whole. The test page then stood in for the site while it was down.
+- I-0357 was caught by a live pass and reproduced red — both of the user's symptoms, word for word — before the fix.
+
+**What to improve:**
+- Two choices the rulings had not covered (an `<hr />` between chapters with titles hidden; `#` for the Markdown title)
+  were found only while coding. Planning should walk each output case — titles on and off, one chapter, the title page.
+- The core tests passed on their first run, so their red was never seen; their whole-string comparisons make that low risk.
+- The test page shipped a `</script>` inside its own script, caught only by the one jsdom run.
+
+**Carry-forward notes:**
+- [T-0667]: paste into AO3 itself when it returns.
+- `ManuscriptExport.cpp` builds the HTML from `markdown::analyze`, which Apple's `MarkdownBlocks` must agree with — a
+  format rule changed in one changes what is exported.
+- The VM's clock drifts while it is suspended; a copied tree needs `chronyc makestep` (or a re-touch) before ninja.

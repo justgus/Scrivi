@@ -1,5 +1,7 @@
 # Active Epics
 
+*Last Updated: 2026-11-09 (**EP-054: S3 = [SP-207] ✅ closed**; the AO3 paste → [T-0667])*
+
 *Last Updated: 2026-11-09 (**EP-054: S3 = [SP-207] → 🟡 Active.**)*
 
 *Last Updated: 2026-11-09 (**EP-054 Q2's remainder ruled** via [SP-207] Q1: AO3, raw HTML pasted into its box.)*
@@ -100,7 +102,7 @@ binding holds the sending machine's path (`worlds/`, §11.2) and a world is its 
 boundary tests through `scrivi_*` with a round trip whose undo/redo replays identically (AC1–AC3 at the core, AC7's first
 fixtures). **S2 = [SP-206]** then puts File ▸ Export Archive… / Import Archive… on the Mac, Linux and iPad.
 
-**Sprints** (S3–S7 provisional): **S0 = [SP-193]** (✅ Closed 2026-10-25): fix before the alpha ([I-0306], [I-0313], [I-0202]) and one version everywhere ([T-0622]) · **S1 = [SP-205]** archive + worlds (core, [T-0664]) ✅ Closed 2026-11-06 · **S2 = [SP-206]** archive surfaces (Mac, Linux, iPad, [T-0665]) ✅ Closed 2026-11-09 · **S3 = [SP-207]** Markdown + HTML export ([T-0666]) 🟡 Active ·
+**Sprints** (S3–S7 provisional): **S0 = [SP-193]** (✅ Closed 2026-10-25): fix before the alpha ([I-0306], [I-0313], [I-0202]) and one version everywhere ([T-0622]) · **S1 = [SP-205]** archive + worlds (core, [T-0664]) ✅ Closed 2026-11-06 · **S2 = [SP-206]** archive surfaces (Mac, Linux, iPad, [T-0665]) ✅ Closed 2026-11-09 · **S3 = [SP-207]** Markdown + HTML export ([T-0666], [I-0357]) ✅ Closed 2026-11-09; the AO3 paste → [T-0667] ·
 S4 `.docx` export · S5 PDF + ePub · S6 Markdown/text + `.docx` import · S7 Scrivener import. Each with live passes.
 **Depends on:** nothing open. ⚠️ [EP-055] needs S1–S2 on iPad to move projects onto it, unless iCloud Drive does (see
 EP-055 Q2).

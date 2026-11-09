@@ -1,5 +1,7 @@
 # Task Backlog
 
+*Last Updated: 2026-11-09 (**T-0667 filed** (the AO3 paste, moved out of [SP-207] AC7 at its close))*
+
 *Last Updated: 2026-11-09 (**T-0666 → active** → `Task-active.md` ([SP-207] activated).)*
 
 *Last Updated: 2026-11-09 (**T-0666 filed** with [SP-207] (🔵 Planning), [EP-054] S3.)*
@@ -58,6 +60,7 @@ status changes on its own layer.
 | T-0628 | `[Cross]` EP-052: keep a held queue on local disk and push it when the project returns | EP-052 (unscheduled) | 🔵 Backlog |
 | T-0657 | `[Cross]` Navigator: collapsible chapters, the current one open, the writer's choices remembered per device | ⚠️ None yet | 🔵 Backlog |
 | T-0663 | `[Cross]` Properties tab: the project's file facts (folder, path, dates, size) | ⚠️ None yet | 🔵 Backlog — Q1–Q5 ruled |
+| T-0667 | `[Cross]` EP-054: paste a Copy as HTML chapter into AO3 itself once it is back online | EP-054 | 🔵 Backlog — waits for AO3 |
 
 > ✅ **T-0477 – T-0479 LEFT this file 2026-08-31 when SP-124 was ACTIVATED**, per the standing rule that
 > active Tasks never sit in the backlog. ✅ **They are now VERIFIED (2026-09-10) and ARCHIVED** →
@@ -87,6 +90,18 @@ status changes on its own layer.
 ---
 
 ## Detail
+
+## 🔵 T-0667 — `[Cross]` EP-054: paste a Copy as HTML chapter into AO3 itself
+
+**Epic:** [EP-054] (EP-054 AC4) · **Status:** 🔵 Backlog · **Sprint:** Not Assigned · **Date Requested:** 2026-11-09 (from [SP-207] AC7 at
+its close; user: *"close SP-207"*, after the AC was proposed to move here)
+
+**What:** the one AC7 step [SP-207] could not run: AO3 was reported offline (a data breach). When it is back, copy a chapter
+with File ▸ Copy as HTML, paste it into AO3's submission box (the HTML field), and check AO3's own preview. [SP-207] proved the
+output against a port of AO3's code (the private test page, otwarchive `452391b6`): every tag and paragraph kept. This checks
+the real site and its stylesheet. A failure is a new Issue.
+
+---
 
 ### T-0459 — ⚠️ `[Cross]` Per-citation reference markers belong on the EDGE, not the source
 

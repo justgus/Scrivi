@@ -116,7 +116,7 @@ never used). **This is not a filing defect** — do not re-open it as one.
 | 33 | I-0321 – I-0330 | [`Issue-verified-0321-0330.md`](Verified/Issue-verified-0321-0330.md) | 9 |
 | 34 | I-0331 – I-0340 | [`Issue-verified-0331-0340.md`](Verified/Issue-verified-0331-0340.md) | 10 |
 | 35 | I-0341 – I-0350 | [`Issue-verified-0341-0350.md`](Verified/Issue-verified-0341-0350.md) | 8 |
-| 36 | I-0351 – I-0360 | [`Issue-verified-0351-0360.md`](Verified/Issue-verified-0351-0360.md) | 1 |
+| 36 | I-0351 – I-0360 | [`Issue-verified-0351-0360.md`](Verified/Issue-verified-0351-0360.md) | 2 |
 
 ⚠️ **Rows 15 onward added 2026-09-30 ([SP-148] Audit Check A6)** — the table had stopped at batch 14. ✅ Each count is re-derived from the file (distinct IDs in its table rows ∪ `## I-0` sections), ⛔ never copied.
 
@@ -173,6 +173,8 @@ stands as a marker.**
 | [`Issue-closed-0312.md`](Closed/Issue-closed-0312.md) | I-0312 — ⚪ **OBE** (`keyBetween` vs legacy undotted keys; no project uses that scheme; closed 2026-10-24) |
 
 ---
+
+*Last Updated: 2026-11-09 (**I-0357 → ✅ Verified** and archived to batch 36 (1 → 2, counted: I-0351, I-0357))*
 
 *Last Updated: 2026-11-06 (batch 29 re-counted 8 → 9 — EP-048's Audit Check F4.)*
 
