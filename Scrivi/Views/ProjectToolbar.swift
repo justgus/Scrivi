@@ -121,12 +121,17 @@ struct ProjectToolbar: ToolbarContent {
             .help("View options")
         }
 
-        // [SP-206] EP-040's declared Export slot: the archive (EP-054 S2). On iOS this is the way to it without a keyboard.
+        // [SP-206] EP-040's declared Export slot: the archive (EP-054 S2) and the manuscript (S3, SP-207). On iOS this is
+        // the way to them without a keyboard.
         ToolbarItem(placement: placement) {
-            Button { Task { await env.exportArchive(session) } } label: {
-                Label("Export Archive…", systemImage: "archivebox")
+            Menu {
+                Button("Export Archive…") { Task { await env.exportArchive(session) } }
+                Button("Export Manuscript…") { Task { await env.exportManuscript(session) } }
+                Button("Copy as HTML") { Task { await env.copyManuscriptAsHTML(session) } }
+            } label: {
+                Label("Export", systemImage: "square.and.arrow.up")
             }
-            .help("Export this project as a .scrivarchive")
+            .help("Export this project or its manuscript")
         }
 
         ToolbarItem(placement: placement) {

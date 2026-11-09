@@ -56,6 +56,7 @@ target_sources(ScriviCore
         src/project_package/ProjectOpener.cpp
         src/project_package/ProjectArchive.cpp
         src/manuscript/ManuscriptOrderResolver.cpp
+        src/manuscript/ManuscriptExport.cpp
         src/manuscript/ProjectIndex.cpp
         src/manuscript/ChapterIndex.cpp
         src/manuscript/SceneIndex.cpp

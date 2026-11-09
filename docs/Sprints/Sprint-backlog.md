@@ -1,5 +1,9 @@
 # Sprint Backlog
 
+*Last Updated: 2026-11-09 (**SP-207 → 🟡 ACTIVE** → `Sprint-active.md`; removed here.)*
+
+*Last Updated: 2026-11-09 (**SP-207 created in 🔵 Planning** — EP-054 S3 (user, 2026-11-09: *"plan SP-207 for EP-054 S3"*); Q1–Q8 to rule.)*
+
 *Last Updated: 2026-11-06 (**SP-206 removed** — activated 2026-11-06; EP-054's section now holds no Sprint.)*
 
 *Last Updated: 2026-11-06 (**SP-206 planned in full** — Q1–Q3 to rule before activation.)*

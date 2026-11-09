@@ -1,5 +1,7 @@
 # Active Sprints
 
+*Last Updated: 2026-11-09 (**SP-207 → 🟡 ACTIVE** (user, 2026-11-09: *"yes, add it and activate SP-207."*))*
+
 *Last Updated: 2026-11-09 (**SP-206 → ✅ CLOSED** (user, 2026-11-09: *"close SP-206"*) → `Closed/Sprint-SP-206.md`. No Sprint is active.)*
 
 *Last Updated: 2026-11-09 (**SP-206 AC7 ✅** — all live passes (user); T-0665 → ✅ Verified, archived. Close awaits approval.)*
@@ -43,3 +45,9 @@
 
 *Last Updated: 2026-11-02 (**SP-195, SP-196, SP-197, SP-200, SP-201 → ✅ CLOSED** (user, 2026-11-02).)*
 
+
+---
+
+## SP-207 — `[Cross]` [EP-054] S3: Markdown and HTML export
+
+🟡 **ACTIVE 2026-11-09** → [`Sprint-SP-207.md`](Sprint-SP-207.md) · carries [T-0666] · ✅ Q1–Q8 ruled · ⏳ build

@@ -317,6 +317,15 @@ void ScriviWindow::buildMenuBar()
     connect(exportArchive, &QAction::triggered, this,
             [this]() { if (editor_ != nullptr) { flushEditor(); editor_->exportArchive(); } });
     editorOnlyActions_.append(exportArchive);
+    // [SP-207] EP-054 S3: this window's manuscript, or its caret's chapter.
+    QAction* exportManuscript = file->addAction(tr("Export Manuscript…"));
+    connect(exportManuscript, &QAction::triggered, this,
+            [this]() { if (editor_ != nullptr) { flushEditor(); editor_->exportManuscript(); } });
+    editorOnlyActions_.append(exportManuscript);
+    QAction* copyAsHtml = file->addAction(tr("Copy as HTML"));
+    connect(copyAsHtml, &QAction::triggered, this,
+            [this]() { if (editor_ != nullptr) { flushEditor(); editor_->copyManuscriptAsHTML(); } });
+    editorOnlyActions_.append(copyAsHtml);
     QAction* importArchive = file->addAction(tr("Import Archive…"));
     connect(importArchive, &QAction::triggered, this,
             [this]() { if (shell_ != nullptr) { shell_->importArchive(); } });

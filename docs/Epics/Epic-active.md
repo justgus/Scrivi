@@ -1,5 +1,10 @@
 # Active Epics
 
+*Last Updated: 2026-11-09 (**EP-054: S3 = [SP-207] → 🟡 Active.**)*
+
+*Last Updated: 2026-11-09 (**EP-054 Q2's remainder ruled** via [SP-207] Q1: AO3, raw HTML pasted into its box.)*
+*Last Updated: 2026-11-09 (**EP-054: S3 = [SP-207] created in 🔵 Planning** (user, 2026-11-09: *"plan SP-207 for EP-054 S3"*); its Q1 is the Epic's Q2 remainder — which sites.)*
+
 *Last Updated: 2026-11-09 (**EP-054: SP-206 (S2) → ✅ CLOSED** (user, 2026-11-09: *"close SP-206"*); archives move between the Mac, Linux and iPad. S3 not yet planned.)*
 
 *Last Updated: 2026-11-06 (**EP-054: SP-205 (S1) → ✅ CLOSED** (user, 2026-11-06: *"yes, file the issue, then close SP-205."*); the archive endpoints exist, no surface yet.)*
@@ -76,7 +81,7 @@ and `scrivi_import_from_inbox`. A scene's text is Markdown (`.md`), so Markdown 
 | # | Question | Ruling |
 | - | -------- | -------------- |
 | **Q1** | One Epic with a platform AC each (as [EP-052] was ruled), or one Epic per platform (`Epic-GUIDELINES.md`)? | **One Epic**: the formats live in the core and must be identical everywhere; each surface is a small AC. |
-| **Q2** | **Formatted HTML for fanfic:** which sites (AO3, FanFiction.net, Wattpad, Tumblr …), and paste into a rich-text box or into an HTML field? | ✅ **Every paragraph becomes its own `<p>…</p>`**; never `<br>` runs, never bare text (user, 2026-10-24: *"it requires specific `<p></p>` tags for each paragraph."*). ⏳ **Which sites, and rich-text box vs HTML field, still to name — before S3** (S1–S2 do not need it). |
+| **Q2** | **Formatted HTML for fanfic:** which sites (AO3, FanFiction.net, Wattpad, Tumblr …), and paste into a rich-text box or into an HTML field? | ✅ **Every paragraph becomes its own `<p>…</p>`**; never `<br>` runs, never bare text (user, 2026-10-24: *"it requires specific `<p></p>` tags for each paragraph."*). ✅ **AO3 first, pasted as raw HTML into its text box** (user, 2026-11-09: *"you paste the html tags in the box you use for your submission"* — the writer sees and edits `<p>`, `<br>`, `<em>`, `<strong>` there) — ruled in [SP-207] Q1. |
 | **Q3** | **The archive:** a zip with its own extension, history always included? | **Yes:** one `.zip`-based file; history **included** (testers' real histories are the point); world optional, asked at export. |
 | **Q4** | **Importing an archive whose project folder name already exists in the chosen folder.** | ✅ **Re-ruled 2026-11-06** (user): treat it like saving over a file — **Cancel** (nothing is extracted), **Rename** (the project folder is unpacked under the new name, as the `dumas-prose` / `dumas-prose-timelines` / `dumas-prose-timelines-history` fixtures already are) or **Replace** (the old project folder and all its files are deleted and the archive's put in its place). The project **keeps its ID** — an ID identifies the work, not the folder (user: *"Project IDs exist so that we can determine if two project folders are copies or versions of one another"*). ⛔ The earlier "copy with a new ID, named … (imported)" is withdrawn. |
 | **Q5** | **Order for the alpha.** | Archive + worlds first (testers move work and send you projects); then **HTML** and Markdown; then `.docx`; then PDF and ePub; **Scrivener import last** (the most complex format). |
@@ -95,7 +100,7 @@ binding holds the sending machine's path (`worlds/`, §11.2) and a world is its 
 boundary tests through `scrivi_*` with a round trip whose undo/redo replays identically (AC1–AC3 at the core, AC7's first
 fixtures). **S2 = [SP-206]** then puts File ▸ Export Archive… / Import Archive… on the Mac, Linux and iPad.
 
-**Sprints** (S3–S7 provisional): **S0 = [SP-193]** (✅ Closed 2026-10-25): fix before the alpha ([I-0306], [I-0313], [I-0202]) and one version everywhere ([T-0622]) · **S1 = [SP-205]** archive + worlds (core, [T-0664]) ✅ Closed 2026-11-06 · **S2 = [SP-206]** archive surfaces (Mac, Linux, iPad, [T-0665]) ✅ Closed 2026-11-09 · S3 Markdown + HTML export ·
+**Sprints** (S3–S7 provisional): **S0 = [SP-193]** (✅ Closed 2026-10-25): fix before the alpha ([I-0306], [I-0313], [I-0202]) and one version everywhere ([T-0622]) · **S1 = [SP-205]** archive + worlds (core, [T-0664]) ✅ Closed 2026-11-06 · **S2 = [SP-206]** archive surfaces (Mac, Linux, iPad, [T-0665]) ✅ Closed 2026-11-09 · **S3 = [SP-207]** Markdown + HTML export ([T-0666]) 🟡 Active ·
 S4 `.docx` export · S5 PDF + ePub · S6 Markdown/text + `.docx` import · S7 Scrivener import. Each with live passes.
 **Depends on:** nothing open. ⚠️ [EP-055] needs S1–S2 on iPad to move projects onto it, unless iCloud Drive does (see
 EP-055 Q2).

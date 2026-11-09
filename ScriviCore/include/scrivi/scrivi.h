@@ -91,6 +91,15 @@ const char* scrivi_close_project(const char* projectRootPath);
 const char* scrivi_export_archive(const char* projectRootPath, const char* archivePath, int includeWorlds);
 const char* scrivi_import_archive(const char* archivePath, const char* destFolderPath, const char* optionsJSON);
 
+/* EP-054 S3 (SP-207) — the manuscript as Markdown or HTML. Waits for the project's queued writes, then reads the scenes.
+ * optionsJSON: {format: "markdown"|"html", scope?: "manuscript"|"chapter", chapterID? (scope "chapter"),
+ *               document?: "page"|"body" (html only: a whole page, or the body alone for pasting)}
+ * HTML is what the writer SEES: every paragraph its own <p>, a single newline <br />, italic/bold <em>/<strong>, headings
+ * <h1>-<h3>, lists <ul>/<ol>; every other character escaped. Chapter titles (<h2> / "#") follow showChapterTitles in
+ * project-settings.json; scene breaks are <hr /> / "* * *"; the title page only for the whole manuscript as a file.
+ * result: {text, chapterCount, sceneCount} */
+const char* scrivi_export_manuscript(const char* projectRootPath, const char* optionsJSON);
+
 /* Every scene whose story time is EXPLICITLY SET, in manuscript order.
  *
  * SPARSE: scenes sitting on the derived default chain are OMITTED -- their

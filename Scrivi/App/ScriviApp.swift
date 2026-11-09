@@ -321,6 +321,15 @@ struct ScriviApp: App {
                 if let session = focusedSession { Task { await env.exportArchive(session) } }
             }
             .disabled(focusedSession == nil)
+            // [SP-207] EP-054 S3: the focused window's manuscript, or its caret's chapter.
+            Button("Export Manuscript…") {
+                if let session = focusedSession { Task { await env.exportManuscript(session) } }
+            }
+            .disabled(focusedSession == nil)
+            Button("Copy as HTML") {
+                if let session = focusedSession { Task { await env.copyManuscriptAsHTML(session) } }
+            }
+            .disabled(focusedSession == nil)
             Button("Import Archive…") { env.presentImportArchive() }
 
             Divider()
@@ -554,6 +563,14 @@ struct ScriviApp: App {
 
             Button("Export Archive…") {
                 if let session = env.activeSession { Task { await env.exportArchive(session) } }
+            }
+            .disabled(env.activeSession == nil)
+            Button("Export Manuscript…") {
+                if let session = env.activeSession { Task { await env.exportManuscript(session) } }
+            }
+            .disabled(env.activeSession == nil)
+            Button("Copy as HTML") {
+                if let session = env.activeSession { Task { await env.copyManuscriptAsHTML(session) } }
             }
             .disabled(env.activeSession == nil)
             Button("Import Archive…") { env.presentImportArchive() }

@@ -4,7 +4,7 @@ import UniformTypeIdentifiers
 import AppKit
 #endif
 
-// File ▸ Export Archive… / Import Archive… (EP-054 S2, SP-206). ⚠️ No archive logic here: the flow asks the writer and
+// File ▸ Export Archive… / Import Archive… (EP-054 S2, SP-206), and Export Manuscript… / Copy as HTML (S3, SP-207). ⚠️ No archive logic here: the flow asks the writer and
 // calls `scrivi_export_archive` / `scrivi_import_archive`; a clash comes back as a conflict and the call is made again.
 //
 // Rulings: SP-206 Q1 — an import whose project is already open (same ID) is unpacked but NOT opened, because the open
@@ -103,6 +103,102 @@ extension AppEnvironment {
             try? FileManager.default.removeItem(at: staging)
             await tell("The archive could not be exported", message(for: error))
         }
+    }
+
+    // MARK: — Manuscript (EP-054 S3, SP-207)
+
+    /// File ▸ Export Manuscript…: Markdown or HTML (a whole page), the whole manuscript or the caret's chapter (Q2, Q3).
+    func exportManuscript(_ session: ProjectSession) async {
+        guard let root = session.projectRootPath else { return }
+        let engine = session.engine
+        await session.saveAllDirty()   // the editor's unsaved text; the core then drains the write queue
+        let f = await ask("Export Manuscript",
+                          "Markdown keeps the text as Scrivi stores it. HTML is a web page with every paragraph its own <p>.",
+                          ["Markdown", "HTML", "Cancel"])
+        guard f.choice < 2 else { return }
+        let html = f.choice == 1
+        let scope = await askScope(session, "Export Manuscript")
+        guard !scope.cancelled else { return }
+
+        let projectName = URL(fileURLWithPath: root).deletingPathExtension().lastPathComponent
+        let name = (scope.chapterName ?? projectName).replacingOccurrences(of: "/", with: "-")
+            .replacingOccurrences(of: ":", with: "-")
+        let fileName = "\(name).\(html ? "html" : "md")"
+        #if os(macOS)
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [html ? .html : (UTType(filenameExtension: "md") ?? .plainText)]
+        panel.nameFieldStringValue = fileName
+        panel.title = "Export Manuscript"
+        panel.prompt = "Export"
+        guard panel.runModal() == .OK, let destination = panel.url else { return }
+        #else
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let destination = folder.appendingPathComponent(fileName)
+        #endif
+        let chapterID = scope.chapterID
+        do {
+            let result = try await offMain("Exporting manuscript…", show: { session.archiveProgress = $0 }) {
+                try engine.exportManuscript(projectRootPath: root, format: html ? "html" : "markdown", chapterID: chapterID)
+            }
+            // Not atomic: an atomic write goes through a file beside the destination, which the sandbox does not grant.
+            try result.text.write(to: destination, atomically: false, encoding: .utf8)
+            #if !os(macOS)
+            share(destination)
+            #endif
+        } catch {
+            await tell("The manuscript could not be exported", message(for: error))
+        }
+    }
+
+    /// File ▸ Copy as HTML: the HTML SOURCE as plain text, the body alone, for pasting into AO3's box (Q1, Q3).
+    func copyManuscriptAsHTML(_ session: ProjectSession) async {
+        guard let root = session.projectRootPath else { return }
+        let engine = session.engine
+        await session.saveAllDirty()
+        let scope = await askScope(session, "Copy as HTML")
+        guard !scope.cancelled else { return }
+        let chapterID = scope.chapterID
+        do {
+            let result = try await offMain("Copying as HTML…", show: { session.archiveProgress = $0 }) {
+                try engine.exportManuscript(projectRootPath: root, format: "html", chapterID: chapterID, wholePage: false)
+            }
+            #if os(macOS)
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(result.text, forType: .string)
+            #else
+            UIPasteboard.general.string = result.text
+            #endif
+            await tell("Copied as HTML", "\(scope.chapterName.map { "“\($0)”" } ?? "The manuscript") is on the clipboard "
+                       + "as HTML. Paste it into the site's HTML box.")
+        } catch {
+            await tell("The manuscript could not be copied", message(for: error))
+        }
+    }
+
+    /// Q2: the whole manuscript, or the chapter the caret is in (asked only when there is one).
+    private func askScope(_ session: ProjectSession, _ title: String)
+        async -> (cancelled: Bool, chapterID: String?, chapterName: String?) {
+        guard let chapter = caretChapter(session) else { return (false, nil, nil) }
+        let r = await ask(title, "The whole manuscript, or only “\(chapter.name)”, the chapter the caret is in?",
+                          ["Whole Manuscript", "“\(chapter.name)”", "Cancel"])
+        switch r.choice {
+        case 0: return (false, nil, nil)
+        case 1: return (false, chapter.id, chapter.name)
+        default: return (true, nil, nil)
+        }
+    }
+
+    /// The chapter the caret is in, named as the editor names it ("Chapter N" when untitled).
+    private func caretChapter(_ session: ProjectSession) -> (id: String, name: String)? {
+        guard let loader = session.viewportLoader,
+              let sceneID = loader.cursorSceneID ?? loader.viewportSceneID,
+              let info = loader.allScenes.first(where: { $0.sceneID == sceneID }) else { return nil }
+        let title = info.chapterTitle.trimmingCharacters(in: .whitespaces)
+        if !title.isEmpty { return (info.chapterID, title) }
+        var chapters: [String] = []
+        for s in loader.allScenes where chapters.last != s.chapterID { chapters.append(s.chapterID) }
+        return (info.chapterID, "Chapter \((chapters.firstIndex(of: info.chapterID) ?? 0) + 1)")
     }
 
     // MARK: — Import

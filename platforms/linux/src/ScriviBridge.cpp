@@ -1641,6 +1641,15 @@ QVariantMap ScriviBridge::importArchive(const QString& archivePath, const QStrin
     return withErrorDetail(json, std::move(result), lastCallFailed());
 }
 
+QVariantMap ScriviBridge::exportManuscript(const QString& projectRootPath, const QVariantMap& options)
+{
+    const QByteArray opts = QJsonDocument(QJsonObject::fromVariantMap(options)).toJson(QJsonDocument::Compact);
+    const ScriviString envelope(scrivi_export_manuscript(projectRootPath.toUtf8().constData(), opts.constData()));
+    const QString json = envelope.toQString();
+    QVariantMap result = parseEnvelope(json);
+    return withErrorDetail(json, std::move(result), lastCallFailed());
+}
+
 QVariantMap ScriviBridge::listWorlds(const QString& projectRootPath)
 {
     if (!ready_) {

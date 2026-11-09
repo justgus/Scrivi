@@ -8,6 +8,7 @@
 
 #include <QAction>
 #include <QApplication>
+#include <QClipboard>
 #include <QDebug>
 #include <QDialog>
 #include <QDialogButtonBox>
@@ -4512,6 +4513,134 @@ void EditorShell::exportArchive()
         },
         [this]() { hideLoadProgress(); },
         0);   // never abandoned: the core is writing the file
+}
+
+bool EditorShell::askManuscriptScope(const QString& title, QString& chapterID, QString& chapterName)
+{
+    chapterID.clear();
+    chapterName.clear();
+    const int seg = sceneDoc_.sceneIndexForCaret(viewport_->textCursor().position());
+    if (seg < 0 || seg >= sceneDoc_.segments().size()) {
+        return true;
+    }
+    const QString name = sceneDoc_.chapterHeadingText(seg);
+    QMessageBox box(QMessageBox::Question, title,
+                    tr("The whole manuscript, or only “%1”, the chapter the caret is in?").arg(name),
+                    QMessageBox::NoButton, this);
+    QPushButton* whole   = box.addButton(tr("Whole Manuscript"), QMessageBox::AcceptRole);
+    QPushButton* chapter = box.addButton(QStringLiteral("“%1”").arg(name), QMessageBox::AcceptRole);
+    box.addButton(QMessageBox::Cancel);
+    box.exec();
+    if (box.clickedButton() == chapter) {
+        chapterID = sceneDoc_.segments().at(seg).chapterID;
+        chapterName = name;
+        return true;
+    }
+    return box.clickedButton() == whole;
+}
+
+void EditorShell::exportManuscript()
+{
+    if (projectPath_.isEmpty()) {
+        return;
+    }
+    const QString root = projectPath_;
+    QMessageBox formatBox(QMessageBox::Question, tr("Export Manuscript"),
+                          tr("Markdown keeps the text as Scrivi stores it. HTML is a web page with every paragraph its "
+                             "own <p>."),
+                          QMessageBox::NoButton, this);
+    formatBox.setTextFormat(Qt::PlainText);
+    QPushButton* markdown = formatBox.addButton(tr("Markdown"), QMessageBox::AcceptRole);
+    QPushButton* html     = formatBox.addButton(tr("HTML"), QMessageBox::AcceptRole);
+    formatBox.addButton(QMessageBox::Cancel);
+    formatBox.exec();
+    if (formatBox.clickedButton() != markdown && formatBox.clickedButton() != html) {
+        return;
+    }
+    const bool isHtml = formatBox.clickedButton() == html;
+    QString chapterID, chapterName;
+    if (!askManuscriptScope(tr("Export Manuscript"), chapterID, chapterName)) {
+        return;
+    }
+    QString name = chapterName.isEmpty() ? QFileInfo(root).completeBaseName() : chapterName;
+    name.replace(QLatin1Char('/'), QLatin1Char('-'));
+    const QString path = QFileDialog::getSaveFileName(
+        this, tr("Export Manuscript"),
+        QDir(QFileInfo(root).absolutePath()).filePath(name + (isHtml ? QStringLiteral(".html") : QStringLiteral(".md"))),
+        isHtml ? tr("HTML (*.html)") : tr("Markdown (*.md)"));
+    if (path.isEmpty()) {
+        return;
+    }
+
+    QVariantMap options{{QStringLiteral("format"), isHtml ? QStringLiteral("html") : QStringLiteral("markdown")},
+                        {QStringLiteral("document"), QStringLiteral("page")}};
+    if (!chapterID.isEmpty()) {
+        options.insert(QStringLiteral("scope"), QStringLiteral("chapter"));
+        options.insert(QStringLiteral("chapterID"), chapterID);
+    }
+    if (progressBar_ != nullptr) {
+        progressBar_->setRange(0, 0);
+        progressLabel_->setText(tr("Exporting manuscript…"));
+    }
+    if (progressDelay_ != nullptr) { progressDelay_->start(); }
+    AsyncCall::run<QVariantMap>(
+        this,
+        [root, options]() { return ScriviBridge().exportManuscript(root, options); },
+        [this, path](QVariantMap r) {
+            hideLoadProgress();
+            if (r.contains(QStringLiteral("errorMessage"))) {
+                QMessageBox::warning(this, tr("The manuscript could not be exported"),
+                                     r.value(QStringLiteral("errorMessage")).toString());
+                return;
+            }
+            QFile file(path);   // boundary-ok: QFileDialog export, writer-chosen path
+            if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate) ||
+                file.write(r.value(QStringLiteral("text")).toString().toUtf8()) < 0) {
+                QMessageBox::warning(this, tr("The manuscript could not be exported"), file.errorString());
+            }
+        },
+        [this]() { hideLoadProgress(); },
+        0);
+}
+
+void EditorShell::copyManuscriptAsHTML()
+{
+    if (projectPath_.isEmpty()) {
+        return;
+    }
+    const QString root = projectPath_;
+    QString chapterID, chapterName;
+    if (!askManuscriptScope(tr("Copy as HTML"), chapterID, chapterName)) {
+        return;
+    }
+    QVariantMap options{{QStringLiteral("format"), QStringLiteral("html")},
+                        {QStringLiteral("document"), QStringLiteral("body")}};
+    if (!chapterID.isEmpty()) {
+        options.insert(QStringLiteral("scope"), QStringLiteral("chapter"));
+        options.insert(QStringLiteral("chapterID"), chapterID);
+    }
+    if (progressBar_ != nullptr) {
+        progressBar_->setRange(0, 0);
+        progressLabel_->setText(tr("Copying as HTML…"));
+    }
+    if (progressDelay_ != nullptr) { progressDelay_->start(); }
+    AsyncCall::run<QVariantMap>(
+        this,
+        [root, options]() { return ScriviBridge().exportManuscript(root, options); },
+        [this, chapterName](QVariantMap r) {
+            hideLoadProgress();
+            if (r.contains(QStringLiteral("errorMessage"))) {
+                QMessageBox::warning(this, tr("The manuscript could not be copied"),
+                                     r.value(QStringLiteral("errorMessage")).toString());
+                return;
+            }
+            QApplication::clipboard()->setText(r.value(QStringLiteral("text")).toString());
+            QMessageBox::information(this, tr("Copied as HTML"),
+                tr("%1 is on the clipboard as HTML. Paste it into the site's HTML box.")
+                    .arg(chapterName.isEmpty() ? tr("The manuscript") : QStringLiteral("“%1”").arg(chapterName)));
+        },
+        [this]() { hideLoadProgress(); },
+        0);
 }
 
 void EditorShell::onImportTimelineRequested()

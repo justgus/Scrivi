@@ -298,6 +298,16 @@ public:
     // binds one, a save dialog for "<project>.scrivarchive", the call on a worker with the progress row after 400 ms.
     // The caller has flushed the editor; the core drains the write queue.
     void exportArchive();
+    // [SP-207] File ▸ Export Manuscript… / Copy as HTML (Apple: `AppEnvironment.exportManuscript` /
+    // `copyManuscriptAsHTML`): Markdown or HTML, the whole manuscript or the caret's chapter, `scrivi_export_manuscript` on
+    // a worker. Copy puts the HTML SOURCE (the body alone) on the clipboard as text. The caller has flushed the editor.
+    void exportManuscript();
+    void copyManuscriptAsHTML();
+
+private:
+    // Q2: the whole manuscript, or the caret's chapter (asked only when there is one). False = cancelled; an empty
+    // `chapterID` = the whole manuscript.
+    bool askManuscriptScope(const QString& title, QString& chapterID, QString& chapterName);
 
 protected:
     // Give the writing surface keyboard focus when the editor page becomes visible

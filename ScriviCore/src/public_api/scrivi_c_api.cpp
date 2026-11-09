@@ -12,6 +12,7 @@
 #include "platform/LocalFileSystem.hpp"
 #include "platform/SystemUUIDProvider.hpp"
 #include "project_package/ProjectArchive.hpp"
+#include "schemas/ProjectJson.hpp"
 #if defined(SCRIVI_HAS_ENCRYPTED_SECURE_STORE)
 #include "platform/EncryptedFileSecureStore.hpp"
 #endif
@@ -33,6 +34,7 @@
 #include "manuscript/FragmentCutter.hpp"
 #include "manuscript/ProjectIndex.hpp"
 #include "manuscript/ManuscriptOrderResolver.hpp"
+#include "manuscript/ManuscriptExport.hpp"
 #include "manuscript/FragmentExtractor.hpp"
 #include "manuscript/FragmentPaster.hpp"
 #include "manuscript/RangeOperations.hpp"
@@ -1198,6 +1200,109 @@ const char* scrivi_import_archive(const char* archivePath, const char* destFolde
   });
 }
 
+// Reads each scene's text in parallel (the cost over a network share is per-file latency). Each reader takes the next
+// index; results land in their own slots, so the order is the order asked and no slot is shared. A missing path is a
+// "scene not found" failure naming ids[i].
+static std::vector<scrivi::Result<std::string>> readSceneTextsInParallel(
+    const std::string& root, const std::vector<std::optional<scrivi::RelativePath>>& contentPaths,
+    const std::vector<std::string>& ids) {
+    std::vector<scrivi::Result<std::string>> texts;
+    texts.reserve(ids.size());
+    for (std::size_t i = 0; i < ids.size(); ++i) {
+        texts.push_back(scrivi::Result<std::string>::failure(
+            {.code = scrivi::ErrorCode::invalidArgument, .message = "scene not found: " + ids[i]}));
+    }
+    std::atomic<std::size_t> next{0};
+    auto reader = [&]() {
+        for (std::size_t i = next++; i < ids.size(); i = next++) {
+            if (!contentPaths[i]) { continue; }
+            texts[i] = singleton().fileSystem.readTextFile(scrivi::util::join(root, *contentPaths[i]));
+        }
+    };
+    {
+        std::vector<std::jthread> pool;
+        const std::size_t n = std::min(kParallelReaders, std::max<std::size_t>(ids.size(), 1));
+        for (std::size_t t = 1; t < n; ++t) { pool.emplace_back(reader); }
+        reader();                                   // this thread reads too
+    }                                               // jthreads join here
+    return texts;
+}
+
+// EP-054 S3 (SP-207, T-0666) — the manuscript as Markdown or HTML. A read: the guard drains the write queue first.
+const char* scrivi_export_manuscript(const char* projectRootPath, const char* optionsJSON) {
+    SCRIVI_PROJECT_READ(projectRootPath);
+  return guarded([&]() -> const char* {
+    SCRIVI_REQUIRE_PATH(projectRootPath, "projectRootPath");
+    const std::string root = S(projectRootPath);
+    auto parsed = scrivi::util::parseJson(*S(optionsJSON) != '\0' ? S(optionsJSON) : "{}");
+    if (!parsed.ok() || !parsed.value().isObject())
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "optionsJSON is not a JSON object"));
+    const auto& o = parsed.value();
+    const std::string format = o.getString("format", "markdown");
+    const std::string scope = o.getString("scope", "manuscript");
+    const std::string document = o.getString("document", "page");
+    const std::string chapterID = o.getString("chapterID");
+    if (format != "markdown" && format != "html")
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "format must be markdown or html"));
+    if (scope != "manuscript" && scope != "chapter")
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "scope must be manuscript or chapter"));
+    if (document != "page" && document != "body")
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "document must be page or body"));
+
+    auto svc = abiServices();
+    auto projectText = svc.fileSystem->readTextFile(scrivi::util::join(root, "project.json"));
+    if (!projectText.ok()) return heap(errorEnvelope(projectText.error()));
+    auto project = scrivi::schemas::parseProject(projectText.value());
+    if (!project.ok()) return heap(errorEnvelope(project.error()));
+
+    scrivi::manuscript::ExportInput in;
+    in.title = project.value().title;
+    // project-settings.json: absent or unreadable means the defaults (titles shown, no subtitle), as the apps read it.
+    if (auto t = svc.fileSystem->readTextFile(scrivi::util::join(root, "project-settings.json")); t.ok()) {
+        if (auto settings = scrivi::util::parseJson(t.value()); settings.ok() && settings.value().isObject()) {
+            in.subtitle = settings.value().getString("subtitle");
+            in.chapterTitles = settings.value().getBool("showChapterTitles", true);
+        }
+    }
+    in.titlePage = scope == "manuscript" && (format == "markdown" || document == "page");
+
+    scrivi::manuscript::ManuscriptOrderResolver resolver{svc};
+    auto resolved = resolver.resolve(root);
+    if (!resolved.ok()) return heap(errorEnvelope(resolved.error()));
+    std::vector<std::optional<scrivi::RelativePath>> paths;
+    std::vector<std::string> ids;
+    std::set<std::string> chapters;
+    std::string lastChapter;
+    int ordinal = 0;
+    for (const auto& s : resolved.value()) {
+        if (s.chapterID.value != lastChapter) { ++ordinal; lastChapter = s.chapterID.value; }
+        if (scope == "chapter" && s.chapterID.value != chapterID) continue;
+        // An untitled chapter shows as "Chapter N", N its place in the manuscript ([SP-191] Q10).
+        const auto title = s.chapterTitle.find_first_not_of(" \t") == std::string::npos
+                               ? "Chapter " + std::to_string(ordinal) : s.chapterTitle;
+        in.scenes.push_back({s.chapterID.value, title, {}});
+        paths.emplace_back(s.contentPath);
+        ids.push_back(s.sceneID.value);
+        chapters.insert(s.chapterID.value);
+    }
+    if (scope == "chapter" && in.scenes.empty())
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "no chapter with scenes: " + chapterID));
+
+    auto texts = readSceneTextsInParallel(root, paths, ids);
+    for (std::size_t i = 0; i < texts.size(); ++i) {
+        if (!texts[i].ok()) return heap(errorEnvelope(texts[i].error()));   // never an export with a scene missing
+        in.scenes[i].text = std::move(texts[i].value());
+    }
+
+    scrivi::util::JsonDoc doc;
+    doc.setString("text", format == "html" ? scrivi::manuscript::exportHtml(in, document == "page")
+                                           : scrivi::manuscript::exportMarkdown(in));
+    doc.setInt64("chapterCount", static_cast<int64_t>(chapters.size()));
+    doc.setInt64("sceneCount", static_cast<int64_t>(in.scenes.size()));
+    return heap(okEnvelope(std::move(doc)));
+  });
+}
+
 // SP-144 — the shared body of scrivi_open_scene and
 // scrivi_open_scene_for_bulk_load. ⚠️ ONE implementation so the two cannot drift:
 // they differ by a single bool, and a copy-paste pair would diverge the first
@@ -1301,27 +1406,8 @@ const char* scrivi_read_scene_texts(const char* projectRootPath, const char* sce
             }
         }
 
-        // 2. Read the texts in parallel. Each reader takes the next index; results land in their own slots, so the order
-        //    is the order asked and no slot is shared.
-        std::vector<scrivi::Result<std::string>> texts;
-        texts.reserve(ids.size());
-        for (std::size_t i = 0; i < ids.size(); ++i) {
-            texts.push_back(scrivi::Result<std::string>::failure(
-                {.code = scrivi::ErrorCode::invalidArgument, .message = "scene not found: " + ids[i]}));
-        }
-        std::atomic<std::size_t> next{0};
-        auto reader = [&]() {
-            for (std::size_t i = next++; i < ids.size(); i = next++) {
-                if (!contentPaths[i]) { continue; }
-                texts[i] = singleton().fileSystem.readTextFile(scrivi::util::join(root, *contentPaths[i]));
-            }
-        };
-        {
-            std::vector<std::jthread> pool;
-            const std::size_t n = std::min(kParallelReaders, std::max<std::size_t>(ids.size(), 1));
-            for (std::size_t t = 1; t < n; ++t) { pool.emplace_back(reader); }
-            reader();                                   // this thread reads too
-        }                                               // jthreads join here
+        // 2. Read the texts in parallel.
+        std::vector<scrivi::Result<std::string>> texts = readSceneTextsInParallel(root, contentPaths, ids);
 
         scrivi::util::JsonDoc doc;
         std::size_t failed = 0;

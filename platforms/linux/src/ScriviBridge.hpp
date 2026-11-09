@@ -152,6 +152,9 @@ public:
     // `options`: {projectFolderName?, replaceProject?, worldFolderNames?: {worldID: name}}.
     QVariantMap exportArchive(const QString& projectRootPath, const QString& archivePath, bool includeWorlds);
     QVariantMap importArchive(const QString& archivePath, const QString& destFolderPath, const QVariantMap& options);
+    // [SP-207] EP-054 S3 — `scrivi_export_manuscript`: {text, chapterCount, sceneCount}. Blocking: call it on a worker.
+    // `options`: {format: "markdown"|"html", scope?: "manuscript"|"chapter", chapterID?, document?: "page"|"body"}.
+    QVariantMap exportManuscript(const QString& projectRootPath, const QVariantMap& options);
 
     // Loads a single scene's body (SP-061 / T-0235). Calls scrivi_open_scene and
     // returns its ok "result": {scene{sceneID,chapterID,title,slug,metadataPath,

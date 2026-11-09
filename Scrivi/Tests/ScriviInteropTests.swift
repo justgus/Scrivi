@@ -9000,3 +9000,37 @@ extension ScriviInteropTests {
         #expect(renamed.projectRoot.hasSuffix("Second Copy.scrivi"))
     }
 }
+
+// MARK: — [SP-207] EP-054 S3: the manuscript export through ScriviEngine
+
+extension ScriviInteropTests {
+    @Test("SP-207: exportManuscript through ScriviEngine — HTML body, a whole page, Markdown, one chapter")
+    func manuscriptExportThroughEngine() throws {
+        let f = try makeProjectFixture()
+        let opened = try f.engine.openProject(projectRootPath: f.projectDir.path, appSupportRoot: f.appSupport.path)
+        defer { f.engine.closeProject(projectRootPath: f.projectDir.path) }
+        let scene = try #require(opened.scenes.first)
+        _ = try f.engine.saveScene(projectID: opened.projectID, projectRootPath: f.projectDir.path,
+                                   appSupportRoot: f.appSupport.path, sceneID: scene.sceneID,
+                                   sceneMetadataPath: scene.metadataPath, sceneContentPath: scene.contentPath,
+                                   markdown: "One *two*\nthree <4>", authorshipRef: f.ref)
+
+        let body = try f.engine.exportManuscript(projectRootPath: f.projectDir.path, format: "html", wholePage: false)
+        #expect(body.text.hasSuffix("<p>One <em>two</em><br />three &lt;4&gt;</p>\n"))
+        #expect(!body.text.contains("<html"))
+        #expect(body.sceneCount == 1 && body.chapterCount == 1)
+
+        let page = try f.engine.exportManuscript(projectRootPath: f.projectDir.path, format: "html")
+        #expect(page.text.hasPrefix("<!DOCTYPE html>"))
+        #expect(page.text.contains("<h1>Interop Git Test</h1>"))
+
+        let md = try f.engine.exportManuscript(projectRootPath: f.projectDir.path, format: "markdown",
+                                               chapterID: scene.chapterID)
+        #expect(md.text.hasSuffix("One *two*\nthree <4>\n"))
+        #expect(!md.text.contains("# Interop Git Test"))
+
+        #expect(throws: ScriviError.self) {
+            try f.engine.exportManuscript(projectRootPath: f.projectDir.path, format: "docx")
+        }
+    }
+}
