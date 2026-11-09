@@ -49,8 +49,10 @@
 #include <QTextBlock>
 #include <QTextCursor>
 #include <QTextDocument>
+#include <QTextLayout>
 #include <QTimer>
 
+#include <algorithm>
 #include <cstdio>
 #include <functional>
 
@@ -220,6 +222,34 @@ bool sameColour(const QColor& a, const QColor& b)
 }
 QString name(const QColor& c) { return c.isValid() ? c.name() : QStringLiteral("nothing"); }
 
+// [I-0357]: the lines drawn in the chapter-title face must be exactly the chapter titles shown — read from the
+// presenter's formats on each line, against the headings the document says it holds.
+void titleFaceRight(ScriviWindow* w, const QString& what)
+{
+    const ManuscriptEditor* e = editorOf(w);
+    const SceneDocument& doc = w->editorShell()->sceneDocument();
+    // A chapter title is Heading 1 (EP-047 P7); the fixture has no Markdown headings of its own to confuse it with.
+    const double titleSize = e->document()->defaultFont().pointSizeF() * ManuscriptPresenter::headingScale(1);
+    QStringList expected;
+    if (doc.showChapterTitles()) {
+        for (int i = 0; i < doc.segments().size(); ++i) {
+            if (i == 0 || doc.segments().at(i).chapterID != doc.segments().at(i - 1).chapterID) {
+                expected << doc.chapterHeadingText(i);
+            }
+        }
+    }
+    QStringList faced;
+    for (QTextBlock b = e->document()->begin(); b.isValid(); b = b.next()) {
+        const auto formats = b.layout()->formats();
+        if (std::any_of(formats.cbegin(), formats.cend(),
+                        [&](const QTextLayout::FormatRange& f) { return f.format.fontPointSize() == titleSize; })) {
+            faced << b.text();
+        }
+    }
+    check(faced == expected, QStringLiteral("%1: the title face on exactly the titles (drawn: %2 | expected: %3)")
+                                 .arg(what, faced.join(QStringLiteral(" / ")).left(160), expected.join(QStringLiteral(" / "))));
+}
+
 QString page(ScriviWindow* w)
 {
     const ManuscriptFind::PresentedText t = ManuscriptFind::PresentedText::build(w->editorShell()->sceneDocument(), presenterOf(w));
@@ -292,6 +322,7 @@ int main(int argc, char** argv)
           QStringLiteral("§1 no setting: titles ON (Q1 re-ruled), drawn: %1").arg(text.left(60).replace('\n', '|')));
     check(!QFile::exists(A.dir + QStringLiteral("/project-settings.json")), QStringLiteral("§1 … and the default is not written"));
     dividersRight(wa, shape, QStringLiteral("§1 titles on"));
+    titleFaceRight(wa, QStringLiteral("§1 titles on"));
     check(page(wa).contains(QStringLiteral("The Abbé")), QStringLiteral("§1 the page reads the title too"));
 
     // ── §2 The toggle ───────────────────────────────────────────────────────────────────────────────────────────────────
@@ -319,6 +350,7 @@ int main(int argc, char** argv)
           QStringLiteral("§2 off: no title drawn (%1)").arg(text.left(60).replace('\n', '|')));
     check(settingsFile(A).value(QStringLiteral("showChapterTitles")) == QJsonValue(false), QStringLiteral("§2 … the choice saved"));
     dividersRight(wa, shape, QStringLiteral("§2 titles off"));
+    titleFaceRight(wa, QStringLiteral("§2 titles off"));
     {
         QStringList after;
         for (const SceneSegment& s : wa->editorShell()->sceneDocument().segments()) {
@@ -337,6 +369,7 @@ int main(int argc, char** argv)
     text = ea->document()->toPlainText();
     check(text.contains(QStringLiteral("The Abbé")) && text.contains(QStringLiteral("Chapter 3")), QStringLiteral("§2 back on: titles drawn again"));
     dividersRight(wa, shape, QStringLiteral("§2 titles on again"));
+    titleFaceRight(wa, QStringLiteral("§2 titles on again"));
     check(wa->editorShell()->dirtySceneCount() == 0 && wa->editorShell()->canUndo() == couldUndo,
           QStringLiteral("§2 … and again nothing dirtied or recorded"));
 

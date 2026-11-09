@@ -387,13 +387,9 @@ void SceneDocument::reflowBoundaryAt(int index)
         }
     }
 
-    QTextCursor cursor(&doc_);
-    cursor.beginEditBlock();
-    cursor.setPosition(spanStart);
-    cursor.setPosition(spanEnd, QTextCursor::KeepAnchor);
-    cursor.insertText(desired);   // replaces the selection
-    cursor.endEditBlock();
-
+    // ⚠️ [I-0357] The offsets move BEFORE the edit: the presenter restyles the edited lines inside `insertText`, and decides
+    // "chapter title" from these offsets — shifted after, it read the old ones (a body's first line drawn as a title, a title
+    // as body text).
     const int delta = desired.length() - oldLen;
     if (delta != 0) {
         segments_[index].bodyStart += delta;
@@ -401,6 +397,13 @@ void SceneDocument::reflowBoundaryAt(int index)
             segments_[j].bodyStart += delta;
         }
     }
+
+    QTextCursor cursor(&doc_);
+    cursor.beginEditBlock();
+    cursor.setPosition(spanStart);
+    cursor.setPosition(spanEnd, QTextCursor::KeepAnchor);
+    cursor.insertText(desired);   // replaces the selection
+    cursor.endEditBlock();
 }
 
 bool SceneDocument::removeScene(int index)

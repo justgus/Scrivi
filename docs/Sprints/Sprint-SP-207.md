@@ -9,7 +9,7 @@ created: 2026-11-09
 # SP-207 — `[ScriviCore]` + `[Apple]` + `[Linux]` [EP-054] **S3**: Markdown and HTML export
 
 **Status:** 🟡 **ACTIVE** 2026-11-09 (user, 2026-11-09: *"yes, add it and activate SP-207."*) · ✅ Q1–Q8 ruled · planned 2026-11-09 (*"plan SP-207 for EP-054 S3"*).
-**Carries:** [T-0666] → [`../Tasks/Task-backlog.md`](../Tasks/Task-backlog.md).
+**Carries:** [T-0666] → [`../Tasks/Task-active.md`](../Tasks/Task-active.md) · [I-0357] (folded in 2026-11-09) → [`../Issues/Issue-active.md`](../Issues/Issue-active.md).
 **Epic:** [EP-054] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md).
 **Builds on:** [SP-206] (S2, ✅ closed): the export flow's shape on each platform (flush, off the main thread, progress
 after 400 ms, the save panel / share sheet).
@@ -134,3 +134,16 @@ object references ([EP-032] — none exist yet, so there is nothing to resolve);
   core test's HTML comes back with no changes. Not emulated: the embed/media sanitizers and the user-class filter.
   Finding: AO3 skips the inside of `<p>`, lists and headings and strips whitespace between blocks, so every tag and
   paragraph of Scrivi's output is kept; only the newlines between blocks go, and `<br />` is written `<br>`.
+- **2026-11-09** — ✅ **The two open choices approved** (user: *"The rulings are approved for <hr /> for chapter breaks and #
+  for the title"*): with chapter titles hidden a chapter boundary is a scene break; the Markdown title is `#`.
+  ✅ **Copy as HTML passed on the Mac and iOS** (user: *"Copy HTML passed for both Mac and iOS"*).
+  ✅ **Linux on scrivi-vm** (build 1.0.367, `87fea0f`): compiled; `[manuscript-export]` 7 cases / 256 assertions pass —
+  the same golden bytes as macOS (AC1); full ctest **826/826**. The test page copied to `scrivi-vm:~/html-paste-check.html`.
+- **2026-11-09** — ✅ **Linux live pass passed** (user: *"Linux live pass passes."*). An unrelated Linux display defect seen
+  during it → [I-0357] (the Show chapter titles toggle), filed to the Issue backlog, not this Sprint.
+- **2026-11-09** — ✅ **Export Manuscript… passed on the Mac and iPad** (user: *"I did the export manuscript as Markdown and loaded
+  it into Ulysses and It looks perfect. I then exported from the iPad as HTML and loaded that into Safari. Also perfect."*).
+  AC7 is met except the paste into AO3 itself, which waits for AO3 to come back.
+- **2026-11-09** — **[I-0357] folded in and fixed** (user: *"fold I-0357 into SP-207 and fix it"*): `reflowBoundaryAt` shifts the
+  scene offsets before the edit. `chapter_titles_smoke` red without the fix (both symptoms), green with it; full Linux
+  ctest 826/826 and all 42 Linux smokes green in a scratch copy on scrivi-vm. → 🟠 Resolved - Not Verified.

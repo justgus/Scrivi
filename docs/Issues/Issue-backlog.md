@@ -1,5 +1,9 @@
 # Issue Backlog
 
+*Last Updated: 2026-11-09 — **I-0357 → `Issue-active.md`** (user: *"fold I-0357 into SP-207 and fix it"*).*
+
+*Last Updated: 2026-11-09 — **I-0357 filed here** (from [SP-207]'s Linux live pass, user-reported); not assigned.*
+
 *Last Updated: 2026-11-07 — **I-0356 filed here** (seen during [SP-206]'s builds) (user, 2026-11-07: *"yes, file the visionOS issue"*); not assigned.*
 
 *Last Updated: 2026-11-06 — **I-0355 filed here** (seen during [SP-205]'s ctest runs) (user, 2026-11-06: *"yes, file the issue, then close SP-205."*); not assigned.*
