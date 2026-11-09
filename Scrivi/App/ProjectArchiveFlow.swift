@@ -26,7 +26,7 @@ struct ArchivePrompt: Identifiable {
 /// iOS: which file the archive picker is choosing.
 enum ArchivePicker: Equatable {
     case archive
-    case folder(archive: URL)
+    case folder(archive: URL, name: String)   // name: the project folder the writer chose
 }
 
 @MainActor
@@ -119,8 +119,18 @@ extension AppEnvironment {
         chooseFolderAndImport(archive)
     }
 
-    /// Q3: a double-clicked archive arrives here too.
+    /// Q3: a double-clicked archive arrives here too. The name first (prefilled with the archive's), then the folder.
     func chooseFolderAndImport(_ archive: URL) {
+        Task {
+            let stem = archive.deletingPathExtension().lastPathComponent
+            let r = await ask("Import “\(stem)”", "Name the project, then choose the folder to unpack it into.",
+                              ["Choose Folder…", "Cancel"], name: stem)
+            guard r.choice == 0 else { return }
+            chooseFolder(archive, name: r.name)
+        }
+    }
+
+    private func chooseFolder(_ archive: URL, name: String) {
         let panel = NSOpenPanel()
         panel.canChooseFiles = false
         panel.canChooseDirectories = true
@@ -131,11 +141,11 @@ extension AppEnvironment {
         panel.message = "Choose the folder to unpack the project into."
         panel.prompt = "Import Here"
         guard panel.runModal() == .OK, let folder = panel.url else { return }
-        Task { await importArchive(archive, into: folder) }
+        Task { await importArchive(archive, into: folder, name: name) }
     }
     #endif
 
-    func importArchive(_ archive: URL, into folder: URL) async {
+    func importArchive(_ archive: URL, into folder: URL, name: String) async {
         #if os(macOS)
         // ⚠️ The sandbox: a world already on this Mac is found only if its folder is readable — otherwise the core sees
         // no world there and unpacks a second copy (EP-054 Q8).
@@ -151,7 +161,7 @@ extension AppEnvironment {
         let show: @MainActor (String?) -> Void = { [weak self] text in
             if let host { host.archiveProgress = text } else { self?.archiveProgress = text }
         }
-        var projectFolderName = "", replaceProject = false, worldFolderNames: [String: String] = [:]
+        var projectFolderName = name, replaceProject = false, worldFolderNames: [String: String] = [:]
 
         while true {
             let result: ImportArchiveResult
@@ -281,26 +291,43 @@ extension AppEnvironment {
 struct ArchiveFlowHost: ViewModifier {
     @Bindable var env: AppEnvironment
     @State private var name = ""
+    // The step on screen. ⚠️ Not read back from `env.archivePicker`: the binding's setter clears that when the picker
+    // closes, which can be BEFORE the completion runs — the pick was then dropped as `nil` (SP-206 AC7, iPad).
+    @State private var step: ArchivePicker?
 
     func body(content: Content) -> some View {
         content
+            .onChange(of: env.archivePicker) { _, now in if let now { step = now } }
             .fileImporter(isPresented: Binding(get: { env.archivePicker != nil },
                                                set: { if !$0 { env.archivePicker = nil } }),
                           allowedContentTypes: env.archivePicker == .archive ? [AppEnvironment.archiveType] : [.folder],
                           allowsMultipleSelection: false) { result in
-                let step = env.archivePicker
                 env.archivePicker = nil
                 guard case .success(let urls) = result, let url = urls.first else { return }
                 switch step {
                 case .archive:
-                    // A second picker after the first has gone.
-                    Task { @MainActor in env.archivePicker = .folder(archive: url) }
-                case .folder(let archive):
-                    Task { await env.importArchive(archive, into: url) }
+                    // Say why a second picker is coming (the Mac's panel has a title and message; this one has neither).
+                    // ⚠️ "The same folder" cannot be a button: the picker grants this file, not the folder it is in — the
+                    // folder picker opens there instead. Each presentation waits for the last: UIKit drops one made while
+                    // another is dismissing.
+                    Task { @MainActor in
+                        await Self.untilNothingPresented()
+                        let stem = url.deletingPathExtension().lastPathComponent
+                        let r = await env.ask("Import “\(stem)”",
+                                              "Name the project, then choose the folder to unpack it into. The picker "
+                                              + "opens in the archive's own folder — tap Open to use it.",
+                                              ["Choose Folder…", "Cancel"], name: stem)
+                        guard r.choice == 0 else { return }
+                        await Self.untilNothingPresented()
+                        env.archivePicker = .folder(archive: url, name: r.name)
+                    }
+                case .folder(let archive, let name):
+                    Task { await env.importArchive(archive, into: url, name: name) }
                 case nil:
                     break
                 }
             }
+            .fileDialogDefaultDirectory({ if case .folder(let a, _) = step { a.deletingLastPathComponent() } else { nil } }())
             .alert(env.archivePrompt?.title ?? "", isPresented: Binding(get: { env.archivePrompt != nil }, set: { _ in }),
                    presenting: env.archivePrompt) { prompt in
                 if prompt.name != nil { TextField("Name", text: $name) }
@@ -314,6 +341,15 @@ struct ArchiveFlowHost: ViewModifier {
                 Text(prompt.message)
             }
             .onChange(of: env.archivePrompt?.id) { _, _ in name = env.archivePrompt?.name ?? "" }
+    }
+
+    /// Waits (≤ 2 s) until nothing is presented over the key window — a closing picker or alert included.
+    @MainActor private static func untilNothingPresented() async {
+        for _ in 0..<40 where UIApplication.shared.connectedScenes.contains(where: {
+            ($0 as? UIWindowScene)?.keyWindow?.rootViewController?.presentedViewController != nil
+        }) {
+            try? await Task.sleep(for: .milliseconds(50))
+        }
     }
 }
 #endif

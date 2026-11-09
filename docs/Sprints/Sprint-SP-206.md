@@ -132,3 +132,29 @@ export formats (S3+).
   export now takes its worlds from `listWorlds`. The bound world itself was never unreachable.
 - **Test:** `ArchiveCApiTests` gains both cases (trailing-slash root + a leftover folder) — `[archive]` 9 cases ✅; ctest 815/815 ✅;
   macOS app builds ✅. ⏳ The Mac and Linux exports to be re-run (Linux needs a pull + build).
+
+**2026-11-09 — live passes (user): steps 1, 2, 4, 5 ✅; step 3 (iPad) ❌, fixed; step 6 not yet run.**
+- ✅ **Mac → Linux** (Include World: the world travelled with the project) and **Linux → Mac** (Project Only: the world was
+  found at its absolute location); name clashes (Cancel / Rename / Replace / open-window block) and *"A copy of this project
+  is already open"* — all pass. Evidence: `~/ScriviLinux/projects/Scrivi-Dumas-Fixture/{exports,imports}`; VM logs copied to
+  `scrivi-vm:~/evidence-2026-11-09/`.
+- ❌ **iPad: the import picker would not let the archive be chosen.** AC3 was ticked wrongly: `.scrivarchive` was declared
+  only in the Mac's `Info.plist`. The iOS target generates its plist, so `UTType("com.caposoft.scrivi.archive")` was nil and
+  `ProjectArchiveFlow.swift:35` fell back to `.zip`; Files types an undeclared extension as plain data, so it never matched.
+  ✅ `Scrivi/App/Info-iOS.plist` (new) declares the type, merged into the generated plist (`INFOPLIST_FILE` on the iOS
+  target, Debug + Release). iOS Simulator build ✅; the built `Info.plist` carries `UTExportedTypeDeclarations`.
+- ❌ **Re-run: the archive could be chosen, then nothing** — no folder picker, no progress, nothing in the console.
+  `ArchiveFlowHost`'s completion read the step from `env.archivePicker`, which the `isPresented` setter clears when the
+  picker closes — evidently before the completion runs, so the pick fell into `case nil: break`. ✅ The host keeps the step
+  in its own `@State` (set when a picker is asked for). It also waits (≤ 2 s) until nothing is presented over the key
+  window before asking for the folder. iOS Simulator build ✅.
+- ✅ **Re-run: imported** — but the second picker came unexplained. ✅ (user's recommendation) iOS now asks *"Where should
+  “<name>” go?"* — **Choose Folder…** / **Cancel** — between the two pickers; the folder picker opens in the archive's own
+  folder (`fileDialogDefaultDirectory`). ⚠️ *Same Folder* is not a button: the picker grants the archive file, not the folder
+  it sits in, so the core could not write there.
+- ✅ **(user, 2026-11-09) the writer names the imported project.** Every platform now asks *"Import “<name>”"* with a name
+  field, prefilled with the archive's name (the export names it after the project folder), BEFORE the folder picker: iOS
+  in the prompt above, the Mac in an `NSAlert` (`chooseFolderAndImport` — the menu and a double-click), Linux in a
+  `QInputDialog` (`ShellController::importArchive`). The name goes to the core as `projectFolderName` (the field Rename
+  already used); the clash questions are unchanged. Builds: iOS Simulator ✅, macOS ✅, Linux `ScriviWindow.cpp` compiled
+  on scrivi-vm ✅ (Docker was down). ⏳ Step 3 re-run; ⏳ steps 4 and 6 touch the new prompt.

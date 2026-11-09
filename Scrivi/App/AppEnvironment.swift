@@ -795,7 +795,7 @@ import UniformTypeIdentifiers
             #if os(macOS)
             chooseFolderAndImport(url)
             #else
-            archivePicker = .folder(archive: url)
+            archivePicker = .folder(archive: url, name: url.deletingPathExtension().lastPathComponent)
             #endif
             return
         }

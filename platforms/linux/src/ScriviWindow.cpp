@@ -98,13 +98,22 @@ void ShellController::importArchive(const QString& archivePath)
             return;
         }
     }
+    // Apple's shape: the name first (prefilled with the archive's), then the folder.
+    const QString stem = QFileInfo(archive).completeBaseName();
+    bool ok = false;
+    const QString name = QInputDialog::getText(parent, tr("Import “%1”").arg(stem),
+                                               tr("Name the project, then choose the folder to unpack it into."),
+                                               QLineEdit::Normal, stem, &ok);
+    if (!ok) {
+        return;
+    }
     const QString folder = QFileDialog::getExistingDirectory(
-        parent, tr("Choose the folder to unpack “%1” into").arg(QFileInfo(archive).completeBaseName()),
+        parent, tr("Choose the folder to unpack “%1” into").arg(name),
         QFileInfo(archive).absolutePath(), QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
     if (folder.isEmpty()) {
         return;
     }
-    runImport(archive, folder, {});
+    runImport(archive, folder, {{QStringLiteral("projectFolderName"), name}});
 }
 
 void ShellController::runImport(const QString& archivePath, const QString& folder, const QVariantMap& options)

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- The iOS target generates its Info.plist; Xcode merges this file into it. [SP-206] Without this declaration
+	     `UTType("com.caposoft.scrivi.archive")` is nil on iOS and the import picker greys every .scrivarchive out.
+	     Kept identical to the Mac's entry in Info.plist. -->
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>com.caposoft.scrivi.archive</string>
+			<key>UTTypeDescription</key>
+			<string>Scrivi Archive</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.zip-archive</string>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>scrivarchive</string>
+				</array>
+			</dict>
+		</dict>
+	</array>
+</dict>
+</plist>
