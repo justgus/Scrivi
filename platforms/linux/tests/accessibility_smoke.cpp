@@ -234,7 +234,8 @@ int main(int argc, char** argv)
         QElapsedTimer timer;
         timer.start();
         const int n = m.text()->characterCount();
-        const qint64 first = timer.elapsed();
+        const qint64 firstNs = timer.nsecsElapsed();   // ns: on the VM a full build is ~10 ms, and whole ms rounded the ratio away
+        const qint64 first = firstNs / 1000000;
         m.caret(m.doc.segments().at(600).bodyStart + 40);
         timer.restart();
         QTest::keyClicks(m.editor, QStringLiteral("y"));
@@ -263,11 +264,16 @@ int main(int argc, char** argv)
         QApplication::processEvents();
         timer.restart();
         const QString after = m.text()->text(0, m.text()->characterCount());
-        const qint64 structural = timer.elapsed();
+        const qint64 withCopyNs = timer.nsecsElapsed();
+        // Reading the page out copies all ~1.8 MB whatever was rebuilt; a second read (nothing to rebuild) is that copy alone.
+        timer.restart();
+        (void)m.text()->text(0, m.text()->characterCount());
+        const qint64 structuralNs = std::max<qint64>(0, withCopyNs - timer.nsecsElapsed());
+        const qint64 structural = structuralNs / 1000000;
         const ManuscriptFind::PresentedText fresh = ManuscriptFind::PresentedText::build(m.doc, &m.presenter);
         check(after == fresh.pageText(0, fresh.pageLength()), QStringLiteral("I-0346: after a split the page is a fresh build's"));
-        check(structural * 10 < first, QStringLiteral("I-0346: a split costs under a tenth of a full build (%1 ms vs %2 ms)")
-                                          .arg(structural).arg(first));
+        check(structuralNs * 10 < firstNs, QStringLiteral("I-0346: a split costs under a tenth of a full build (%1 µs vs %2 µs)")
+                                              .arg(structuralNs / 1000).arg(firstNs / 1000));
         std::printf("measure: a split mid-book, then the page: %lld ms (a full build: %lld ms)\n", structural, first);
     }
 

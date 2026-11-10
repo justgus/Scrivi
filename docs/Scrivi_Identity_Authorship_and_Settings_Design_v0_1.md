@@ -1,6 +1,8 @@
 # Scrivi — Identity, Authorship, Pen Names and Project Settings: Design v0.1
 
 **Status:** 🟡 **DRAFT — for ruling.** ⚠️ **NOT an approved design document.**
+**⚠️ Superseded in part (2026-11-10):** authorship (pen names, authors, the byline) → [`Scrivi_Authorship_Design_v0_2.md`](Scrivi_Authorship_Design_v0_2.md)
+([EP-058]). The settings half (§3) shipped in EP-047. Cross-device identity (§2, options A–C) stays open here.
 **Date:** 2026-09-28
 **Codebase:** `[Cross]` — ⚠️ **ScriviCore (schemas + ABI) FIRST, then `[Apple]`, then `[Linux]`.**
 **Occasioned by:** ✅ **user rulings 2026-09-28**, given while ruling the scene-divider question:

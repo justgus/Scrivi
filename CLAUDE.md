@@ -80,6 +80,9 @@ Key documents:
 - `docs/Scrivi_iOS_Manuscript_Design_v0_1.md` — the manuscript on iOS (EP-055): ✅ Q1 = (c) — what a keystroke stores
   (`ManuscriptEditRules`) and the model sync (`ManuscriptSceneSync`) are SHARED in `ManuscriptEditing.swift`; the Mac and iOS
   hosts only apply them. ⚠️ A change to the write path goes THERE, never into one host.
+- `docs/Scrivi_Authorship_Design_v0_2.md` — ✅ **APPROVED 2026-11-10** (EP-058, Q1–Q9 as recommended): pen names (app menu), ordered authors per project AND per world
+  (`identities/*-personas.json`, read at last), "writing as" per identity per project (members), the byline on exports. Supersedes
+  the authorship half of `Scrivi_Identity_Authorship_and_Settings_Design_v0_1.md`. ⛔ Never show a host name or "Scrivi" as a pen name.
 - `docs/Scrivi_ABI_Binding_Gap_Audit_v0_1.md` — mechanical per-endpoint disposition of all **100** `scrivi_*` endpoints across Apple and Linux (T-0460). ⚠️ **The endpoint count is 100, not 102** — the earlier figure counted prose matches and `scrivi_free`.
 
 ### Backend: C++23 (ScriviCore)

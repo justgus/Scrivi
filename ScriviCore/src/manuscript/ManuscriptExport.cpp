@@ -373,59 +373,81 @@ struct DocxBody {
     }
 };
 
+// Lines and gaps as the editor draws them (ManuscriptTypography, EP-047 P9/P10): body lines an EXACT 1.45 × size, headings
+// 1.25 × their own size, and the stored blank line between paragraphs a third of a body line — a whole one with no indent.
+constexpr double kLineSpacing = 1.45;
+constexpr double kHeadingLineSpacing = 1.25;
+constexpr double kGapFraction = 1.0 / 3.0;
+// The editor's heading sizes (ManuscriptTypography.headingSize: 22 / 18 / 16 over 13), bold.
+constexpr double kHeadingScale[] = {22.0 / 13, 18.0 / 13, 16.0 / 13};
+
+std::string exactLine(double fontSize, double spacing) {
+    return "w:line=\"" + std::to_string(twips(fontSize * spacing)) + "\" w:lineRule=\"exact\"";
+}
+
+// Lists as the editor draws them: no left margin, the marker hanging in front of the text (SP-163).
+long listHang(const DocxTypography& t) { return twips(t.size * 1.2); }
+
 std::string docxStyles(const DocxTypography& t) {
     const auto size = [&](double pt) { const auto h = std::to_string(halfPoints(pt));
                                        return "<w:sz w:val=\"" + h + "\"/><w:szCs w:val=\"" + h + "\"/>"; };
     const auto face = xml(t.typeface);
-    const auto line = std::to_string(twips(t.size));
+    const auto gap = std::to_string(twips(t.size * kLineSpacing * (t.indent == "none" ? 1.0 : kGapFraction)));
     std::string s = std::string(kXmlHead) + "<w:styles " + kNs + ">\n<w:docDefaults><w:rPrDefault><w:rPr>";
     if (!face.empty()) {
         s += "<w:rFonts w:ascii=\"" + face + "\" w:hAnsi=\"" + face + "\" w:eastAsia=\"" + face + "\" w:cs=\"" + face + "\"/>";
     }
-    s += size(t.size) + "</w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after=\"0\" w:line=\"240\" "
-         "w:lineRule=\"auto\"/></w:pPr></w:pPrDefault></w:docDefaults>\n";
+    s += size(t.size) + "</w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after=\"0\" " +
+         exactLine(t.size, kLineSpacing) + "/></w:pPr></w:pPrDefault></w:docDefaults>\n";
     s += "<w:style w:type=\"paragraph\" w:default=\"1\" w:styleId=\"Normal\"><w:name w:val=\"Normal\"/><w:qFormat/></w:style>\n";
-    // Q1: `none` has no indent and a line's space after each paragraph, as Scrivi draws the stored blank line.
     const auto firstLine = t.indent == "none" ? 0L : twips(t.indentEm * t.size);
     s += "<w:style w:type=\"paragraph\" w:styleId=\"BodyText\"><w:name w:val=\"Body Text\"/><w:basedOn w:val=\"Normal\"/>"
-         "<w:qFormat/><w:pPr><w:spacing w:after=\"" + (t.indent == "none" ? line : std::string("0")) + "\"/>"
-         "<w:ind w:firstLine=\"" + std::to_string(firstLine) + "\"/></w:pPr></w:style>\n";
+         "<w:qFormat/><w:pPr><w:spacing w:after=\"" + gap + "\"/><w:ind w:firstLine=\"" + std::to_string(firstLine) +
+         "\"/></w:pPr></w:style>\n";
     s += "<w:style w:type=\"paragraph\" w:customStyle=\"1\" w:styleId=\"FirstParagraph\"><w:name w:val=\"First Paragraph\"/>"
          "<w:basedOn w:val=\"BodyText\"/><w:next w:val=\"BodyText\"/><w:qFormat/><w:pPr><w:ind w:firstLine=\"0\"/></w:pPr>"
          "</w:style>\n";
+    // The title page is the export's own (S3 Q6): the editor shows the title in the window, not the page.
+    const double titleSize = t.size * 33 / 13, subtitleSize = t.size * kHeadingScale[1];
     s += "<w:style w:type=\"paragraph\" w:styleId=\"Title\"><w:name w:val=\"Title\"/><w:basedOn w:val=\"Normal\"/>"
          "<w:next w:val=\"Subtitle\"/><w:qFormat/><w:pPr><w:spacing w:before=\"" + std::to_string(twips(t.size * 8)) +
-         "\" w:after=\"" + line + "\"/><w:jc w:val=\"center\"/></w:pPr><w:rPr><w:b/>" + size(t.size * 33 / 13) +
-         "</w:rPr></w:style>\n";
+         "\" w:after=\"" + gap + "\" " + exactLine(titleSize, kHeadingLineSpacing) + "/><w:jc w:val=\"center\"/></w:pPr>"
+         "<w:rPr><w:b/>" + size(titleSize) + "</w:rPr></w:style>\n";
     s += "<w:style w:type=\"paragraph\" w:styleId=\"Subtitle\"><w:name w:val=\"Subtitle\"/><w:basedOn w:val=\"Normal\"/>"
-         "<w:qFormat/><w:pPr><w:jc w:val=\"center\"/></w:pPr><w:rPr>" + size(t.size * 18 / 13) + "</w:rPr></w:style>\n";
-    // The editor's heading sizes (ManuscriptTypography.headingSize: 22 / 18 / 16 over 13), bold.
-    const double scale[] = {22.0 / 13, 18.0 / 13, 16.0 / 13};
+         "<w:qFormat/><w:pPr><w:spacing " + exactLine(subtitleSize, kHeadingLineSpacing) + "/><w:jc w:val=\"center\"/></w:pPr>"
+         "<w:rPr>" + size(subtitleSize) + "</w:rPr></w:style>\n";
     for (int level = 1; level <= 3; ++level) {
         const auto n = std::to_string(level);
+        const double hs = t.size * kHeadingScale[level - 1];
         s += "<w:style w:type=\"paragraph\" w:styleId=\"Heading" + n + "\"><w:name w:val=\"heading " + n + "\"/>"
              "<w:basedOn w:val=\"Normal\"/><w:next w:val=\"FirstParagraph\"/><w:qFormat/><w:pPr><w:keepNext/>"
-             "<w:spacing w:before=\"" + line + "\" w:after=\"" + std::to_string(twips(t.size / 2)) + "\"/>"
-             "<w:outlineLvl w:val=\"" + std::to_string(level - 1) + "\"/></w:pPr><w:rPr><w:b/>" + size(t.size * scale[level - 1]) +
-             "</w:rPr></w:style>\n";
+             "<w:spacing w:after=\"" + gap + "\" " + exactLine(hs, kHeadingLineSpacing) + "/>"
+             "<w:outlineLvl w:val=\"" + std::to_string(level - 1) + "\"/></w:pPr><w:rPr><w:b/>" + size(hs) + "</w:rPr></w:style>\n";
     }
-    s += "<w:style w:type=\"paragraph\" w:styleId=\"ListBullet\"><w:name w:val=\"List Bullet\"/><w:basedOn w:val=\"Normal\"/>"
-         "<w:qFormat/></w:style>\n";
-    s += "<w:style w:type=\"paragraph\" w:styleId=\"ListNumber\"><w:name w:val=\"List Number\"/><w:basedOn w:val=\"Normal\"/>"
-         "<w:qFormat/></w:style>\n";
+    // A list's items sit together; the gap comes after its last item (contextualSpacing).
+    for (const auto& [id, name] : {std::pair{"ListBullet", "List Bullet"}, std::pair{"ListNumber", "List Number"}}) {
+        s += std::string("<w:style w:type=\"paragraph\" w:styleId=\"") + id + "\"><w:name w:val=\"" + name + "\"/>"
+             "<w:basedOn w:val=\"Normal\"/><w:qFormat/><w:pPr><w:spacing w:after=\"" + gap + "\"/><w:contextualSpacing/>"
+             "</w:pPr></w:style>\n";
+    }
+    // The screen's scene break: a 1 pt grey rule, inset 20 pt each side (ManuscriptEditing.swift's divider).
     s += "<w:style w:type=\"paragraph\" w:customStyle=\"1\" w:styleId=\"SceneBreak\"><w:name w:val=\"Scene Break\"/>"
-         "<w:basedOn w:val=\"Normal\"/><w:next w:val=\"FirstParagraph\"/><w:qFormat/><w:pPr><w:spacing w:before=\"" + line +
-         "\" w:after=\"" + line + "\"/><w:jc w:val=\"center\"/></w:pPr></w:style>\n";
+         "<w:basedOn w:val=\"Normal\"/><w:next w:val=\"FirstParagraph\"/><w:qFormat/><w:pPr><w:pBdr><w:bottom "
+         "w:val=\"single\" w:sz=\"8\" w:space=\"0\" w:color=\"808080\"/></w:pBdr><w:spacing w:before=\"" + gap +
+         "\" w:after=\"" + gap + "\"/><w:ind w:left=\"400\" w:right=\"400\"/></w:pPr></w:style>\n";
     return s + "</w:styles>\n";
 }
 
-std::string docxNumbering(const std::vector<int>& orderedStarts) {
-    auto lvl = [](std::string_view fmt, std::string_view text) {
+std::string docxNumbering(const DocxTypography& t, const std::vector<int>& orderedStarts) {
+    const auto hang = std::to_string(listHang(t));
+    auto lvl = [&](std::string_view fmt, std::string_view text) {
         return "<w:lvl w:ilvl=\"0\"><w:start w:val=\"1\"/><w:numFmt w:val=\"" + std::string(fmt) + "\"/><w:lvlText w:val=\"" +
-               std::string(text) + "\"/><w:lvlJc w:val=\"left\"/><w:pPr><w:ind w:left=\"720\" w:hanging=\"360\"/></w:pPr></w:lvl>";
+               std::string(text) + "\"/><w:lvlJc w:val=\"left\"/><w:pPr><w:ind w:left=\"" + hang + "\" w:hanging=\"" + hang +
+               "\"/></w:pPr></w:lvl>";
     };
     std::string s = std::string(kXmlHead) + "<w:numbering " + kNs + ">\n";
-    s += "<w:abstractNum w:abstractNumId=\"0\"><w:multiLevelType w:val=\"singleLevel\"/>" + lvl("bullet", "\u2022") +
+    // The markers the editor shows: "-" and "1." (SP-163 Q7).
+    s += "<w:abstractNum w:abstractNumId=\"0\"><w:multiLevelType w:val=\"singleLevel\"/>" + lvl("bullet", "-") +
          "</w:abstractNum>\n";
     s += "<w:abstractNum w:abstractNumId=\"1\"><w:multiLevelType w:val=\"singleLevel\"/>" + lvl("decimal", "%1.") +
          "</w:abstractNum>\n";
@@ -452,7 +474,7 @@ static std::string docxDocumentXml(const ExportInput& in, const DocxTypography& 
                  body.pageBreak = true;   // Q3: every chapter, and the first after the title page, on a new page
                  if (in.chapterTitles) { body.plain("Heading1", s.chapterHeading); }
              } else if (!first) {
-                 body.plain("SceneBreak", "* * *");
+                 body.paragraph("SceneBreak", {});
              }
          },
          [&](std::string_view text) { body.scene(text); });
@@ -498,7 +520,7 @@ std::string exportDocx(const ExportInput& in, const DocxTypography& type) {
              "numbering\" Target=\"numbering.xml\"/></Relationships>\n"},
         {"word/document.xml", document},
         {"word/styles.xml", docxStyles(type)},
-        {"word/numbering.xml", docxNumbering(orderedStarts)},
+        {"word/numbering.xml", docxNumbering(type, orderedStarts)},
     };
 
     // Q7: a fixed time, so the same manuscript gives the same bytes. miniz converts it with localtime(), so it is made

@@ -87,7 +87,7 @@ only ask and deliver.
 | **Q1** | **Whose typography does the `.docx` carry?** (a) **The writer's Scrivi settings** — typeface, size, and the indent rule (`book` / `every` / `none`) — written into the named styles. (b) **Standard Manuscript Format** — Times New Roman 12, double-spaced, 1" margins, ½" first-line indent, a "Name / Title / page" header — what agents and editors ask for. (c) **Word's defaults**, styles named but unset. ⚠️ Scrivi's bundled faces may not be on the reader's machine; Word then substitutes one silently. ⚠️ (b) needs an author name Scrivi does not store. | ✅ **RULED as recommended (user, 2026-11-10).** **(a), with the face named but not embedded.** It is what the writer sees, as S3's HTML is. Every paragraph is in a named style, so a writer who needs (b) changes Normal and Heading 1 once in Word. `book` maps to two styles — **First Paragraph** (no indent: after a title, heading or scene break) and **Body Text** (indented); `every` indents both; `none` indents neither and adds space after. Line spacing single (Scrivi has no setting for it). Standard Manuscript Format can follow as an option if it's missed — with an author field. |
 | **Q2** | **The endpoint.** The `.docx` is binary; the S3 result carries text. (a) the same endpoint with `format: "docx"` and a required `destPath` option, writing the file and returning `{path, chapterCount, sceneCount}`; (b) a separate `scrivi_export_manuscript_docx`. | ✅ **RULED as recommended (user, 2026-11-10).** **(a).** One option set (format, scope, chapter) and one scene read; the archive export already writes to a path the host chose. |
 | **Q3** | **Page breaks.** | ✅ **RULED as recommended (user, 2026-11-10).** **Each chapter starts on a new page** (the chapter heading style has *page break before*), and a whole-manuscript file's **title page** (Title + Subtitle styles) is a page of its own. A one-chapter file starts at its chapter heading, as S3 has no title page there. With chapter titles hidden, chapters still start on a new page — the break replaces S3's `<hr />`. |
-| **Q4** | **Scene breaks.** | ✅ **RULED as recommended (user, 2026-11-10).** **A centred `* * *` paragraph** in a **Scene Break** style — the same three asterisks as the Markdown export, and what survives every reader and FanFiction.net's Doc Manager. Word's horizontal rule is a paragraph border that some readers drop. |
+| **Q4** | **Scene breaks.** | ✅ **RULED as recommended (user, 2026-11-10).** **A centred `* * *` paragraph** in a **Scene Break** style — the same three asterisks as the Markdown export, and what survives every reader and FanFiction.net's Doc Manager. Word's horizontal rule is a paragraph border that some readers drop. ⚠️ **Superseded (user, 2026-11-10: *"switch scene breaks to the rule"*):** an empty Scene Break paragraph with a 1 pt grey bottom border, inset 20 pt each side — the screen's rule. The Markdown export keeps `* * *`. |
 | **Q5** | **Headings and lists.** | ✅ **RULED as recommended (user, 2026-11-10).** **Chapter titles in Heading 1**; the writer's own `#`–`###` inside scenes **keep their levels** (Heading 1–3), exactly as the Markdown export (S3 Q6). **Real Word lists** (`numbering.xml`, List Bullet / List Number), each numbered list restarting at its own first number — so Word renumbers when the writer edits, and S3's `<ol start>` case holds. |
 | **Q6** | **A single `\n` inside a paragraph.** | ✅ **RULED as recommended (user, 2026-11-10).** **A line break inside the paragraph** (`<w:br/>`, Shift-Return in Word) — the `.docx` form of S3's `<br />` ruling. Two `\n` remain a new paragraph. |
 | **Q7** | **Scope and where it goes.** | ✅ **RULED as recommended (user, 2026-11-10).** **As S3:** the whole manuscript or the chapter the caret is in, to a file only (save panel / share sheet). Document properties: the title only (no author, no dates — a date would change the bytes on every export). |
@@ -140,3 +140,25 @@ fonts (Q1), a free chapter/scene picker (S3 Q2), inline object references ([EP-0
   ⚠️ **Found: the package-boundary check was red since [SP-207]** — S3's save-panel write
   (`ProjectArchiveFlow.swift`) had no `boundary-ok:` marker, and S3's log called the checks clean. Marked, with its reason.
   ⚠️ **Linux NOT compiled or run:** scrivi-vm did not answer and Docker was not running.
+- **2026-11-10** — **Linux on scrivi-vm** (build of `67d1028`, the user's push): ctest **830/830**; `bridge_parity_smoke` **73
+  checks, 0 failures** (the new export checks pass); a 60-scene `.docx` (a copy of Tintagael) has the **same SHA-256 on the Mac
+  and on Linux arm64** (`02eeae49…`) — AC1's "same bytes on every platform", for that build. 41 of 42 smokes green.
+  ⚠️ `accessibility_smoke` failed 4 runs in 5: its [I-0346] assertion ("a split under a tenth of a full build") compared whole
+  milliseconds (1 vs 10) and timed the 1.8 MB page copy as part of the split. Now nanoseconds, with that copy's own cost
+  subtracted: 8/8 in a scratch copy (split < 1 ms, full build 11 ms). `platforms/linux/tests/accessibility_smoke.cpp`.
+- **2026-11-10** — ⚠️ **CI had been red, unread, since [SP-206]/[SP-207]** (found while answering the user's boundary-check
+  question): Scrivi Apple CI and Linux App CI failed on both SP-207 pushes — the boundary check (fixed above, green on
+  `67d1028`); and **ScriviCore CI's sanitizer job fails the archive tests since "SP-206 live pass"**: UBSan, null pointer to
+  `fwrite` in miniz, because `ProjectArchive.cpp` added folder entries with a null buffer. Fixed (`""`, `ProjectArchive.cpp:86,
+  103`); the full sanitized ctest on scrivi-vm passes (the two failures under `-j4` pass alone — parallel collisions).
+- **2026-11-10** — **The `.docx` matches the screen** (user: *"I want the docx to match the screen as much as possible"*; Q1's
+  "single" spacing superseded): body lines an exact 1.45 × size, headings 1.25 × their size with no added space, the stored
+  blank line as a third of a body line after each paragraph (a whole line with `none`), lists with no left margin, the marker
+  hanging, `-` and `1.` as the editor shows them. macOS ctest 826/826. ⚠️ Linux not yet re-run on this change, so AC1/AC4
+  stay open until it is. Still different from the screen: the scene break (`* * *`, Q4 — the screen draws a 1 pt rule).
+- **2026-11-10** — **Scene breaks are the rule** (user: *"switch scene breaks to the rule"*): the Scene Break style is a 1 pt grey
+  bottom border inset 20 pt (`ManuscriptExport.cpp` `docxStyles`), the paragraph empty. Export tests 11 cases / 424 assertions.
+  ⚠️ The screen's rule is itself marked for replacement by a typeset `* * *` (`ManuscriptEditing.swift:290`); if that lands,
+  the `.docx` follows it back. [EP-058] design v0.2 approved (Q1–Q9 as recommended).
+- **2026-11-10** — **[EP-058] Authorship created** (user); [EP-054] gains **AC9** (the byline on every export), blocked by EP-058
+  S1. This Sprint stays byline-free as ruled.

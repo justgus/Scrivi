@@ -83,7 +83,7 @@ std::string worldIDAt(FileSystem& files, const AbsolutePath& path) {
 Result<std::int64_t> addTree(mz_zip_archive& z, const fs::path& root, const std::string& prefix) {
     std::int64_t files = 0;
     std::error_code ec;
-    if (!mz_zip_writer_add_mem(&z, (prefix + "/").c_str(), nullptr, 0, 0)) {
+    if (!mz_zip_writer_add_mem(&z, (prefix + "/").c_str(), "", 0, 0)) {
         return Result<std::int64_t>::failure(ioError("could not write to the archive: " + zipError(z), root.string()));
     }
     fs::recursive_directory_iterator it(root, ec), end;
@@ -100,7 +100,7 @@ Result<std::int64_t> addTree(mz_zip_archive& z, const fs::path& root, const std:
         const auto name = prefix + "/" + rel;
         bool added = true;
         if (fs::is_directory(status)) {
-            added = mz_zip_writer_add_mem(&z, (name + "/").c_str(), nullptr, 0, 0);
+            added = mz_zip_writer_add_mem(&z, (name + "/").c_str(), "", 0, 0);   // "" not nullptr: miniz fwrite()s it, and UBSan rejects a null fwrite
         } else if (fs::is_regular_file(status)) {
             added = mz_zip_writer_add_file(&z, name.c_str(), it->path().string().c_str(), nullptr, 0,
                                            MZ_DEFAULT_LEVEL);

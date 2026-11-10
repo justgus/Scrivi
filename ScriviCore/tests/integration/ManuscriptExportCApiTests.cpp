@@ -248,16 +248,18 @@ TEST_CASE("Manuscript export: .docx is what the writer sees, in named styles (AC
                    para("ListBullet", run("one"), num(1)) +
                    para("ListBullet", run("two"), num(1)) +
                    para("FirstParagraph", run("A literal &lt;3 &amp; [x](y) and `tick` and *not italic*.")) +
-                   para("SceneBreak", run("* * *")) +
+                   para("SceneBreak", "") +
                    para("FirstParagraph", run("Second scene.")) +
                    para("Heading1", run("Chapter 2"), kPageBreak) +
                    para("ListNumber", run("first"), num(2)) +
                    para("ListNumber", run("second"), num(2))));
-    // Q1: the project's settings are absent, so the app's face and Scrivi's defaults — 16 pt, book indent of 1.5 em.
+    // Q1: the project's settings are absent, so the app's face and Scrivi's defaults — 16 pt, book indent of 1.5 em — on the
+    // screen's geometry: an exact 1.45 line (464 twips) and a third of one between paragraphs (155).
     const auto styles = docxPart(file, "word/styles.xml");
     CHECK(styles.find(R"(<w:rFonts w:ascii="Literata")") != std::string::npos);
     CHECK(styles.find(R"(<w:sz w:val="32"/>)") != std::string::npos);
-    CHECK(styles.find(R"(<w:name w:val="Body Text"/><w:basedOn w:val="Normal"/><w:qFormat/><w:pPr><w:spacing w:after="0"/>)"
+    CHECK(styles.find(R"(<w:spacing w:after="0" w:line="464" w:lineRule="exact"/>)") != std::string::npos);
+    CHECK(styles.find(R"(<w:name w:val="Body Text"/><w:basedOn w:val="Normal"/><w:qFormat/><w:pPr><w:spacing w:after="155"/>)"
                       R"(<w:ind w:firstLine="480"/>)") != std::string::npos);
     CHECK(docxPart(file, "docProps/core.xml").find("<dc:title>The Three Musketeers</dc:title>") != std::string::npos);
     CHECK(docxPart(file, "word/numbering.xml").find(R"(<w:num w:numId="2"><w:abstractNumId w:val="1"/>)") !=
@@ -294,14 +296,14 @@ TEST_CASE("Manuscript export: .docx — the writer's typography, titles hidden (
     const auto doc = docxPart(file, "word/document.xml");
     CHECK(doc.find("The Three Presents") == std::string::npos);
     CHECK(doc.find("Chapter 2") == std::string::npos);
-    // Each chapter still starts on a new page — the first one after the title page; scenes still break with "* * *".
+    // Each chapter still starts on a new page — the first one after the title page; scenes still break with the rule.
     CHECK(doc.find(para("Subtitle", run("A Romance")) + para("Heading1", run("Heading One"), kPageBreak)) != std::string::npos);
-    CHECK(doc.find(para("SceneBreak", run("* * *")) + para("BodyText", run("Second scene."))) != std::string::npos);
+    CHECK(doc.find(para("SceneBreak", "") + para("BodyText", run("Second scene."))) != std::string::npos);
     CHECK(doc.find(para("ListNumber", run("first"), kPageBreak + num(2))) != std::string::npos);
     const auto styles = docxPart(file, "word/styles.xml");
     CHECK(styles.find(R"(w:ascii="Atkinson Hyperlegible")") != std::string::npos);
     CHECK(styles.find(R"(<w:sz w:val="24"/>)") != std::string::npos);
-    CHECK(styles.find(R"(<w:spacing w:after="240"/><w:ind w:firstLine="0"/>)") != std::string::npos);
+    CHECK(styles.find(R"(<w:spacing w:after="348"/><w:ind w:firstLine="0"/>)") != std::string::npos);   // a whole 1.45 line
 }
 
 TEST_CASE("Manuscript export: .docx — the same bytes twice; a failed write leaves nothing (AC1, Q7)",
