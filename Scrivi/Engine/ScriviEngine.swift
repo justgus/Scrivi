@@ -156,10 +156,14 @@ public final class ScriviEngine: @unchecked Sendable {
     /// The manuscript (or one chapter) as Markdown or HTML. `format`: "markdown" | "html"; `chapterID` nil = the whole
     /// manuscript; `wholePage` (HTML): a page with its title, or the body alone for pasting. The core waits for the
     /// project's queued writes first. ⚠️ Blocking — call it off the main actor.
+    /// `format` "docx" writes to `destPath` (EP-054 S4); `defaultTypeface` is the face when the project names none.
     public func exportManuscript(projectRootPath: String, format: String, chapterID: String? = nil,
-                                 wholePage: Bool = true) throws -> ExportManuscriptResult {
+                                 wholePage: Bool = true, destPath: String? = nil,
+                                 defaultTypeface: String? = nil) throws -> ExportManuscriptResult {
         var options: [String: Any] = ["format": format, "document": wholePage ? "page" : "body"]
         if let chapterID { options["scope"] = "chapter"; options["chapterID"] = chapterID }
+        if let destPath { options["destPath"] = destPath }
+        if let defaultTypeface { options["defaultTypeface"] = defaultTypeface }
         let json = String(decoding: try JSONSerialization.data(withJSONObject: options), as: UTF8.self)
         let raw = projectRootPath.withCString { prp in json.withCString { oj in scrivi_export_manuscript(prp, oj) } }
         return try decodeC(raw)
@@ -1988,7 +1992,7 @@ public final class ScriviEngine: @unchecked Sendable {
     public func closeProject(projectRootPath: String) { /* no-op: nothing was ever opened */ }
     public func exportArchive(projectRootPath: String, archivePath: String, includeWorlds: Bool) throws -> ExportArchiveResult { try unavailable() }
     public func importArchive(archivePath: String, destFolderPath: String, projectFolderName: String = "", replaceProject: Bool = false, worldFolderNames: [String: String] = [:]) throws -> ImportArchiveResult { try unavailable() }
-    public func exportManuscript(projectRootPath: String, format: String, chapterID: String? = nil, wholePage: Bool = true) throws -> ExportManuscriptResult { try unavailable() }
+    public func exportManuscript(projectRootPath: String, format: String, chapterID: String? = nil, wholePage: Bool = true, destPath: String? = nil, defaultTypeface: String? = nil) throws -> ExportManuscriptResult { try unavailable() }
     public func openSceneForBulkLoad(projectRootPath: String, appSupportRoot: String, projectID: String, sceneID: String) throws -> OpenSceneResult { try unavailable() }
     public func saveScene(projectID: String, projectRootPath: String, appSupportRoot: String, sceneID: String, sceneMetadataPath: String, sceneContentPath: String, markdown: String, selectionAnchor: Int = 0, selectionFocus: Int = 0, scroll: Double = 0, authorshipRef: AuthorshipRef) throws -> SaveSceneResult { try unavailable() }
     public func scanForExternalChanges(projectRootPath: String, appSupportRoot: String, includeGitStatus: Bool = true) throws -> ScanResult { try unavailable() }
@@ -2267,7 +2271,8 @@ public struct SceneInfo: Decodable, Sendable {
 }
 
 public struct ExportManuscriptResult: Decodable, Sendable {
-    public let text: String
+    public let text: String?   // markdown, html
+    public let path: String?   // docx: the file written
     public let chapterCount: Int
     public let sceneCount: Int
 }

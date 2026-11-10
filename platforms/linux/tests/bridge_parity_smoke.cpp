@@ -400,6 +400,20 @@ int main(int argc, char* argv[])
         const QVariantMap bad = bridge.importArchive(QDir(out).filePath(QStringLiteral("missing.scrivarchive")), dest, {});
         check(bridge.lastCallFailed() && !bad.value(QStringLiteral("errorMessage")).toString().isEmpty(),
               "importArchive: a failure carries its message (and detail) to the flow");
+
+        // EP-054 S3/S4 (SP-207, SP-208): Export Manuscript… through the bridge — text for Markdown, a file for .docx.
+        const QVariantMap md = bridge.exportManuscript(projectPath, {{QStringLiteral("format"), QStringLiteral("markdown")}});
+        check(!bridge.lastCallFailed() && md.contains(QStringLiteral("text")), "exportManuscript: Markdown comes back as text");
+        const QString docx = QDir(out).filePath(QStringLiteral("bridge-parity.docx"));
+        const QVariantMap word = bridge.exportManuscript(
+            projectPath, {{QStringLiteral("format"), QStringLiteral("docx")}, {QStringLiteral("destPath"), docx},
+                          {QStringLiteral("defaultTypeface"), QStringLiteral("Literata")}});
+        QFile written(docx);   // boundary-ok: the smoke's own export, outside any package
+        check(!bridge.lastCallFailed() && word.value(QStringLiteral("path")).toString() == docx && written.open(QIODevice::ReadOnly)
+                  && written.read(2) == QByteArrayLiteral("PK"),
+              "exportManuscript: a .docx is written to destPath");
+        bridge.exportManuscript(projectPath, {{QStringLiteral("format"), QStringLiteral("docx")}});
+        check(bridge.lastCallFailed(), "exportManuscript: a .docx without destPath is refused");
     }
 
     std::fprintf(stderr, "bridge_parity_smoke: %d checks, %d failures\n", checks, failures);

@@ -1228,7 +1228,8 @@ static std::vector<scrivi::Result<std::string>> readSceneTextsInParallel(
     return texts;
 }
 
-// EP-054 S3 (SP-207, T-0666) — the manuscript as Markdown or HTML. A read: the guard drains the write queue first.
+// EP-054 S3 (SP-207, T-0666) — the manuscript as Markdown or HTML; S4 (SP-208, T-0668) as a .docx written to destPath.
+// A read: the guard drains the write queue first.
 const char* scrivi_export_manuscript(const char* projectRootPath, const char* optionsJSON) {
     SCRIVI_PROJECT_READ(projectRootPath);
   return guarded([&]() -> const char* {
@@ -1242,8 +1243,11 @@ const char* scrivi_export_manuscript(const char* projectRootPath, const char* op
     const std::string scope = o.getString("scope", "manuscript");
     const std::string document = o.getString("document", "page");
     const std::string chapterID = o.getString("chapterID");
-    if (format != "markdown" && format != "html")
-        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "format must be markdown or html"));
+    const std::string destPath = o.getString("destPath");
+    if (format != "markdown" && format != "html" && format != "docx")
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "format must be markdown, html or docx"));
+    if (format == "docx" && destPath.empty())
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "a docx export needs destPath"));
     if (scope != "manuscript" && scope != "chapter")
         return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "scope must be manuscript or chapter"));
     if (document != "page" && document != "body")
@@ -1257,14 +1261,23 @@ const char* scrivi_export_manuscript(const char* projectRootPath, const char* op
 
     scrivi::manuscript::ExportInput in;
     in.title = project.value().title;
+    // The face when the project has not chosen one: the app's default (fonts.json, which only the app can read).
+    scrivi::manuscript::DocxTypography type{.typeface = o.getString("defaultTypeface")};
     // project-settings.json: absent or unreadable means the defaults (titles shown, no subtitle), as the apps read it.
     if (auto t = svc.fileSystem->readTextFile(scrivi::util::join(root, "project-settings.json")); t.ok()) {
         if (auto settings = scrivi::util::parseJson(t.value()); settings.ok() && settings.value().isObject()) {
-            in.subtitle = settings.value().getString("subtitle");
-            in.chapterTitles = settings.value().getBool("showChapterTitles", true);
+            const auto& v = settings.value();
+            in.subtitle = v.getString("subtitle");
+            in.chapterTitles = v.getBool("showChapterTitles", true);
+            // ManuscriptTypography's defaults and ranges (EP-047 P9, P10).
+            type.typeface = v.getString("typeface", type.typeface);
+            type.size = std::clamp(v.getDouble("textSize", type.size), 10.0, 32.0);
+            type.indent = v.getString("paragraphIndent", type.indent);
+            if (type.indent != "every" && type.indent != "none") type.indent = "book";
+            type.indentEm = std::clamp(v.getDouble("indentEm", type.indentEm), 0.5, 4.0);
         }
     }
-    in.titlePage = scope == "manuscript" && (format == "markdown" || document == "page");
+    in.titlePage = scope == "manuscript" && (format != "html" || document == "page");
 
     scrivi::manuscript::ManuscriptOrderResolver resolver{svc};
     auto resolved = resolver.resolve(root);
@@ -1295,8 +1308,16 @@ const char* scrivi_export_manuscript(const char* projectRootPath, const char* op
     }
 
     scrivi::util::JsonDoc doc;
-    doc.setString("text", format == "html" ? scrivi::manuscript::exportHtml(in, document == "page")
-                                           : scrivi::manuscript::exportMarkdown(in));
+    if (format == "docx") {
+        const auto bytes = scrivi::manuscript::exportDocx(in, type);
+        if (bytes.empty()) return heap(errorEnvelope(scrivi::ErrorCode::ioError, "could not build the .docx"));
+        // Written beside the destination and renamed into place, so a failed export leaves no file at destPath.
+        if (auto w = scrivi::util::atomicWriteTextFile(destPath, bytes); !w.ok()) return heap(errorEnvelope(w.error()));
+        doc.setString("path", destPath);
+    } else {
+        doc.setString("text", format == "html" ? scrivi::manuscript::exportHtml(in, document == "page")
+                                               : scrivi::manuscript::exportMarkdown(in));
+    }
     doc.setInt64("chapterCount", static_cast<int64_t>(chapters.size()));
     doc.setInt64("sceneCount", static_cast<int64_t>(in.scenes.size()));
     return heap(okEnvelope(std::move(doc)));

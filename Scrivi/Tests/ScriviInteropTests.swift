@@ -9016,19 +9016,25 @@ extension ScriviInteropTests {
                                    markdown: "One *two*\nthree <4>", authorshipRef: f.ref)
 
         let body = try f.engine.exportManuscript(projectRootPath: f.projectDir.path, format: "html", wholePage: false)
-        #expect(body.text.hasSuffix("<p>One <em>two</em><br />three &lt;4&gt;</p>\n"))
-        #expect(!body.text.contains("<html"))
+        #expect((body.text ?? "").hasSuffix("<p>One <em>two</em><br />three &lt;4&gt;</p>\n"))
+        #expect(!(body.text ?? "").contains("<html"))
         #expect(body.sceneCount == 1 && body.chapterCount == 1)
 
         let page = try f.engine.exportManuscript(projectRootPath: f.projectDir.path, format: "html")
-        #expect(page.text.hasPrefix("<!DOCTYPE html>"))
-        #expect(page.text.contains("<h1>Interop Git Test</h1>"))
+        #expect((page.text ?? "").hasPrefix("<!DOCTYPE html>"))
+        #expect((page.text ?? "").contains("<h1>Interop Git Test</h1>"))
 
         let md = try f.engine.exportManuscript(projectRootPath: f.projectDir.path, format: "markdown",
                                                chapterID: scene.chapterID)
-        #expect(md.text.hasSuffix("One *two*\nthree <4>\n"))
-        #expect(!md.text.contains("# Interop Git Test"))
+        #expect((md.text ?? "").hasSuffix("One *two*\nthree <4>\n"))
+        #expect(!(md.text ?? "").contains("# Interop Git Test"))
 
+        // EP-054 S4: a .docx is written to destPath (a zip), and refused without one.
+        let docx = f.appSupport.path + "/Interop.docx"
+        let written = try f.engine.exportManuscript(projectRootPath: f.projectDir.path, format: "docx",
+                                                    destPath: docx, defaultTypeface: "Literata")
+        #expect(written.path == docx && written.text == nil)
+        #expect(try Data(contentsOf: URL(fileURLWithPath: docx)).prefix(2) == Data("PK".utf8))
         #expect(throws: ScriviError.self) {
             try f.engine.exportManuscript(projectRootPath: f.projectDir.path, format: "docx")
         }

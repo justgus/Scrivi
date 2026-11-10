@@ -1,5 +1,7 @@
 # Active Sprints
 
+*Last Updated: 2026-11-10 (**SP-208 → 🟡 ACTIVE** (user, 2026-11-10: *"Q1–Q7 as recommended, activate and implement SP-208."*))*
+
 *Last Updated: 2026-11-09 (**SP-207 → ✅ CLOSED** (user, 2026-11-09: *"I-0357 verified, close SP-207"*) → `Closed/Sprint-SP-207.md`. No Sprint is active.)*
 
 *Last Updated: 2026-11-09 (**SP-207 → 🟡 ACTIVE** (user, 2026-11-09: *"yes, add it and activate SP-207."*))*
@@ -46,3 +48,9 @@
 *Last Updated: 2026-11-03 (**SP-198, SP-199 → ✅ CLOSED** (user, 2026-11-03: *"close both sprints."*).)*
 
 *Last Updated: 2026-11-02 (**SP-195, SP-196, SP-197, SP-200, SP-201 → ✅ CLOSED** (user, 2026-11-02).)*
+
+---
+
+## SP-208 — `[Cross]` [EP-054] S4: Word `.docx` export
+
+🟡 **ACTIVE 2026-11-10** → [`Sprint-SP-208.md`](Sprint-SP-208.md) · carries [T-0668] · ✅ Q1–Q7 ruled · ✅ core, Mac and iPad built · ⏳ Linux build and smokes (scrivi-vm), live passes

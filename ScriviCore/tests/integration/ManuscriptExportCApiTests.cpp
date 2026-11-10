@@ -3,14 +3,20 @@
 // What is proved: the golden Markdown and HTML for a small project (AC2, AC3, AC4) — every paragraph its own <p>, a single
 // newline a <br /> (Q4), the five formats as tags, every other character escaped, chapter titles / scene breaks / title page
 // (Q5–Q7); one chapter (Q2); the body alone or a whole page (Q3); queued writes land first (AC1); bad options are refused.
+// S4 (SP-208, T-0668): the .docx unzipped — the golden document.xml, the writer's typography in the styles (Q1), page and
+// scene breaks (Q3, Q4), real lists (Q5), a newline a line break (Q6), the same bytes twice (Q7), nothing left on failure.
 
 #include <catch2/catch_test_macros.hpp>
 
 #include "scrivi/scrivi.h"
 #include "util/Json.hpp"
 
+#include <miniz.h>
+
 #include <atomic>
 #include <filesystem>
+#include <fstream>
+#include <iterator>
 #include <string>
 #include <unistd.h>
 
@@ -102,6 +108,39 @@ const std::string kHtmlBody = "<h2>The Three Presents</h2>\n"
                               "<h2>Chapter 2</h2>\n"
                               "<ol>\n<li>first</li>\n<li>second</li>\n</ol>\n";
 
+// One part of a .docx, unzipped.
+std::string docxPart(const fs::path& file, const char* name) {
+    mz_zip_archive z{};
+    REQUIRE(mz_zip_reader_init_file(&z, file.c_str(), 0));
+    std::size_t n = 0;
+    void* p = mz_zip_reader_extract_file_to_heap(&z, name, &n, 0);
+    std::string out = p ? std::string(static_cast<const char*>(p), n) : std::string{};
+    mz_free(p);
+    mz_zip_reader_end(&z);
+    return out;
+}
+
+std::string bytesOf(const fs::path& file) {
+    std::ifstream in(file, std::ios::binary);
+    return {std::istreambuf_iterator<char>(in), {}};
+}
+
+// document.xml's pieces: a paragraph in `style` (with pPr extras) holding `runs`, and a run.
+std::string para(const std::string& style, const std::string& runs, const std::string& extra = "") {
+    return "<w:p><w:pPr><w:pStyle w:val=\"" + style + "\"/>" + extra + "</w:pPr>" + runs + "</w:p>\n";
+}
+std::string run(const std::string& text, const std::string& rPr = "") {
+    return "<w:r>" + (rPr.empty() ? "" : "<w:rPr>" + rPr + "</w:rPr>") + "<w:t xml:space=\"preserve\">" + text + "</w:t></w:r>";
+}
+const std::string kBr = "<w:r><w:br/></w:r>";
+const std::string kPageBreak = "<w:pageBreakBefore/>";
+std::string num(int id) { return "<w:numPr><w:ilvl w:val=\"0\"/><w:numId w:val=\"" + std::to_string(id) + "\"/></w:numPr>"; }
+std::string document(const std::string& body) {
+    return "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<w:document "
+           "xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:body>\n" + body +
+           "</w:body></w:document>\n";
+}
+
 } // namespace
 
 TEST_CASE("Manuscript export: Markdown is the scenes as stored, with titles and breaks (AC3, Q5, Q6)",
@@ -188,4 +227,92 @@ TEST_CASE("Manuscript export: bad options are refused", "[manuscript-export][cap
     CHECK(failed(scrivi_export_manuscript(f.r(), R"({"format":"markdown","scope":"chapter","chapterID":"nope"})")));
     CHECK(failed(scrivi_export_manuscript(f.r(), "not json")));
     CHECK(failed(scrivi_export_manuscript("", R"({"format":"markdown"})")));
+}
+
+TEST_CASE("Manuscript export: .docx is what the writer sees, in named styles (AC1, AC2, Q1, Q3-Q6)",
+          "[manuscript-export][capi]") {
+    ExportFixture f;
+    const auto file = f.base / "Dumas.docx";
+    const JsonDoc r = f.exportWith(R"({"format":"docx","defaultTypeface":"Literata","destPath":")" + file.string() + "\"}");
+    CHECK(r.getString("path") == file.string());
+    CHECK(r.getInt64("chapterCount") == 2);
+    CHECK(r.getInt64("sceneCount") == 3);
+    CHECK_FALSE(r.contains("text"));
+    CHECK(docxPart(file, "word/document.xml") ==
+          document(para("Title", run("The Three Musketeers")) +
+                   para("Subtitle", run("A Romance")) +
+                   para("Heading1", run("The Three Presents"), kPageBreak) +
+                   para("Heading1", run("Heading One")) +
+                   para("FirstParagraph", run("He said ") + run("hello", "<w:i/>") + run(" and ") + run("left", "<w:b/>") +
+                                              run(".") + kBr + run("A second line.")) +
+                   para("ListBullet", run("one"), num(1)) +
+                   para("ListBullet", run("two"), num(1)) +
+                   para("FirstParagraph", run("A literal &lt;3 &amp; [x](y) and `tick` and *not italic*.")) +
+                   para("SceneBreak", run("* * *")) +
+                   para("FirstParagraph", run("Second scene.")) +
+                   para("Heading1", run("Chapter 2"), kPageBreak) +
+                   para("ListNumber", run("first"), num(2)) +
+                   para("ListNumber", run("second"), num(2))));
+    // Q1: the project's settings are absent, so the app's face and Scrivi's defaults — 16 pt, book indent of 1.5 em.
+    const auto styles = docxPart(file, "word/styles.xml");
+    CHECK(styles.find(R"(<w:rFonts w:ascii="Literata")") != std::string::npos);
+    CHECK(styles.find(R"(<w:sz w:val="32"/>)") != std::string::npos);
+    CHECK(styles.find(R"(<w:name w:val="Body Text"/><w:basedOn w:val="Normal"/><w:qFormat/><w:pPr><w:spacing w:after="0"/>)"
+                      R"(<w:ind w:firstLine="480"/>)") != std::string::npos);
+    CHECK(docxPart(file, "docProps/core.xml").find("<dc:title>The Three Musketeers</dc:title>") != std::string::npos);
+    CHECK(docxPart(file, "word/numbering.xml").find(R"(<w:num w:numId="2"><w:abstractNumId w:val="1"/>)") !=
+          std::string::npos);
+    CHECK_FALSE(fs::exists(file.string() + ".tmp"));
+}
+
+TEST_CASE("Manuscript export: .docx — the book rule, a list from 3, one chapter, no title page (Q1, Q2, Q5)",
+          "[manuscript-export][capi]") {
+    ExportFixture f;
+    const JsonDoc opened = ok(scrivi_open_project(f.r(), f.as(), kId));
+    const JsonDoc b1 = opened.arrayItem("scenes", 2);
+    f.save(b1.getString("sceneID"), b1.getString("metadataPath"), b1.getString("contentPath"),
+           "**bold *both* bold**\\\nnext\n\nends in \\\\\tTab\n\n3. three\n4. four\nlazy");
+    const auto file = f.base / "Chapter 2.docx";
+    f.exportWith(R"({"format":"docx","scope":"chapter","chapterID":")" + f.chapter2 + R"(","destPath":")" + file.string() + "\"}");
+    CHECK(docxPart(file, "word/document.xml") ==
+          document(para("Heading1", run("Chapter 2")) +
+                   para("FirstParagraph", run("bold ", "<w:b/>") + run("both", "<w:b/><w:i/>") + run(" bold", "<w:b/>") + kBr +
+                                              run("next")) +
+                   para("BodyText", "<w:r><w:t xml:space=\"preserve\">ends in \\</w:t><w:tab/>"
+                                    "<w:t xml:space=\"preserve\">Tab</w:t></w:r>") +
+                   para("ListNumber", run("three"), num(2)) +
+                   para("ListNumber", run("four") + kBr + run("lazy"), num(2))));
+    CHECK(docxPart(file, "word/numbering.xml").find(R"(<w:startOverride w:val="3"/>)") != std::string::npos);
+}
+
+TEST_CASE("Manuscript export: .docx — the writer's typography, titles hidden (Q1, Q3)", "[manuscript-export][capi]") {
+    ExportFixture f;
+    ok(scrivi_put_project_settings(f.r(), R"({"subtitle":"A Romance","showChapterTitles":false,"typeface":"Atkinson Hyperlegible",)"
+                                          R"("textSize":12,"paragraphIndent":"none","indentEm":2})"));
+    const auto file = f.base / "Dumas.docx";
+    f.exportWith(R"({"format":"docx","defaultTypeface":"Literata","destPath":")" + file.string() + "\"}");
+    const auto doc = docxPart(file, "word/document.xml");
+    CHECK(doc.find("The Three Presents") == std::string::npos);
+    CHECK(doc.find("Chapter 2") == std::string::npos);
+    // Each chapter still starts on a new page — the first one after the title page; scenes still break with "* * *".
+    CHECK(doc.find(para("Subtitle", run("A Romance")) + para("Heading1", run("Heading One"), kPageBreak)) != std::string::npos);
+    CHECK(doc.find(para("SceneBreak", run("* * *")) + para("BodyText", run("Second scene."))) != std::string::npos);
+    CHECK(doc.find(para("ListNumber", run("first"), kPageBreak + num(2))) != std::string::npos);
+    const auto styles = docxPart(file, "word/styles.xml");
+    CHECK(styles.find(R"(w:ascii="Atkinson Hyperlegible")") != std::string::npos);
+    CHECK(styles.find(R"(<w:sz w:val="24"/>)") != std::string::npos);
+    CHECK(styles.find(R"(<w:spacing w:after="240"/><w:ind w:firstLine="0"/>)") != std::string::npos);
+}
+
+TEST_CASE("Manuscript export: .docx — the same bytes twice; a failed write leaves nothing (AC1, Q7)",
+          "[manuscript-export][capi]") {
+    ExportFixture f;
+    const auto a = f.base / "a.docx", b = f.base / "b.docx";
+    f.exportWith(R"({"format":"docx","destPath":")" + a.string() + "\"}");
+    f.exportWith(R"({"format":"docx","destPath":")" + b.string() + "\"}");
+    CHECK(bytesOf(a) == bytesOf(b));
+    CHECK(bytesOf(a).starts_with("PK"));
+    const auto nowhere = f.base / "no-such-folder" / "x.docx";
+    CHECK(failed(scrivi_export_manuscript(f.r(), (R"({"format":"docx","destPath":")" + nowhere.string() + "\"}").c_str())));
+    CHECK_FALSE(fs::exists(nowhere.parent_path()));
 }

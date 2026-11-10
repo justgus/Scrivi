@@ -4547,17 +4547,22 @@ void EditorShell::exportManuscript()
     const QString root = projectPath_;
     QMessageBox formatBox(QMessageBox::Question, tr("Export Manuscript"),
                           tr("Markdown keeps the text as Scrivi stores it. HTML is a web page with every paragraph its "
-                             "own <p>."),
+                             "own <p>. A Word document keeps your typeface and indent in named styles."),
                           QMessageBox::NoButton, this);
     formatBox.setTextFormat(Qt::PlainText);
     QPushButton* markdown = formatBox.addButton(tr("Markdown"), QMessageBox::AcceptRole);
     QPushButton* html     = formatBox.addButton(tr("HTML"), QMessageBox::AcceptRole);
+    QPushButton* docx     = formatBox.addButton(tr("Word Document (.docx)"), QMessageBox::AcceptRole);
     formatBox.addButton(QMessageBox::Cancel);
     formatBox.exec();
-    if (formatBox.clickedButton() != markdown && formatBox.clickedButton() != html) {
+    const auto* clicked = formatBox.clickedButton();
+    if (clicked != markdown && clicked != html && clicked != docx) {
         return;
     }
-    const bool isHtml = formatBox.clickedButton() == html;
+    // EP-054 S4 (SP-208): the core writes a .docx itself, to the chosen path.
+    const QString format = clicked == docx ? QStringLiteral("docx")
+                           : clicked == html ? QStringLiteral("html") : QStringLiteral("markdown");
+    const QString ext = format == QLatin1String("markdown") ? QStringLiteral("md") : format;
     QString chapterID, chapterName;
     if (!askManuscriptScope(tr("Export Manuscript"), chapterID, chapterName)) {
         return;
@@ -4566,14 +4571,18 @@ void EditorShell::exportManuscript()
     name.replace(QLatin1Char('/'), QLatin1Char('-'));
     const QString path = QFileDialog::getSaveFileName(
         this, tr("Export Manuscript"),
-        QDir(QFileInfo(root).absolutePath()).filePath(name + (isHtml ? QStringLiteral(".html") : QStringLiteral(".md"))),
-        isHtml ? tr("HTML (*.html)") : tr("Markdown (*.md)"));
+        QDir(QFileInfo(root).absolutePath()).filePath(name + QLatin1Char('.') + ext),
+        format == QLatin1String("docx") ? tr("Word Document (*.docx)")
+        : format == QLatin1String("html") ? tr("HTML (*.html)") : tr("Markdown (*.md)"));
     if (path.isEmpty()) {
         return;
     }
 
-    QVariantMap options{{QStringLiteral("format"), isHtml ? QStringLiteral("html") : QStringLiteral("markdown")},
-                        {QStringLiteral("document"), QStringLiteral("page")}};
+    QVariantMap options{{QStringLiteral("format"), format}, {QStringLiteral("document"), QStringLiteral("page")}};
+    if (format == QLatin1String("docx")) {
+        options.insert(QStringLiteral("destPath"), path);
+        options.insert(QStringLiteral("defaultTypeface"), BundledFonts::manifest().defaultFace);
+    }
     if (!chapterID.isEmpty()) {
         options.insert(QStringLiteral("scope"), QStringLiteral("chapter"));
         options.insert(QStringLiteral("chapterID"), chapterID);
@@ -4592,6 +4601,9 @@ void EditorShell::exportManuscript()
                 QMessageBox::warning(this, tr("The manuscript could not be exported"),
                                      r.value(QStringLiteral("errorMessage")).toString());
                 return;
+            }
+            if (r.contains(QStringLiteral("path"))) {
+                return;   // a .docx: the core wrote it
             }
             QFile file(path);   // boundary-ok: QFileDialog export, writer-chosen path
             if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate) ||

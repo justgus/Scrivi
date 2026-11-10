@@ -1,5 +1,9 @@
 # Task Backlog
 
+*Last Updated: 2026-11-10 (**T-0668 → active** → `Task-active.md` ([SP-208] activated).)*
+
+*Last Updated: 2026-11-10 (**T-0668 filed** with [SP-208] (🔵 Planning), [EP-054] S4.)*
+
 *Last Updated: 2026-11-09 (**T-0667 filed** (the AO3 paste, moved out of [SP-207] AC7 at its close))*
 
 *Last Updated: 2026-11-09 (**T-0666 → active** → `Task-active.md` ([SP-207] activated).)*

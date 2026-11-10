@@ -64,9 +64,7 @@ extension AppEnvironment {
         panel.prompt = "Export"
         guard panel.runModal() == .OK, let url = panel.url else { return }
         destination = url
-        let staging = (try? FileManager.default.url(for: .itemReplacementDirectory, in: .userDomainMask,
-                                                     appropriateFor: url, create: true))
-            ?? FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let staging = stagingFolder(for: url)
         #else
         let staging = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         destination = staging.appendingPathComponent("\(name).scrivarchive")
@@ -80,12 +78,7 @@ extension AppEnvironment {
                 try engine.exportArchive(projectRootPath: root, archivePath: written, includeWorlds: withWorlds)
             }
             #if os(macOS)
-            let made = URL(fileURLWithPath: written)
-            if FileManager.default.fileExists(atPath: destination.path(percentEncoded: false)) {
-                _ = try FileManager.default.replaceItemAt(destination, withItemAt: made)   // the panel asked about overwriting
-            } else {
-                try FileManager.default.moveItem(at: made, to: destination)
-            }
+            try moveIntoPlace(URL(fileURLWithPath: written), destination)
             try? FileManager.default.removeItem(at: staging)
             #endif
             if !result.skippedWorlds.isEmpty {
@@ -107,26 +100,29 @@ extension AppEnvironment {
 
     // MARK: — Manuscript (EP-054 S3, SP-207)
 
-    /// File ▸ Export Manuscript…: Markdown or HTML (a whole page), the whole manuscript or the caret's chapter (Q2, Q3).
+    /// File ▸ Export Manuscript…: Markdown, HTML (a whole page) or a Word document (S4, SP-208), the whole manuscript or the
+    /// caret's chapter (Q2, Q3).
     func exportManuscript(_ session: ProjectSession) async {
         guard let root = session.projectRootPath else { return }
         let engine = session.engine
         await session.saveAllDirty()   // the editor's unsaved text; the core then drains the write queue
         let f = await ask("Export Manuscript",
-                          "Markdown keeps the text as Scrivi stores it. HTML is a web page with every paragraph its own <p>.",
-                          ["Markdown", "HTML", "Cancel"])
-        guard f.choice < 2 else { return }
-        let html = f.choice == 1
+                          "Markdown keeps the text as Scrivi stores it. HTML is a web page with every paragraph its own <p>. "
+                          + "A Word document keeps your typeface and indent in named styles.",
+                          ["Markdown", "HTML", "Word Document (.docx)", "Cancel"])
+        guard f.choice < 3 else { return }
+        let format = ["markdown", "html", "docx"][f.choice]
+        let ext = ["md", "html", "docx"][f.choice]
         let scope = await askScope(session, "Export Manuscript")
         guard !scope.cancelled else { return }
 
         let projectName = URL(fileURLWithPath: root).deletingPathExtension().lastPathComponent
         let name = (scope.chapterName ?? projectName).replacingOccurrences(of: "/", with: "-")
             .replacingOccurrences(of: ":", with: "-")
-        let fileName = "\(name).\(html ? "html" : "md")"
+        let fileName = "\(name).\(ext)"
         #if os(macOS)
         let panel = NSSavePanel()
-        panel.allowedContentTypes = [html ? .html : (UTType(filenameExtension: "md") ?? .plainText)]
+        panel.allowedContentTypes = [UTType(filenameExtension: ext) ?? .plainText]
         panel.nameFieldStringValue = fileName
         panel.title = "Export Manuscript"
         panel.prompt = "Export"
@@ -138,11 +134,33 @@ extension AppEnvironment {
         #endif
         let chapterID = scope.chapterID
         do {
-            let result = try await offMain("Exporting manuscript…", show: { session.archiveProgress = $0 }) {
-                try engine.exportManuscript(projectRootPath: root, format: html ? "html" : "markdown", chapterID: chapterID)
+            if format == "docx" {
+                // As the archive: the core writes through a file beside the .docx, which the sandbox does not grant beside
+                // the writer's file — so it writes into a folder the app may use, and the result is moved into place.
+                #if os(macOS)
+                let staging = stagingFolder(for: destination)
+                try? FileManager.default.createDirectory(at: staging, withIntermediateDirectories: true)
+                defer { try? FileManager.default.removeItem(at: staging) }
+                let written = staging.appendingPathComponent(fileName)
+                #else
+                let written = destination
+                #endif
+                let path = written.path(percentEncoded: false)
+                let face = BundledFonts.manifest.default
+                _ = try await offMain("Exporting manuscript…", show: { session.archiveProgress = $0 }) {
+                    try engine.exportManuscript(projectRootPath: root, format: "docx", chapterID: chapterID,
+                                                destPath: path, defaultTypeface: face)
+                }
+                #if os(macOS)
+                try moveIntoPlace(written, destination)
+                #endif
+            } else {
+                let result = try await offMain("Exporting manuscript…", show: { session.archiveProgress = $0 }) {
+                    try engine.exportManuscript(projectRootPath: root, format: format, chapterID: chapterID)
+                }
+                // Not atomic: an atomic write goes through a file beside the destination, which the sandbox does not grant.
+                try (result.text ?? "").write(to: destination, atomically: false, encoding: .utf8)  // boundary-ok: Export Manuscript…, the file the writer chose in the save panel, outside any package
             }
-            // Not atomic: an atomic write goes through a file beside the destination, which the sandbox does not grant.
-            try result.text.write(to: destination, atomically: false, encoding: .utf8)
             #if !os(macOS)
             share(destination)
             #endif
@@ -165,9 +183,9 @@ extension AppEnvironment {
             }
             #if os(macOS)
             NSPasteboard.general.clearContents()
-            NSPasteboard.general.setString(result.text, forType: .string)
+            NSPasteboard.general.setString(result.text ?? "", forType: .string)
             #else
-            UIPasteboard.general.string = result.text
+            UIPasteboard.general.string = result.text ?? ""
             #endif
             await tell("Copied as HTML", "\(scope.chapterName.map { "“\($0)”" } ?? "The manuscript") is on the clipboard "
                        + "as HTML. Paste it into the site's HTML box.")
@@ -314,6 +332,22 @@ extension AppEnvironment {
             return
         }
     }
+
+    #if os(macOS)
+    /// A folder the app may write in, on the destination's volume (the sandbox grants only the file the writer named).
+    private func stagingFolder(for url: URL) -> URL {
+        (try? FileManager.default.url(for: .itemReplacementDirectory, in: .userDomainMask, appropriateFor: url, create: true))
+            ?? FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    }
+
+    private func moveIntoPlace(_ made: URL, _ destination: URL) throws {
+        if FileManager.default.fileExists(atPath: destination.path(percentEncoded: false)) {
+            _ = try FileManager.default.replaceItemAt(destination, withItemAt: made)   // the panel asked about overwriting
+        } else {
+            try FileManager.default.moveItem(at: made, to: destination)
+        }
+    }
+    #endif
 
     // MARK: — Asking the writer
 
