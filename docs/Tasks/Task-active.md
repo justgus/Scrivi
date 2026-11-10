@@ -1,5 +1,7 @@
 # Active Tasks
 
+*Last Updated: 2026-11-10 (**T-0668 → ✅ Verified** ([SP-208] closed) → `Verified/Task-verified-0668.md`.)*
+
 *Last Updated: 2026-11-10 (**T-0668 → active** with [SP-208]'s activation (EP-054 S4).)*
 
 *Last Updated: 2026-11-09 (**T-0666 → ✅ Verified** and archived → `Verified/Task-verified-0666.md` ([SP-207] closed) (user, 2026-11-09: *"I-0357 verified, close SP-207"*))*
@@ -42,20 +44,3 @@
 
 *Last Updated: 2026-10-31 (**T-0636, T-0637, T-0638 filed → active** with SP-199's activation (EP-055 S2).)*
 
----
-
-## 🟡 T-0668 — `[Cross]` EP-054 S4: Word `.docx` export
-
-**Epic:** [EP-054] (S4, AC5) · **Status:** 🟡 Active (2026-11-10) · **Sprint:** [SP-208] (🟡 Active) →
-[`../Sprints/Sprint-SP-208.md`](../Sprints/Sprint-SP-208.md) · **Date Requested:** 2026-11-10 (user: *"plan SP-208 for EP-054 S4"*)
-
-**What:** `scrivi_export_manuscript` writes the manuscript (or one chapter) as a Word `.docx` — every paragraph in a named
-style, chapters on new pages, scene breaks, emphasis, headings and real lists as in Scrivi — zipped with miniz to the same
-bytes on every platform; and Export Manuscript… offers it on the Mac, iPad and Linux. Typography, endpoint shape, breaks,
-lists and scope are SP-208's Q1–Q7 (✅ ruled as recommended).
-
-**Built (2026-11-10):** `exportDocx` (`ScriviCore/src/manuscript/ManuscriptExport.cpp`, beside HTML, sharing `sceneBlocks`);
-`scrivi_export_manuscript` `format: "docx"` + `destPath` (`scrivi_c_api.cpp`, `scrivi.h`); `ScriviEngine.exportManuscript`
-(+ stub); Export Manuscript… ▸ Word Document (.docx) in `ProjectArchiveFlow.swift` and Linux `EditorShell::exportManuscript`.
-Evidence: `ManuscriptExportCApiTests` 11 cases (macOS ctest 826/826), interop `manuscriptExportThroughEngine`,
-`bridge_parity_smoke` export checks (⚠️ not yet run on Linux).

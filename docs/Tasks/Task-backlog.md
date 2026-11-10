@@ -1,5 +1,9 @@
 # Task Backlog
 
+*Last Updated: 2026-11-10 (**T-0670 filed** with [SP-209] (🔵 Planning), [EP-058] S1.)*
+
+*Last Updated: 2026-11-10 (**T-0669 filed** (the iPad `.docx` pass, moved out of [SP-208] — user: *"Let's not hold this sprint open waiting for testing on it."*))*
+
 *Last Updated: 2026-11-10 (**T-0668 → active** → `Task-active.md` ([SP-208] activated).)*
 
 *Last Updated: 2026-11-10 (**T-0668 filed** with [SP-208] (🔵 Planning), [EP-054] S4.)*
@@ -65,6 +69,8 @@ status changes on its own layer.
 | T-0657 | `[Cross]` Navigator: collapsible chapters, the current one open, the writer's choices remembered per device | ⚠️ None yet | 🔵 Backlog |
 | T-0663 | `[Cross]` Properties tab: the project's file facts (folder, path, dates, size) | ⚠️ None yet | 🔵 Backlog — Q1–Q5 ruled |
 | T-0667 | `[Cross]` EP-054: paste a Copy as HTML chapter into AO3 itself once it is back online | EP-054 | 🔵 Backlog — waits for AO3 |
+| T-0669 | `[Apple]` EP-054: export a whole-manuscript and a one-chapter `.docx` on the iPad (Export Manuscript… ▸ Word Document) and open them in Pages or Word there — [SP-208] AC5/AC7's iPad half | EP-054 | 🔵 Backlog — waits for the iPad |
+| T-0670 | `[ScriviCore]` EP-058 S1: authorship in the core — authors, writing as, pen names, world authors | EP-058 | 🔵 Backlog — [SP-209] Planning |
 
 > ✅ **T-0477 – T-0479 LEFT this file 2026-08-31 when SP-124 was ACTIVATED**, per the standing rule that
 > active Tasks never sit in the backlog. ✅ **They are now VERIFIED (2026-09-10) and ARCHIVED** →
@@ -94,6 +100,19 @@ status changes on its own layer.
 ---
 
 ## Detail
+
+## 🔵 T-0670 — `[ScriviCore]` EP-058 S1: authorship in the core
+
+**Epic:** [EP-058] (S1; AC1–AC5) · **Status:** 🔵 Backlog · **Sprint:** [SP-209] (🔵 Planning) →
+[`../Sprints/Sprint-SP-209.md`](../Sprints/Sprint-SP-209.md) · **Date Requested:** 2026-11-10 (user: *"activate EP-058 and plan its first sprint"*)
+
+**What:** the core half of the approved authorship design (v0.2 §4.1, §4.4): the ordered authors of a project and of a world
+(`identities/*-personas.json`, read at last), writing as per identity (`*-members.json`), the app-level pen-name menu, the
+"unnamed" rule and the prompt it raises on open — five endpoints (`scrivi_get_authors`, `scrivi_set_authors`,
+`scrivi_set_writing_as`, `scrivi_get_pen_names`, `scrivi_put_pen_names`) and `authors` / `writingAs` / `authorPrompt` on
+`scrivi_open_project`, boundary-tested through `scrivi_*`. Shape per [SP-209] Q1–Q5.
+
+---
 
 ## 🔵 T-0667 — `[Cross]` EP-054: paste a Copy as HTML chapter into AO3 itself
 

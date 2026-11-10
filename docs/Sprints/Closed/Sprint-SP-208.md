@@ -1,16 +1,16 @@
 ---
 sprint: SP-208
 epic: EP-054
-status: Active
+status: Closed
 platform: Cross
 created: 2026-11-10
 ---
 
 # SP-208 — `[ScriviCore]` + `[Apple]` + `[Linux]` [EP-054] **S4**: Word `.docx` export
 
-**Status:** 🟡 **ACTIVE** 2026-11-10 (user, 2026-11-10: *"Q1–Q7 as recommended, activate and implement SP-208."*) · ✅ Q1–Q7 ruled as recommended · planned 2026-11-10 (*"plan SP-208 for EP-054 S4"*).
-**Carries:** [T-0668] → [`../Tasks/Task-active.md`](../Tasks/Task-active.md).
-**Epic:** [EP-054] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md).
+**Status:** ✅ **CLOSED** 2026-11-10 (user, 2026-11-10: *"They opened cleanly, close SP-208"*) · activated 2026-11-10 (user: *"Q1–Q7 as recommended, activate and implement SP-208."*) · ✅ Q1–Q7 ruled as recommended · planned 2026-11-10 (*"plan SP-208 for EP-054 S4"*).
+**Carries:** [T-0668] → [`../../Tasks/Verified/Task-verified-0668.md`](../../Tasks/Verified/Task-verified-0668.md).
+**Epic:** [EP-054] → [`../../Epics/Epic-active.md`](../../Epics/Epic-active.md).
 **Builds on:** [SP-207] (S3, ✅ closed): `scrivi_export_manuscript`, its walker over what the writer sees, and the Export
 Manuscript… flow on the Mac, iPad and Linux. [SP-205] (S1, ✅ closed): miniz, already compiled into the core.
 **Authority:** EP-054 AC5 (`.docx` with chapters, scene breaks and emphasis preserved), Q5 (`.docx` after HTML and
@@ -43,7 +43,7 @@ Markdown), Q6 (`.docx` produced in the core), Q7 (miniz).
   package (`ProjectCreator.cpp`), and `AuthorshipRef {identityID, personaID, displayName}` threads every authorship call.
   ⛔ **But nothing lets the writer set it**: no persona endpoint exists, and the app passes the machine's host name as the
   persona's `displayName` (`AppEnvironment.swift:222`; the Tintagael package reads `"displayName": "flitwick-5.local"`).
-  The byline is item 4 of [`Scrivi_Identity_Authorship_and_Settings_Design_v0_1.md`](../Scrivi_Identity_Authorship_and_Settings_Design_v0_1.md)
+  The byline is item 4 of [`Scrivi_Identity_Authorship_and_Settings_Design_v0_1.md`](../../Scrivi_Identity_Authorship_and_Settings_Design_v0_1.md)
   (⚠️ DRAFT, its Q2–Q5 unruled; Q5 asks exactly where a byline should appear). Printing today's `displayName` would put a
   host name on the title page, so this Sprint carries **no byline**, as Q1/Q7 were ruled.
 - **What a `.docx` must hold at minimum:** `[Content_Types].xml`, `_rels/.rels`, `word/document.xml`, and for named styles
@@ -97,21 +97,21 @@ fonts (Q1), a free chapter/scene picker (S3 Q2), inline object references ([EP-0
 
 ## Acceptance Criteria
 
-- [ ] AC1 — `scrivi_export_manuscript` with `format: "docx"` writes a `.docx` for the whole manuscript and for one chapter,
+- [x] AC1 — `scrivi_export_manuscript` with `format: "docx"` writes a `.docx` for the whole manuscript and for one chapter,
       after draining the write queue, through a partial file renamed into place; the same bytes on every platform and on
       every export of the same text
 - [x] AC2 — Every paragraph in a named style; typography, indent rule and line spacing per Q1; chapter pages and the title
       page per Q3; scene breaks per Q4; headings and real lists per Q5; a single `\n` as a line break per Q6; italic and
       bold as runs (bold outside italic, as S3); escapes resolved; `&`, `<`, `>` XML-escaped
 - [x] AC3 — The S3 HTML output is byte-identical after the walker split (its golden tests unchanged and green)
-- [ ] AC4 — Boundary tests through `scrivi_*` against a golden `document.xml` (EP-054 AC7), including the characters that
+- [x] AC4 — Boundary tests through `scrivi_*` against a golden `document.xml` (EP-054 AC7), including the characters that
       must stay literal and the repeat-export byte check; macOS and Linux ctest green, the same golden bytes on both
-- [ ] AC5 — Export Manuscript… offers Word Document (.docx) on the Mac, iPad and Linux; flushed first, off the main thread,
-      progress after 400 ms
-- [ ] AC6 — Interop tests and Linux smokes through the wrappers, green; engine stub parity check green
-- [ ] AC7 — **Live passes (user):** a whole-manuscript and a one-chapter `.docx` open cleanly — no repair prompt — in Word and
+- [x] AC5 — Export Manuscript… offers Word Document (.docx) on the Mac, iPad and Linux; flushed first, off the main thread,
+      progress after 400 ms — ⚠️ the iPad half moved to [T-0669] (user, 2026-11-10)
+- [x] AC6 — Interop tests and Linux smokes through the wrappers, green; engine stub parity check green
+- [x] AC7 — **Live passes (user):** a whole-manuscript and a one-chapter `.docx` open cleanly — no repair prompt — in Word and
       Pages on the Mac, in Pages or Word on the iPad, and in LibreOffice Writer on Linux; chapters, page breaks, scene breaks,
-      emphasis and lists as in Scrivi; the styles named in Q1 listed in the reader's styles pane
+      emphasis and lists as in Scrivi; the styles named in Q1 listed in the reader's styles pane — ⚠️ the iPad half moved to [T-0669] (user, 2026-11-10)
 
 ## Progress log
 
@@ -162,3 +162,14 @@ fonts (Q1), a free chapter/scene picker (S3 Q2), inline object references ([EP-0
   the `.docx` follows it back. [EP-058] design v0.2 approved (Q1–Q9 as recommended).
 - **2026-11-10** — **[EP-058] Authorship created** (user); [EP-054] gains **AC9** (the byline on every export), blocked by EP-058
   S1. This Sprint stays byline-free as ruled.
+- **2026-11-10** — **Linux re-run on `3221180`** (pushed, pulled and built on scrivi-vm by the user): ctest **830/830**;
+  `bridge_parity_smoke` **73 checks, 0 failures**; `accessibility_smoke` **6/6** (the timing fix holds); a 60-scene `.docx`
+  with the same SHA-256 on the Mac and Linux arm64 (`0cf972f2…`) → **AC1, AC4, AC6** ticked. CI on `3221180`: ✅ both sanitizer
+  jobs green (the miniz fix); ⛔ `macos-latest` failed **[I-0342]**'s read-count test, `fileOps 48 < 40` — flaky by
+  construction: `ReadThroughCache::prefetch` runs `work()` on the calling thread too, so a slow runner counts most sidecar
+  reads against the open. The bound is now `2 × kScenes` (`ObjectIndexRebuildTests.cpp`): the regression it guards adds two
+  more reads of every sidecar, above that either way. Passes on the Mac; CI to read after the next push.
+- **2026-11-10** — The user exported a chapter and the manuscript on the Mac and on Linux. **The iPad half of AC5/AC7 moved
+  to [T-0669]** (user: *"my iPad is far away right now. Let's not hold this sprint open waiting for testing on it."*).
+- **2026-11-10** — ✅ **Live passes (user):** a chapter and the whole manuscript exported on the Mac and on Linux open cleanly
+  (AC5, AC7; the iPad half → [T-0669]). ✅ **CLOSED** (user: *"They opened cleanly, close SP-208"*); [T-0668] → ✅ Verified → `Tasks/Verified/Task-verified-0668.md`.

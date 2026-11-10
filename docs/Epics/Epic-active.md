@@ -1,6 +1,10 @@
 # Active Epics
 
+*Last Updated: 2026-11-10 (**EP-058 → 🟡 ACTIVE**; S1 = [SP-209] created in 🔵 Planning (user, 2026-11-10: *"activate EP-058 and plan its first sprint"*))*
+
 *Last Updated: 2026-11-10 (**EP-058 design approved** — Q1–Q9 ruled as recommended; **EP-058 created in 🔵 Draft** — Authorship (user, 2026-11-10: *"We need to surface the authorship issue immediately… finalize the Authorship design and create the Epic that will implement it. And it must be in place before we can finish the current Epic."*); design v0.2 drafted; [EP-054] gains AC9, blocked by it.)*
+
+*Last Updated: 2026-11-10 (**EP-054: S4 = [SP-208] ✅ closed**; the iPad pass → [T-0669])*
 
 *Last Updated: 2026-11-10 (**EP-054: S4 = [SP-208] → 🟡 Active** (user, 2026-11-10: *"Q1–Q7 as recommended, activate and implement SP-208."*))*
 
@@ -111,7 +115,7 @@ boundary tests through `scrivi_*` with a round trip whose undo/redo replays iden
 fixtures). **S2 = [SP-206]** then puts File ▸ Export Archive… / Import Archive… on the Mac, Linux and iPad.
 
 **Sprints** (S3–S7 provisional): **S0 = [SP-193]** (✅ Closed 2026-10-25): fix before the alpha ([I-0306], [I-0313], [I-0202]) and one version everywhere ([T-0622]) · **S1 = [SP-205]** archive + worlds (core, [T-0664]) ✅ Closed 2026-11-06 · **S2 = [SP-206]** archive surfaces (Mac, Linux, iPad, [T-0665]) ✅ Closed 2026-11-09 · **S3 = [SP-207]** Markdown + HTML export ([T-0666], [I-0357]) ✅ Closed 2026-11-09; the AO3 paste → [T-0667] ·
-**S4 = [SP-208]** `.docx` export ([T-0668]) 🟡 Active · S5 PDF + ePub · S6 Markdown/text + `.docx` import · S7 Scrivener import. Each with live passes.
+**S4 = [SP-208]** `.docx` export ([T-0668]) ✅ Closed 2026-11-10; the iPad pass → [T-0669] · S5 PDF + ePub · S6 Markdown/text + `.docx` import · S7 Scrivener import. Each with live passes.
 **Depends on:** ⚠️ **[EP-058]** (Authorship) S1 for AC9 — added 2026-11-10 (user: *"it must be in place before we can finish
 the current Epic"*). ⚠️ [EP-055] needs S1–S2 on iPad to move projects onto it, unless iCloud Drive does (see
 EP-055 Q2).
@@ -120,7 +124,7 @@ EP-055 Q2).
 
 ## EP-058: `[Cross]` **Authorship** — pen names, several authors per project, authors for worlds, and writing as
 
-**Status:** 🔵 **DRAFT** 2026-11-10 — created (user, 2026-11-10: *"We need to surface the authorship issue immediately… finalize the Authorship design and create the Epic that will implement it. And it must be in place before we can finish the current Epic."*) Design: [`../Scrivi_Authorship_Design_v0_2.md`](../Scrivi_Authorship_Design_v0_2.md)
+**Status:** 🟡 **ACTIVE** 2026-11-10 (user, 2026-11-10: *"activate EP-058 and plan its first sprint"*) — S1 = [SP-209] 🔵 Planning. Created (user, 2026-11-10: *"We need to surface the authorship issue immediately… finalize the Authorship design and create the Epic that will implement it. And it must be in place before we can finish the current Epic."*) Design: [`../Scrivi_Authorship_Design_v0_2.md`](../Scrivi_Authorship_Design_v0_2.md)
 (✅ APPROVED 2026-11-10 — Q1–Q9 ruled as recommended; S1 can be planned).
 **Codebase:** `[ScriviCore]` first (schemas read, world identity files, endpoints), then `[Apple]` and `[Linux]` surfaces; one
 Epic with a platform AC each, as [EP-054] Q1 ruled (design Q8).
@@ -147,7 +151,7 @@ launch for every project; the persona's name is the Mac's host name (Apple) or "
 - [ ] AC8 — Live passes on each platform: a pen name set, a second author added and reordered, a world credited, and a second
       machine (scrivi-vm) answering "which author are you?" and writing as the co-author
 
-**Sprints (provisional):** S1 core · S2 Apple · S3 Linux. Then [EP-054] AC9 (the byline in Markdown, HTML and `.docx`).
+**Sprints** (S2–S3 provisional): **S1 = [SP-209]** core ([T-0670]) 🔵 Planning · S2 Apple · S3 Linux. Then [EP-054] AC9 (the byline in Markdown, HTML and `.docx`).
 **Not in scope:** moving an identity between machines (v0.1 option A), signatures, roles beyond author (design Q1).
 
 ---

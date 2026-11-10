@@ -235,5 +235,8 @@ TEST_CASE("[I-0342] an open with scene edges reads each sidecar once, not again 
     const std::int64_t fileOps = parsed.value().getSubDoc("trace").getInt64("fileOps", -1);
     INFO("fileOps " << fileOps << " for " << kScenes << " scenes");
     CHECK(fileOps >= 0);
-    CHECK(fileOps < kScenes);   // the index was built from the open's cache: no second pass over the sidecars
+    // The index was built from the open's cache: no second pass over the sidecars. ⚠️ The calling thread also takes prefetch
+    // work (ReadThroughCache::prefetch), so on a slow runner it may read up to all 42 sidecars once (CI, 2026-11-10: 48);
+    // the I-0342 regression adds TWO more reads of every one, so it lands above 2 × kScenes either way.
+    CHECK(fileOps < 2 * kScenes);
 }

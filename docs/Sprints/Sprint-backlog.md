@@ -1,5 +1,7 @@
 # Sprint Backlog
 
+*Last Updated: 2026-11-10 (**SP-209 created in 🔵 Planning** — EP-058 S1 (user, 2026-11-10: *"activate EP-058 and plan its first sprint"*); Q1–Q5 to rule.)*
+
 *Last Updated: 2026-11-10 (**SP-208 → 🟡 ACTIVE** → `Sprint-active.md`; removed here, with EP-054's section.)*
 
 *Last Updated: 2026-11-10 (**SP-208 created in 🔵 Planning** — EP-054 S4 (user, 2026-11-10: *"plan SP-208 for EP-054 S4"*); Q1–Q7 to rule.)*
@@ -25,6 +27,14 @@
 *Last Updated: 2026-11-05 (**SP-204 removed** — activated 2026-11-05.)*
 
 Sprints listed here are in 🔵 Planning status — defined and ready to activate, but not yet started.
+
+---
+
+## EP-058 — Authorship
+
+### SP-209 — `[ScriviCore]` [EP-058] S1: Authorship in the core
+
+🔵 **PLANNING** 2026-11-10 → [`Sprint-SP-209.md`](Sprint-SP-209.md) · carries [T-0670] · Q1–Q5 to rule
 
 ---
 

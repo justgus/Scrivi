@@ -476,7 +476,8 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-205** | `[ScriviCore]` **[EP-054] S1** — the project archive and its worlds: `scrivi_export_archive`, `scrivi_import_archive`, miniz (T-0664) | EP-054 | 2026-11-06 | 2026-11-06 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-205.md) |
 | **SP-206** | `[Cross]` **[EP-054] S2** — Export Archive… / Import Archive… on the Mac, Linux and iPad (T-0665) | EP-054 | 2026-11-06 | 2026-11-09 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-206.md) |
 | **SP-207** | `[Cross]` **[EP-054] S3** — Markdown and HTML export (T-0666) | EP-054 | 2026-11-09 | 2026-11-09 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-207.md) |
-| **SP-208** | `[Cross]` **[EP-054] S4** — Word `.docx` export (T-0668) | EP-054 | 2026-11-10 | — | 🟡 **ACTIVE** → [`Sprint-SP-208.md`](Sprint-SP-208.md) |
+| **SP-208** | `[Cross]` **[EP-054] S4** — Word `.docx` export (T-0668) | EP-054 | 2026-11-10 | 2026-11-10 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-208.md) |
+| **SP-209** | `[ScriviCore]` **[EP-058] S1** — authorship in the core: authors, writing as, pen names, world authors (T-0670) | EP-058 | 2026-11-10 | — | 🔵 **PLANNING** → [`Sprint-SP-209.md`](Sprint-SP-209.md) |
 | **SP-160** | `[Linux]` **[EP-049] S1** — Linux writes Apple's manuscript format: escaping, paste/copy, pair deletion, Return/⌫, shared corpus (T-0586); + I-0276 | EP-049 | 2026-10-04 | 2026-10-04 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-160.md) |
 
 ## Statistics
@@ -516,6 +517,10 @@ by status, read the table.**
 > on neither time. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-11-10 (**SP-209 created in 🔵 Planning** (user, 2026-11-10: *"activate EP-058 and plan its first sprint"*), issued via `next-id.py`; T-0670 filed.)*
+
+*Last Updated: 2026-11-10 (**SP-208 → ✅ CLOSED** (user, 2026-11-10: *"They opened cleanly, close SP-208"*) → `Closed/Sprint-SP-208.md`)*
 
 *Last Updated: 2026-11-10 (**SP-208 → 🟡 ACTIVE** (user, 2026-11-10: *"Q1–Q7 as recommended, activate and implement SP-208."*))*
 
