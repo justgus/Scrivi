@@ -1,5 +1,7 @@
 # Task Backlog
 
+*Last Updated: 2026-11-11 (**T-0672 filed** with [SP-211] (🔵 Planning), [EP-058] S3.)*
+
 *Last Updated: 2026-11-11 (**T-0671 → active** with [SP-210]'s activation.)*
 
 *Last Updated: 2026-11-11 (**T-0671 filed** with [SP-210] (🔵 Planning), [EP-058] S2.)*
@@ -76,6 +78,7 @@ status changes on its own layer.
 | T-0663 | `[Cross]` Properties tab: the project's file facts (folder, path, dates, size) | ⚠️ None yet | 🔵 Backlog — Q1–Q5 ruled |
 | T-0667 | `[Cross]` EP-054: paste a Copy as HTML chapter into AO3 itself once it is back online | EP-054 | 🔵 Backlog — waits for AO3 |
 | T-0669 | `[Apple]` EP-054: export a whole-manuscript and a one-chapter `.docx` on the iPad (Export Manuscript… ▸ Word Document) and open them in Pages or Word there — [SP-208] AC5/AC7's iPad half | EP-054 | 🔵 Backlog — waits for the iPad |
+| T-0672 | `[Linux]` EP-058 S3: authorship on Linux — the window's author, pen names, Authors, the questions | EP-058 | 🔵 Backlog — [SP-211] Planning |
 
 > ✅ **T-0477 – T-0479 LEFT this file 2026-08-31 when SP-124 was ACTIVATED**, per the standing rule that
 > active Tasks never sit in the backlog. ✅ **They are now VERIFIED (2026-09-10) and ARCHIVED** →
@@ -105,6 +108,17 @@ status changes on its own layer.
 ---
 
 ## Detail
+
+## 🔵 T-0672 — `[Linux]` EP-058 S3: authorship on Linux
+
+**Epic:** [EP-058] (S3; AC3, AC4, AC7, AC8) · **Status:** 🔵 Backlog · **Sprint:** [SP-211] (🔵 Planning) →
+[`../Sprints/Sprint-SP-211.md`](../Sprints/Sprint-SP-211.md) · **Date Requested:** 2026-11-11 (user: *"close SP-210 and plan EP-058 S3"*)
+
+**What:** the Mac's authorship ([SP-210]) on Linux, in its shape and wording: the bridge's five calls and the window's
+author from `writingAs`; New Project's Author; Settings ▸ Pen Names; Project Settings ▸ Authors with I write as; Worlds ▸
+Authors…; the *Who wrote…?* and *Which of these authors are you?* questions on open. Shape per [SP-211] Q1–Q3.
+
+---
 
 ## 🔵 T-0667 — `[Cross]` EP-054: paste a Copy as HTML chapter into AO3 itself
 

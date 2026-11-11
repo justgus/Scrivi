@@ -1,17 +1,18 @@
 ---
 sprint: SP-210
 epic: EP-058
-status: Active
+status: Closed
+closed: 2026-11-11
 platform: Apple
 created: 2026-11-11
 ---
 
 # SP-210 — `[Apple]` [EP-058] **S2**: Authorship on the Mac and iPad
 
-**Status:** 🟡 **ACTIVE** 2026-11-11 · ✅ built (AC1–AC6) · ⏳ AC7 live passes (user) · (user, 2026-11-11: *"(a), agree with the iPad changes, activate SP-210"*) · ✅ Q1–Q6 ruled.
-**Carries:** [T-0671] → [`../Tasks/Task-backlog.md`](../Tasks/Task-backlog.md).
-**Epic:** [EP-058] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md) (AC3, AC4, AC6; AC8's Mac and iPad half).
-**Design:** [`../Scrivi_Authorship_Design_v0_2.md`](../Scrivi_Authorship_Design_v0_2.md) §4.2, §4.4.
+**Status:** ✅ **CLOSED** 2026-11-11 (user, 2026-11-11: *"close SP-210 and plan EP-058 S3"*) · activated 2026-11-11 (user, 2026-11-11: *"(a), agree with the iPad changes, activate SP-210"*) · ✅ Q1–Q6 ruled.
+**Carries:** [T-0671] → [`../Tasks/Task-backlog.md`](../../Tasks/Task-backlog.md).
+**Epic:** [EP-058] → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md) (AC3, AC4, AC6; AC8's Mac and iPad half).
+**Design:** [`../Scrivi_Authorship_Design_v0_2.md`](../../Scrivi_Authorship_Design_v0_2.md) §4.2, §4.4.
 **Builds on:** [SP-209] (S1, ✅ closed): `scrivi_get_authors`, `scrivi_set_authors`, `scrivi_set_writing_as`,
 `scrivi_get_pen_names`, `scrivi_put_pen_names`, and `authors` / `writingAs` / `authorPrompt` on `scrivi_open_project`.
 **Size:** L — one model change threaded through the edit paths, three surfaces, two prompts, on two platforms.
@@ -75,7 +76,7 @@ order, and every edit in a project is recorded as the right author — and Scriv
 
 | # | Question | Recommendation |
 | - | -------- | -------------- |
-| **Q1** | **Where the pen-name list lives.** | ✅ **Ruled 2026-11-11 (user's design, amended):** Mac — a real **Settings** window (Scrivi ▸ Settings…, **⌘,**), Pen Names its first tab, room for later app settings; **Project Settings… moves to ⌥⌘,**. iPad — the same tabbed Settings view as an in-app sheet, from a **Settings** button on a new Launch-panel toolbar and from the project's ••• menu (a system Settings bundle cannot edit a list, and would keep it in `UserDefaults`, not `pen-names.json`). Check whether the iPad menu bar's system Settings… item can open it. |
+| **Q1** | **Where the pen-name list lives.** | ✅ **Ruled 2026-11-11 (user's design, amended):** Mac — a real **Settings** window (Scrivi ▸ Settings…, **⌘,**), Pen Names its first tab, room for later app settings; **Project Settings… moves to ⌥⌘,**. iPad — the same tabbed Settings view as an in-app sheet, from a **Settings** button on a new Launch-panel toolbar and from the project's ••• menu (a system Settings bundle cannot edit a list, and would keep it in `UserDefaults`, not `pen-names.json`). ✅ The iPad menu bar's Settings… (⌘,) opens Scrivi's own sheet (live pass). |
 | **Q2** | **The first run** (design §4.4: "the first run after this ships asks once for the writer's pen name"). (a) **Fold it into the prompts:** with an empty menu, *Who wrote…?* and New Project ask for a name and add it to the menu (and make it the default). (b) A separate first-run sheet at launch. | **(a).** One fewer dialog, and it asks at the moment the name is needed; the menu is never empty after the first answer. |
 | **Q3** | **A new project's author.** | **An Author field in New Project, filled with the default pen name** (editable; a new name joins the menu). The project's first persona is then a real name, so it never opens into the prompt. |
 | **Q4** | **Edits made while a prompt is still unanswered** (the writer dismisses it, or types before answering). | **The prompt is a sheet the writer cannot dismiss without answering** — *Who wrote…?* needs a name; *Which author are you?* lists the authors and Someone else…. So no edit happens as no one. ⚠️ Alternative: let it be dismissed and record edits under the identity's own persona, as today — but then the host name keeps being written into sidecars. |
@@ -92,7 +93,7 @@ order, and every edit in a project is recorded as the right author — and Scriv
       last author removed; an unnamed author never shown as a name
 - [x] AC5 — *Who wrote…?* and *Which of these authors are you?* on open, per Q2, Q4, Q6
 - [x] AC6 — Interop and ScriviCore tests green; stub parity, boundary and ABI guards clean; Mac and iOS builds clean
-- [ ] AC7 — **Live passes (user), Mac and iPad:** set a pen name; a new project credited to it; a second author added and
+- [x] AC7 — **Live passes (user), Mac and iPad:** set a pen name; a new project credited to it; a second author added and
       reordered; a world credited; an old project (credited to the host name) asks once and keeps its history; a project made
       on the Mac, opened on the iPad (its own identity), asks *Which of these authors are you?* and writes as the answer
 
@@ -113,3 +114,6 @@ Settings, the menu bar's Settings… (⌘,). Evidence: `AuthorshipInteropTests` 
 ctest 834/834; Mac and iOS builds clean (no warnings); stub parity, boundary, ABI guards, TextKit 2, layout and type-source
 checks clean. visionOS still fails only on [I-0356] (`EditorView` inspector, predates this).
   T-0671 → 🟠.
+- **2026-11-11** — ✅ **AC7 passed** (user, 2026-11-11: *"8: Scrivi's settings.  The Pad did not ask for access to keychain in step 10.  Other than that Steps 1-10 passed."*): steps 1–10 on the Mac and iPad; ⌘, on the iPad opens Scrivi's Settings. No keychain
+  prompt on the iPad is expected (an iOS app reads its own keychain without asking). T-0671 → ✅ Verified, archived. Close awaits approval.
+- **2026-11-11** — ✅ **Closed** (user, 2026-11-11: *"close SP-210 and plan EP-058 S3"*).

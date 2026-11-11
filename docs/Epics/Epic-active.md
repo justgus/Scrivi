@@ -1,5 +1,9 @@
 # Active Epics
 
+*Last Updated: 2026-11-11 (**EP-058: S3 = [SP-211] created in 🔵 Planning** (user, 2026-11-11: *"close SP-210 and plan EP-058 S3"*); Q1–Q3 to rule; [T-0672] filed.)*
+
+*Last Updated: 2026-11-11 (**EP-058: S2 = [SP-210] ✅ CLOSED** (user, 2026-11-11: *"close SP-210 and plan EP-058 S3"*); AC6 ✅.)*
+
 *Last Updated: 2026-11-11 (**EP-058: S2 = [SP-210] → 🟡 ACTIVE** (user, 2026-11-11: *"(a), agree with the iPad changes, activate SP-210"*))*
 
 *Last Updated: 2026-11-11 (**EP-058: S2 = [SP-210] created in 🔵 Planning** (user, 2026-11-11: *"plan EP-058 S2"*); Q1–Q6 to rule; [T-0671] filed.)*
@@ -132,7 +136,7 @@ EP-055 Q2).
 
 ## EP-058: `[Cross]` **Authorship** — pen names, several authors per project, authors for worlds, and writing as
 
-**Status:** 🟡 **ACTIVE** 2026-11-10 (user, 2026-11-10: *"activate EP-058 and plan its first sprint"*) — S1 = [SP-209] ✅ closed 2026-11-11. Created (user, 2026-11-10: *"We need to surface the authorship issue immediately… finalize the Authorship design and create the Epic that will implement it. And it must be in place before we can finish the current Epic."*) Design: [`../Scrivi_Authorship_Design_v0_2.md`](../Scrivi_Authorship_Design_v0_2.md)
+**Status:** 🟡 **ACTIVE** 2026-11-10 (user, 2026-11-10: *"activate EP-058 and plan its first sprint"*) — S1 = [SP-209] ✅ closed 2026-11-11; S2 = [SP-210] ✅ closed 2026-11-11. Created (user, 2026-11-10: *"We need to surface the authorship issue immediately… finalize the Authorship design and create the Epic that will implement it. And it must be in place before we can finish the current Epic."*) Design: [`../Scrivi_Authorship_Design_v0_2.md`](../Scrivi_Authorship_Design_v0_2.md)
 (✅ APPROVED 2026-11-10 — Q1–Q9 ruled as recommended; S1 can be planned).
 **Codebase:** `[ScriviCore]` first (schemas read, world identity files, endpoints), then `[Apple]` and `[Linux]` surfaces; one
 Epic with a platform AC each, as [EP-054] Q1 ruled (design Q8).
@@ -149,17 +153,17 @@ launch for every project; the persona's name is the Mac's host name (Apple) or "
 - [x] AC1 — The core reads and writes the ordered authors of a project AND of a world (`scrivi_get_authors` /
       `scrivi_set_authors`): IDs permanent, a rename keeps the ID, a removed author is retired never deleted, never zero authors
 - [x] AC2 — The app-level pen-name menu, one list per identity (`scrivi_get_pen_names` / `scrivi_put_pen_names`), outside every package
-- [ ] AC3 — Writing as: `scrivi_open_project` returns this identity's author; every write in that project (scenes, objects,
+- [ ] AC3 — ✅ core + Mac/iPad ([SP-210]); Linux in S3 — Writing as: `scrivi_open_project` returns this identity's author; every write in that project (scenes, objects,
       history) is recorded under it; an identity that is not a member is asked once which author it is (design Q3)
-- [ ] AC4 — No host name and no "Scrivi" is ever shown or exported as a pen name; an existing package credited to one is
+- [ ] AC4 — ✅ core + Mac/iPad ([SP-210]); Linux in S3 — No host name and no "Scrivi" is ever shown or exported as a pen name; an existing package credited to one is
       asked once and that author renamed, its ID kept (design Q4); a world without authors gets them on first open (Q5)
 - [x] AC5 — Boundary tests through `scrivi_*` for AC1–AC4, on macOS and Linux
-- [ ] AC6 — Settings ▸ Pen Names, Project Settings ▸ Authors (with "I write as") and World ▸ Authors on the Mac and iPad
+- [x] AC6 — Settings ▸ Pen Names, Project Settings ▸ Authors (with "I write as") and World ▸ Authors on the Mac and iPad
 - [ ] AC7 — The same on Linux, in the Mac's shape and wording
-- [ ] AC8 — Live passes on each platform: a pen name set, a second author added and reordered, a world credited, and a second
+- [ ] AC8 — ✅ Mac + iPad ([SP-210], 2026-11-11); Linux in S3 — Live passes on each platform: a pen name set, a second author added and reordered, a world credited, and a second
       machine (scrivi-vm) answering "which author are you?" and writing as the co-author
 
-**Sprints** (S2–S3 provisional): **S1 = [SP-209]** core ([T-0670]) ✅ Closed 2026-11-11 · **S2 = [SP-210]** Apple ([T-0671]) 🟡 Active · S3 Linux. Then [EP-054] AC9 (the byline in Markdown, HTML and `.docx`).
+**Sprints:** **S1 = [SP-209]** core ([T-0670]) ✅ Closed 2026-11-11 · **S2 = [SP-210]** Apple ([T-0671]) ✅ Closed 2026-11-11 · **S3 = [SP-211]** Linux ([T-0672]) 🔵 Planning. Then [EP-054] AC9 (the byline in Markdown, HTML and `.docx`).
 **Not in scope:** moving an identity between machines (v0.1 option A), signatures, roles beyond author (design Q1).
 
 ---
