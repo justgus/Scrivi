@@ -13,7 +13,7 @@ struct PersonaEntry {
     PersonaID   personaID;
     std::string displayName;
     std::string personaKind;
-    std::string controlledByIdentityID;
+    std::vector<std::string> controlledBy;   // identity IDs; on disk [{"value": id}, …] (SP-209 Q5)
     ISO8601Timestamp createdAt;
     std::string status;
 };

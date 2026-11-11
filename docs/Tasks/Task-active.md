@@ -1,5 +1,7 @@
 # Active Tasks
 
+*Last Updated: 2026-11-11 (**T-0670 → active** with [SP-209]'s activation (EP-058 S1).)*
+
 *Last Updated: 2026-11-10 (**T-0668 → ✅ Verified** ([SP-208] closed) → `Verified/Task-verified-0668.md`.)*
 
 *Last Updated: 2026-11-10 (**T-0668 → active** with [SP-208]'s activation (EP-054 S4).)*
@@ -44,3 +46,19 @@
 
 *Last Updated: 2026-10-31 (**T-0636, T-0637, T-0638 filed → active** with SP-199's activation (EP-055 S2).)*
 
+---
+
+## 🟡 T-0670 — `[ScriviCore]` EP-058 S1: authorship in the core
+
+**Epic:** [EP-058] (S1; AC1–AC5) · **Status:** 🟡 Active (2026-11-11) · **Sprint:** [SP-209] (🟡 Active) →
+[`../Sprints/Sprint-SP-209.md`](../Sprints/Sprint-SP-209.md) · **Date Requested:** 2026-11-10 (user: *"activate EP-058 and plan its first sprint"*)
+
+**What:** the core half of the approved authorship design (v0.2 §4.1, §4.4): the ordered authors of a project and of a world
+(`identities/*-personas.json`, read at last), writing as per identity (`*-members.json`), the app-level pen-name menu, the
+"unnamed" rule and the prompt it raises on open — five endpoints (`scrivi_get_authors`, `scrivi_set_authors`,
+`scrivi_set_writing_as`, `scrivi_get_pen_names`, `scrivi_put_pen_names`) and `authors` / `writingAs` / `authorPrompt` on
+`scrivi_open_project`, boundary-tested through `scrivi_*`. Shape per [SP-209] Q1–Q5 (✅ ruled as recommended).
+
+**Built (2026-11-11):** `ScriviCore/src/identity/AuthorStore.{hpp,cpp}`; the five endpoints and the open fields
+(`scrivi.h`, `scrivi_c_api.cpp`); `controlledBy` as a list (`ProjectPersonasJson.*`, `ProjectCreator.cpp`). Evidence:
+`AuthorshipCApiTests.cpp` 9 cases; macOS ctest 834/834. ⏳ Linux via CI after the push.

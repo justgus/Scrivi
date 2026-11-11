@@ -15,9 +15,11 @@ std::string serializeProjectPersonas(const ProjectPersonasData& d) {
         entry.setString("createdAt",   p.createdAt);
         entry.setString("status",      p.status);
         // controlledBy is an array of identity IDs per schema spec
-        util::JsonDoc idDoc;
-        idDoc.setString("value", p.controlledByIdentityID);
-        entry.appendToArray("controlledBy", std::move(idDoc));
+        for (const auto& id : p.controlledBy) {
+            util::JsonDoc idDoc;
+            idDoc.setString("value", id);
+            entry.appendToArray("controlledBy", std::move(idDoc));
+        }
         doc.appendToArray("personas", std::move(entry));
     }
 
@@ -42,8 +44,8 @@ Result<ProjectPersonasData> parseProjectPersonas(std::string_view json) {
         p.personaKind     = item.getString("personaKind");
         p.createdAt       = item.getString("createdAt");
         p.status          = item.getString("status");
-        if (item.arraySize("controlledBy") > 0) {
-            p.controlledByIdentityID = item.arrayItem("controlledBy", 0).getString("value");
+        for (std::size_t c = 0; c < item.arraySize("controlledBy"); ++c) {
+            p.controlledBy.push_back(item.arrayItem("controlledBy", c).getString("value"));
         }
         data.personas.push_back(std::move(p));
     }

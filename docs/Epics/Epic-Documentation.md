@@ -95,7 +95,7 @@ user-approved), ⛔ not from either copy.\*\* ⚠️ **The table is now ONE unbr
 | EP-054 | `[ScriviCore]` **Import & Export** — project archives (with history), worlds, manuscript export (formatted HTML for fanfic, Markdown, .docx, PDF, ePub) and import (Markdown, .docx, Scrivener); for the alpha | 🟡 **ACTIVE** 2026-10-24 | [SP-193] (S0) · [SP-205] (S1) ✅ · [SP-206] (S2) ✅ · [SP-207] (S3) ✅ · [SP-208] (S4) ✅ |
 | EP-055 | `[Apple]` **iPad and iPhone** — the full app on iPad, a phone surface (incl. the iPhone Duo), TestFlight; for the alpha | 🟡 **ACTIVE** 2026-10-29 — the manuscript first | [SP-198] (S1) |
 | EP-056 | `[Linux]` **Install on Ubuntu** — a .deb testers can install, update and remove; for the alpha | 🔵 **Draft** (backlog) 2026-10-24 | — |
-| EP-058 | `[Cross]` **Authorship** — pen names, several ordered authors per project, authors for worlds, writing as the right author on every machine; blocks [EP-054] AC9 | 🟡 **ACTIVE** 2026-11-10 — design v0.2 ✅ approved | [SP-209] (S1) 🔵 | — |
+| EP-058 | `[Cross]` **Authorship** — pen names, several ordered authors per project, authors for worlds, writing as the right author on every machine; blocks [EP-054] AC9 | 🟡 **ACTIVE** 2026-11-10 — design v0.2 ✅ approved | [SP-209] (S1) 🟡 | — |
 | EP-057 | `[Linux]` **Linux Rig Verification** — standing; every Linux live pass waiting for the rig, one Task each, so no Sprint is held open on the rig | 🟡 **ACTIVE** 2026-11-02 (standing, never completes) | — |
 
 ## Statistics
@@ -135,6 +135,8 @@ ruling **R-23(②)**. **To count Epics by status, read the table.**
 ---
 
 *Last Updated: 2026-11-10 (**EP-058 created in 🔵 Draft** (Authorship); EP-054 gains AC9, blocked by it.)*
+
+*Last Updated: 2026-11-11 (**EP-058**: [SP-209] (S1) → 🟡 Active.)*
 
 *Last Updated: 2026-11-10 (**EP-058 → 🟡 ACTIVE**; [SP-209] (S1) created in 🔵 Planning.)*
 

@@ -223,7 +223,7 @@ Result<CreateProjectResult> ProjectCreator::create(const CreateProjectRequest& r
         .personaID=request.author.personaID,
         .displayName=request.author.displayName,
         .personaKind="individual",
-        .controlledByIdentityID=request.author.identityID.value,
+        .controlledBy={request.author.identityID.value},
         .createdAt=now,
         .status="active"
     });

@@ -1,15 +1,15 @@
 ---
 sprint: SP-209
 epic: EP-058
-status: Planning
+status: Active
 platform: ScriviCore
 created: 2026-11-10
 ---
 
 # SP-209 — `[ScriviCore]` [EP-058] **S1**: Authorship in the core
 
-**Status:** 🔵 **PLANNING** 2026-11-10 (user, 2026-11-10: *"activate EP-058 and plan its first sprint"*) · Q1–Q5 to rule.
-**Carries:** [T-0670] → [`../Tasks/Task-backlog.md`](../Tasks/Task-backlog.md).
+**Status:** 🟡 **ACTIVE** 2026-11-11 (user, 2026-11-11: *"Q1–Q5 as recommended, activate and implement SP-209"*) · ✅ Q1–Q5 ruled as recommended · planned 2026-11-10 (*"activate EP-058 and plan its first sprint"*).
+**Carries:** [T-0670] → [`../Tasks/Task-active.md`](../Tasks/Task-active.md).
 **Epic:** [EP-058] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md).
 **Design:** [`../Scrivi_Authorship_Design_v0_2.md`](../Scrivi_Authorship_Design_v0_2.md) (✅ approved 2026-11-10) §4.1, §4.4, §6 step 1.
 **Unblocks:** [EP-054] AC9 (the byline on every export), and [EP-058] S2 (Apple) / S3 (Linux).
@@ -77,25 +77,27 @@ it keeps the writer's **pen-name menu**; and it tells the app on open when it mu
 
 ## Questions
 
-| # | Question | Recommendation |
-| - | -------- | -------------- |
-| **Q1** | **How does the core know an author is "unnamed"?** The names ever written are "Scrivi" and the identity's recorded name, which lives in the SecureStore — the real Keychain on Apple, so reading it on every open would put the Keychain under every ABI open test. (a) **The core remembers the identity's name from `scrivi_ensure_local_identity`**, which both apps call at launch before any open; unnamed = "Scrivi" or that name. (b) The core reads the SecureStore on each open / get. (c) The app passes the name it wants treated as unnamed. | **(a).** No Keychain on open, no ABI change, and the rule stays in the core. Tests cover "Scrivi" through the ABI on both platforms, and the recorded-name case through `ensure_local_identity` on Linux (its file store) plus one hidden `[keychain]` test on Apple. ⚠️ A co-author's host-name persona made on THEIR machine shows as a name on mine — acceptable: their own machine asks them (design §4.4 "this machine's host name"). |
-| **Q2** | **Seeding a world's authors** (design Q5: the creating project's writing-as author). (a) **`scrivi_get_authors` on a world with no `identities/` seeds it** from `projectRootPath`'s writing-as for this identity — one rule for new AND existing worlds. (b) `scrivi_create_world` gains `identityID` and seeds at creation; existing worlds still need (a). | **(a).** Covers both cases with one rule, and leaves `scrivi_create_world` and its two callers alone. |
-| **Q3** | **What tells the app to ask?** | **`authorPrompt` on open and on `scrivi_get_authors`:** `"none"`; `"nameAuthor"` when every active author is unnamed (design Q4 — rename it, ID kept); `"chooseAuthor"` when this identity is not a member, or its writing-as author was retired (design Q3). `nameAuthor` wins when both apply. The core decides; the apps only draw. |
-| **Q4** | **The pen-name file.** | **`<appSupport>/pen-names.json`**, `scrivi.penNames.v1`: `{"penNames": ["…"], "default": "…"}` — a plain ordered menu of names, the default for new projects and worlds. One machine has one identity, so one list (design Q7). Names only: choosing one copies it into the package as a persona, which has the ID. |
-| **Q5** | **`controlledBy` on disk.** | **Keep `[{"value": "<identityID>"}]`** — every existing package has it — and read every item, not item 0. |
+| # | Question | Ruling |
+| - | -------- | ------ |
+| **Q1** | **How does the core know an author is "unnamed"?** The names ever written are "Scrivi" and the identity's recorded name, which lives in the SecureStore — the real Keychain on Apple, so reading it on every open would put the Keychain under every ABI open test. (a) **The core remembers the identity's name from `scrivi_ensure_local_identity`**, which both apps call at launch before any open; unnamed = "Scrivi" or that name. (b) The core reads the SecureStore on each open / get. (c) The app passes the name it wants treated as unnamed. | ✅ **RULED as recommended (user, 2026-11-11).** **(a).** No Keychain on open, no ABI change, and the rule stays in the core. Tests cover "Scrivi" through the ABI on both platforms, and the recorded-name case through `ensure_local_identity` on Linux (its file store) plus one hidden `[keychain]` test on Apple. ⚠️ A co-author's host-name persona made on THEIR machine shows as a name on mine — acceptable: their own machine asks them (design §4.4 "this machine's host name"). |
+| **Q2** | **Seeding a world's authors** (design Q5: the creating project's writing-as author). (a) **`scrivi_get_authors` on a world with no `identities/` seeds it** from `projectRootPath`'s writing-as for this identity — one rule for new AND existing worlds. (b) `scrivi_create_world` gains `identityID` and seeds at creation; existing worlds still need (a). | ✅ **RULED as recommended (user, 2026-11-11).** **(a).** Covers both cases with one rule, and leaves `scrivi_create_world` and its two callers alone. |
+| **Q3** | **What tells the app to ask?** | ✅ **RULED as recommended (user, 2026-11-11).** **`authorPrompt` on open and on `scrivi_get_authors`:** `"none"`; `"nameAuthor"` when every active author is unnamed (design Q4 — rename it, ID kept); `"chooseAuthor"` when this identity is not a member, or its writing-as author was retired (design Q3). `nameAuthor` wins when both apply. The core decides; the apps only draw. |
+| **Q4** | **The pen-name file.** | ✅ **RULED as recommended (user, 2026-11-11).** **`<appSupport>/pen-names.json`**, `scrivi.penNames.v1`: `{"penNames": ["…"], "default": "…"}` — a plain ordered menu of names, the default for new projects and worlds. One machine has one identity, so one list (design Q7). Names only: choosing one copies it into the package as a persona, which has the ID. |
+| **Q5** | **`controlledBy` on disk.** | ✅ **RULED as recommended (user, 2026-11-11).** **Keep `[{"value": "<identityID>"}]`** — every existing package has it — and read every item, not item 0. |
 
 ## Acceptance Criteria
 
-- [ ] AC1 — `scrivi_get_authors` / `scrivi_set_authors` read and write the ordered authors of a project AND a world per the
+- [x] AC1 — `scrivi_get_authors` / `scrivi_set_authors` read and write the ordered authors of a project AND a world per the
       design §4.1 rules: IDs permanent, rename keeps the ID, removed = retired, never zero active authors
-- [ ] AC2 — `scrivi_set_writing_as` records membership and writing-as; `writingAs` is returned for this identity, or absent
-- [ ] AC3 — `scrivi_open_project` returns `authors`, `writingAs` and `authorPrompt` (Q3); an old package credited to "Scrivi"
+- [x] AC2 — `scrivi_set_writing_as` records membership and writing-as; `writingAs` is returned for this identity, or absent
+- [x] AC3 — `scrivi_open_project` returns `authors`, `writingAs` and `authorPrompt` (Q3); an old package credited to "Scrivi"
       or the identity's name opens with `nameAuthor`, and naming it keeps its `personaID`
-- [ ] AC4 — A world gets its author files and first author per Q2
-- [ ] AC5 — `scrivi_get_pen_names` / `scrivi_put_pen_names` round-trip the menu outside every package
+- [x] AC4 — A world gets its author files and first author per Q2
+- [x] AC5 — `scrivi_get_pen_names` / `scrivi_put_pen_names` round-trip the menu outside every package
 - [ ] AC6 — Boundary tests through `scrivi_*` for AC1–AC5; macOS and Linux ctest green; the CI sanitizer jobs green
-- [ ] AC7 — No existing caller changes: Apple and Linux build and pass unchanged; the gap audit lists the five endpoints
+- [ ] AC7 — No existing caller changes: Apple and Linux build and pass unchanged ~~; the gap audit lists the five endpoints~~
+      (⚠️ dropped 2026-11-11: the audit is a dated 100-endpoint snapshot never kept up — `scrivi.h` has 149 now — so five
+      rows would make it read as current; the Apple/Linux gap is EP-058 S2/S3's ACs)
 
 No live pass: nothing a writer can see changes until S2.
 
@@ -103,3 +105,15 @@ No live pass: nothing a writer can see changes until S2.
 
 - **2026-11-10** — 🔵 **Created in Planning** (user: *"activate EP-058 and plan its first sprint"*), issued via `next-id.py`;
   [T-0670] filed. Q1–Q5 to rule.
+- **2026-11-11** — 🟡 **Activated, Q1–Q5 ruled as recommended** (user: *"Q1–Q5 as recommended, activate and implement SP-209"*).
+- **2026-11-11** — **Built.** `AuthorStore` (`src/identity/AuthorStore.{hpp,cpp}`): ordered authors, retire-never-delete,
+  writing as, a world's seed, the unnamed rule (Q1: `rememberIdentityName`, set by `scrivi_ensure_local_identity`). Five
+  endpoints (`scrivi.h`, `scrivi_c_api.cpp` §Authorship): `scrivi_get_authors` (a WRITE guard — it seeds a world, Q2),
+  `scrivi_set_authors`, `scrivi_set_writing_as`, `scrivi_get_pen_names`, `scrivi_put_pen_names`; `scrivi_open_project`
+  adds `authors` / `writingAs` / `authorPrompt` — ⚠️ omitted, never an open failure, when an author file is damaged.
+  `controlledBy` a list (Q5; `ProjectPersonasJson`, `ProjectCreator`, `JsonSchemaTests`). Tests:
+  `AuthorshipCApiTests.cpp`, 9 cases / 239 assertions (one hidden `[.keychain]` on Apple: `scrivi_ensure_local_identity`'s
+  own name; it ran once here, explicitly, and only READ the existing login-Keychain identity). macOS ctest **834/834**; guard
+  check (135 project endpoints), engine stub parity and package boundary clean; the macOS app builds unchanged.
+  ⏳ **Linux:** scrivi-vm unreachable and Docker not running — ScriviCore CI's ubuntu and sanitizer jobs after the push are
+  the Linux run (AC6, AC7). Plan step 6 (gap audit rows) dropped — see AC7.

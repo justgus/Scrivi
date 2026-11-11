@@ -51,6 +51,7 @@ add_executable(ScriviCoreTests
     integration/AssetTests.cpp
     integration/ArchiveCApiTests.cpp            # EP-054 S1 (SP-205): the project archive through the C ABI
     integration/ManuscriptExportCApiTests.cpp   # EP-054 S3 (SP-207): Markdown and HTML export through the C ABI
+    integration/AuthorshipCApiTests.cpp        # EP-058 S1 (SP-209): authors, writing as, world authors, pen names
     integration/AssetCApiTests.cpp
     integration/CommentTests.cpp
     integration/InboxTests.cpp

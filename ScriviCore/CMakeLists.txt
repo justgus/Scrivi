@@ -50,6 +50,7 @@ target_sources(ScriviCore
         src/public_api/ProjectLock.cpp
         src/public_api/WriteQueue.cpp
         src/identity/IdentityService.cpp
+        src/identity/AuthorStore.cpp
         src/platform/SystemUUIDProvider.cpp
         src/project_package/ProjectCreator.cpp
         src/project_package/ProjectValidator.cpp

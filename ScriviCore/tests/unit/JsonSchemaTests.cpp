@@ -345,7 +345,7 @@ TEST_CASE("ProjectPersonasJson round-trips personas", "[schemas]") {
     p.personaID.value          = "persona-001";
     p.displayName              = "Rhozwyn Darius";
     p.personaKind              = "individual";
-    p.controlledByIdentityID   = "identity-001";
+    p.controlledBy             = {"identity-001", "identity-002"};
     p.createdAt                = "2026-05-19T12:00:00Z";
     p.status                   = "active";
     d.personas.push_back(p);
@@ -356,7 +356,7 @@ TEST_CASE("ProjectPersonasJson round-trips personas", "[schemas]") {
     REQUIRE(result.value().personas.size()                     == 1);
     REQUIRE(result.value().personas[0].personaID.value         == "persona-001");
     REQUIRE(result.value().personas[0].displayName             == "Rhozwyn Darius");
-    REQUIRE(result.value().personas[0].controlledByIdentityID  == "identity-001");
+    REQUIRE(result.value().personas[0].controlledBy == std::vector<std::string>{"identity-001", "identity-002"});
 }
 
 TEST_CASE("WorkspaceStateJson round-trips with last writing surface", "[schemas]") {

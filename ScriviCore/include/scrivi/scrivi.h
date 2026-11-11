@@ -660,6 +660,31 @@ const char* scrivi_put_inspector_layout(const char* projectRootPath,
 const char* scrivi_get_project_settings(const char* projectRootPath);
 const char* scrivi_put_project_settings(const char* projectRootPath, const char* documentJson);
 
+/* EP-058 S1 (SP-209) — AUTHORSHIP. Design: docs/Scrivi_Authorship_Design_v0_2.md.
+   An author is a persona in the package (`identities/{project|world}-personas.json`), in byline order; "writing as" is the
+   member's `defaultPersonaID` (`identities/{project|world}-members.json`). Each call takes a project OR a world root.
+
+   get_authors:    {authors:[{personaID, displayName, unnamed}], writingAs?:{…}, authorPrompt} — WARNING: `authors` is
+                   OMITTED when empty. `unnamed`: credited only to "Scrivi" or this identity's recorded name (the name
+                   scrivi_ensure_local_identity returned) — never show it or export it as a name.
+                   authorPrompt: "none" | "nameAuthor" (every author unnamed, or none: ask who wrote it and RENAME that
+                   author, keeping its personaID) | "chooseAuthor" (this identity writes as no active author: ask "Which of
+                   these authors are you?"). scrivi_open_project returns the same three fields.
+                   `projectRootPath` (may be empty) is for a WORLD: a world with no author files is given the project's
+                   writing-as author for `identityID` (a write).
+   set_authors:    {"authors":[{"personaID"?, "displayName"}, …]} replaces the ordered list. With a personaID: that author,
+                   renamed (the ID is kept); without: a new author. An author left out is RETIRED, never deleted. Refused:
+                   no authors, an empty name, an unknown or repeated personaID.
+   set_writing_as: this identity writes as `personaID` (an active author) — joins it as a member if new.
+   get_pen_names / put_pen_names: the writer's menu, `<appSupportRoot>/pen-names.json`, {penNames:[…], default} —
+                   `penNames` OMITTED when empty; PUT replaces it; refused: an empty or repeated name, or a default not
+                   in the list. */
+const char* scrivi_get_authors(const char* projectRootOrWorldPath, const char* identityID, const char* projectRootPath);
+const char* scrivi_set_authors(const char* projectRootOrWorldPath, const char* authorsJson);
+const char* scrivi_set_writing_as(const char* projectRootOrWorldPath, const char* identityID, const char* personaID);
+const char* scrivi_get_pen_names(const char* appSupportRoot);
+const char* scrivi_put_pen_names(const char* appSupportRoot, const char* penNamesJson);
+
 /* EP-047 AC2 (SP-167) — renames the project: writes `project.json`'s `title` in place (every
    other field kept). An empty or whitespace-only title is rejected. result: {title} */
 const char* scrivi_set_project_title(const char* projectRootPath, const char* title);

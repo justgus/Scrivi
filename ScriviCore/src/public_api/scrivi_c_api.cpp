@@ -27,6 +27,7 @@
 #include "objects/RelationTypes.hpp"
 #include "objects/RelationshipStore.hpp"
 #include "worlds/WorldStore.hpp"
+#include "identity/AuthorStore.hpp"
 #include "history/BufferStore.hpp"
 #include "history/CaptureSession.hpp"
 #include "history/HistoryService.hpp"
@@ -924,6 +925,7 @@ const char* scrivi_ensure_local_identity(
     doc.setString("defaultPersonaID", v.defaultPersonaID.value);
     doc.setString("displayName",      v.displayName);
     doc.setBool("createdNewIdentity", v.createdNewIdentity);
+    scrivi::identity::rememberIdentityName(v.displayName);   // SP-209 Q1: the name every early package credits
     return heap(okEnvelope(std::move(doc)));
 }
 
@@ -961,6 +963,20 @@ const char* scrivi_create_project(
     doc.setString("projectID", v.project.projectID.value);
     doc.setSubDoc("firstScene", std::move(scene));
     return heap(okEnvelope(std::move(doc)));
+}
+
+// EP-058 (SP-209): {authors:[{personaID, displayName, unnamed}], writingAs?, authorPrompt} — `authors` is OMITTED when empty.
+static void appendAuthorsView(scrivi::util::JsonDoc& doc, const scrivi::identity::AuthorsView& v) {
+    auto entry = [](const scrivi::identity::Author& a) {
+        scrivi::util::JsonDoc e;
+        e.setString("personaID",   a.personaID.value);
+        e.setString("displayName", a.displayName);
+        e.setBool("unnamed",       a.unnamed);
+        return e;
+    };
+    for (const auto& a : v.authors) { doc.appendToArray("authors", entry(a)); }
+    if (v.writingAs) { doc.setSubDoc("writingAs", entry(*v.writingAs)); }
+    doc.setString("authorPrompt", v.prompt);
 }
 
 const char* scrivi_open_project(
@@ -1064,6 +1080,11 @@ const char* scrivi_open_project(
         entry.setString("chapterMetadataPath",  s.chapterMetadataPath);
         doc.appendToArray("scenes", std::move(entry));
     }
+    // EP-058 (SP-209 Q3): who the work is by, who this identity writes as, and whether the app must ask. ⚠️ A damaged
+    // author file never stops the writer opening their work: the three fields are then absent, and get_authors reports it.
+    auto authors = scrivi::identity::AuthorStore{abiServices(), req.projectRootPath}.read(
+        req.currentIdentityID.value_or(scrivi::IdentityID{}));
+    if (authors.ok()) { appendAuthorsView(doc, authors.value()); }
     return heap(okEnvelope(std::move(doc)));
 }
 
@@ -3484,6 +3505,139 @@ const char* scrivi_get_project_settings(const char* projectRootPath) {
 const char* scrivi_put_project_settings(const char* projectRootPath, const char* documentJson) {
     SCRIVI_PROJECT_WRITE(projectRootPath);
     return putOpaqueDocument(projectRootPath, "project-settings.json", documentJson);
+}
+
+// --- Authorship (EP-058 S1, SP-209) -----------------------------------------
+// Design: docs/Scrivi_Authorship_Design_v0_2.md. Each endpoint takes a project OR a world package root; the guard locks
+// that path, so a world's files are written one call at a time like a project's.
+
+// A WRITE guard: the first call on a world seeds its authors (Q2).
+const char* scrivi_get_authors(const char* projectRootOrWorldPath, const char* identityID, const char* projectRootPath) {
+    SCRIVI_PROJECT_WRITE(projectRootOrWorldPath);
+  return guarded([&]() -> const char* {
+    SCRIVI_REQUIRE_PATH(projectRootOrWorldPath, "projectRootOrWorldPath");
+    const scrivi::IdentityID identity{S(identityID)};
+    scrivi::identity::AuthorStore store{abiServices(), S(projectRootOrWorldPath)};
+    auto has = store.hasAuthorFiles();
+    if (!has.ok()) return heap(errorEnvelope(has.error()));
+    // Q2: a world without author files takes the opening project's writing-as author for this identity.
+    if (!has.value() && *S(projectRootPath) != '\0' && !identity.value.empty()) {
+        auto from = scrivi::identity::AuthorStore{abiServices(), S(projectRootPath)}.read(identity);
+        if (!from.ok()) return heap(errorEnvelope(from.error()));
+        if (from.value().writingAs) {
+            if (auto r = store.seed(identity, *from.value().writingAs); !r.ok()) return heap(errorEnvelope(r.error()));
+        }
+    }
+    auto view = store.read(identity);
+    if (!view.ok()) return heap(errorEnvelope(view.error()));
+    scrivi::util::JsonDoc doc;
+    appendAuthorsView(doc, view.value());
+    return heap(okEnvelope(std::move(doc)));
+  });
+}
+
+const char* scrivi_set_authors(const char* projectRootOrWorldPath, const char* authorsJson) {
+    SCRIVI_PROJECT_WRITE(projectRootOrWorldPath);
+  return guarded([&]() -> const char* {
+    SCRIVI_REQUIRE_PATH(projectRootOrWorldPath, "projectRootOrWorldPath");
+    auto parsed = scrivi::util::parseJson(S(authorsJson));
+    if (!parsed.ok()) return heap(errorEnvelope(parsed.error()));
+    if (!parsed.value().isObject() || !parsed.value().contains("authors")) {
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "authorsJson must be {\"authors\": [...]}"));
+    }
+    std::vector<scrivi::identity::AuthorEdit> edits;
+    for (std::size_t i = 0; i < parsed.value().arraySize("authors"); ++i) {
+        const auto item = parsed.value().arrayItem("authors", i);
+        edits.push_back({item.getString("personaID"), item.getString("displayName")});
+    }
+    if (auto r = scrivi::identity::AuthorStore{abiServices(), S(projectRootOrWorldPath)}.setAuthors(edits); !r.ok()) {
+        return heap(errorEnvelope(r.error()));
+    }
+    scrivi::util::JsonDoc doc;
+    doc.setBool("saved", true);
+    return heap(okEnvelope(std::move(doc)));
+  });
+}
+
+const char* scrivi_set_writing_as(const char* projectRootOrWorldPath, const char* identityID, const char* personaID) {
+    SCRIVI_PROJECT_WRITE(projectRootOrWorldPath);
+  return guarded([&]() -> const char* {
+    SCRIVI_REQUIRE_PATH(projectRootOrWorldPath, "projectRootOrWorldPath");
+    if (auto r = scrivi::identity::AuthorStore{abiServices(), S(projectRootOrWorldPath)}.setWritingAs(
+            scrivi::IdentityID{S(identityID)}, scrivi::PersonaID{S(personaID)});
+        !r.ok()) {
+        return heap(errorEnvelope(r.error()));
+    }
+    scrivi::util::JsonDoc doc;
+    doc.setBool("saved", true);
+    return heap(okEnvelope(std::move(doc)));
+  });
+}
+
+// Q4: `<appSupport>/pen-names.json` — the writer's own menu, outside every package. Not a secret, so not the SecureStore.
+static std::mutex& penNamesMutex() { static std::mutex m; return m; }
+
+const char* scrivi_get_pen_names(const char* appSupportRoot) {
+  return guarded([&]() -> const char* {
+    SCRIVI_REQUIRE_PATH(appSupportRoot, "appSupportRoot");
+    std::lock_guard lock(penNamesMutex());
+    auto fs = abiServices().fileSystem;
+    const auto path = scrivi::util::join(S(appSupportRoot), "pen-names.json");
+    scrivi::util::JsonDoc out;
+    auto there = fs->exists(path);
+    if (!there.ok()) return heap(errorEnvelope(there.error()));
+    if (there.value()) {
+        auto text = fs->readTextFile(path);
+        if (!text.ok()) return heap(errorEnvelope(text.error()));
+        auto parsed = scrivi::util::parseJson(text.value());
+        if (!parsed.ok()) return heap(errorEnvelope(parsed.error()));
+        for (const auto& n : parsed.value().getStringArray("penNames")) { out.appendStringToArray("penNames", n); }
+        out.setString("default", parsed.value().getString("default"));
+    } else {
+        out.setString("default", "");
+    }
+    return heap(okEnvelope(std::move(out)));
+  });
+}
+
+const char* scrivi_put_pen_names(const char* appSupportRoot, const char* penNamesJson) {
+  return guarded([&]() -> const char* {
+    SCRIVI_REQUIRE_PATH(appSupportRoot, "appSupportRoot");
+    auto parsed = scrivi::util::parseJson(S(penNamesJson));
+    if (!parsed.ok()) return heap(errorEnvelope(parsed.error()));
+    if (!parsed.value().isObject()) {
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "penNamesJson must be a JSON object"));
+    }
+    scrivi::util::JsonDoc doc;
+    doc.setString("schema", "scrivi.penNames.v1");
+    std::vector<std::string> names;
+    for (const auto& raw : parsed.value().getStringArray("penNames")) {
+        const auto b = raw.find_first_not_of(" \t\r\n");
+        if (b == std::string::npos) {
+            return heap(errorEnvelope(scrivi::ErrorCode::validationError, "a pen name is empty"));
+        }
+        const std::string name = raw.substr(b, raw.find_last_not_of(" \t\r\n") - b + 1);
+        if (std::ranges::find(names, name) != names.end()) {
+            return heap(errorEnvelope(scrivi::ErrorCode::validationError, "a pen name is listed twice: " + name));
+        }
+        names.push_back(name);
+        doc.appendStringToArray("penNames", name);
+    }
+    const std::string def = parsed.value().getString("default");
+    if (!def.empty() && std::ranges::find(names, def) == names.end()) {
+        return heap(errorEnvelope(scrivi::ErrorCode::validationError, "the default is not one of the pen names"));
+    }
+    doc.setString("default", def);
+    std::lock_guard lock(penNamesMutex());
+    auto fs = abiServices().fileSystem;
+    if (auto r = fs->createDirectories(S(appSupportRoot)); !r.ok()) return heap(errorEnvelope(r.error()));
+    if (auto r = fs->atomicWriteTextFile(scrivi::util::join(S(appSupportRoot), "pen-names.json"), doc.dump(2)); !r.ok()) {
+        return heap(errorEnvelope(r.error()));
+    }
+    scrivi::util::JsonDoc out;
+    out.setBool("saved", true);
+    return heap(okEnvelope(std::move(out)));
+  });
 }
 
 // --- Project title (EP-047 AC2, SP-167) -------------------------------------

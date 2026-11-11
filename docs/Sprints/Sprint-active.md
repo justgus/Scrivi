@@ -1,5 +1,7 @@
 # Active Sprints
 
+*Last Updated: 2026-11-11 (**SP-209 → 🟡 ACTIVE** (user, 2026-11-11: *"Q1–Q5 as recommended, activate and implement SP-209"*))*
+
 *Last Updated: 2026-11-10 (**SP-208 → ✅ CLOSED** (user, 2026-11-10: *"They opened cleanly, close SP-208"*) → `Closed/Sprint-SP-208.md`. No Sprint is active.)*
 
 *Last Updated: 2026-11-10 (**SP-208 → 🟡 ACTIVE** (user, 2026-11-10: *"Q1–Q7 as recommended, activate and implement SP-208."*))*
@@ -51,3 +53,8 @@
 
 *Last Updated: 2026-11-02 (**SP-195, SP-196, SP-197, SP-200, SP-201 → ✅ CLOSED** (user, 2026-11-02).)*
 
+---
+
+## SP-209 — `[ScriviCore]` [EP-058] S1: Authorship in the core
+
+🟡 **ACTIVE 2026-11-11** → [`Sprint-SP-209.md`](Sprint-SP-209.md) · carries [T-0670] · ✅ Q1–Q5 ruled · ✅ core built (macOS 834/834) · ⏳ Linux (CI after push)
