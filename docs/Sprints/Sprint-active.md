@@ -1,5 +1,9 @@
 # Active Sprints
 
+*Last Updated: 2026-11-11 (**SP-210 built** — AC1–AC6 met; T-0671 → 🟠.)*
+
+*Last Updated: 2026-11-11 (**SP-210 → 🟡 ACTIVE** (user, 2026-11-11: *"(a), agree with the iPad changes, activate SP-210"*))*
+
 *Last Updated: 2026-11-11 (**SP-209 → ✅ CLOSED** (user, 2026-11-11: *"close SP-209 now and make the workflow change"*) → `Closed/Sprint-SP-209.md`. No Sprint is active.)*
 
 *Last Updated: 2026-11-11 (**SP-209 → 🟡 ACTIVE** (user, 2026-11-11: *"Q1–Q5 as recommended, activate and implement SP-209"*))*
@@ -55,3 +59,8 @@
 
 *Last Updated: 2026-11-02 (**SP-195, SP-196, SP-197, SP-200, SP-201 → ✅ CLOSED** (user, 2026-11-02).)*
 
+---
+
+## SP-210 — `[Apple]` [EP-058] S2: Authorship on the Mac and iPad
+
+🟡 **ACTIVE 2026-11-11** → [`Sprint-SP-210.md`](Sprint-SP-210.md) · carries [T-0671] · ✅ Q1–Q6 ruled · ✅ built (interop 347/347, iOS 19/19, ctest 834/834) · ⏳ AC7 live passes (user)

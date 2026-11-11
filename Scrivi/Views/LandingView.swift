@@ -84,6 +84,14 @@ struct LandingView: View {
         }
         .frame(minWidth: 400, minHeight: 300)
         .padding(40)
+        #if os(iOS)
+        // SP-210 Q1: the app's Settings (pen names), where a writer starts.
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button { env.showAppSettings = true } label: { Label("Settings", systemImage: "gearshape") }
+            }
+        }
+        #endif
         .sheet(isPresented: $showNewProjectSheet) {
             NewProjectSheet()
                 .environment(env)

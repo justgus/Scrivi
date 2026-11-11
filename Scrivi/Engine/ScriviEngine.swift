@@ -926,6 +926,43 @@ public final class ScriviEngine: @unchecked Sendable {
         return try decodeC(raw)
     }
 
+    // MARK: — Authorship (EP-058 S2, SP-210)
+
+    /// The ordered authors of a project OR a world, and which of them `identityID` writes as. For a world, pass the open
+    /// project's root: a world with no authors yet is given the project's writing-as author (a write, SP-209 Q2).
+    public func getAuthors(rootPath: String, identityID: String, projectRootPath: String = "") throws -> AuthorsResult {
+        let raw = rootPath.withCString { r in
+            identityID.withCString { iid in projectRootPath.withCString { prp in scrivi_get_authors(r, iid, prp) } }
+        }
+        return try decodeC(raw)
+    }
+
+    /// Replaces the ordered list. A nil `personaID` adds an author; one left out is retired by the core, never deleted.
+    public func setAuthors(rootPath: String, authors: [AuthorEdit]) throws {
+        let json = String(decoding: try JSONEncoder().encode(["authors": authors]), as: UTF8.self)
+        let raw = rootPath.withCString { r in json.withCString { j in scrivi_set_authors(r, j) } }
+        let _: SavedResult = try decodeC(raw)
+    }
+
+    public func setWritingAs(rootPath: String, identityID: String, personaID: String) throws {
+        let raw = rootPath.withCString { r in
+            identityID.withCString { iid in personaID.withCString { pid in scrivi_set_writing_as(r, iid, pid) } }
+        }
+        let _: SavedResult = try decodeC(raw)
+    }
+
+    /// The writer's pen-name menu (`<appSupport>/pen-names.json`).
+    public func getPenNames(appSupportRoot: String) throws -> PenNames {
+        let raw = appSupportRoot.withCString { scrivi_get_pen_names($0) }
+        return try decodeC(raw)
+    }
+
+    public func putPenNames(appSupportRoot: String, _ penNames: PenNames) throws {
+        let json = String(decoding: try JSONEncoder().encode(penNames), as: UTF8.self)
+        let raw = appSupportRoot.withCString { a in json.withCString { j in scrivi_put_pen_names(a, j) } }
+        let _: SavedResult = try decodeC(raw)
+    }
+
     /// Renames the project: `project.json`'s `title` (the core rejects an empty one).
     @discardableResult
     public func setProjectTitle(projectRootPath: String, title: String) throws -> ProjectTitleResult {
@@ -2039,6 +2076,11 @@ public final class ScriviEngine: @unchecked Sendable {
     public func getProjectSettings(projectRootPath: String) throws -> ProjectSettingsFetch { try unavailable() }
     @discardableResult public func putProjectSettings(projectRootPath: String, documentJson: String) throws -> ProjectSettingsSave { try unavailable() }
     @discardableResult public func setProjectTitle(projectRootPath: String, title: String) throws -> ProjectTitleResult { try unavailable() }
+    public func getAuthors(rootPath: String, identityID: String, projectRootPath: String = "") throws -> AuthorsResult { try unavailable() }
+    public func setAuthors(rootPath: String, authors: [AuthorEdit]) throws { let _: SavedResult = try unavailable() }
+    public func setWritingAs(rootPath: String, identityID: String, personaID: String) throws { let _: SavedResult = try unavailable() }
+    public func getPenNames(appSupportRoot: String) throws -> PenNames { try unavailable() }
+    public func putPenNames(appSupportRoot: String, _ penNames: PenNames) throws { let _: SavedResult = try unavailable() }
     @discardableResult public func setSceneTags(projectRootPath: String, sceneID: String, tags: [String]) throws -> SceneNotesUpdateResult { try unavailable() }
     @discardableResult public func setSceneOutline(projectRootPath: String, sceneID: String, outline: String) throws -> SceneNotesUpdateResult { try unavailable() }
     @discardableResult public func setSceneTodo(projectRootPath: String, sceneID: String, todo: [SceneTodoItem]) throws -> SceneNotesUpdateResult { try unavailable() }
@@ -2325,6 +2367,10 @@ public struct OpenProjectResult: Decodable, Sendable {
     public let restored:     RestoredSurfaceResult?
     public let scenes:       [SceneInfo]
     public let repairIssues: [RepairIssueResult]
+    // EP-058 (SP-209): absent when the author files could not be read — the open never fails on them.
+    public let authors:      [Author]
+    public let writingAs:    Author?
+    public let authorPrompt: AuthorPrompt
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -2335,12 +2381,66 @@ public struct OpenProjectResult: Decodable, Sendable {
         restored     = try c.decodeIfPresent(RestoredSurfaceResult.self, forKey: .restored)
         scenes       = try c.decodeIfPresent([SceneInfo].self, forKey: .scenes) ?? []
         repairIssues = try c.decodeIfPresent([RepairIssueResult].self, forKey: .repairIssues) ?? []
+        authors      = try c.decodeIfPresent([Author].self, forKey: .authors) ?? []
+        writingAs    = try c.decodeIfPresent(Author.self, forKey: .writingAs)
+        authorPrompt = try c.decodeIfPresent(AuthorPrompt.self, forKey: .authorPrompt) ?? .none
     }
 
     private enum CodingKeys: String, CodingKey {
-        case projectID, projectTitle, mode, activeScene, restored, scenes, repairIssues
+        case projectID, projectTitle, mode, activeScene, restored, scenes, repairIssues, authors, writingAs, authorPrompt
     }
 }
+
+// MARK: — Authorship (EP-058, SP-209/SP-210)
+
+/// A project's or world's author: a persona, in byline order. ⛔ An `unnamed` author's `displayName` is a host name or
+/// "Scrivi" — never show it as a name.
+public struct Author: Decodable, Sendable, Hashable, Identifiable {
+    public let personaID:   String
+    public let displayName: String
+    public let unnamed:     Bool
+    public var id: String { personaID }
+}
+
+public enum AuthorPrompt: String, Decodable, Sendable {
+    case none, nameAuthor, chooseAuthor
+}
+
+public struct AuthorsResult: Decodable, Sendable {
+    public let authors:      [Author]
+    public let writingAs:    Author?
+    public let authorPrompt: AuthorPrompt
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        authors      = try c.decodeIfPresent([Author].self, forKey: .authors) ?? []   // omitted when empty
+        writingAs    = try c.decodeIfPresent(Author.self, forKey: .writingAs)
+        authorPrompt = try c.decodeIfPresent(AuthorPrompt.self, forKey: .authorPrompt) ?? .none
+    }
+    private enum CodingKeys: String, CodingKey { case authors, writingAs, authorPrompt }
+}
+
+/// One entry of `scrivi_set_authors`: an existing author (renamed, ID kept) or, with no `personaID`, a new one.
+public struct AuthorEdit: Encodable, Sendable, Equatable {
+    public var personaID:   String?
+    public var displayName: String
+    public init(personaID: String?, displayName: String) { self.personaID = personaID; self.displayName = displayName }
+}
+
+/// The writer's pen-name menu. `default` is "" when there is none.
+public struct PenNames: Codable, Sendable, Equatable {
+    public var penNames: [String]
+    public var `default`: String
+    public init(penNames: [String] = [], default: String = "") { self.penNames = penNames; self.default = `default` }
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        penNames  = try c.decodeIfPresent([String].self, forKey: .penNames) ?? []   // omitted when empty
+        `default` = try c.decodeIfPresent(String.self, forKey: .default) ?? ""
+    }
+    private enum CodingKeys: String, CodingKey { case penNames, `default` }
+}
+
+struct SavedResult: Decodable, Sendable { let saved: Bool }
 
 public struct OpenSceneResult: Decodable, Sendable {
     public let scene:    SceneInfo

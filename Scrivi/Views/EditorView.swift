@@ -112,6 +112,10 @@ private struct ManuscriptEditorView: View {
             ProjectSettingsSheet(prefs: prefs)
         }
         #endif
+        // EP-058 S2 (SP-210): who wrote this project / which author this machine is — asked on open, until answered.
+        .sheet(isPresented: Binding(get: { session.authorPrompt != .none }, set: { _ in })) {
+            AuthorPromptSheet()
+        }
         // EP-047 (SP-167 Q1): Project ▸ Purge Stale History Branches…
         .sheet(isPresented: Bindable(session).showStaleBranches) {
             StaleBranchesSheet()
@@ -486,7 +490,7 @@ private struct ManuscriptEditorView: View {
                         engine: env.engine,
                         projectRootPath: prp,
                         projectID: session.openProjectResult?.projectID ?? "",
-                        authorshipRef: env.authorshipRef,
+                        authorshipRef: session.authorshipRef,
                         loader: loader,
                         // ⚠️ I-0209 — set SELECTION + REVEAL, not the one-shot trigger.
                         //
@@ -590,7 +594,7 @@ private struct ManuscriptEditorView: View {
             ObjectDetailSheet(
                 engine: env.engine,
                 projectRootPath: session.projectRootPath ?? "",
-                authorshipRef: env.authorshipRef ?? AuthorshipRef(identityID: "",
+                authorshipRef: session.authorshipRef ?? AuthorshipRef(identityID: "",
                                                                   personaID: "",
                                                                   displayName: ""),
                 worlds: detailWorlds,
@@ -727,7 +731,7 @@ private struct ManuscriptEditorView: View {
                 // I-0160: a rename in a card must reach a Detail Sheet open on the
                 // same object — the mirror of the sheet's own `onDidSave`.
                 onObjectChanged: { objectRevision += 1 },
-                authorshipRef: env.authorshipRef,
+                authorshipRef: session.authorshipRef,
                 // T-0438 / R7: the card ASKS; the editor hosts. A card cannot
                 // present an editor-level pane from inside the 280pt inspector.
                 openObjectDetail: { objectID, kind, worldID, displayName in

@@ -1,5 +1,9 @@
 # Task Backlog
 
+*Last Updated: 2026-11-11 (**T-0671 → active** with [SP-210]'s activation.)*
+
+*Last Updated: 2026-11-11 (**T-0671 filed** with [SP-210] (🔵 Planning), [EP-058] S2.)*
+
 *Last Updated: 2026-11-11 (**T-0670 → active** → `Task-active.md` ([SP-209] activated).)*
 
 *Last Updated: 2026-11-10 (**T-0670 filed** with [SP-209] (🔵 Planning), [EP-058] S1.)*

@@ -58,7 +58,7 @@ struct ProjectToolbar: ToolbarContent {
             Button { session.showProjectSettings = true } label: {
                 Label("Project Settings", systemImage: "gearshape")
             }
-            .help("Project Settings… (⌘,)")
+            .help("Project Settings… (⌥⌘,)")
         }
 
         ToolbarItem(placement: placement) {
@@ -140,6 +140,15 @@ struct ProjectToolbar: ToolbarContent {
             }
             .help("Close Project (⌘W)")
         }
+
+        #if os(iOS)
+        // SP-210 Q1: the app's Settings (pen names) — last, so it is the first into the ⋯ menu.
+        ToolbarItem(placement: placement) {
+            Button { env.showAppSettings = true } label: {
+                Label("Scrivi Settings", systemImage: "gearshape.2")
+            }
+        }
+        #endif
 
         // ⚠️ DECLARED SLOTS — EP-040 AC7 / AC5: Export and the text-size lens; ⛔ not built in this Epic.
     }

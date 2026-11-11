@@ -9040,3 +9040,155 @@ extension ScriviInteropTests {
         }
     }
 }
+
+// MARK: — EP-058 S2 (SP-210): authorship through the engine and the session
+
+/// ⚠️ "Unnamed" also matches the LAST identity name any test minted (a process-wide record in the core), so these tests
+/// rely only on "Scrivi" being unnamed and "Jane Doe" / "Sam Roe" being names.
+@Suite("Authorship through the engine and the session (EP-058 S2, SP-210)")
+@MainActor
+struct AuthorshipInteropTests {
+
+    private final class TempDir: @unchecked Sendable {
+        let url: URL
+        init() throws {
+            url = FileManager.default.temporaryDirectory.appendingPathComponent("scrivi-interop-\(UUID().uuidString)")
+            try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        }
+        deinit { try? FileManager.default.removeItem(at: url) }
+        var path: String { url.path(percentEncoded: false) }
+    }
+
+    /// A project credited to `author` by a fresh identity.
+    private func project(author: String) throws -> (engine: ScriviEngine, root: TempDir, support: TempDir, identityID: String) {
+        let support = try TempDir()
+        let root = try TempDir()
+        let engine = ScriviEngine()
+        let identity = try engine.ensureLocalIdentity(displayName: "Test Author", appSupportRoot: support.path)
+        _ = try engine.createProject(projectRootPath: root.path, appSupportRoot: support.path, title: "Byline", slug: "byline",
+                                     authorshipRef: AuthorshipRef(identityID: identity.identityID,
+                                                                  personaID: identity.defaultPersonaID, displayName: author))
+        return (engine, root, support, identity.identityID)
+    }
+
+    @Test("Q3: a project created under a pen name opens with no prompt, writing as that author")
+    func namedProjectOpensQuietly() throws {
+        let p = try project(author: "Jane Doe")
+        let opened = try p.engine.openProject(projectRootPath: p.root.path, appSupportRoot: p.support.path, identityID: p.identityID)
+        #expect(opened.authorPrompt == .none)
+        #expect(opened.authors.map(\.displayName) == ["Jane Doe"])
+        #expect(opened.writingAs?.displayName == "Jane Doe")
+    }
+
+    @Test("Who wrote…?: an unnamed author is renamed in place — the ID is kept, the prompt goes")
+    func nameAuthorRenamesInPlace() throws {
+        let p = try project(author: "Scrivi")
+        let opened = try p.engine.openProject(projectRootPath: p.root.path, appSupportRoot: p.support.path, identityID: p.identityID)
+        #expect(opened.authorPrompt == .nameAuthor)
+        let unnamed = try #require(opened.authors.first)
+        #expect(unnamed.unnamed)
+
+        try p.engine.setAuthors(rootPath: p.root.path, authors: [AuthorEdit(personaID: unnamed.personaID, displayName: "Jane Doe")])
+        let after = try p.engine.getAuthors(rootPath: p.root.path, identityID: p.identityID)
+        #expect(after.authorPrompt == .none)
+        #expect(after.authors.map(\.personaID) == [unnamed.personaID])
+        #expect(after.writingAs?.displayName == "Jane Doe")
+    }
+
+    @Test("Which of these authors are you?: another identity adds itself and writes as the new author")
+    func chooseAuthorForAnotherIdentity() throws {
+        let p = try project(author: "Jane Doe")
+        // Another device: on Apple the identity lives in the keychain, so a second app-support folder is the SAME identity.
+        let otherID = "identity_other_device"
+        let opened = try p.engine.openProject(projectRootPath: p.root.path, appSupportRoot: p.support.path,
+                                              identityID: otherID)
+        #expect(opened.authorPrompt == .chooseAuthor)
+        #expect(opened.writingAs == nil)
+
+        let jane = try #require(opened.authors.first)
+        try p.engine.setAuthors(rootPath: p.root.path, authors: [AuthorEdit(personaID: jane.personaID, displayName: jane.displayName),
+                                                                 AuthorEdit(personaID: nil, displayName: "Sam Roe")])
+        let sam = try #require(try p.engine.getAuthors(rootPath: p.root.path, identityID: otherID).authors.last)
+        #expect(sam.displayName == "Sam Roe")
+        try p.engine.setWritingAs(rootPath: p.root.path, identityID: otherID, personaID: sam.personaID)
+
+        let after = try p.engine.getAuthors(rootPath: p.root.path, identityID: otherID)
+        #expect(after.authorPrompt == .none)
+        #expect(after.writingAs?.personaID == sam.personaID)
+        #expect(after.authors.map(\.displayName) == ["Jane Doe", "Sam Roe"], "byline order kept")
+        #expect(try p.engine.getAuthors(rootPath: p.root.path, identityID: p.identityID).writingAs?.personaID == jane.personaID,
+                "the first identity still writes as Jane")
+    }
+
+    @Test("Pen names round-trip; the core refuses a repeated name")
+    func penNames() throws {
+        let support = try TempDir()
+        let engine = ScriviEngine()
+        #expect(try engine.getPenNames(appSupportRoot: support.path) == PenNames())
+        let names = PenNames(penNames: ["Jane Doe", "J. D. Quill"], default: "J. D. Quill")
+        try engine.putPenNames(appSupportRoot: support.path, names)
+        #expect(try engine.getPenNames(appSupportRoot: support.path) == names)
+        #expect(throws: ScriviError.self) {
+            try engine.putPenNames(appSupportRoot: support.path, PenNames(penNames: ["Jane Doe", "Jane Doe"], default: ""))
+        }
+    }
+
+    @Test("AC2: the session writes as the project's writing-as author, and a scene save records it")
+    func sessionWritesAsTheProjectsAuthor() async throws {
+        let p = try project(author: "Jane Doe")
+        let hostRef = AuthorshipRef(identityID: p.identityID, personaID: "persona_host", displayName: "host.local")
+        let session = ProjectSession(engine: p.engine, authorshipRef: hostRef, appSupportRoot: p.support.path,
+                                     identityID: p.identityID)
+        let result = try await session.loadAsync(at: p.root.path)
+        let ref = try #require(session.authorshipRef)
+        #expect(ref.displayName == "Jane Doe")
+        #expect(ref.personaID == result.writingAs?.personaID)
+
+        let scene = try #require(result.scenes.first)
+        _ = try p.engine.saveScene(projectID: result.projectID, projectRootPath: p.root.path, appSupportRoot: p.support.path,
+                                   sceneID: scene.sceneID, sceneMetadataPath: scene.metadataPath,
+                                   sceneContentPath: scene.contentPath, markdown: "Edited.", authorshipRef: ref)
+        let metaPath = scene.metadataPath.hasPrefix("/") ? scene.metadataPath : p.root.path + "/" + scene.metadataPath
+        let meta = try #require(try JSONSerialization.jsonObject(with: Data(contentsOf: URL(fileURLWithPath: metaPath))) as? [String: Any])
+        let modifiedBy = try #require(meta["modifiedBy"] as? [String: Any])
+        #expect(modifiedBy["personaID"] as? String == ref.personaID)
+        #expect(modifiedBy["displayNameAtModification"] as? String == "Jane Doe")
+    }
+
+    @Test("Q4: while Which of these authors are you? is unanswered the session records as no one; the answer adopts it")
+    func unansweredPromptHoldsNoAuthor() async throws {
+        let p = try project(author: "Jane Doe")
+        let other = "identity_other_device"   // see chooseAuthorForAnotherIdentity
+        let session = ProjectSession(engine: p.engine,
+                                     authorshipRef: AuthorshipRef(identityID: other, personaID: "persona_host", displayName: "host.local"),
+                                     appSupportRoot: p.support.path, identityID: other)
+        let result = try await session.loadAsync(at: p.root.path)
+        #expect(session.authorPrompt == .chooseAuthor)
+        #expect(session.authorshipRef == nil)
+
+        let jane = try #require(result.authors.first)
+        try p.engine.setWritingAs(rootPath: p.root.path, identityID: other, personaID: jane.personaID)
+        session.adoptWritingAs(jane)
+        #expect(session.authorshipRef?.personaID == jane.personaID)
+        #expect(session.authorshipRef?.identityID == other)
+    }
+
+    @Test("A world's authors: the first read gives it the project's author; it then keeps its own list")
+    func worldAuthors() throws {
+        let p = try project(author: "Jane Doe")
+        let world = try TempDir()
+        let worldPath = world.path + "/Eskandar.scriviworld"
+        _ = try p.engine.createWorld(projectRootPath: p.root.path, packagePath: worldPath, displayName: "Eskandar")
+        let seeded = try p.engine.getAuthors(rootPath: worldPath, identityID: p.identityID, projectRootPath: p.root.path)
+        #expect(seeded.authors.map(\.displayName) == ["Jane Doe"])
+        #expect(seeded.writingAs?.displayName == "Jane Doe")
+
+        let jane = try #require(seeded.authors.first)
+        try p.engine.setAuthors(rootPath: worldPath, authors: [AuthorEdit(personaID: nil, displayName: "Sam Roe"),
+                                                               AuthorEdit(personaID: jane.personaID, displayName: "Jane Doe")])
+        #expect(try p.engine.getAuthors(rootPath: worldPath, identityID: p.identityID).authors.map(\.displayName)
+                == ["Sam Roe", "Jane Doe"])
+        #expect(try p.engine.getAuthors(rootPath: p.root.path, identityID: p.identityID).authors.map(\.displayName)
+                == ["Jane Doe"], "the project's list is its own")
+    }
+}

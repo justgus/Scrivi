@@ -1,5 +1,9 @@
 # Active Tasks
 
+*Last Updated: 2026-11-11 (**T-0671 → 🟠** → `Task-unverified.md` ([SP-210] built; the live passes are the user's).)*
+
+*Last Updated: 2026-11-11 (**T-0671 → active** with [SP-210]'s activation (EP-058 S2).)*
+
 *Last Updated: 2026-11-11 (**T-0670 → ✅ Verified** ([SP-209] closed) → `Verified/Task-verified-0670.md`.)*
 
 *Last Updated: 2026-11-11 (**T-0670 → active** with [SP-209]'s activation (EP-058 S1).)*
@@ -47,4 +51,3 @@
 *Last Updated: 2026-10-31 (**T-0636, T-0637, T-0638 → 🟠 Implemented - Not Verified** → `Task-unverified.md`.)*
 
 *Last Updated: 2026-10-31 (**T-0636, T-0637, T-0638 filed → active** with SP-199's activation (EP-055 S2).)*
-

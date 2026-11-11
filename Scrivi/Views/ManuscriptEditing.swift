@@ -827,7 +827,7 @@ final class ManuscriptSceneSync {
         saveTask = Task { @MainActor in
             try? await Task.sleep(nanoseconds: 1_000_000_000)
             guard !Task.isCancelled else { return }
-            if let ref = env.authorshipRef {
+            if let ref = session.authorshipRef {
                 // T-0396: this no longer seals the typing session. Mid-session
                 // it deliberately records nothing (so a continuously-typed
                 // sentence stays ONE entry); it commits only if the writer has

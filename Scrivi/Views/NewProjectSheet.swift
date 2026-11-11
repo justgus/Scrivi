@@ -8,6 +8,8 @@ struct NewProjectSheet: View {
 
     @State private var title: String = ""
     @State private var slug: String = ""
+    // SP-210 Q3: the project's first author — the default pen name, editable.
+    @State private var author: String = ""
     // macOS: full <name>.scrivi path from NSSavePanel. iOS: nil here; the picked parent
     // directory is held in `chosenDirectory` and the project folder is composed at create.
     @State private var chosenPath: String? = nil
@@ -49,6 +51,21 @@ struct NewProjectSheet: View {
                 }
             }
 
+            LabeledContent("Author") {
+                HStack {
+                    TextField("Your pen name", text: $author)
+                    if !env.penNames.penNames.isEmpty {
+                        Menu {
+                            ForEach(env.penNames.penNames, id: \.self) { name in Button(name) { author = name } }
+                        } label: { Image(systemName: "person.crop.circle") }
+                        .menuStyle(.button)
+                        .buttonStyle(.borderless)
+                        .fixedSize()
+                        .help("Choose a pen name")
+                    }
+                }
+            }
+
             LabeledContent("Location") {
                 HStack {
                     Text(locationLabel)
@@ -77,11 +94,12 @@ struct NewProjectSheet: View {
                 Button("Cancel", role: .cancel) { dismiss() }
                 Button("Create") { createProject() }
                     .keyboardShortcut(.defaultAction)
-                    .disabled(title.isEmpty || !hasLocation)
+                    .disabled(title.isEmpty || !hasLocation || trimmedAuthor.isEmpty)
             }
         }
         .padding(24)
         .frame(minWidth: 420)
+        .onAppear { if author.isEmpty { author = env.penNames.default } }
         #if !os(macOS)
         // iOS/iPadOS/visionOS: pick the parent folder; the project is created as
         // <folder>/<slug>.scrivi at Create time.
@@ -98,6 +116,8 @@ struct NewProjectSheet: View {
         }
         #endif
     }
+
+    private var trimmedAuthor: String { author.trimmingCharacters(in: .whitespacesAndNewlines) }
 
     private var locationLabel: String {
         #if os(macOS)
@@ -147,14 +167,14 @@ struct NewProjectSheet: View {
         // macOS: NSSavePanel already produced the full <name>.scrivi path.
         guard let path = chosenPath else { return }
         Task {
-            await env.createProject(at: path, title: title, slug: trimmedSlug)
+            await env.createProject(at: path, title: title, slug: trimmedSlug, author: trimmedAuthor)
             if env.projectError == nil { dismiss() }
         }
         #else
         // iOS: compose <picked directory>/<slug>.scrivi (handles security scope).
         guard let dir = chosenDirectory else { return }
         Task {
-            await env.createProjectInPickedDirectory(dir, title: title, slug: trimmedSlug)
+            await env.createProjectInPickedDirectory(dir, title: title, slug: trimmedSlug, author: trimmedAuthor)
             if env.projectError == nil { dismiss() }
         }
         #endif

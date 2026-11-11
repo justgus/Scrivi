@@ -29,6 +29,10 @@ struct ProjectSettingsSheet: View {
                             .labelsHidden()
                     }
                 }
+                // EP-058 S2 (SP-210): who wrote this project, and who this machine writes as.
+                if let root = session.projectRootPath {
+                    AuthorsSection(rootPath: root, onWritingAs: session.adoptWritingAs)
+                }
                 Section("Writing Surface") {
                     Toggle("Show chapter titles in manuscript", isOn: Bindable(prefs).showChapterTitles)
                 }

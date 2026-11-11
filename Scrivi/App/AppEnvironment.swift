@@ -20,6 +20,10 @@ import UniformTypeIdentifiers
     var identityResult: IdentityResult?
     var authorshipRef: AuthorshipRef?
     var bootstrapError: ScriviError?
+    /// EP-058 (SP-210): the writer's pen-name menu (`<appSupport>/pen-names.json`), read at bootstrap.
+    var penNames = PenNames()
+    /// iPad: the app Settings sheet (the Mac has its `Settings` scene).
+    var showAppSettings = false
 
     // The single open project's session (single-window until T-0194). nil = no project.
     var activeSession: ProjectSession?
@@ -232,6 +236,7 @@ import UniformTypeIdentifiers
                 displayName: result.displayName
             )
             print("[Scrivi] Identity: \(result.identityID) (new: \(result.createdNewIdentity))")
+            penNames = (try? engine.getPenNames(appSupportRoot: appSupportRoot)) ?? PenNames()
         } catch let e as ScriviError {
             bootstrapError = e
             print("[Scrivi] Bootstrap failed: \(e.message)")
@@ -649,20 +654,39 @@ import UniformTypeIdentifiers
         return session
     }
 
-    func createProject(at path: String, title: String, slug: String) async {
+    /// Replaces the pen-name menu on disk, then here.
+    func savePenNames(_ names: PenNames) throws {
+        try engine.putPenNames(appSupportRoot: appSupportRoot, names)
+        penNames = names
+    }
+
+    /// SP-210 Q2/Q3: a name the writer types as an author joins the menu; the first one becomes the default.
+    func rememberPenName(_ name: String) {
+        let name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty, !penNames.penNames.contains(name) else { return }
+        var next = penNames
+        next.penNames.append(name)
+        if next.default.isEmpty { next.default = name }
+        try? savePenNames(next)   // the menu is a convenience: a failed save never blocks crediting the work
+    }
+
+    /// SP-210 Q3: the project's first author is `author` (New Project's Author field), never the host name.
+    func createProject(at path: String, title: String, slug: String, author: String) async {
         projectError = nil
         guard let ref = authorshipRef else {
             projectError = ScriviError(code: -1, message: "Identity not bootstrapped")
             return
         }
+        let author = author.trimmingCharacters(in: .whitespacesAndNewlines)
         do {
             _ = try engine.createProject(
                 projectRootPath: path,
                 appSupportRoot: appSupportRoot,
                 title: title,
                 slug: slug,
-                authorshipRef: ref
+                authorshipRef: AuthorshipRef(identityID: ref.identityID, personaID: ref.personaID, displayName: author)
             )
+            rememberPenName(author)
             let url = URL(fileURLWithPath: path)
             if let session = await loadProject(at: path, bookmarkURL: url),
                let projectID = session.openProjectResult?.projectID {
@@ -737,10 +761,10 @@ import UniformTypeIdentifiers
     // path uses NSSavePanel directly in NewProjectSheet; iOS picks a folder, then we compose
     // <parent>/<slug>.scrivi. Security scope is started for the create + initial read.
     @MainActor
-    func createProjectInPickedDirectory(_ directory: URL, title: String, slug: String) async {
+    func createProjectInPickedDirectory(_ directory: URL, title: String, slug: String, author: String) async {
         let scoped = directory.startAccessingSecurityScopedResource()
         let projectURL = directory.appendingPathComponent("\(slug).scrivi", isDirectory: true)
-        await createProject(at: projectURL.path(percentEncoded: false), title: title, slug: slug)
+        await createProject(at: projectURL.path(percentEncoded: false), title: title, slug: slug, author: author)
         // On success the session holds the package open; release on failure.
         if projectError != nil, scoped {
             directory.stopAccessingSecurityScopedResource()

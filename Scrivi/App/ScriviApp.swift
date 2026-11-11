@@ -192,6 +192,11 @@ struct ScriviApp: App {
         }
         .defaultSize(width: 720, height: 480)
         .commands { appCommands }
+        // EP-058 S2 (SP-210 Q1): Scrivi ▸ Settings… (⌘,) — the writer's settings, not a project's.
+        Settings {
+            AppSettingsView()
+                .environment(env)
+        }
         #else
         // iOS/iPadOS/visionOS: single-window model (the macOS AppKit multi-window model and
         // menu bar do not apply — the full per-platform window UX is deferred, EP-018 non-goal).
@@ -349,10 +354,11 @@ struct ScriviApp: App {
 
         // Project menu: project-scoped settings (acts on the focused window).
         CommandMenu("Project") {
+            // SP-210 Q1: ⌘, is the app's Settings (the Mac convention); Project Settings moves to ⌥⌘,.
             Button("Project Settings…") {
                 focusedSession?.showProjectSettings = true
             }
-            .keyboardShortcut(",", modifiers: .command)
+            .keyboardShortcut(",", modifiers: [.command, .option])
             .disabled(focusedSession == nil)
             // ✅ EP-047 (SP-167 Q1): an ACTION, not a setting — its own sheet.
             Button("Purge Stale History Branches…") {
@@ -548,6 +554,11 @@ struct ScriviApp: App {
     // Actions target the single active session.
     @CommandsBuilder
     private var iosCommands: some Commands {
+        // SP-210 Q1: the menu bar's Settings… (⌘,) opens Scrivi's own Settings sheet, not the system Settings app.
+        CommandGroup(replacing: .appSettings) {
+            Button("Settings…") { env.showAppSettings = true }
+                .keyboardShortcut(",", modifiers: .command)
+        }
         CommandGroup(replacing: .newItem) {
             Button("New Project…") {
                 env.presentNewProject()
@@ -725,9 +736,10 @@ private struct iOSRootView: View {
                 EditorView()
                     .environment(session)
             } else {
-                LandingView()
+                NavigationStack { LandingView() }   // SP-210 Q1: for the Launch toolbar's Settings
             }
         }
+        .sheet(isPresented: Bindable(env).showAppSettings) { AppSettingsView() }
         .modifier(ArchiveFlowHost(env: env))   // [SP-206] the archive picker and questions, over either surface
     }
 }

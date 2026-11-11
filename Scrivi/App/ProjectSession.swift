@@ -20,7 +20,6 @@ import os
     // MARK: Injected app-global dependencies (read-only)
 
     let engine: ScriviEngine
-    let authorshipRef: AuthorshipRef?
     let appSupportRoot: String
     let identityID: String
 
@@ -28,6 +27,13 @@ import os
 
     var openProjectResult: OpenProjectResult?
     var projectRootPath: String?
+
+    /// EP-058 (SP-210): the author this window's edits are recorded under — the project's writing-as author from the open,
+    /// replaced when a prompt is answered. Before the open, the identity's own; nil while *Which of these authors are you?*
+    /// is unanswered (Q4: nothing is recorded as no one — the prompt cannot be dismissed).
+    private(set) var authorshipRef: AuthorshipRef?
+    /// The prompt the open asked for, until it is answered.
+    var authorPrompt: AuthorPrompt = .none
 
     // [SP-206] An archive export or import running for this window, once it has run 400 ms (the window's progress row).
     var archiveProgress: String?
@@ -172,6 +178,11 @@ import os
     private(set) var worldRevision: Int = 0
 
     func bumpWorldRevision() { worldRevision &+= 1 }
+
+    /// Every later edit in this window is recorded as `author` (an unnamed one keeps its ID when it is named).
+    func adoptWritingAs(_ author: Author) {
+        authorshipRef = AuthorshipRef(identityID: identityID, personaID: author.personaID, displayName: author.displayName)
+    }
 
     init(engine: ScriviEngine,
          authorshipRef: AuthorshipRef?,
@@ -318,6 +329,8 @@ import os
                             timelineRead: LoadTimelineResult? = nil, historyOpened: Bool? = nil) {
         // Both callers set `projectRootPath` before calling this.
         let path = projectRootPath ?? ""
+        authorPrompt = result.authorPrompt
+        if let author = result.writingAs { adoptWritingAs(author) } else if result.authorPrompt == .chooseAuthor { authorshipRef = nil }
         NSLog("[SCRIVI-TIMING] >>> entering: viewportLoader assignment")
         ScriviDiag.measure("viewportLoader = loader (@Observable)") {
             viewportLoader = loader

@@ -512,7 +512,7 @@ struct ManuscriptTextView: NSViewRepresentable {
             if placesCaret { capture.noteApplied(sceneID: change.sceneID, text: change.newText) }
             let env = parent.env
             let loader = parent.loader
-            if let ref = env.authorshipRef {
+            if let ref = parent.session.authorshipRef {
                 Task { @MainActor in
                     await loader.saveScene(at: segIdx, engine: env.engine, ref: ref)
                 }
@@ -1178,7 +1178,7 @@ struct ManuscriptTextView: NSViewRepresentable {
                                then: (@MainActor (RangeOperationResult) -> Void)? = nil) -> Bool {
             let loader = parent.loader
             guard !loader.structuralInFlight, let tv = textView,
-                  let root = parent.session.projectRootPath, let ref = parent.env.authorshipRef else { return false }
+                  let root = parent.session.projectRootPath, let ref = parent.session.authorshipRef else { return false }
             let historyRoot = node == nil ? nil : parent.session.historyCapture?.offMainRoot
             // What each scene held before — the node needs it for the scenes the edit rewrites or removes ([I-0293]).
             let before = Dictionary(loader.segments.map { ($0.sceneID, $0.text) }, uniquingKeysWith: { a, _ in a })
@@ -2211,8 +2211,9 @@ struct ManuscriptTextView: NSViewRepresentable {
                 // ✅ EP-052 ([SP-195]): the touched scenes — ONLY those holding a match — are queued, written off the main
                 // thread, as the busy state ends (saves are held while it lasts).
                 let env = self.parent.env
+                let ref = self.parent.session.authorshipRef
                 loader.endLocalEdit {
-                    if let ref = env.authorshipRef { loader.saveScenesOffMain(touched, engine: env.engine, ref: ref) }
+                    if let ref { loader.saveScenesOffMain(touched, engine: env.engine, ref: ref) }
                 }
                 self.parent.session.timelineModel?.updateDotTitles(liveTitles: loader.liveTitles, allScenes: loader.allScenes)
                 NSLog(String(format: "[SCRIVI-FIND] replaceAll %d edits / %d scenes: snap=%.0f ms  compute=%.0f ms (off main)  apply=%.0f ms  history=%.0f ms",

@@ -15,6 +15,7 @@
 		C003_BF /* LandingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C003 /* LandingView.swift */; };
 		C004_BF /* EditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C004 /* EditorView.swift */; };
 		C005_BF /* NewProjectSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C005 /* NewProjectSheet.swift */; };
+		C210A_BF /* AuthorshipViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = C210A /* AuthorshipViews.swift */; };
 		C006_BF /* ViewportSceneLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = C006 /* ViewportSceneLoader.swift */; };
 		C007_BF /* ManuscriptTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C007 /* ManuscriptTextView.swift */; };
 		C008_BF /* SceneNavigatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C008 /* SceneNavigatorView.swift */; };
@@ -85,6 +86,7 @@
 		D003_BF /* LandingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C003 /* LandingView.swift */; };
 		D004_BF /* EditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C004 /* EditorView.swift */; };
 		D005_BF /* NewProjectSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C005 /* NewProjectSheet.swift */; };
+		D210A_BF /* AuthorshipViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = C210A /* AuthorshipViews.swift */; };
 		D006_BF /* ViewportSceneLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = C006 /* ViewportSceneLoader.swift */; };
 		D007_BF /* ManuscriptTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C007 /* ManuscriptTextView.swift */; };
 		D008_BF /* SceneNavigatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C008 /* SceneNavigatorView.swift */; };
@@ -153,6 +155,7 @@
 		E003_BF /* LandingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C003 /* LandingView.swift */; };
 		E004_BF /* EditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C004 /* EditorView.swift */; };
 		E005_BF /* NewProjectSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C005 /* NewProjectSheet.swift */; };
+		E210A_BF /* AuthorshipViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = C210A /* AuthorshipViews.swift */; };
 		E006_BF /* ViewportSceneLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = C006 /* ViewportSceneLoader.swift */; };
 		E007_BF /* ManuscriptTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C007 /* ManuscriptTextView.swift */; };
 		E008_BF /* SceneNavigatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C008 /* SceneNavigatorView.swift */; };
@@ -261,6 +264,7 @@
 		C003 /* LandingView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = LandingView.swift; path = Scrivi/Views/LandingView.swift; sourceTree = SOURCE_ROOT; };
 		C004 /* EditorView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = EditorView.swift; path = Scrivi/Views/EditorView.swift; sourceTree = SOURCE_ROOT; };
 		C005 /* NewProjectSheet.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = NewProjectSheet.swift; path = Scrivi/Views/NewProjectSheet.swift; sourceTree = SOURCE_ROOT; };
+		C210A /* AuthorshipViews.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = AuthorshipViews.swift; path = Scrivi/Views/AuthorshipViews.swift; sourceTree = SOURCE_ROOT; };
 		C006 /* ViewportSceneLoader.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ViewportSceneLoader.swift; path = Scrivi/Views/ViewportSceneLoader.swift; sourceTree = SOURCE_ROOT; };
 		C007 /* ManuscriptTextView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptTextView.swift; path = Scrivi/Views/ManuscriptTextView.swift; sourceTree = SOURCE_ROOT; };
 		C008 /* SceneNavigatorView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = SceneNavigatorView.swift; path = Scrivi/Views/SceneNavigatorView.swift; sourceTree = SOURCE_ROOT; };
@@ -411,6 +415,7 @@
 				C003 /* LandingView.swift */,
 				C004 /* EditorView.swift */,
 				C005 /* NewProjectSheet.swift */,
+				C210A /* AuthorshipViews.swift */,
 				C006 /* ViewportSceneLoader.swift */,
 				C007 /* ManuscriptTextView.swift */,
 				C090 /* ManuscriptEditing.swift */,
@@ -757,6 +762,7 @@
 				C003_BF /* LandingView.swift in Sources */,
 				C004_BF /* EditorView.swift in Sources */,
 				C005_BF /* NewProjectSheet.swift in Sources */,
+				C210A_BF /* AuthorshipViews.swift in Sources */,
 				C006_BF /* ViewportSceneLoader.swift in Sources */,
 				C007_BF /* ManuscriptTextView.swift in Sources */,
 				C078_BF /* ManuscriptEscapes.swift in Sources */,
@@ -832,6 +838,7 @@
 				D003_BF /* LandingView.swift in Sources */,
 				D004_BF /* EditorView.swift in Sources */,
 				D005_BF /* NewProjectSheet.swift in Sources */,
+				D210A_BF /* AuthorshipViews.swift in Sources */,
 				D006_BF /* ViewportSceneLoader.swift in Sources */,
 				D007_BF /* ManuscriptTextView.swift in Sources */,
 				D078_BF /* ManuscriptEscapes.swift in Sources */,
@@ -907,6 +914,7 @@
 				E003_BF /* LandingView.swift in Sources */,
 				E004_BF /* EditorView.swift in Sources */,
 				E005_BF /* NewProjectSheet.swift in Sources */,
+				E210A_BF /* AuthorshipViews.swift in Sources */,
 				E006_BF /* ViewportSceneLoader.swift in Sources */,
 				E007_BF /* ManuscriptTextView.swift in Sources */,
 				E078_BF /* ManuscriptEscapes.swift in Sources */,

@@ -38,6 +38,8 @@ struct WorldsView: View {
     /// Non-nil while the remove confirmation is up. Holds the world itself rather
     /// than a Bool so the prompt can name it.
     @State private var pendingRemoval: WorldEntry?
+    /// EP-058 S2 (SP-210): the world whose authors are being edited.
+    @State private var authorsFor: WorldEntry?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -120,6 +122,9 @@ struct WorldsView: View {
         .task { load() }
         // §4.4: naming the consequence concretely is the whole job here. A generic
         // "Are you sure?" leaves the writer to guess whether the package dies too.
+        .sheet(item: $authorsFor) { world in
+            WorldAuthorsSheet(worldName: world.displayName, worldPath: world.packagePath, projectRootPath: projectRootPath)
+        }
         .confirmationDialog("Remove this world from the project?",
                             isPresented: Binding(get: { pendingRemoval != nil },
                                                  set: { if !$0 { pendingRemoval = nil } }),
@@ -179,6 +184,11 @@ struct WorldsView: View {
                 Button("Locate…") { relinkWorld(world) }
                     .font(.caption2)
                     .buttonStyle(.borderless)
+            } else {
+                Button("Authors…") { authorsFor = world }
+                    .font(.caption2)
+                    .buttonStyle(.borderless)
+                    .help("Who wrote this world")
             }
 
             // ⚠️ Removes THIS PROJECT'S REFERENCE ONLY — the package on disk is

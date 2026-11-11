@@ -1,5 +1,9 @@
 # Sprint Backlog
 
+*Last Updated: 2026-11-11 (**SP-210 removed** — activated 2026-11-11.)*
+
+*Last Updated: 2026-11-11 (**SP-210 created in 🔵 Planning** — EP-058 S2 (user, 2026-11-11: *"plan EP-058 S2"*); Q1–Q6 to rule.)*
+
 *Last Updated: 2026-11-11 (**SP-209 → 🟡 ACTIVE** → `Sprint-active.md`; removed here, with EP-058's section.)*
 
 *Last Updated: 2026-11-10 (**SP-209 created in 🔵 Planning** — EP-058 S1 (user, 2026-11-10: *"activate EP-058 and plan its first sprint"*); Q1–Q5 to rule.)*
