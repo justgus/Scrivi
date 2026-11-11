@@ -93,3 +93,12 @@ the two questions (no Cancel; Esc and the close button do nothing); Edit ▸ Set
 now name their author, as a project credited to "Scrivi" correctly opens *Who wrote…?* over the window they type into.
 Boundary and ABI guard checks clean. ⏳ Linux CI after the push.
   T-0672 → 🟠.
+- **2026-11-11** — **Live pass (user): steps 1–6 passed, with three findings, fixed:**
+  (1) *"Ctrl-, did not work on the landing page"* — the landing page is its own window (`LandingWindow`) with **no menu bar**;
+  the plan's finding ("the same `QMainWindow` on the landing page and in a project") was wrong. It now has the same Ctrl+,
+  action. (2) *"Edit->Settings... should be at the bottom of the menu … below a ruled menu line"* — moved. (3) The dock showed
+  a generic gear, not the launcher's icon: Qt's Wayland app id was the binary's name (`scrivi_linux`), so GNOME could not match
+  the window to `scrivi.desktop`; `main.cpp` now sets the desktop file name `scrivi` and the window icon from the theme.
+  `authorship_smoke` checks (1) and (2); smokes 43/43 again. ⏳ (3) is for the user's eye (no test can see the dock).
+- **2026-11-11** — (4) *"the Project Settings Menu item … should appear at the bottom, after a separator line"* — moved
+  (`ScriviWindow.cpp`), checked by `authorship_smoke`. The Mac and iPad still list it first in their Project menus.

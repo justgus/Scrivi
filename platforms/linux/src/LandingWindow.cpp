@@ -1,6 +1,9 @@
 #include "LandingWindow.hpp"
 
 #include "AppEnvironment.hpp"
+#include "AuthorshipDialogs.hpp"
+
+#include <QAction>
 
 #include <QApplication>
 #include <QCloseEvent>
@@ -19,6 +22,17 @@ LandingWindow::LandingWindow(QQuickWidget* landing, AppEnvironment* env)
         landing_->setResizeMode(QQuickWidget::SizeRootObjectToView);
         setCentralWidget(landing_);
     }
+
+    // ✅ [SP-211] live pass: the landing window has no menu bar, so Edit ▸ Settings…'s Ctrl+, never reached it. The same
+    // action, by its shortcut — pen names belong to the writer, not a project.
+    auto* settings = new QAction(tr("Settings…"), this);
+    settings->setObjectName(QStringLiteral("landingSettingsAction"));
+    settings->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Comma));
+    connect(settings, &QAction::triggered, this, [this]() {
+        SettingsDialog dlg(this);
+        dlg.exec();
+    });
+    addAction(settings);
 }
 
 void LandingWindow::showRestored()

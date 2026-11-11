@@ -351,17 +351,6 @@ void ScriviWindow::buildMenuBar()
     // Cut/Copy/Paste forward to the focused writing surface (QPlainTextEdit slots).
     QMenu* edit = bar->addMenu(tr("&Edit"));
 
-    // EP-058 S3 ([SP-211] Q1): Edit ▸ Settings… (Ctrl+,) — the writer's settings (Apple: Scrivi ▸ Settings…, ⌘,). ⚠️ NOT in
-    // `editorOnlyActions_`: pen names belong to the writer, so it works from the landing page too ([SP-211] Q3).
-    QAction* appSettings = edit->addAction(tr("Settings…"));
-    appSettings->setObjectName(QStringLiteral("appSettingsAction"));
-    appSettings->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Comma));
-    connect(appSettings, &QAction::triggered, this, [this]() {
-        SettingsDialog dlg(this);
-        dlg.exec();
-    });
-    edit->addSeparator();
-
     // Edit ▸ Undo / Redo (EP-026 S2, SP-178 / T-0605) — the custom history. ✅ EP-026 Q3: Ctrl+Z / Ctrl+Shift+Z, ⛔ no
     // Ctrl+Y — so explicit sequences, not `QKeySequence::Undo/Redo` (whose X11 Redo includes Ctrl+Y). While the writing
     // surface has focus it claims both keys itself (ShortcutOverride) and signals the same `undo()` / `redo()`; these
@@ -448,12 +437,24 @@ void ScriviWindow::buildMenuBar()
         editorOnlyActions_.append(a);
     }
 
+    edit->addSeparator();   // ✅ [SP-211] live pass: Settings… last, below a rule
+    // EP-058 S3 ([SP-211] Q1): Edit ▸ Settings… (Ctrl+,) — the writer's settings (Apple: Scrivi ▸ Settings…, ⌘,). ⚠️ NOT in
+    // `editorOnlyActions_`: pen names belong to the writer, so the landing page has its own Ctrl+, (LandingWindow).
+    QAction* appSettings = edit->addAction(tr("Settings…"));
+    appSettings->setObjectName(QStringLiteral("appSettingsAction"));
+    appSettings->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Comma));
+    connect(appSettings, &QAction::triggered, this, [this]() {
+        SettingsDialog dlg(this);
+        dlg.exec();
+    });
+
     // --- View -------------------------------------------------------------
     // Show Inspector (EP-024 / SP-078, T-0320) — a checkable toggle for the Scene
     // Inspector panel, the Linux analogue of Apple's View ▸ Show Inspector at ⌘⌥I.
     // Ctrl+Alt+I is the Linux equivalent and (like SP-077's Ctrl+W) is not eaten by
     // the macOS→VNC input path. Editor-only; the check-state is synced to the
     // editor's real inspector visibility in updateMenuState().
+
     QMenu* view = bar->addMenu(tr("&View"));
 
     // ⚠️ [I-0256] — Show Scene Navigator. ⛔ THERE WAS NO CONTROL FOR THIS AT ALL.
@@ -553,19 +554,6 @@ void ScriviWindow::buildMenuBar()
 
     // --- Project ----------------------------------------------------------
     QMenu* project = bar->addMenu(tr("&Project"));
-    QAction* settings = project->addAction(tr("Project Settings…"));
-    // ✅ [SP-211] Q2 (Apple: ⌥⌘, since SP-210): Ctrl+, is the app's Settings.
-    settings->setShortcut(QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_Comma));
-    connect(settings, &QAction::triggered, this, [this]() {
-        // ✅ EP-048 S5a ([SP-182]): the real dialog — it replaces the T-0312 "coming soon" stub. Changes apply live.
-        if (editor_ == nullptr || editor_->preferences() == nullptr) {
-            return;
-        }
-        ProjectSettingsDialog dlg(editor_->preferences(), this);
-        dlg.exec();
-    });
-    editorOnlyActions_.append(settings);
-
     // ✅ EP-026 S3 ([SP-204]; Apple: EP-047 SP-167 Q1) — an ACTION, not a setting: its own dialog.
     QAction* purgeStale = project->addAction(tr("Purge Stale History Branches…"));
     purgeStale->setObjectName(QStringLiteral("purgeStaleBranchesAction"));
@@ -592,6 +580,20 @@ void ScriviWindow::buildMenuBar()
         }
     });
     editorOnlyActions_.append(worldsAction);
+
+    project->addSeparator();   // ✅ [SP-211] live pass: Project Settings… last, below a rule
+    QAction* settings = project->addAction(tr("Project Settings…"));
+    // ✅ [SP-211] Q2 (Apple: ⌥⌘, since SP-210): Ctrl+, is the app's Settings.
+    settings->setShortcut(QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_Comma));
+    connect(settings, &QAction::triggered, this, [this]() {
+        // ✅ EP-048 S5a ([SP-182]): the real dialog — it replaces the T-0312 "coming soon" stub. Changes apply live.
+        if (editor_ == nullptr || editor_->preferences() == nullptr) {
+            return;
+        }
+        ProjectSettingsDialog dlg(editor_->preferences(), this);
+        dlg.exec();
+    });
+    editorOnlyActions_.append(settings);
 
 
 

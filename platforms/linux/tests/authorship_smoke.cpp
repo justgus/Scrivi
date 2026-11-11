@@ -17,6 +17,7 @@
 #include "AppSupport.hpp"
 #include "AuthorshipDialogs.hpp"
 #include "EditorShell.hpp"
+#include "LandingWindow.hpp"
 #include "ManuscriptEditor.hpp"
 #include "ProjectSettingsDialog.hpp"
 #include "ScriviBridge.hpp"
@@ -30,6 +31,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QListWidget>
+#include <QMenu>
 #include <QMenuBar>
 #include <QPushButton>
 #include <QTest>
@@ -186,9 +188,26 @@ int main(int argc, char** argv)
     QAction* appSettings = menuAction(wo, QStringLiteral("Settings…"));
     check(appSettings != nullptr && appSettings->shortcut() == QKeySequence(Qt::CTRL | Qt::Key_Comma),
           QStringLiteral("§5 Edit ▸ Settings… on Ctrl+,"));
+    if (appSettings != nullptr) {
+        const QList<QAction*> editItems = appSettings->associatedObjects().isEmpty() ? QList<QAction*>()
+            : qobject_cast<QMenu*>(appSettings->associatedObjects().first()) != nullptr
+                ? qobject_cast<QMenu*>(appSettings->associatedObjects().first())->actions() : QList<QAction*>();
+        check(editItems.size() >= 2 && editItems.last() == appSettings && editItems.at(editItems.size() - 2)->isSeparator(),
+              QStringLiteral("§5 Settings… is last in Edit, below a rule"));
+    }
+    LandingWindow landing(nullptr, &env);   // main() builds the app's; this one is the same class
+    QAction* landingSettings = landing.findChild<QAction*>(QStringLiteral("landingSettingsAction"));
+    check(landingSettings != nullptr && landingSettings->shortcut() == QKeySequence(Qt::CTRL | Qt::Key_Comma),
+          QStringLiteral("§5 the landing window has Ctrl+, for Settings"));
     QAction* projectSettings = menuAction(wo, QStringLiteral("Project Settings…"));
     check(projectSettings != nullptr && projectSettings->shortcut() == QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_Comma),
           QStringLiteral("§5 Project Settings… on Ctrl+Alt+,"));
+    if (projectSettings != nullptr && !projectSettings->associatedObjects().isEmpty()) {
+        auto* menu = qobject_cast<QMenu*>(projectSettings->associatedObjects().first());
+        const QList<QAction*> items = menu != nullptr ? menu->actions() : QList<QAction*>();
+        check(items.size() >= 2 && items.last() == projectSettings && items.at(items.size() - 2)->isSeparator(),
+              QStringLiteral("§5 Project Settings… is last in Project, below a rule"));
+    }
     if (projectSettings != nullptr) {
         bool ran = false;
         QTimer::singleShot(0, wo, [&] {

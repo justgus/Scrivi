@@ -2,6 +2,8 @@
 #include "ScriviBridge.hpp"
 #include "ManuscriptTypography.hpp"
 #include <QApplication>
+#include <QGuiApplication>
+#include <QIcon>
 #include <cstdio>
 #include <QDir>
 #include <QFileInfo>
@@ -74,6 +76,11 @@ int main(int argc, char* argv[])
     QApplication app(argc, argv);
     QApplication::setApplicationName(QStringLiteral("Scrivi"));
     QApplication::setOrganizationName(QStringLiteral("Caposoft"));
+    // ✅ [SP-211] live pass: the dock showed a generic icon — GNOME matches a window to its launcher by the Wayland app id,
+    // which Qt takes from the desktop file name (else the binary's, `scrivi_linux`). The launcher is `scrivi.desktop`
+    // (docs/Scrivi_Linux_Rig_Setup_v0_1.md §5), its icon `scrivi` in the theme.
+    QGuiApplication::setDesktopFileName(QStringLiteral("scrivi"));
+    QApplication::setWindowIcon(QIcon::fromTheme(QStringLiteral("scrivi")));
     // ✅ EP-048 S5a ([SP-182]): the bundled manuscript faces (compiled in from Resources/Fonts, `fonts.json`'s list).
     BundledFonts::registerAll();
     // ✅ EP-050 S4 ([SP-203]): Orca reads the manuscript as the page shows it, not as it is stored.
