@@ -80,7 +80,8 @@ Project makeProject(ScriviBridge& bridge, const QString& appSupport, const QStri
 {
     Project p;
     p.dir = dir;
-    p.id = bridge.createProject(dir, appSupport, QStringLiteral("Indent"), QStringLiteral("indent"))
+    p.id = bridge.createProject(dir, appSupport, QStringLiteral("Indent"), QStringLiteral("indent"),
+                                QStringLiteral("Test Author"))   // named: "Scrivi" would ask Who wrote…? (SP-211)
                .value(QStringLiteral("projectID")).toString();
     QVariantList scenes = bridge.openProject(dir, appSupport).value(QStringLiteral("scenes")).toList();
     const QString chapterID = scenes.first().toMap().value(QStringLiteral("chapterID")).toString();

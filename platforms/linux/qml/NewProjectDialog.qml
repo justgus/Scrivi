@@ -29,6 +29,13 @@ Page {
 
     property string chosenFolder: ""     // parent directory (file:// URL → local path)
     property string errorText: ""
+    // EP-058 S3 ([SP-211]; Apple: SP-210 Q3): the writer's pen names, the default first in the Author field.
+    property var penNames: []
+    Component.onCompleted: {
+        var menu = bridgeRef.getPenNames(appSupportRootPath)
+        penNames = menu.penNames || []
+        authorField.currentIndex = penNames.indexOf(menu["default"] || "")   // -1 (empty) with no pen names
+    }
 
     // Title → slug auto-derivation (mirrors NewProjectSheet): lowercase, spaces to
     // hyphens, keep [a-z0-9-]. User can override the slug field afterward.
@@ -88,6 +95,15 @@ Page {
                 onTextEdited: userEdited = true
             }
 
+            Label { text: qsTr("Author:") }
+            ComboBox {
+                id: authorField
+                objectName: "authorField"
+                Layout.fillWidth: true
+                editable: true
+                model: root.penNames
+            }
+
             Label { text: qsTr("Location:") }
             RowLayout {
                 Layout.fillWidth: true
@@ -138,6 +154,7 @@ Page {
                 highlighted: true
                 enabled: titleField.text.length > 0
                          && slugField.text.trim().length > 0
+                         && authorField.editText.trim().length > 0
                          && root.chosenFolder.length > 0
                 onClicked: root.doCreate()
             }
@@ -152,7 +169,7 @@ Page {
             return
         }
         var path = composedPath()
-        var result = bridgeRef.createProject(path, appSupportRootPath, titleField.text, slug)
+        var result = bridgeRef.createProject(path, appSupportRootPath, titleField.text, slug, authorField.editText.trim())
         if (result && result.projectID !== undefined) {
             recentsRef.addOrUpdate(path, titleField.text)
             root.created(result.projectID, titleField.text, path)

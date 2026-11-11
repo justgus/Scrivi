@@ -16,6 +16,7 @@
 #include <QLabel>
 
 #include "AsyncCall.hpp"
+#include "AuthorshipDialogs.hpp"
 #include "ManuscriptTypography.hpp"
 #include "ProjectPreferences.hpp"
 #include "ScriviBridge.hpp"
@@ -37,6 +38,14 @@ ProjectSettingsDialog::ProjectSettingsDialog(ProjectPreferences* prefs, QWidget*
     projectForm->addRow(tr("Title"), title_);
     projectForm->addRow(tr("Subtitle"), subtitle_);
     layout->addWidget(project);
+
+    // ── Authors (EP-058 S3, [SP-211]; Apple's section, after Project): who wrote it, and who this machine writes as ──
+    if (ScriviBridge* bridge = prefs->bridge(); bridge != nullptr) {
+        auto* authors = new AuthorsBox(bridge, prefs->projectRootPath(), QString(), this);
+        connect(authors, &AuthorsBox::writingAsChanged, this,
+                [bridge](const QString& id, const QString& name) { bridge->adoptWritingAs(id, name); });
+        layout->addWidget(authors);
+    }
 
     // ── Writing Surface ([SP-184]; Apple's section, label and place) ──
     auto* surface = new QGroupBox(tr("Writing Surface"), this);

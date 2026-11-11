@@ -1,5 +1,7 @@
 # Sprint Backlog
 
+*Last Updated: 2026-11-11 (**SP-211 removed** — activated 2026-11-11.)*
+
 *Last Updated: 2026-11-11 (**SP-211 created in 🔵 Planning** — EP-058 S3 (user, 2026-11-11: *"close SP-210 and plan EP-058 S3"*); Q1–Q3 to rule.)*
 
 *Last Updated: 2026-11-11 (**SP-210 removed** — activated 2026-11-11.)*
@@ -35,14 +37,6 @@
 *Last Updated: 2026-11-05 (**SP-204 removed** — activated 2026-11-05.)*
 
 Sprints listed here are in 🔵 Planning status — defined and ready to activate, but not yet started.
-
----
-
-## EP-058 — Authorship
-
-### SP-211 — `[Linux]` [EP-058] S3: Authorship on Linux
-
-🔵 **PLANNING** 2026-11-11 → [`Sprint-SP-211.md`](Sprint-SP-211.md) · carries [T-0672] · Q1–Q3 to rule
 
 ---
 

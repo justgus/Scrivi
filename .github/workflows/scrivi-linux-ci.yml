@@ -334,6 +334,13 @@ jobs:
           platforms/linux/tests/settings_smoke.sh \
             ./build/platforms/linux/scrivi_linux_settings_smoke
 
+      # Authorship (SP-211 / T-0672, EP-058 S3): pen names, the questions on open over a real window, Settings and Project
+      # Settings ▸ Authors; the edit's author read back from disk.
+      - name: Authorship smoke test
+        run: |
+          platforms/linux/tests/authorship_smoke.sh \
+            ./build/platforms/linux/scrivi_linux_authorship_smoke
+
       # The paragraph indent and line heights (SP-183 / T-0610, EP-048 S5b): drawn by ManuscriptLayout, zero characters in
       # the file; and [I-0351] (a repaint no longer walks the whole manuscript).
       - name: Indent smoke test

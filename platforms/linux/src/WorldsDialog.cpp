@@ -1,6 +1,7 @@
 #include "WorldsDialog.hpp"
 
 #include "AsyncCall.hpp"
+#include "AuthorshipDialogs.hpp"
 
 #include "ScriviBridge.hpp"
 #include "PackageFolderDialog.hpp"
@@ -321,6 +322,15 @@ QWidget* WorldsDialog::makeRow(const Entry& e)
         locate->setToolTip(tr("Find where “%1” has moved to").arg(e.displayName));
         connect(locate, &QPushButton::clicked, this, [this, e]() { relinkWorld(e); });
         h->addWidget(locate);
+    } else {
+        // EP-058 S3 ([SP-211]; Apple: WorldsView): who wrote this world.
+        auto* authors = new QPushButton(tr("Authors…"), row);
+        authors->setToolTip(tr("Who wrote this world"));
+        connect(authors, &QPushButton::clicked, this, [this, e]() {
+            WorldAuthorsDialog dlg(bridge_, e.displayName, e.packagePath, projectRootPath_, this);
+            dlg.exec();
+        });
+        h->addWidget(authors);
     }
 
     auto* remove = new QPushButton(tr("Remove"), row);

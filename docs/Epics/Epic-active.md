@@ -1,5 +1,7 @@
 # Active Epics
 
+*Last Updated: 2026-11-11 (**EP-058: S3 = [SP-211] → 🟡 ACTIVE** (user, 2026-11-11: *"Q1–Q3 as recommended, activate and implement SP-211"*))*
+
 *Last Updated: 2026-11-11 (**EP-058: S3 = [SP-211] created in 🔵 Planning** (user, 2026-11-11: *"close SP-210 and plan EP-058 S3"*); Q1–Q3 to rule; [T-0672] filed.)*
 
 *Last Updated: 2026-11-11 (**EP-058: S2 = [SP-210] ✅ CLOSED** (user, 2026-11-11: *"close SP-210 and plan EP-058 S3"*); AC6 ✅.)*
@@ -163,7 +165,7 @@ launch for every project; the persona's name is the Mac's host name (Apple) or "
 - [ ] AC8 — ✅ Mac + iPad ([SP-210], 2026-11-11); Linux in S3 — Live passes on each platform: a pen name set, a second author added and reordered, a world credited, and a second
       machine (scrivi-vm) answering "which author are you?" and writing as the co-author
 
-**Sprints:** **S1 = [SP-209]** core ([T-0670]) ✅ Closed 2026-11-11 · **S2 = [SP-210]** Apple ([T-0671]) ✅ Closed 2026-11-11 · **S3 = [SP-211]** Linux ([T-0672]) 🔵 Planning. Then [EP-054] AC9 (the byline in Markdown, HTML and `.docx`).
+**Sprints:** **S1 = [SP-209]** core ([T-0670]) ✅ Closed 2026-11-11 · **S2 = [SP-210]** Apple ([T-0671]) ✅ Closed 2026-11-11 · **S3 = [SP-211]** Linux ([T-0672]) 🟡 Active. Then [EP-054] AC9 (the byline in Markdown, HTML and `.docx`).
 **Not in scope:** moving an identity between machines (v0.1 option A), signatures, roles beyond author (design Q1).
 
 ---

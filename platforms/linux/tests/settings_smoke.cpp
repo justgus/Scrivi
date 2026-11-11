@@ -81,7 +81,8 @@ Project makeProject(ScriviBridge& bridge, const QString& appSupport, const QStri
 {
     Project p;
     p.dir = dir;
-    p.id = bridge.createProject(dir, appSupport, QStringLiteral("Settings"), QStringLiteral("settings"))
+    p.id = bridge.createProject(dir, appSupport, QStringLiteral("Settings"), QStringLiteral("settings"),
+                                QStringLiteral("Test Author"))   // named: "Scrivi" would ask Who wrote…? (SP-211)
                .value(QStringLiteral("projectID")).toString();
     QVariantList scenes = bridge.openProject(dir, appSupport).value(QStringLiteral("scenes")).toList();
     const QString chapterID = scenes.first().toMap().value(QStringLiteral("chapterID")).toString();

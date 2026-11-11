@@ -185,7 +185,8 @@ int main(int argc, char** argv)
     rig.appSupport = scrivi::linux_app::appSupportRoot();
     rig.bridge.bootstrap(QStringLiteral("Scrivi"), rig.appSupport);
     rig.projectID = rig.bridge.createProject(rig.projectDir, rig.appSupport, QStringLiteral("Replace"),
-                                             QStringLiteral("replace")).value(QStringLiteral("projectID")).toString();
+                                             QStringLiteral("replace"), QStringLiteral("Test Author"))   // named: "Scrivi" would ask Who wrote…? (SP-211)
+                          .value(QStringLiteral("projectID")).toString();
     check(!rig.projectID.isEmpty(), QStringLiteral("project created"));
 
     const QStringList seeds{QStringLiteral("a **Smith** b and Smith c"), QStringLiteral("Bravo"),

@@ -248,6 +248,8 @@ public:
     // Scene Inspector that must be refreshed after a relink (I-0130). Reaching
     // into the shell from the window for all three would spread one concern
     // across two classes.
+    // EP-058 S3 ([SP-211]): Who wrote “Title”? / Which of these authors are you? — over this window.
+    void askAuthor(const QString& title);
     void manageWorlds();
 
     // --- EP-024 Scene Inspector (SP-078, T-0319) --------------------------
@@ -508,6 +510,9 @@ private:
         QVariantMap                inspectorLayout;
         bool                       inspectorLayoutFailed = true;
         QVariantMap                buffers;
+        // EP-058 S3 ([SP-211]): the open's writing-as author and the question it asks ("none" | "nameAuthor" | "chooseAuthor").
+        QVariantMap                writingAs;
+        QString                    authorPrompt;
     };
 
     // T-0500: stop the delayed reveal and hide the strip. ⚠️ Must run on EVERY

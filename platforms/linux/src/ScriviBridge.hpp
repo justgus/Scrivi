@@ -77,10 +77,12 @@ public:
     // calls it, and returns {projectID, firstScene:{sceneID, metadataPath,
     // contentPath}} to QML. On failure returns an empty map and emits
     // errorOccurred. Requires bootstrap() to have succeeded first.
+    // EP-058 S3 ([SP-211]): `author` (New Project's Author field) is the project's first author; empty keeps the identity's.
     Q_INVOKABLE QVariantMap createProject(const QString& projectRootPath,
                                           const QString& appSupportRoot,
                                           const QString& title,
-                                          const QString& slug);
+                                          const QString& slug,
+                                          const QString& author = QString());
 
     // Opens a native "choose existing directory" dialog (Qt Widgets QFileDialog)
     // and returns the selected absolute path, or an empty string if cancelled
@@ -466,6 +468,24 @@ public:
     // replaces the whole document — read, merge your keys, write), and the project rename, which
     // writes `project.json`'s `title`. ⚠️ No Linux UI reads them yet (EP-048 L10).
     Q_INVOKABLE QVariantMap getProjectSettings(const QString& projectRootPath);
+
+    // EP-058 S3 ([SP-211]) — authorship (scrivi.h, "EP-058 S1"). `rootPath` is a project OR a world package; for a world,
+    // `projectRootPath` is the open project's (a world with no authors is given the project's author). The identity is the
+    // bridge's. getAuthors: {authors?:[{personaID, displayName, unnamed}], writingAs?, authorPrompt}. setAuthors takes
+    // [{personaID?, displayName}] in byline order (no personaID = a new author; one left out is retired). ⛔ An `unnamed`
+    // author's displayName is "Scrivi" or a host name — never show it as a name.
+    Q_INVOKABLE QVariantMap getAuthors(const QString& rootPath, const QString& projectRootPath = QString());
+    Q_INVOKABLE QVariantMap setAuthors(const QString& rootPath, const QVariantList& authors);
+    Q_INVOKABLE QVariantMap setWritingAs(const QString& rootPath, const QString& personaID);
+    // The writer's pen-name menu, `<appSupportRoot>/pen-names.json`: {penNames?:[…], default}.
+    Q_INVOKABLE QVariantMap getPenNames(const QString& appSupportRoot);
+    Q_INVOKABLE QVariantMap putPenNames(const QString& appSupportRoot, const QStringList& penNames, const QString& defaultName);
+    // Every later authored call through this bridge (and the workers it hands its identity to) is recorded as this author:
+    // the open's `writingAs`, or the answer to a question on open.
+    void adoptWritingAs(const QString& personaID, const QString& displayName);
+    // SP-210 Q2/Q3: a name typed as an author joins the pen-name menu; the first one becomes the default. A failure is
+    // ignored — the menu is a convenience and never blocks crediting the work.
+    Q_INVOKABLE void rememberPenName(const QString& appSupportRoot, const QString& name);
     Q_INVOKABLE QVariantMap putProjectSettings(const QString& projectRootPath, const QString& documentJson);
     Q_INVOKABLE QVariantMap setProjectTitle(const QString& projectRootPath, const QString& title);
 

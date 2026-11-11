@@ -182,7 +182,8 @@ QVariantMap ScriviBridge::ensureLocalIdentity(const QString& displayName,
 QVariantMap ScriviBridge::createProject(const QString& projectRootPath,
                                         const QString& appSupportRoot,
                                         const QString& title,
-                                        const QString& slug)
+                                        const QString& slug,
+                                        const QString& author)
 {
     if (!ready_) {
         // Never reaches parseEnvelope, so the flag is set here too — otherwise
@@ -199,8 +200,28 @@ QVariantMap ScriviBridge::createProject(const QString& projectRootPath,
                               slug.toUtf8().constData(),
                               identityID_.toUtf8().constData(),
                               personaID_.toUtf8().constData(),
-                              displayName_.toUtf8().constData()));
-    return parseEnvelope(envelope.toQString());
+                              (author.trimmed().isEmpty() ? displayName_ : author.trimmed()).toUtf8().constData()));
+    QVariantMap created = parseEnvelope(envelope.toQString());
+    if (!created.isEmpty()) {
+        rememberPenName(appSupportRoot, author);   // SP-210 Q3: a name typed as an author joins the menu
+    }
+    return created;
+}
+
+void ScriviBridge::rememberPenName(const QString& appSupportRoot, const QString& name)
+{
+    const QString n = name.trimmed();
+    if (n.isEmpty()) {
+        return;
+    }
+    const QVariantMap menu = getPenNames(appSupportRoot);
+    QStringList names = menu.value(QStringLiteral("penNames")).toStringList();
+    if (names.contains(n)) {
+        return;
+    }
+    QString def = menu.value(QStringLiteral("default")).toString();
+    names.append(n);
+    putPenNames(appSupportRoot, names, def.isEmpty() ? n : def);   // the first name becomes the default
 }
 
 QVariantMap ScriviBridge::openProject(const QString& projectRootPath,
@@ -888,6 +909,68 @@ QVariantMap ScriviBridge::putProjectSettings(const QString& projectRootPath, con
     const ScriviString envelope(scrivi_put_project_settings(projectRootPath.toUtf8().constData(),
                                                             documentJson.toUtf8().constData()));
     return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::getAuthors(const QString& rootPath, const QString& projectRootPath)
+{
+    if (!ready_) {
+        tlsLastCallFailed = true;
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_get_authors(rootPath.toUtf8().constData(), identityID_.toUtf8().constData(),
+                                                   projectRootPath.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::setAuthors(const QString& rootPath, const QVariantList& authors)
+{
+    QJsonArray list;
+    for (const QVariant& a : authors) {
+        const QVariantMap m = a.toMap();
+        QJsonObject o{{QStringLiteral("displayName"), m.value(QStringLiteral("displayName")).toString()}};
+        const QString id = m.value(QStringLiteral("personaID")).toString();
+        if (!id.isEmpty()) {
+            o.insert(QStringLiteral("personaID"), id);
+        }
+        list.append(o);
+    }
+    const QByteArray json = QJsonDocument(QJsonObject{{QStringLiteral("authors"), list}}).toJson(QJsonDocument::Compact);
+    const ScriviString envelope(scrivi_set_authors(rootPath.toUtf8().constData(), json.constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::setWritingAs(const QString& rootPath, const QString& personaID)
+{
+    if (!ready_) {
+        tlsLastCallFailed = true;
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_set_writing_as(rootPath.toUtf8().constData(), identityID_.toUtf8().constData(),
+                                                      personaID.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::getPenNames(const QString& appSupportRoot)
+{
+    const ScriviString envelope(scrivi_get_pen_names(appSupportRoot.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::putPenNames(const QString& appSupportRoot, const QStringList& penNames, const QString& defaultName)
+{
+    const QJsonObject doc{{QStringLiteral("penNames"), QJsonArray::fromStringList(penNames)},
+                          {QStringLiteral("default"), defaultName}};
+    const QByteArray json = QJsonDocument(doc).toJson(QJsonDocument::Compact);
+    const ScriviString envelope(scrivi_put_pen_names(appSupportRoot.toUtf8().constData(), json.constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+void ScriviBridge::adoptWritingAs(const QString& personaID, const QString& displayName)
+{
+    personaID_   = personaID;
+    displayName_ = displayName;
 }
 
 QVariantMap ScriviBridge::setProjectTitle(const QString& projectRootPath, const QString& title)

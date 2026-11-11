@@ -59,6 +59,7 @@
 #include "NavigatorTree.hpp"
 #include "SceneInspector.hpp"
 #include "WorldsDialog.hpp"
+#include "AuthorshipDialogs.hpp"
 #include "ScriviBridge.hpp"
 #include "StoryStructures.hpp"
 #include "TimeDeltaPicker.hpp"
@@ -549,6 +550,8 @@ void EditorShell::load(const QString& projectPath,
 
             out.projectID = opened.value(QStringLiteral("projectID")).toString();
             out.projectTitle = opened.value(QStringLiteral("projectTitle")).toString();
+            out.writingAs = opened.value(QStringLiteral("writingAs")).toMap();
+            out.authorPrompt = opened.value(QStringLiteral("authorPrompt")).toString();
             out.settings = bridge->getProjectSettings(path);   // [SP-182]: read here, off the GUI thread
             const QVariantList scenes = opened.value(QStringLiteral("scenes")).toList();
             const QVariantMap active  = opened.value(QStringLiteral("activeScene")).toMap();
@@ -669,6 +672,16 @@ void EditorShell::load(const QString& projectPath,
             applyLoadedProject(projectPath, appSupportRoot, payload);
             DiagnosticLog::note(QStringLiteral("load: finished in %1 ms (%2 scenes)").arg(loadClock.elapsed()).arg(sceneDoc_.segments().size()));
             emit loadFinished(true);
+            // EP-058 S3 ([SP-211]): the window's edits are recorded as the project's writing-as author; with no answer yet,
+            // ask — once, on the project's first load (a structural reload keeps the window's author).
+            if (const QVariantMap w = payload.writingAs; !w.isEmpty()) {
+                bridge_->adoptWritingAs(w.value(QStringLiteral("personaID")).toString(),
+                                        w.value(QStringLiteral("displayName")).toString());
+            }
+            if (payload.historyRequested && !payload.authorPrompt.isEmpty()
+                && payload.authorPrompt != QLatin1String("none")) {
+                askAuthor(payload.projectTitle);
+            }
         },
         [this]() {
             hideLoadProgress();
@@ -3601,6 +3614,22 @@ bool EditorShell::confirmEarlierSessionUndo(const QString& timestamp)
 }
 
 // --- EP-024 Scene Inspector visibility (SP-078, T-0319) -------------------
+
+void EditorShell::askAuthor(const QString& title)
+{
+    // Window-modal and opened, not exec'd: the window shows first, and nothing can be typed into it until the question is
+    // answered ([SP-210] Q4). The dialog refuses Esc and has no close button.
+    auto* dlg = new AuthorQuestionDialog(bridge_, projectPath_, title, this);
+    dlg->setAttribute(Qt::WA_DeleteOnClose);
+    dlg->setWindowModality(Qt::WindowModal);
+    connect(dlg, &AuthorQuestionDialog::answered, this,
+            [this](const QString& id, const QString& name) { bridge_->adoptWritingAs(id, name); });
+    if (dlg->result() == QDialog::Accepted) {   // nothing left to ask (another window answered it first)
+        dlg->deleteLater();
+        return;
+    }
+    dlg->open();
+}
 
 void EditorShell::manageWorlds()
 {

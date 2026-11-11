@@ -153,6 +153,7 @@ qt_add_executable(scrivi_linux
     # getWorldStatus / getWorldBinding were bridged with ZERO callers, so a
     # project whose world had MOVED could not be repaired from the app at all.
     src/WorldsDialog.cpp
+    src/AuthorshipDialogs.cpp
     src/WorldsDialog.hpp
     # Writer-facing WorldStatus phrasing, HOISTED out of SceneInspector when the
     # Worlds dialog became a second reader. ⚠️ Header-only and shared on purpose —
@@ -1145,6 +1146,7 @@ qt_add_executable(scrivi_linux_dumas_world_fixture
     src/InspectorLayoutStore.cpp
     src/InspectorLayoutStore.hpp
     src/WorldsDialog.cpp
+    src/AuthorshipDialogs.cpp
     src/WorldsDialog.hpp
     src/WorldStatusText.hpp
     src/ThemeColours.hpp
@@ -1236,6 +1238,7 @@ qt_add_executable(scrivi_linux_open_progress_smoke
     src/InspectorLayoutStore.cpp
     src/InspectorLayoutStore.hpp
     src/WorldsDialog.cpp
+    src/AuthorshipDialogs.cpp
     src/WorldsDialog.hpp
     src/WorldStatusText.hpp
     src/ThemeColours.hpp
@@ -1323,6 +1326,7 @@ qt_add_executable(scrivi_linux_undo_smoke
     src/InspectorLayoutStore.cpp
     src/InspectorLayoutStore.hpp
     src/WorldsDialog.cpp
+    src/AuthorshipDialogs.cpp
     src/WorldsDialog.hpp
     src/WorldStatusText.hpp
     src/ThemeColours.hpp
@@ -1411,6 +1415,7 @@ qt_add_executable(scrivi_linux_structured_paste_smoke
     src/InspectorLayoutStore.cpp
     src/InspectorLayoutStore.hpp
     src/WorldsDialog.cpp
+    src/AuthorshipDialogs.cpp
     src/WorldsDialog.hpp
     src/WorldStatusText.hpp
     src/ThemeColours.hpp
@@ -1498,6 +1503,7 @@ qt_add_executable(scrivi_linux_structural_baseline_smoke
     src/InspectorLayoutStore.cpp
     src/InspectorLayoutStore.hpp
     src/WorldsDialog.cpp
+    src/AuthorshipDialogs.cpp
     src/WorldsDialog.hpp
     src/WorldStatusText.hpp
     src/ThemeColours.hpp
@@ -1585,6 +1591,7 @@ qt_add_executable(scrivi_linux_replace_smoke
     src/InspectorLayoutStore.cpp
     src/InspectorLayoutStore.hpp
     src/WorldsDialog.cpp
+    src/AuthorshipDialogs.cpp
     src/WorldsDialog.hpp
     src/WorldStatusText.hpp
     src/ThemeColours.hpp
@@ -1683,6 +1690,7 @@ qt_add_executable(scrivi_linux_buffers_smoke
     src/InspectorLayoutStore.cpp
     src/InspectorLayoutStore.hpp
     src/WorldsDialog.cpp
+    src/AuthorshipDialogs.cpp
     src/WorldsDialog.hpp
     src/WorldStatusText.hpp
     src/ThemeColours.hpp
@@ -1782,6 +1790,7 @@ qt_add_executable(scrivi_linux_background_wait_smoke
     src/InspectorLayoutStore.cpp
     src/InspectorLayoutStore.hpp
     src/WorldsDialog.cpp
+    src/AuthorshipDialogs.cpp
     src/WorldsDialog.hpp
     src/WorldStatusText.hpp
     src/ThemeColours.hpp
@@ -1879,6 +1888,7 @@ qt_add_executable(scrivi_linux_settings_smoke
     src/InspectorLayoutStore.cpp
     src/InspectorLayoutStore.hpp
     src/WorldsDialog.cpp
+    src/AuthorshipDialogs.cpp
     src/WorldsDialog.hpp
     src/WorldStatusText.hpp
     src/ThemeColours.hpp
@@ -1908,6 +1918,104 @@ target_link_libraries(scrivi_linux_settings_smoke
 target_include_directories(scrivi_linux_settings_smoke PRIVATE src ${CMAKE_CURRENT_BINARY_DIR}/generated)
 add_dependencies(scrivi_linux_settings_smoke scrivi_version)
 target_compile_features(scrivi_linux_settings_smoke PRIVATE cxx_std_23)
+
+# authorship_smoke (EP-058 S3 / SP-211, T-0672) — authorship on Linux: the bridge's five calls, the questions on open over a
+# REAL project window, the menus and Project Settings ▸ Authors; the edit's author read FROM DISK. Driven by
+# authorship_smoke.sh (offscreen). Built from settings_smoke's source list (the same window stack).
+qt_add_executable(scrivi_linux_authorship_smoke
+    tests/authorship_smoke.cpp
+    src/AppSupport.cpp
+    src/AppSupport.hpp
+    src/AppEnvironment.hpp
+    src/SessionStore.cpp
+    src/SessionStore.hpp
+    src/ProjectWindowManager.hpp
+    src/RecentsStore.cpp
+    src/RecentsStore.hpp
+    src/ScriviBridge.cpp
+    src/ScriviBridge.hpp
+    src/AppEnvironment.cpp
+    src/LandingWindow.cpp
+    src/LandingWindow.hpp
+    src/ScriviWindow.cpp
+    src/DiagnosticLog.cpp
+    src/DiagnosticLog.hpp
+    src/ProjectSettingsDialog.cpp
+    src/ProjectSettingsDialog.hpp
+    src/ScriviWindow.hpp
+    src/BuffersPalette.cpp
+    src/BuffersPalette.hpp
+    src/EditorShell.cpp
+    src/ManuscriptTypography.cpp
+    src/ManuscriptTypography.hpp
+    src/ProjectPreferences.cpp
+    src/ProjectPreferences.hpp
+    src/HistoryCapture.cpp
+    src/HistoryCapture.hpp
+    src/BufferService.cpp
+    src/BufferService.hpp
+    src/EditorShell.hpp
+    src/ProjectSession.hpp
+    src/OpenProjectRegistry.cpp
+    src/OpenProjectRegistry.hpp
+    src/SceneDocument.cpp
+    src/SceneDocument.hpp
+    src/ManuscriptLayout.cpp
+    src/ManuscriptLayout.hpp
+    src/ManuscriptEditor.cpp
+    src/ManuscriptPresenter.cpp
+    src/ManuscriptPresenter.hpp
+    src/MarkdownAnalysis.hpp
+    src/ManuscriptEditor.hpp
+    src/ManuscriptEscapes.cpp
+    src/ManuscriptEscapes.hpp
+    src/FormatMenu.cpp
+    src/FormatMenu.hpp
+    src/FindBar.cpp
+    src/FindBar.hpp
+    src/ManuscriptFind.cpp
+    src/ManuscriptFind.hpp
+    src/NavigatorTree.cpp
+    src/NavigatorTree.hpp
+    src/SceneInspector.cpp
+    src/HistorySection.cpp
+    src/HistorySection.hpp
+    src/SceneInspector.hpp
+    src/ObjectKindScope.cpp
+    src/ObjectKindScope.hpp
+    src/InspectorLayoutStore.cpp
+    src/InspectorLayoutStore.hpp
+    src/WorldsDialog.cpp
+    src/AuthorshipDialogs.cpp
+    src/WorldsDialog.hpp
+    src/WorldStatusText.hpp
+    src/ThemeColours.hpp
+    src/PackageFolderDialog.hpp
+    src/TimelinePanel.cpp
+    src/TimelinePanel.hpp
+    src/TimeDeltaPicker.cpp
+    src/TimeDeltaPicker.hpp
+    src/StoryStructures.cpp
+    src/StoryStructures.hpp
+    src/HistoricalEventDialog.cpp
+    src/HistoricalEventDialog.hpp
+    src/EpochOffsetDialog.cpp
+    src/EpochOffsetDialog.hpp
+)
+
+target_link_libraries(scrivi_linux_authorship_smoke
+    PRIVATE
+        ScriviCore
+        Qt6::Quick
+        Qt6::Widgets
+        Qt6::QuickWidgets
+        Qt6::Concurrent
+        Qt6::Test
+)
+
+target_include_directories(scrivi_linux_authorship_smoke PRIVATE src ${CMAKE_CURRENT_BINARY_DIR}/generated)
+add_dependencies(scrivi_linux_authorship_smoke scrivi_version)
+target_compile_features(scrivi_linux_authorship_smoke PRIVATE cxx_std_23)
 
 # branch_smoke (EP-026 S3 / SP-204, T-0662) — branching undo: the chooser on Ctrl+Shift+Z, the branch mark in the gutter, a
 # branch written before the window opened, the History section, Undo History settings, the stale-branch purge. A REAL
@@ -1976,6 +2084,7 @@ qt_add_executable(scrivi_linux_branch_smoke
     src/InspectorLayoutStore.cpp
     src/InspectorLayoutStore.hpp
     src/WorldsDialog.cpp
+    src/AuthorshipDialogs.cpp
     src/WorldsDialog.hpp
     src/WorldStatusText.hpp
     src/ThemeColours.hpp
@@ -2074,6 +2183,7 @@ qt_add_executable(scrivi_linux_indent_smoke
     src/InspectorLayoutStore.cpp
     src/InspectorLayoutStore.hpp
     src/WorldsDialog.cpp
+    src/AuthorshipDialogs.cpp
     src/WorldsDialog.hpp
     src/WorldStatusText.hpp
     src/ThemeColours.hpp
@@ -2172,6 +2282,7 @@ qt_add_executable(scrivi_linux_chapter_titles_smoke
     src/InspectorLayoutStore.cpp
     src/InspectorLayoutStore.hpp
     src/WorldsDialog.cpp
+    src/AuthorshipDialogs.cpp
     src/WorldsDialog.hpp
     src/WorldStatusText.hpp
     src/ThemeColours.hpp

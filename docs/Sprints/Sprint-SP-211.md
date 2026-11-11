@@ -1,15 +1,15 @@
 ---
 sprint: SP-211
 epic: EP-058
-status: Planning
+status: Active
 platform: Linux
 created: 2026-11-11
 ---
 
 # SP-211 — `[Linux]` [EP-058] **S3**: Authorship on Linux
 
-**Status:** 🔵 **PLANNING** 2026-11-11 (user, 2026-11-11: *"close SP-210 and plan EP-058 S3"*) · Q1–Q3 to rule.
-**Carries:** [T-0672] → [`../Tasks/Task-backlog.md`](../Tasks/Task-backlog.md).
+**Status:** 🟡 **ACTIVE** 2026-11-11 (user, 2026-11-11: *"Q1–Q3 as recommended, activate and implement SP-211"*) · ✅ Q1–Q3 ruled as recommended · ✅ built (AC1–AC5) · ⏳ CI (AC6) and the live pass (AC7).
+**Carries:** [T-0672] → [`../Tasks/Task-unverified.md`](../Tasks/Task-unverified.md).
 **Epic:** [EP-058] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md) (AC3, AC4 and AC8 on Linux; AC7).
 **Design:** [`../Scrivi_Authorship_Design_v0_2.md`](../Scrivi_Authorship_Design_v0_2.md) §4.2, §4.4.
 **Shape:** [SP-210] (✅ closed) — Linux adopts the Mac's surfaces, wording and rules (Q2–Q6 there carry over unchanged).
@@ -68,13 +68,13 @@ every edit recorded as the window's author, and the two questions on open.
 
 ## Acceptance Criteria
 
-- [ ] AC1 — The bridge wraps the five endpoints and adopts the open's `writingAs`; `authorship_smoke` through the bridge
-- [ ] AC2 — Every edit in a window is recorded under that project's writing-as author (a sidecar read back after a save)
-- [ ] AC3 — New Project credits the project to the chosen pen name
-- [ ] AC4 — Settings ▸ Pen Names (Q1), Project Settings ▸ Authors with I write as, and Worlds ▸ Authors…, in the Mac's
+- [x] AC1 — The bridge wraps the five endpoints and adopts the open's `writingAs`; `authorship_smoke` through the bridge
+- [x] AC2 — Every edit in a window is recorded under that project's writing-as author (a sidecar read back after a save)
+- [x] AC3 — New Project credits the project to the chosen pen name
+- [x] AC4 — Settings ▸ Pen Names (Q1), Project Settings ▸ Authors with I write as, and Worlds ▸ Authors…, in the Mac's
       wording; never the last author removed; an unnamed author never shown as a name
-- [ ] AC5 — *Who wrote…?* and *Which of these authors are you?* on open, unanswerable-away as on the Mac
-- [ ] AC6 — ctest, every Linux smoke and the Linux CI green; Docker build clean
+- [x] AC5 — *Who wrote…?* and *Which of these authors are you?* on open, unanswerable-away as on the Mac
+- [ ] AC6 — ctest, every Linux smoke and the Linux CI green; Docker build clean — ✅ ctest 839/839 and smokes 43/43 on scrivi-vm; ⏳ CI after the push (Docker was not running: built on scrivi-vm instead)
 - [ ] AC7 — **Live pass (user), scrivi-vm:** set a pen name; a new project credited to it; a second author added and
       reordered; a world credited; an old Linux project (credited to "Scrivi") asks once and keeps its history; a project
       made on the Mac asks *Which of these authors are you?* and writes as the answer
@@ -83,3 +83,13 @@ every edit recorded as the window's author, and the two questions on open.
 
 - **2026-11-11** — 🔵 **Created in Planning** (user: *"close SP-210 and plan EP-058 S3"*), issued via `next-id.py`; [T-0672]
   filed. Q1–Q3 to rule.
+- **2026-11-11** — ✅ Q1–Q3 ruled as recommended. 🟡 **Activated** (user, 2026-11-11: *"Q1–Q3 as recommended, activate and implement SP-211"*).
+- **2026-11-11** — ✅ **Built.** the bridge's five calls, `adoptWritingAs` and `rememberPenName`, and New Project's author through
+`createProject` (`ScriviBridge.*`); the window adopts the open's `writingAs` and asks on a first load (`EditorShell::askAuthor`);
+`src/AuthorshipDialogs.{hpp,cpp}` (new) — Settings ▸ Pen Names, Project Settings ▸ Authors with I write as, Worlds ▸ Authors…,
+the two questions (no Cancel; Esc and the close button do nothing); Edit ▸ Settings… (Ctrl+,), Project Settings… (Ctrl+Alt+,)
+(`ScriviWindow.cpp`); the Author field (`NewProjectDialog.qml`). Evidence (scrivi-vm, scratch copy of the working tree):
+`authorship_smoke` (new, in CI); ctest 839/839; every Linux smoke 43/43 — three fixtures (`settings`, `indent`, `replace`)
+now name their author, as a project credited to "Scrivi" correctly opens *Who wrote…?* over the window they type into.
+Boundary and ABI guard checks clean. ⏳ Linux CI after the push.
+  T-0672 → 🟠.

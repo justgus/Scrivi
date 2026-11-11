@@ -34,6 +34,7 @@
 #include "BufferService.hpp"
 #include "DiagnosticLog.hpp"
 #include "EditorShell.hpp"
+#include "AuthorshipDialogs.hpp"
 #include "ProjectSettingsDialog.hpp"
 #include "ScriviBridge.hpp"
 
@@ -350,6 +351,17 @@ void ScriviWindow::buildMenuBar()
     // Cut/Copy/Paste forward to the focused writing surface (QPlainTextEdit slots).
     QMenu* edit = bar->addMenu(tr("&Edit"));
 
+    // EP-058 S3 ([SP-211] Q1): Edit ▸ Settings… (Ctrl+,) — the writer's settings (Apple: Scrivi ▸ Settings…, ⌘,). ⚠️ NOT in
+    // `editorOnlyActions_`: pen names belong to the writer, so it works from the landing page too ([SP-211] Q3).
+    QAction* appSettings = edit->addAction(tr("Settings…"));
+    appSettings->setObjectName(QStringLiteral("appSettingsAction"));
+    appSettings->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Comma));
+    connect(appSettings, &QAction::triggered, this, [this]() {
+        SettingsDialog dlg(this);
+        dlg.exec();
+    });
+    edit->addSeparator();
+
     // Edit ▸ Undo / Redo (EP-026 S2, SP-178 / T-0605) — the custom history. ✅ EP-026 Q3: Ctrl+Z / Ctrl+Shift+Z, ⛔ no
     // Ctrl+Y — so explicit sequences, not `QKeySequence::Undo/Redo` (whose X11 Redo includes Ctrl+Y). While the writing
     // surface has focus it claims both keys itself (ShortcutOverride) and signals the same `undo()` / `redo()`; these
@@ -542,6 +554,8 @@ void ScriviWindow::buildMenuBar()
     // --- Project ----------------------------------------------------------
     QMenu* project = bar->addMenu(tr("&Project"));
     QAction* settings = project->addAction(tr("Project Settings…"));
+    // ✅ [SP-211] Q2 (Apple: ⌥⌘, since SP-210): Ctrl+, is the app's Settings.
+    settings->setShortcut(QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_Comma));
     connect(settings, &QAction::triggered, this, [this]() {
         // ✅ EP-048 S5a ([SP-182]): the real dialog — it replaces the T-0312 "coming soon" stub. Changes apply live.
         if (editor_ == nullptr || editor_->preferences() == nullptr) {
