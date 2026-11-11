@@ -477,7 +477,7 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-206** | `[Cross]` **[EP-054] S2** — Export Archive… / Import Archive… on the Mac, Linux and iPad (T-0665) | EP-054 | 2026-11-06 | 2026-11-09 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-206.md) |
 | **SP-207** | `[Cross]` **[EP-054] S3** — Markdown and HTML export (T-0666) | EP-054 | 2026-11-09 | 2026-11-09 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-207.md) |
 | **SP-208** | `[Cross]` **[EP-054] S4** — Word `.docx` export (T-0668) | EP-054 | 2026-11-10 | 2026-11-10 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-208.md) |
-| **SP-209** | `[ScriviCore]` **[EP-058] S1** — authorship in the core: authors, writing as, pen names, world authors (T-0670) | EP-058 | 2026-11-11 | — | 🟡 **ACTIVE** → [`Sprint-SP-209.md`](Sprint-SP-209.md) |
+| **SP-209** | `[ScriviCore]` **[EP-058] S1** — authorship in the core: authors, writing as, pen names, world authors (T-0670) | EP-058 | 2026-11-11 | 2026-11-11 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-209.md) |
 | **SP-160** | `[Linux]` **[EP-049] S1** — Linux writes Apple's manuscript format: escaping, paste/copy, pair deletion, Return/⌫, shared corpus (T-0586); + I-0276 | EP-049 | 2026-10-04 | 2026-10-04 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-160.md) |
 
 ## Statistics
@@ -517,6 +517,8 @@ by status, read the table.**
 > on neither time. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-11-11 (**SP-209 → ✅ CLOSED** (user, 2026-11-11: *"close SP-209 now and make the workflow change"*) → `Closed/Sprint-SP-209.md`)*
 
 *Last Updated: 2026-11-11 (**SP-209 → 🟡 ACTIVE** (user, 2026-11-11: *"Q1–Q5 as recommended, activate and implement SP-209"*))*
 

@@ -55,18 +55,31 @@ jobs:
         run: scripts/check-package-boundary.sh
 
       # Qt 6.4 + QML modules from apt — matches the Docker/alpha toolchain pin.
+      #
+      # ⚠️ 2026-11-11 (SP-209): azure.archive.ubuntu.com timed out EVERY package (20 s each, "Ign:") — a 27 s step ran
+      # 55 min and would have run for hours, twice. So: each attempt is capped at 5 min, a failed one moves the runner to
+      # archive.ubuntu.com and tries once more, and the step fails at 15 min instead of the job's 6 h default.
       - name: Install Qt6 + build deps
+        timeout-minutes: 15
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            build-essential cmake ninja-build \
-            libssl-dev \
-            qt6-base-dev qt6-declarative-dev \
-            qml6-module-qtquick qml6-module-qtquick-controls \
-            qml6-module-qtquick-templates \
-            qml6-module-qtquick-layouts qml6-module-qtquick-window \
-            qml6-module-qtqml-workerscript qml6-module-qtqml-models \
-            libgl1-mesa-dev
+          install() {
+            sudo apt-get update -o Acquire::Retries=3 &&
+            sudo timeout 300 apt-get install -y --no-install-recommends -o Acquire::Retries=3 -o Acquire::http::Timeout=15 \
+              build-essential cmake ninja-build \
+              libssl-dev \
+              qt6-base-dev qt6-declarative-dev \
+              qml6-module-qtquick qml6-module-qtquick-controls \
+              qml6-module-qtquick-templates \
+              qml6-module-qtquick-layouts qml6-module-qtquick-window \
+              qml6-module-qtqml-workerscript qml6-module-qtqml-models \
+              libgl1-mesa-dev
+          }
+          install || {
+            echo "::warning::the Azure Ubuntu mirror failed; retrying from archive.ubuntu.com"
+            sudo sed -i 's|azure\.archive\.ubuntu\.com|archive.ubuntu.com|g' \
+              /etc/apt/sources.list.d/ubuntu.sources /etc/apt/sources.list 2>/dev/null || true
+            install
+          }
 
       # ⚠️ Debug, as every build is until Scrivi reaches its release state (user, 2026-10-17). Debug is -O0: about 4x
       # slower than Release on CPU-bound work (measured 2026-10-12), so no smoke asserts a tight time.
@@ -80,8 +93,9 @@ jobs:
       # and stays up briefly (proves the QML engine + ScriviBridge load without
       # crashing). A non-zero exit or immediate quit fails the job.
       - name: Headless smoke test
+        timeout-minutes: 10   # its apt install hangs with a dead mirror, as the Qt install did (2026-11-11)
         run: |
-          sudo apt-get install -y --no-install-recommends xvfb
+          sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 -o Acquire::http::Timeout=15 xvfb
           xvfb-run -a --server-args="-screen 0 1024x768x24" \
             timeout --preserve-status 8 ./build/platforms/linux/scrivi_linux &
           APP=$!

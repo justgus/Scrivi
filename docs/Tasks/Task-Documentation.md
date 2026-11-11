@@ -821,7 +821,7 @@ archive files reconstructed after the fact from secondary sources.
 | T-0667 | `[Cross]` EP-054: paste a Copy as HTML chapter into AO3 itself once it is back online | — | **EP-054** | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
 | T-0668 | `[Cross]` EP-054 S4: Word `.docx` export | ✅ **SP-208** | **EP-054** | ✅ Verified 2026-11-10 | [`Verified/Task-verified-0668.md`](Verified/Task-verified-0668.md) |
 | T-0669 | `[Apple]` EP-054: the iPad `.docx` pass (from SP-208 AC5/AC7) | — | **EP-054** | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
-| T-0670 | `[ScriviCore]` EP-058 S1: authorship in the core | 🟡 **SP-209** | **EP-058** | 🟡 Active | [`Task-active.md`](Task-active.md) |
+| T-0670 | `[ScriviCore]` EP-058 S1: authorship in the core | ✅ **SP-209** | **EP-058** | ✅ Verified 2026-11-11 | [`Verified/Task-verified-0670.md`](Verified/Task-verified-0670.md) |
 | T-0592 | `[Apple]` E2-S3: formatting commands + lists + Option-Return | 🟡 **SP-163** | **EP-046** | ✅ **Verified 2026-10-06** | [`Task-verified-0592.md`](Verified/Task-verified-0592.md) |
 | T-0591 | `[Apple]` Balance emphasis across SCENE boundaries (cross-scene cut/copy/paste) | 🟡 **SP-163** | **EP-046** | ✅ **Verified 2026-10-06** | [`Task-verified-0591.md`](Verified/Task-verified-0591.md) |
 | T-0590 | `[Apple]` E2-S2: bold and italic + span reveal + the split rule | ✅ **SP-162** | **EP-046** | ✅ **Verified 2026-10-05** | [`Task-verified-0590.md`](Verified/Task-verified-0590.md) |
@@ -859,6 +859,8 @@ archive files reconstructed after the fact from secondary sources.
 ⚠️ **This index ended at `T-0485 (next available)` until 2026-09-10 — ✅ that was STALE.** ⚠️ **T-0485–T-0498 had all been taken**, and T-0485–T-0490/T-0492–T-0496 are archived as Verified. ⚠️ **Rows for T-0486–T-0497 are NOT reconstructed here** — ✅ **their Sprints' closed records are authoritative** (`feedback_archive_on_close`).
 
 ---
+
+*Last Updated: 2026-11-11 (**T-0670 → ✅ Verified** ([SP-209] closed).)*
 
 *Last Updated: 2026-11-11 (**T-0670 → active** with [SP-209]'s activation.)*
 

@@ -1,5 +1,7 @@
 # Active Epics
 
+*Last Updated: 2026-11-11 (**EP-058: S1 = [SP-209] ✅ closed** — AC1, AC2, AC5 met; **[EP-054] AC9 unblocked**)*
+
 *Last Updated: 2026-11-11 (**EP-058: S1 = [SP-209] → 🟡 Active** (user, 2026-11-11: *"Q1–Q5 as recommended, activate and implement SP-209"*))*
 
 *Last Updated: 2026-11-10 (**EP-058 → 🟡 ACTIVE**; S1 = [SP-209] created in 🔵 Planning (user, 2026-11-10: *"activate EP-058 and plan its first sprint"*))*
@@ -90,7 +92,7 @@ and `scrivi_import_from_inbox`. A scene's text is Markdown (`.md`), so Markdown 
 - [ ] AC7 — Every format boundary-tested through `scrivi_*`, with round-trip fixtures
 - [ ] AC8 — The surfaces on Mac, iPad/iPhone and Linux, each live-passed on its platform
 - [ ] AC9 — ➕ *(2026-11-10, user)* Every export carries the byline — the project's ordered authors — on its title page and in
-      its metadata ([EP-058] design Q6); ⛔ **blocked by [EP-058] S1**, and EP-054 cannot complete without it
+      its metadata ([EP-058] design Q6); ✅ **unblocked** — [EP-058] S1 ([SP-209]) closed 2026-11-11; EP-054 cannot complete without it
 
 **Questions — ✅ all nine ruled as recommended (user, 2026-11-06):**
 
@@ -118,7 +120,7 @@ fixtures). **S2 = [SP-206]** then puts File ▸ Export Archive… / Import Archi
 
 **Sprints** (S3–S7 provisional): **S0 = [SP-193]** (✅ Closed 2026-10-25): fix before the alpha ([I-0306], [I-0313], [I-0202]) and one version everywhere ([T-0622]) · **S1 = [SP-205]** archive + worlds (core, [T-0664]) ✅ Closed 2026-11-06 · **S2 = [SP-206]** archive surfaces (Mac, Linux, iPad, [T-0665]) ✅ Closed 2026-11-09 · **S3 = [SP-207]** Markdown + HTML export ([T-0666], [I-0357]) ✅ Closed 2026-11-09; the AO3 paste → [T-0667] ·
 **S4 = [SP-208]** `.docx` export ([T-0668]) ✅ Closed 2026-11-10; the iPad pass → [T-0669] · S5 PDF + ePub · S6 Markdown/text + `.docx` import · S7 Scrivener import. Each with live passes.
-**Depends on:** ⚠️ **[EP-058]** (Authorship) S1 for AC9 — added 2026-11-10 (user: *"it must be in place before we can finish
+**Depends on:** ✅ **[EP-058]** (Authorship) S1 for AC9 — met 2026-11-11 ([SP-209]) — added 2026-11-10 (user: *"it must be in place before we can finish
 the current Epic"*). ⚠️ [EP-055] needs S1–S2 on iPad to move projects onto it, unless iCloud Drive does (see
 EP-055 Q2).
 
@@ -126,7 +128,7 @@ EP-055 Q2).
 
 ## EP-058: `[Cross]` **Authorship** — pen names, several authors per project, authors for worlds, and writing as
 
-**Status:** 🟡 **ACTIVE** 2026-11-10 (user, 2026-11-10: *"activate EP-058 and plan its first sprint"*) — S1 = [SP-209] 🟡 Active. Created (user, 2026-11-10: *"We need to surface the authorship issue immediately… finalize the Authorship design and create the Epic that will implement it. And it must be in place before we can finish the current Epic."*) Design: [`../Scrivi_Authorship_Design_v0_2.md`](../Scrivi_Authorship_Design_v0_2.md)
+**Status:** 🟡 **ACTIVE** 2026-11-10 (user, 2026-11-10: *"activate EP-058 and plan its first sprint"*) — S1 = [SP-209] ✅ closed 2026-11-11. Created (user, 2026-11-10: *"We need to surface the authorship issue immediately… finalize the Authorship design and create the Epic that will implement it. And it must be in place before we can finish the current Epic."*) Design: [`../Scrivi_Authorship_Design_v0_2.md`](../Scrivi_Authorship_Design_v0_2.md)
 (✅ APPROVED 2026-11-10 — Q1–Q9 ruled as recommended; S1 can be planned).
 **Codebase:** `[ScriviCore]` first (schemas read, world identity files, endpoints), then `[Apple]` and `[Linux]` surfaces; one
 Epic with a platform AC each, as [EP-054] Q1 ruled (design Q8).
@@ -140,20 +142,20 @@ and a member list (`identities/project-members.json`), both written once at crea
 launch for every project; the persona's name is the Mac's host name (Apple) or "Scrivi" (Linux); worlds have no authorship.
 
 **Acceptance Criteria:**
-- [ ] AC1 — The core reads and writes the ordered authors of a project AND of a world (`scrivi_get_authors` /
+- [x] AC1 — The core reads and writes the ordered authors of a project AND of a world (`scrivi_get_authors` /
       `scrivi_set_authors`): IDs permanent, a rename keeps the ID, a removed author is retired never deleted, never zero authors
-- [ ] AC2 — The app-level pen-name menu, one list per identity (`scrivi_get_pen_names` / `scrivi_put_pen_names`), outside every package
+- [x] AC2 — The app-level pen-name menu, one list per identity (`scrivi_get_pen_names` / `scrivi_put_pen_names`), outside every package
 - [ ] AC3 — Writing as: `scrivi_open_project` returns this identity's author; every write in that project (scenes, objects,
       history) is recorded under it; an identity that is not a member is asked once which author it is (design Q3)
 - [ ] AC4 — No host name and no "Scrivi" is ever shown or exported as a pen name; an existing package credited to one is
       asked once and that author renamed, its ID kept (design Q4); a world without authors gets them on first open (Q5)
-- [ ] AC5 — Boundary tests through `scrivi_*` for AC1–AC4, on macOS and Linux
+- [x] AC5 — Boundary tests through `scrivi_*` for AC1–AC4, on macOS and Linux
 - [ ] AC6 — Settings ▸ Pen Names, Project Settings ▸ Authors (with "I write as") and World ▸ Authors on the Mac and iPad
 - [ ] AC7 — The same on Linux, in the Mac's shape and wording
 - [ ] AC8 — Live passes on each platform: a pen name set, a second author added and reordered, a world credited, and a second
       machine (scrivi-vm) answering "which author are you?" and writing as the co-author
 
-**Sprints** (S2–S3 provisional): **S1 = [SP-209]** core ([T-0670]) 🟡 Active · S2 Apple · S3 Linux. Then [EP-054] AC9 (the byline in Markdown, HTML and `.docx`).
+**Sprints** (S2–S3 provisional): **S1 = [SP-209]** core ([T-0670]) ✅ Closed 2026-11-11 · S2 Apple · S3 Linux. Then [EP-054] AC9 (the byline in Markdown, HTML and `.docx`).
 **Not in scope:** moving an identity between machines (v0.1 option A), signatures, roles beyond author (design Q1).
 
 ---

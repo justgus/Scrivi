@@ -1,17 +1,17 @@
 ---
 sprint: SP-209
 epic: EP-058
-status: Active
+status: Closed
 platform: ScriviCore
 created: 2026-11-10
 ---
 
 # SP-209 — `[ScriviCore]` [EP-058] **S1**: Authorship in the core
 
-**Status:** 🟡 **ACTIVE** 2026-11-11 (user, 2026-11-11: *"Q1–Q5 as recommended, activate and implement SP-209"*) · ✅ Q1–Q5 ruled as recommended · planned 2026-11-10 (*"activate EP-058 and plan its first sprint"*).
-**Carries:** [T-0670] → [`../Tasks/Task-active.md`](../Tasks/Task-active.md).
-**Epic:** [EP-058] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md).
-**Design:** [`../Scrivi_Authorship_Design_v0_2.md`](../Scrivi_Authorship_Design_v0_2.md) (✅ approved 2026-11-10) §4.1, §4.4, §6 step 1.
+**Status:** ✅ **CLOSED** 2026-11-11 (user, 2026-11-11: *"close SP-209 now and make the workflow change"*) · activated 2026-11-11 (user: *"Q1–Q5 as recommended, activate and implement SP-209"*) · ✅ Q1–Q5 ruled as recommended · planned 2026-11-10 (*"activate EP-058 and plan its first sprint"*).
+**Carries:** [T-0670] → [`../../Tasks/Verified/Task-verified-0670.md`](../../Tasks/Verified/Task-verified-0670.md).
+**Epic:** [EP-058] → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md).
+**Design:** [`../Scrivi_Authorship_Design_v0_2.md`](../../Scrivi_Authorship_Design_v0_2.md) (✅ approved 2026-11-10) §4.1, §4.4, §6 step 1.
 **Unblocks:** [EP-054] AC9 (the byline on every export), and [EP-058] S2 (Apple) / S3 (Linux).
 **Size:** M — two schemas read at last, two world files, five endpoints, two fields on open. Core only: no surface, and no
 existing caller changes.
@@ -94,8 +94,8 @@ it keeps the writer's **pen-name menu**; and it tells the app on open when it mu
       or the identity's name opens with `nameAuthor`, and naming it keeps its `personaID`
 - [x] AC4 — A world gets its author files and first author per Q2
 - [x] AC5 — `scrivi_get_pen_names` / `scrivi_put_pen_names` round-trip the menu outside every package
-- [ ] AC6 — Boundary tests through `scrivi_*` for AC1–AC5; macOS and Linux ctest green; the CI sanitizer jobs green
-- [ ] AC7 — No existing caller changes: Apple and Linux build and pass unchanged ~~; the gap audit lists the five endpoints~~
+- [x] AC6 — Boundary tests through `scrivi_*` for AC1–AC5; macOS and Linux ctest green; the CI sanitizer jobs green
+- [x] AC7 — No existing caller changes: Apple and Linux build and pass unchanged ~~; the gap audit lists the five endpoints~~
       (⚠️ dropped 2026-11-11: the audit is a dated 100-endpoint snapshot never kept up — `scrivi.h` has 149 now — so five
       rows would make it read as current; the Apple/Linux gap is EP-058 S2/S3's ACs)
 
@@ -117,3 +117,13 @@ No live pass: nothing a writer can see changes until S2.
   check (135 project endpoints), engine stub parity and package boundary clean; the macOS app builds unchanged.
   ⏳ **Linux:** scrivi-vm unreachable and Docker not running — ScriviCore CI's ubuntu and sanitizer jobs after the push are
   the Linux run (AC6, AC7). Plan step 6 (gap audit rows) dropped — see AC7.
+- **2026-11-11** — **Linux on `b59f4f7`** (pushed, pulled and built on scrivi-vm by the user): ctest **839/839** (the
+  `ensure_local_identity` case runs visibly there — a file store, not the Keychain); `[authorship]` 9 cases / 239 assertions;
+  `bridge_parity_smoke` 73/0; `accessibility_smoke` 3/3. ⏳ CI on `b59f4f7` running.
+- **2026-11-11** — CI on `b59f4f7`: ✅ **ScriviCore CI green on all four jobs** (ubuntu, macOS, both sanitizers). ⛔ **Scrivi
+  Linux App CI never reached the build, twice:** `azure.archive.ubuntu.com` timed out every package (20 s each, `Ign:`) in
+  "Install Qt6 + build deps" (27 s on the last good run); GitHub reported all systems operational. Cancelled both. This
+  Sprint changes no Linux app code; the app's one new input — the open result's author fields — is covered by the VM's
+  bridge smoke. → `scrivi-linux-ci.yml` given a step timeout, apt retries and a fallback mirror (user: *"close SP-209 now and make the workflow change"*).
+- **2026-11-11** — ✅ **CLOSED** (user: *"close SP-209 now and make the workflow change"*) on ScriviCore CI + the scrivi-vm run; Linux App CI to re-run once
+  the mirror recovers. [T-0670] → ✅ Verified → `Tasks/Verified/Task-verified-0670.md`.

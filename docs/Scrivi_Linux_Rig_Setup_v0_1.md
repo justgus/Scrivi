@@ -767,3 +767,20 @@ document**, not from memory.*
   mount again** (`sudo umount /mnt/scrivi-net /mnt/scrivi-worlds /mnt/scrivi-other`, then
   `SCRIVI_RIG=scrivi-vm ./scripts/mount-shares-on-rig.sh`): 0.34 s again. ✅ **Before a timing pass, check:**
   `time cat <a 30+ MB file on the share> > /dev/null` should be well under a second.
+
+### 9.4 DNS and the clock (as-run 2026-11-11)
+
+- ⚠️ **The Mac's vmnet DNS forwarder (`192.168.64.1`) returned SERVFAIL for every name** while the network itself worked
+  (the gateway and `1.1.1.1` answered pings; `1.1.1.1` and `8.8.8.8` answered DNS). `apt-get update` failed with
+  *"Temporary failure resolving"*. ✅ Fixed with public resolvers beside the forwarder —
+  `/etc/systemd/resolved.conf.d/scrivi-public-dns.conf`: `[Resolve]` / `DNS=1.1.1.1 8.8.8.8`, then
+  `sudo systemctl restart systemd-resolved`. The shares are unaffected: `Flitwick-5.local` resolves through mDNS
+  (`mdns4_minimal` in `/etc/nsswitch.conf`), never DNS.
+- ⚠️ **The clock fell ~16 h behind across suspends, and chrony did not correct it.** chrony IS the time service (do NOT
+  install `systemd-timesyncd` — on Ubuntu it conflicts with chrony and removes it). Ubuntu's `chrony.conf` has
+  `makestep 1 3`: it steps only in the first three updates after boot, so after a resume it slews — days for hours of
+  drift. ✅ `/etc/chrony/conf.d/scrivi-step-after-suspend.conf`: `makestep 1 -1` (step whenever more than 1 s off), then
+  `sudo systemctl restart chrony`. Check: `chronyc tracking | grep "System time"` near 0. `sudo chronyc makestep` steps
+  at once; it does nothing while chrony has no reachable source.
+
+*2026-11-11 — §9.4 added: DNS (the Mac's forwarder SERVFAIL) and the clock (chrony's step rule) on `scrivi-vm`.*
