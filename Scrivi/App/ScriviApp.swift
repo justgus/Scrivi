@@ -354,12 +354,6 @@ struct ScriviApp: App {
 
         // Project menu: project-scoped settings (acts on the focused window).
         CommandMenu("Project") {
-            // SP-210 Q1: ⌘, is the app's Settings (the Mac convention); Project Settings moves to ⌥⌘,.
-            Button("Project Settings…") {
-                focusedSession?.showProjectSettings = true
-            }
-            .keyboardShortcut(",", modifiers: [.command, .option])
-            .disabled(focusedSession == nil)
             // ✅ EP-047 (SP-167 Q1): an ACTION, not a setting — its own sheet.
             Button("Purge Stale History Branches…") {
                 focusedSession?.showStaleBranches = true
@@ -378,6 +372,15 @@ struct ScriviApp: App {
             Button("Go to Manuscript End") { focusedSession?.manuscriptEndAction?() }
                 .keyboardShortcut("1", modifiers: [.command, .shift])
                 .disabled(focusedSession?.manuscriptEndAction == nil)
+
+            // SP-210 Q1: ⌘, is the app's Settings (the Mac convention); Project Settings moves to ⌥⌘,.
+            // ✅ (user, 2026-11-11, with SP-211's Linux): last, below a rule.
+            Divider()
+            Button("Project Settings…") {
+                focusedSession?.showProjectSettings = true
+            }
+            .keyboardShortcut(",", modifiers: [.command, .option])
+            .disabled(focusedSession == nil)
         }
 
         // Worlds menu (EP-031 SP-099 T-0408) — Doc 2 §7.3.

@@ -1,17 +1,18 @@
 ---
 sprint: SP-211
 epic: EP-058
-status: Active
+status: Closed
+closed: 2026-11-11
 platform: Linux
 created: 2026-11-11
 ---
 
 # SP-211 — `[Linux]` [EP-058] **S3**: Authorship on Linux
 
-**Status:** 🟡 **ACTIVE** 2026-11-11 (user, 2026-11-11: *"Q1–Q3 as recommended, activate and implement SP-211"*) · ✅ Q1–Q3 ruled as recommended · ✅ built (AC1–AC5) · ⏳ CI (AC6) and the live pass (AC7).
-**Carries:** [T-0672] → [`../Tasks/Task-unverified.md`](../Tasks/Task-unverified.md).
-**Epic:** [EP-058] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md) (AC3, AC4 and AC8 on Linux; AC7).
-**Design:** [`../Scrivi_Authorship_Design_v0_2.md`](../Scrivi_Authorship_Design_v0_2.md) §4.2, §4.4.
+**Status:** ✅ **CLOSED** 2026-11-11 (user, 2026-11-11: *"close SP-211 and EP-058, and match the Mac menu"*) · activated 2026-11-11 (user, 2026-11-11: *"Q1–Q3 as recommended, activate and implement SP-211"*) · ✅ Q1–Q3 ruled as recommended · ✅ AC1–AC7 met.
+**Carries:** [T-0672] → [`../../Tasks/Verified/Task-verified-0672.md`](../../Tasks/Verified/Task-verified-0672.md).
+**Epic:** [EP-058] → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md) (AC3, AC4 and AC8 on Linux; AC7).
+**Design:** [`../Scrivi_Authorship_Design_v0_2.md`](../../Scrivi_Authorship_Design_v0_2.md) §4.2, §4.4.
 **Shape:** [SP-210] (✅ closed) — Linux adopts the Mac's surfaces, wording and rules (Q2–Q6 there carry over unchanged).
 **Size:** M — Linux already keeps one bridge (and so one author) per window; the work is mostly the four surfaces.
 
@@ -74,8 +75,8 @@ every edit recorded as the window's author, and the two questions on open.
 - [x] AC4 — Settings ▸ Pen Names (Q1), Project Settings ▸ Authors with I write as, and Worlds ▸ Authors…, in the Mac's
       wording; never the last author removed; an unnamed author never shown as a name
 - [x] AC5 — *Who wrote…?* and *Which of these authors are you?* on open, unanswerable-away as on the Mac
-- [ ] AC6 — ctest, every Linux smoke and the Linux CI green; Docker build clean — ✅ ctest 839/839 and smokes 43/43 on scrivi-vm; ⏳ CI after the push (Docker was not running: built on scrivi-vm instead)
-- [ ] AC7 — **Live pass (user), scrivi-vm:** set a pen name; a new project credited to it; a second author added and
+- [x] AC6 — ctest, every Linux smoke and the Linux CI green; Docker build clean — ✅ ctest 839/839 and smokes 43/43 on scrivi-vm; ✅ Linux App CI on `59b4a82` (Authorship smoke included); Docker not run (not running — scrivi-vm built it instead)
+- [x] AC7 — **Live pass (user), scrivi-vm:** set a pen name; a new project credited to it; a second author added and
       reordered; a world credited; an old Linux project (credited to "Scrivi") asks once and keeps its history; a project
       made on the Mac asks *Which of these authors are you?* and writes as the answer
 
@@ -101,4 +102,6 @@ Boundary and ABI guard checks clean. ⏳ Linux CI after the push.
   the window to `scrivi.desktop`; `main.cpp` now sets the desktop file name `scrivi` and the window icon from the theme.
   `authorship_smoke` checks (1) and (2); smokes 43/43 again. ⏳ (3) is for the user's eye (no test can see the dock).
 - **2026-11-11** — (4) *"the Project Settings Menu item … should appear at the bottom, after a separator line"* — moved
-  (`ScriviWindow.cpp`), checked by `authorship_smoke`. The Mac and iPad still list it first in their Project menus.
+  (`ScriviWindow.cpp`), checked by `authorship_smoke`. The Mac's now matches (user, 2026-11-11: *"match the Mac menu"*); the iPad's hardware-keyboard Project menu still lists it first.
+- **2026-11-11** — ✅ **AC7 passed** (user, 2026-11-11: *"All three (four) are fixed."*); ✅ AC6 (Linux App CI `59b4a82`). T-0672 → ✅ Verified, archived. Close awaits approval.
+- **2026-11-11** — ✅ **Closed** (user, 2026-11-11: *"close SP-211 and EP-058, and match the Mac menu"*). The Mac's Project menu now matches (Project Settings… last, below a rule).

@@ -1,5 +1,7 @@
 # Unverified Tasks
 
+*Last Updated: 2026-11-11 (**T-0672 → ✅ Verified** (user, 2026-11-11: *"All three (four) are fixed."*) and archived → `Verified/Task-verified-0672.md`.)*
+
 *Last Updated: 2026-11-11 (**T-0672 → 🟠 Implemented - Not Verified** ([SP-211]); the live pass (AC7) is the user's.)*
 
 *Last Updated: 2026-11-11 (**T-0671 → ✅ Verified** (user, 2026-11-11: *"8: Scrivi's settings.  The Pad did not ask for access to keychain in step 10.  Other than that Steps 1-10 passed."*) and archived → `Verified/Task-verified-0671.md`.)*
@@ -57,26 +59,6 @@ Tasks that are **implemented and awaiting user verification** before being archi
 ⚠️ This file must not disagree with [`Task-active.md`](Task-active.md) or
 [`Task-backlog.md`](Task-backlog.md). A Task implemented but unverified belongs **here** — not left
 in the backlog carrying a 🟠 status.
-
----
-
-## 🟠 T-0672 — `[Linux]` EP-058 S3: authorship on Linux
-
-**Epic:** [EP-058] (S3; AC3, AC4, AC7, AC8) · **Status:** 🟠 Implemented - Not Verified (2026-11-11) · **Sprint:** [SP-211] (🟡 Active) →
-[`../Sprints/Sprint-SP-211.md`](../Sprints/Sprint-SP-211.md) · **Date Requested:** 2026-11-11 (user: *"close SP-210 and plan EP-058 S3"*)
-
-**What:** the Mac's authorship ([SP-210]) on Linux, in its shape and wording: the bridge's five calls and the window's
-author from `writingAs`; New Project's Author; Settings ▸ Pen Names; Project Settings ▸ Authors with I write as; Worlds ▸
-Authors…; the *Who wrote…?* and *Which of these authors are you?* questions on open. Shape per [SP-211] Q1–Q3 (✅ ruled as recommended).
-
-**Built (2026-11-11):** the bridge's five calls, `adoptWritingAs` and `rememberPenName`, and New Project's author through
-`createProject` (`ScriviBridge.*`); the window adopts the open's `writingAs` and asks on a first load (`EditorShell::askAuthor`);
-`src/AuthorshipDialogs.{hpp,cpp}` (new) — Settings ▸ Pen Names, Project Settings ▸ Authors with I write as, Worlds ▸ Authors…,
-the two questions (no Cancel; Esc and the close button do nothing); Edit ▸ Settings… (Ctrl+,), Project Settings… (Ctrl+Alt+,)
-(`ScriviWindow.cpp`); the Author field (`NewProjectDialog.qml`). Evidence (scrivi-vm, scratch copy of the working tree):
-`authorship_smoke` (new, in CI); ctest 839/839; every Linux smoke 43/43 — three fixtures (`settings`, `indent`, `replace`)
-now name their author, as a project credited to "Scrivi" correctly opens *Who wrote…?* over the window they type into.
-Boundary and ABI guard checks clean. ⏳ Linux CI after the push.
 
 ---
 

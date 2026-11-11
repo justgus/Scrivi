@@ -1,5 +1,9 @@
 # Active Sprints
 
+*Last Updated: 2026-11-11 (**SP-211 → ✅ CLOSED** (user, 2026-11-11: *"close SP-211 and EP-058, and match the Mac menu"*) → `Closed/Sprint-SP-211.md`. No Sprint is active.)*
+
+*Last Updated: 2026-11-11 (**SP-211 AC6, AC7 ✅**; T-0672 → ✅ Verified, archived. Close awaits approval.)*
+
 *Last Updated: 2026-11-11 (**SP-211 built** — AC1–AC5 met; T-0672 → 🟠.)*
 
 *Last Updated: 2026-11-11 (**SP-211 → 🟡 ACTIVE** (user, 2026-11-11: *"Q1–Q3 as recommended, activate and implement SP-211"*))*
@@ -66,9 +70,3 @@
 *Last Updated: 2026-11-03 (**SP-198, SP-199 → ✅ CLOSED** (user, 2026-11-03: *"close both sprints."*).)*
 
 *Last Updated: 2026-11-02 (**SP-195, SP-196, SP-197, SP-200, SP-201 → ✅ CLOSED** (user, 2026-11-02).)*
-
----
-
-## SP-211 — `[Linux]` [EP-058] S3: Authorship on Linux
-
-🟡 **ACTIVE 2026-11-11** → [`Sprint-SP-211.md`](Sprint-SP-211.md) · carries [T-0672] · ✅ Q1–Q3 ruled · ✅ built (ctest 839/839, smokes 43/43 on scrivi-vm) · ⏳ CI and the live pass (user)
