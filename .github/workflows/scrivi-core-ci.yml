@@ -54,7 +54,8 @@ jobs:
           -DSCRIVI_ENABLE_SANITIZERS=${{ matrix.sanitizers }}
 
       - name: Build
-        run: cmake --build build --parallel
+        # A bare --parallel is an unbounded `make -j`: all ~270 sanitized compiles at once thrash a 3-core runner (I-0358).
+        run: cmake --build build --parallel "$(getconf _NPROCESSORS_ONLN)"
 
       # Report the architecture with the result. "516/516 green" without a
       # platform is precisely the habit that let I-0121 run red for 17 days.

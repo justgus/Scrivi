@@ -1,5 +1,9 @@
 # Active Sprints
 
+*Last Updated: 2026-11-12 (**SP-212 → ✅ CLOSED** (user, 2026-11-12: *"close SP-212."*) → `Closed/Sprint-SP-212.md`. No Sprint is active.)*
+
+*Last Updated: 2026-11-12 (**SP-212 AC4, AC5 ✅**; T-0673 → ✅ Verified, archived. Close awaits approval.)*
+
 *Last Updated: 2026-11-12 (**SP-212 built** — AC1–AC3 met; T-0673 → 🟠.)*
 
 *Last Updated: 2026-11-12 (**SP-212 → 🟡 ACTIVE** (user, 2026-11-12: *"Q1-Q4 as recommended.  Please activate and implement SP-212."*))*
@@ -74,9 +78,3 @@
 *Last Updated: 2026-11-03 (**SP-198, SP-199 → ✅ CLOSED** (user, 2026-11-03: *"close both sprints."*).)*
 
 *Last Updated: 2026-11-02 (**SP-195, SP-196, SP-197, SP-200, SP-201 → ✅ CLOSED** (user, 2026-11-02).)*
-
----
-
-## SP-212 — `[ScriviCore]` [EP-054] AC9: the byline on every export
-
-🟡 **ACTIVE 2026-11-12** → [`Sprint-SP-212.md`](Sprint-SP-212.md) · carries [T-0673] · ✅ Q1–Q4 ruled · ✅ built (ctest 837/837 on macOS · ⏳ Linux ctest on scrivi-vm and CI after the push · ⏳ the live passes (user))

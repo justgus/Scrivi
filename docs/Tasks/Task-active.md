@@ -1,5 +1,7 @@
 # Active Tasks
 
+*Last Updated: 2026-11-12 (**T-0673 → ✅ Verified** ([SP-212] AC5) → `Verified/Task-verified-0673.md`.)*
+
 *Last Updated: 2026-11-12 (**T-0673 → 🟠** → `Task-unverified.md` ([SP-212] built; Linux run and live passes pending).)*
 
 *Last Updated: 2026-11-12 (**T-0673 → active** with [SP-212]'s activation (EP-054 AC9).)*

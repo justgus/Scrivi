@@ -1,19 +1,19 @@
 ---
 sprint: SP-212
 epic: EP-054
-status: Active
+status: Closed
 platform: ScriviCore
 created: 2026-11-12
 ---
 
 # SP-212 — `[ScriviCore]` [EP-054] **AC9**: the byline on every export
 
-**Status:** 🟡 **ACTIVE** 2026-11-12 (user, 2026-11-12: *"Q1-Q4 as recommended.  Please activate and implement SP-212."*) · ✅ Q1–Q4 ruled as recommended · planned 2026-11-12 (*"Next is EP-054 AC9."*).
-**Carries:** [T-0673] → [`../Tasks/Task-unverified.md`](../Tasks/Task-unverified.md).
-**Epic:** [EP-054] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md).
+**Status:** ✅ **CLOSED** 2026-11-12 (user, 2026-11-12: *"close SP-212."*) · activated 2026-11-12 (user, 2026-11-12: *"Q1-Q4 as recommended.  Please activate and implement SP-212."*) · ✅ Q1–Q4 ruled as recommended · planned 2026-11-12 (*"Next is EP-054 AC9."*).
+**Carries:** [T-0673] → [`../../Tasks/Verified/Task-verified-0673.md`](../../../Tasks/Verified/Task-verified-0673.md).
+**Epic:** [EP-054] → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md).
 **Builds on:** [SP-207] (Markdown, HTML), [SP-208] (`.docx`) — `scrivi_export_manuscript`; [EP-058] S1 ([SP-209]) — the
 ordered authors (`AuthorStore`).
-**Authority:** EP-054 AC9; [`Scrivi_Authorship_Design_v0_2.md`](../Scrivi_Authorship_Design_v0_2.md) Q6 (✅ ruled
+**Authority:** EP-054 AC9; [`Scrivi_Authorship_Design_v0_2.md`](../../Scrivi_Authorship_Design_v0_2.md) Q6 (✅ ruled
 2026-11-10), which re-opens SP-208 Q7 ("title only"); EP-058 AC4 (no host name and no "Scrivi" ever exported as a pen name).
 **Size:** S — core only. Every platform already exports through the one endpoint, so no wrapper or surface changes.
 
@@ -72,8 +72,8 @@ project), a localised "by"/"and", any surface change.
 - [x] AC2 — HTML `<meta name="author">` and `.docx` `dc:creator` carry the authors (Q3), on a one-chapter file too (Q2);
       body-only HTML carries none
 - [x] AC3 — Retired and unnamed authors never appear (Q1); a work with no named author exports exactly as before
-- [ ] AC4 — Boundary tests through `scrivi_*`; macOS and Linux ctest green; the same `.docx` bytes on both
-- [ ] AC5 — **Live passes (user):** the Mac and Linux, per plan step 4
+- [x] AC4 — Boundary tests through `scrivi_*`; macOS and Linux ctest green; the same `.docx` bytes on both
+- [x] AC5 — **Live passes (user):** the Mac and Linux, per plan step 4
 
 ## Progress log
 
@@ -87,3 +87,17 @@ project), a localised "by"/"and", any surface change.
   is the no-named-author case (AC3), plus 3 new cases — every format with two authors, one / three / retired / unnamed, a
   one-chapter file. macOS ctest **837/837** → AC1–AC3. `scrivi.h` and the design's "Exports" row updated.
   ⏳ AC4: Linux ctest on scrivi-vm and the cross-platform `.docx` SHA-256, after the push. ⏳ AC5: the live passes.
+- **2026-11-12** — ✅ **AC4** — the user exported `the-river-of-time.scrivi` (two authors) as `.docx` on the Mac and Linux
+  (`~/ScriviLinux/projects/exports`): the whole manuscript has the **same SHA-256 on both** (`bc38b179…`), and so has Chapter 2
+  (`4398d817…`). Each carries `dc:creator` "Terence Strong; Mike Stoddard"; the whole-manuscript files have the Author paragraph
+  "by Terence Strong and Mike Stoddard", the chapter files none (Q2). The Markdown and HTML exports carry the byline line and
+  `<meta name="author">`. Linux ctest on scrivi-vm (build of `c979b63`): **842/842**, `[manuscript-export]` 14 cases / 614
+  assertions. Linux App CI on `c979b63` green; ScriviCore CI still running at this entry.
+- **2026-11-12** — ✅ **AC5 — live passes** (user, 2026-11-12: *"For AC5 I ran the same project, which has two authors. a-f passed."*): all four `.docx` open and read correctly in Pages and LibreOffice Writer.
+  The user has no Word, so the Author property was not read in Word; it is proved from the files above (`docProps/core.xml`).
+  T-0673 → ✅ Verified, archived. Close awaits approval.
+  ⚠️ The exports folder also holds `~$e-river-of-time-Chapter-2-mac.docx` (162 bytes, the text "Mike Stoddard"): an
+  Office-style owner/lock file a reader left behind, not a Scrivi export. Left in place.
+- **2026-11-12** — ScriviCore CI on `c979b63`: four jobs green; **macOS sanitizers still in Build after 30 min**. Not this
+  Sprint's code — the job has run 3 to 56 min for weeks: an unbounded `make -j` → filed **[I-0358]**, workflow fixed.
+- **2026-11-12** — ✅ **CLOSED** (user, 2026-11-12: *"close SP-212."*). EP-054 AC9 met.
