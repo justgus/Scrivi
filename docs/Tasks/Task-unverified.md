@@ -1,5 +1,7 @@
 # Unverified Tasks
 
+*Last Updated: 2026-11-12 (**T-0674 → 🟠 Implemented - Not Verified** ([SP-213]); the live passes (AC5) are the user's.)*
+
 *Last Updated: 2026-11-12 (**T-0673 → ✅ Verified** (user, 2026-11-12: *"For AC5 I ran the same project, which has two authors. a-f passed."*) and archived → `Verified/Task-verified-0673.md`.)*
 
 *Last Updated: 2026-11-12 (**T-0673 → 🟠 Implemented - Not Verified** ([SP-212]); Linux run and the live passes (AC5) pending.)*
@@ -63,6 +65,23 @@ Tasks that are **implemented and awaiting user verification** before being archi
 ⚠️ This file must not disagree with [`Task-active.md`](Task-active.md) or
 [`Task-backlog.md`](Task-backlog.md). A Task implemented but unverified belongs **here** — not left
 in the backlog carrying a 🟠 status.
+
+---
+
+## 🟠 T-0674 — `[Cross]` EP-054 S5: ePub export
+
+**Epic:** [EP-054] (S5; AC5, AC7, AC8) · **Status:** 🟠 Implemented - Not Verified (2026-11-12) · **Sprint:** [SP-213] (🟡 Active) →
+[`../Sprints/Sprint-SP-213.md`](../Sprints/Sprint-SP-213.md) · **Date Requested:** 2026-11-12 (user: *"plan EP-054 S5."*)
+
+**What:** `scrivi_export_manuscript` writes an EPUB 3 of the whole manuscript (title page with byline, contents, a file per
+chapter, the writer's size and indent rule, metadata) that passes epubcheck; Export Manuscript… offers it on the Mac, iPad and
+Linux. Shape per SP-213's Q1–Q8 (✅ ruled as recommended); by Q1 the PDF is its own Sprint, not this Task.
+
+**Built (2026-11-12):** `exportEpub` + `zipParts` (`ScriviCore/src/manuscript/ManuscriptExport.cpp`); `format: "epub"`,
+`language`, `uuidOf` (`scrivi_c_api.cpp`, `scrivi.h`); `ScriviEngine.exportManuscript(… language:)` (+ stub);
+`ProjectArchiveFlow.swift`; Linux `EditorShell::exportManuscript`; `bridge_parity_smoke`. Evidence: macOS ctest 840/840,
+interop 1/1, iOS build, Linux ctest 845/845 and smoke 74/0; epubcheck 0 errors / 0 warnings on two real projects; Mac and
+Linux ePubs identical but the modified time. ⏳ The live passes (SP-213 AC5) are the user's.
 
 ---
 

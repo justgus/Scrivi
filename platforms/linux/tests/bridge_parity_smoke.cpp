@@ -414,6 +414,15 @@ int main(int argc, char* argv[])
               "exportManuscript: a .docx is written to destPath");
         bridge.exportManuscript(projectPath, {{QStringLiteral("format"), QStringLiteral("docx")}});
         check(bridge.lastCallFailed(), "exportManuscript: a .docx without destPath is refused");
+        // S5 (SP-213): an ePub, `mimetype` stored first — so its name and text sit in the clear right after the zip header.
+        const QString epub = QDir(out).filePath(QStringLiteral("bridge-parity.epub"));
+        const QVariantMap book = bridge.exportManuscript(
+            projectPath, {{QStringLiteral("format"), QStringLiteral("epub")}, {QStringLiteral("destPath"), epub},
+                          {QStringLiteral("language"), QStringLiteral("en-US")}});
+        QFile bookFile(epub);   // boundary-ok: the smoke's own export, outside any package
+        check(!bridge.lastCallFailed() && book.value(QStringLiteral("path")).toString() == epub && bookFile.open(QIODevice::ReadOnly)
+                  && bookFile.read(64).contains("mimetypeapplication/epub+zip"),
+              "exportManuscript: an .epub is written to destPath");
     }
 
     std::fprintf(stderr, "bridge_parity_smoke: %d checks, %d failures\n", checks, failures);

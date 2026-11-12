@@ -9038,6 +9038,19 @@ extension ScriviInteropTests {
         #expect(throws: ScriviError.self) {
             try f.engine.exportManuscript(projectRootPath: f.projectDir.path, format: "docx")
         }
+
+        // EP-054 S5 (SP-213): an ePub is written to destPath, its `mimetype` first; the language reaches the package.
+        let epub = f.appSupport.path + "/Interop.epub"
+        let book = try f.engine.exportManuscript(projectRootPath: f.projectDir.path, format: "epub", destPath: epub,
+                                                 language: "fr-CA")
+        #expect(book.path == epub && book.text == nil)
+        let bytes = try Data(contentsOf: URL(fileURLWithPath: epub))
+        #expect(bytes.prefix(2) == Data("PK".utf8))
+        #expect(bytes.range(of: Data("mimetypeapplication/epub+zip".utf8)) != nil)   // stored, so readable in place
+        #expect(throws: ScriviError.self) {   // the whole manuscript only (Q7)
+            try f.engine.exportManuscript(projectRootPath: f.projectDir.path, format: "epub", chapterID: scene.chapterID,
+                                          destPath: epub)
+        }
     }
 }
 

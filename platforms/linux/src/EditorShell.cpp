@@ -26,6 +26,7 @@
 #include <QJsonValue>
 #include <QLabel>
 #include <QListWidget>
+#include <QLocale>
 #include <QCursor>
 #include <QMenu>
 #include <QMessageBox>
@@ -4576,24 +4577,27 @@ void EditorShell::exportManuscript()
     const QString root = projectPath_;
     QMessageBox formatBox(QMessageBox::Question, tr("Export Manuscript"),
                           tr("Markdown keeps the text as Scrivi stores it. HTML is a web page with every paragraph its "
-                             "own <p>. A Word document keeps your typeface and indent in named styles."),
+                             "own <p>. A Word document keeps your typeface and indent in named styles. "
+                             "An ePub is the whole manuscript as a book for e-readers."),
                           QMessageBox::NoButton, this);
     formatBox.setTextFormat(Qt::PlainText);
     QPushButton* markdown = formatBox.addButton(tr("Markdown"), QMessageBox::AcceptRole);
     QPushButton* html     = formatBox.addButton(tr("HTML"), QMessageBox::AcceptRole);
     QPushButton* docx     = formatBox.addButton(tr("Word Document (.docx)"), QMessageBox::AcceptRole);
+    QPushButton* epub     = formatBox.addButton(tr("ePub"), QMessageBox::AcceptRole);
     formatBox.addButton(QMessageBox::Cancel);
     formatBox.exec();
     const auto* clicked = formatBox.clickedButton();
-    if (clicked != markdown && clicked != html && clicked != docx) {
+    if (clicked != markdown && clicked != html && clicked != docx && clicked != epub) {
         return;
     }
-    // EP-054 S4 (SP-208): the core writes a .docx itself, to the chosen path.
-    const QString format = clicked == docx ? QStringLiteral("docx")
+    // EP-054 S4 (SP-208), S5 (SP-213): the core writes a .docx or .epub itself, to the chosen path.
+    const QString format = clicked == epub ? QStringLiteral("epub") : clicked == docx ? QStringLiteral("docx")
                            : clicked == html ? QStringLiteral("html") : QStringLiteral("markdown");
     const QString ext = format == QLatin1String("markdown") ? QStringLiteral("md") : format;
     QString chapterID, chapterName;
-    if (!askManuscriptScope(tr("Export Manuscript"), chapterID, chapterName)) {
+    // SP-213 Q7: an ePub is always the whole manuscript.
+    if (format != QLatin1String("epub") && !askManuscriptScope(tr("Export Manuscript"), chapterID, chapterName)) {
         return;
     }
     QString name = chapterName.isEmpty() ? QFileInfo(root).completeBaseName() : chapterName;
@@ -4601,16 +4605,19 @@ void EditorShell::exportManuscript()
     const QString path = QFileDialog::getSaveFileName(
         this, tr("Export Manuscript"),
         QDir(QFileInfo(root).absolutePath()).filePath(name + QLatin1Char('.') + ext),
-        format == QLatin1String("docx") ? tr("Word Document (*.docx)")
+        format == QLatin1String("epub") ? tr("ePub (*.epub)")
+        : format == QLatin1String("docx") ? tr("Word Document (*.docx)")
         : format == QLatin1String("html") ? tr("HTML (*.html)") : tr("Markdown (*.md)"));
     if (path.isEmpty()) {
         return;
     }
 
     QVariantMap options{{QStringLiteral("format"), format}, {QStringLiteral("document"), QStringLiteral("page")}};
-    if (format == QLatin1String("docx")) {
+    if (format == QLatin1String("docx") || format == QLatin1String("epub")) {
         options.insert(QStringLiteral("destPath"), path);
         options.insert(QStringLiteral("defaultTypeface"), BundledFonts::manifest().defaultFace);
+        // SP-213 Q6: the system's preferred language (there is no project language).
+        options.insert(QStringLiteral("language"), QLocale().uiLanguages().value(0, QStringLiteral("und")));
     }
     if (!chapterID.isEmpty()) {
         options.insert(QStringLiteral("scope"), QStringLiteral("chapter"));
@@ -4632,7 +4639,7 @@ void EditorShell::exportManuscript()
                 return;
             }
             if (r.contains(QStringLiteral("path"))) {
-                return;   // a .docx: the core wrote it
+                return;   // a .docx or .epub: the core wrote it
             }
             QFile file(path);   // boundary-ok: QFileDialog export, writer-chosen path
             if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate) ||

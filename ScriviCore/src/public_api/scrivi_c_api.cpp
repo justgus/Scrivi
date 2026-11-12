@@ -50,6 +50,7 @@
 #include <thread>
 #include <atomic>
 #include <cstdlib>
+#include <cctype>
 #include <cstring>
 #include <ctime>
 #include <filesystem>
@@ -1251,6 +1252,11 @@ static std::vector<scrivi::Result<std::string>> readSceneTextsInParallel(
 
 // EP-054 S3 (SP-207, T-0666) — the manuscript as Markdown or HTML; S4 (SP-208, T-0668) as a .docx written to destPath.
 // A read: the guard drains the write queue first.
+static std::string uuidOf(const std::string& projectID) {
+    constexpr std::string_view prefix = "project_";
+    return projectID.starts_with(prefix) ? projectID.substr(prefix.size()) : projectID;
+}
+
 const char* scrivi_export_manuscript(const char* projectRootPath, const char* optionsJSON) {
     SCRIVI_PROJECT_READ(projectRootPath);
   return guarded([&]() -> const char* {
@@ -1265,10 +1271,12 @@ const char* scrivi_export_manuscript(const char* projectRootPath, const char* op
     const std::string document = o.getString("document", "page");
     const std::string chapterID = o.getString("chapterID");
     const std::string destPath = o.getString("destPath");
-    if (format != "markdown" && format != "html" && format != "docx")
-        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "format must be markdown, html or docx"));
-    if (format == "docx" && destPath.empty())
-        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "a docx export needs destPath"));
+    if (format != "markdown" && format != "html" && format != "docx" && format != "epub")
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "format must be markdown, html, docx or epub"));
+    if ((format == "docx" || format == "epub") && destPath.empty())
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "a " + format + " export needs destPath"));
+    if (format == "epub" && scope != "manuscript")   // SP-213 Q7: an ePub is the book
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "an epub export is of the whole manuscript"));
     if (scope != "manuscript" && scope != "chapter")
         return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "scope must be manuscript or chapter"));
     if (document != "page" && document != "body")
@@ -1299,6 +1307,12 @@ const char* scrivi_export_manuscript(const char* projectRootPath, const char* op
         }
     }
     in.titlePage = scope == "manuscript" && (format != "html" || document == "page");
+    // SP-213 Q6: the host's language (BCP 47; there is no project setting), kept to the characters a tag may hold.
+    std::string language;
+    for (char c : o.getString("language")) {
+        if (std::isalnum(static_cast<unsigned char>(c)) || c == '-') language += c;
+    }
+    if (language.empty()) language = "und";   // "undetermined", BCP 47's own word for not knowing
     // AC9 (SP-212): the byline. Unnamed authors ("Scrivi", the host name) are never exported (EP-058 AC4, Q1).
     auto authors = scrivi::identity::AuthorStore{svc, root}.read(scrivi::IdentityID{});
     if (!authors.ok()) return heap(errorEnvelope(authors.error()));
@@ -1335,9 +1349,13 @@ const char* scrivi_export_manuscript(const char* projectRootPath, const char* op
     }
 
     scrivi::util::JsonDoc doc;
-    if (format == "docx") {
-        const auto bytes = scrivi::manuscript::exportDocx(in, type);
-        if (bytes.empty()) return heap(errorEnvelope(scrivi::ErrorCode::ioError, "could not build the .docx"));
+    if (format == "docx" || format == "epub") {
+        const auto bytes = format == "docx"
+            ? scrivi::manuscript::exportDocx(in, type)
+            // A project ID is "project_<UUID>"; urn:uuid takes the UUID alone.
+            : scrivi::manuscript::exportEpub(in, type, {.identifier = "urn:uuid:" + uuidOf(project.value().projectID.value),
+                                                        .language = language, .modified = svc.clock->nowUTC()});
+        if (bytes.empty()) return heap(errorEnvelope(scrivi::ErrorCode::ioError, "could not build the ." + format));
         // Written beside the destination and renamed into place, so a failed export leaves no file at destPath.
         if (auto w = scrivi::util::atomicWriteTextFile(destPath, bytes); !w.ok()) return heap(errorEnvelope(w.error()));
         doc.setString("path", destPath);

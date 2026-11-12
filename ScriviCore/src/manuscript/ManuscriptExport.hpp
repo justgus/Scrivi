@@ -12,6 +12,8 @@
 // manuscript gives the same bytes.
 // EP-054 AC9 (SP-212, T-0673) — the byline: "by A, B and C" under the title and subtitle (`.docx`: an Author style), and
 // the authors as "A; B" in HTML <meta name="author"> and `.docx` dc:creator, on a one-chapter file too (Q2, Q3).
+// EP-054 S5 (SP-213, T-0674) — an EPUB 3 of the whole manuscript (Q5–Q7): a title page with the byline, a contents nav,
+// one XHTML file per chapter, a stylesheet with the writer's size and indent rule but no face; `mimetype` first and stored.
 // Pure: the caller reads the project; nothing here touches a file.
 
 #include <string>
@@ -47,6 +49,16 @@ struct DocxTypography {
 [[nodiscard]] std::string exportHtml(const ExportInput& in, bool wholePage);
 // The .docx file's bytes; empty only when the zip could not be built.
 [[nodiscard]] std::string exportDocx(const ExportInput& in, const DocxTypography& type);
+
+// The ePub's package metadata the input does not hold (Q6).
+struct EpubMeta {
+    std::string identifier;   // urn:uuid:<projectID>
+    std::string language;     // BCP 47, from the host
+    std::string modified;     // the export time, UTC: 2026-11-12T16:00:00Z
+};
+
+// The .epub file's bytes; empty only when the zip could not be built.
+[[nodiscard]] std::string exportEpub(const ExportInput& in, const DocxTypography& type, const EpubMeta& meta);
 
 // One scene's text as HTML blocks, one per line.
 [[nodiscard]] std::string sceneHtml(std::string_view text);

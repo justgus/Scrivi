@@ -380,3 +380,139 @@ TEST_CASE("Manuscript export: a one-chapter file — no byline, the authors in i
     CHECK(docxPart(file, "word/document.xml").find("Author") == std::string::npos);
     CHECK(docxPart(file, "docProps/core.xml").find("<dc:creator>Dumas; Maquet</dc:creator>") != std::string::npos);
 }
+
+// --- S5 (SP-213, T-0674): EPUB 3 ---------------------------------------------------------------------------------------
+
+namespace {
+
+// Every entry of a zip, in order, with whether it was stored uncompressed.
+struct ZipEntry { std::string name; bool stored; };
+std::vector<ZipEntry> zipEntries(const fs::path& file) {
+    mz_zip_archive z{};
+    REQUIRE(mz_zip_reader_init_file(&z, file.c_str(), 0));
+    std::vector<ZipEntry> out;
+    for (mz_uint i = 0; i < mz_zip_reader_get_num_files(&z); ++i) {
+        mz_zip_archive_file_stat st{};
+        REQUIRE(mz_zip_reader_file_stat(&z, i, &st));
+        out.push_back({st.m_filename, st.m_method == 0});
+    }
+    mz_zip_reader_end(&z);
+    return out;
+}
+
+std::string xhtmlDoc(const std::string& title, const std::string& body, const std::string& lang = "en-US") {
+    return "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<!DOCTYPE html>\n<html xmlns=\"http://www.w3.org/1999/xhtml\""
+           " xml:lang=\"" + lang + "\" lang=\"" + lang + "\">\n<head>\n<title>" + title +
+           "</title>\n<link rel=\"stylesheet\" type=\"text/css\" href=\"style.css\" />\n</head>\n<body>\n" + body + "</body>\n</html>\n";
+}
+
+// The modified time is the export's own (Q6): masked so the rest compares.
+std::string masked(std::string opf) {
+    const auto at = opf.find("<meta property=\"dcterms:modified\">");
+    REQUIRE(at != std::string::npos);
+    const auto from = at + std::string_view("<meta property=\"dcterms:modified\">").size();
+    const auto stamp = opf.substr(from, 20);
+    CHECK(stamp.size() == 20);
+    CHECK(stamp[4] == '-');
+    CHECK(stamp[10] == 'T');
+    CHECK(stamp.back() == 'Z');
+    return opf.replace(from, 20, "MODIFIED");
+}
+
+} // namespace
+
+TEST_CASE("Manuscript export: ePub — the package, title page, contents and a file per chapter (AC1, Q5, Q6)",
+          "[manuscript-export][capi]") {
+    ExportFixture f;
+    f.authors(R"([{"displayName":"Alexandre Dumas"},{"displayName":"Auguste Maquet"}])");
+    const auto file = f.base / "Dumas.epub";
+    const JsonDoc r = f.exportWith(R"({"format":"epub","language":"en-US","destPath":")" + file.string() + "\"}");
+    CHECK(r.getString("path") == file.string());
+    CHECK(r.getInt64("chapterCount") == 2);
+    CHECK(r.getInt64("sceneCount") == 3);
+    REQUIRE(f.projectID.starts_with("project_"));   // urn:uuid takes the UUID alone (epubcheck OPF-085)
+
+    const auto entries = zipEntries(file);
+    REQUIRE(entries.size() == 8);
+    CHECK(entries[0].name == "mimetype");
+    CHECK(entries[0].stored);   // first and uncompressed, or a reader does not recognise the file
+    CHECK(docxPart(file, "mimetype") == "application/epub+zip");
+    CHECK(entries[1].name == "META-INF/container.xml");
+    CHECK(docxPart(file, "META-INF/container.xml").find(R"(full-path="OEBPS/content.opf")") != std::string::npos);
+
+    CHECK(masked(docxPart(file, "OEBPS/content.opf")) ==
+          "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n"
+          "<package xmlns=\"http://www.idpf.org/2007/opf\" version=\"3.0\" unique-identifier=\"bookid\" xml:lang=\"en-US\">\n"
+          "<metadata xmlns:dc=\"http://purl.org/dc/elements/1.1/\">\n"
+          "<dc:identifier id=\"bookid\">urn:uuid:" + f.projectID.substr(std::string_view("project_").size()) +
+          "</dc:identifier>\n"
+          "<dc:title>The Three Musketeers</dc:title>\n"
+          "<dc:creator>Alexandre Dumas</dc:creator>\n<dc:creator>Auguste Maquet</dc:creator>\n"
+          "<dc:language>en-US</dc:language>\n"
+          "<meta property=\"dcterms:modified\">MODIFIED</meta>\n</metadata>\n<manifest>\n"
+          "<item id=\"nav\" href=\"nav.xhtml\" media-type=\"application/xhtml+xml\" properties=\"nav\"/>\n"
+          "<item id=\"style\" href=\"style.css\" media-type=\"text/css\"/>\n"
+          "<item id=\"title\" href=\"title.xhtml\" media-type=\"application/xhtml+xml\"/>\n"
+          "<item id=\"c001\" href=\"chapter-001.xhtml\" media-type=\"application/xhtml+xml\"/>\n"
+          "<item id=\"c002\" href=\"chapter-002.xhtml\" media-type=\"application/xhtml+xml\"/>\n"
+          "</manifest>\n<spine>\n<itemref idref=\"title\"/>\n<itemref idref=\"c001\"/>\n<itemref idref=\"c002\"/>\n"
+          "</spine>\n</package>\n");
+    CHECK(docxPart(file, "OEBPS/nav.xhtml").find("<nav epub:type=\"toc\" id=\"toc\">\n<h1>Contents</h1>\n<ol>\n"
+                                                 "<li><a href=\"chapter-001.xhtml\">The Three Presents</a></li>\n"
+                                                 "<li><a href=\"chapter-002.xhtml\">Chapter 2</a></li>\n</ol>\n</nav>\n") !=
+          std::string::npos);
+    CHECK(docxPart(file, "OEBPS/title.xhtml") ==
+          xhtmlDoc("The Three Musketeers", "<section class=\"titlepage\">\n<h1>The Three Musketeers</h1>\n<p>A Romance</p>\n"
+                                           "<p>by Alexandre Dumas and Auguste Maquet</p>\n</section>\n"));
+    // The S3 page's body, cut at the chapter: the same HTML the writer already checked against AO3.
+    const auto split = kHtmlBody.find("<h2>Chapter 2</h2>");
+    CHECK(docxPart(file, "OEBPS/chapter-001.xhtml") == xhtmlDoc("The Three Presents", kHtmlBody.substr(0, split)));
+    CHECK(docxPart(file, "OEBPS/chapter-002.xhtml") == xhtmlDoc("Chapter 2", kHtmlBody.substr(split)));
+    // Q5: Scrivi's defaults — the reader's own size, a 1.45 line, the book indent; the rule; no face.
+    const auto css = docxPart(file, "OEBPS/style.css");
+    CHECK(css.find("body { font-size: 100%; line-height: 1.45; }") != std::string::npos);
+    CHECK(css.find("p + p { text-indent: 1.5em; }") != std::string::npos);
+    CHECK(css.find("hr { border: 0; border-top: 1px solid #808080;") != std::string::npos);
+    CHECK(css.find("font-family") == std::string::npos);
+}
+
+TEST_CASE("Manuscript export: ePub — titles hidden, the writer's indent; the same bytes but the time (AC1, Q5, Q6)",
+          "[manuscript-export][capi]") {
+    ExportFixture f;
+    ok(scrivi_put_project_settings(f.r(), R"({"showChapterTitles":false,"textSize":20,"paragraphIndent":"every","indentEm":2})"));
+    const auto a = f.base / "a.epub", b = f.base / "b.epub";
+    f.exportWith(R"({"format":"epub","destPath":")" + a.string() + "\"}");
+    f.exportWith(R"({"format":"epub","destPath":")" + b.string() + "\"}");
+    // No language from the host: "und" (BCP 47's undetermined); no named author: no creator, no byline.
+    const auto opf = docxPart(a, "OEBPS/content.opf");
+    CHECK(opf.find("<dc:language>und</dc:language>") != std::string::npos);
+    CHECK(opf.find("dc:creator") == std::string::npos);
+    CHECK(docxPart(a, "OEBPS/title.xhtml").find("by ") == std::string::npos);
+    // Titles hidden: no heading in the text, but the contents still names each chapter.
+    CHECK(docxPart(a, "OEBPS/chapter-002.xhtml").find("<h2>") == std::string::npos);
+    CHECK(docxPart(a, "OEBPS/nav.xhtml").find(">Chapter 2</a>") != std::string::npos);
+    const auto css = docxPart(a, "OEBPS/style.css");
+    CHECK(css.find("body { font-size: 125%;") != std::string::npos);
+    CHECK(css.find("p { margin: 0 0 0.483em; text-indent: 2em; }") != std::string::npos);
+    CHECK(css.find("p + p") == std::string::npos);
+    for (const auto& e : zipEntries(a)) {
+        INFO(e.name);
+        if (e.name == "OEBPS/content.opf") {
+            CHECK(masked(docxPart(a, e.name.c_str())) == masked(docxPart(b, e.name.c_str())));
+        } else {
+            CHECK(docxPart(a, e.name.c_str()) == docxPart(b, e.name.c_str()));
+        }
+    }
+}
+
+TEST_CASE("Manuscript export: ePub — the whole manuscript only, to a path; the language kept to a tag (Q6, Q7)",
+          "[manuscript-export][capi]") {
+    ExportFixture f;
+    const auto file = f.base / "x.epub";
+    CHECK(failed(scrivi_export_manuscript(f.r(), R"({"format":"epub"})")));
+    CHECK(failed(scrivi_export_manuscript(f.r(), (R"({"format":"epub","scope":"chapter","chapterID":")" + f.chapter2 +
+                                                  R"(","destPath":")" + file.string() + "\"}").c_str())));
+    CHECK_FALSE(fs::exists(file));
+    f.exportWith(R"({"format":"epub","language":"fr\" x=\"<","destPath":")" + file.string() + "\"}");
+    CHECK(docxPart(file, "OEBPS/content.opf").find("xml:lang=\"frx\">") != std::string::npos);
+}

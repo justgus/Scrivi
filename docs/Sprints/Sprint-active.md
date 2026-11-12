@@ -1,5 +1,9 @@
 # Active Sprints
 
+*Last Updated: 2026-11-12 (**SP-213 built** — AC1–AC4 met; T-0674 → 🟠.)*
+
+*Last Updated: 2026-11-12 (**SP-213 → 🟡 ACTIVE** (user, 2026-11-12: *"Q1–Q8 as recommended, activate and implement SP-213."*))*
+
 *Last Updated: 2026-11-12 (**SP-212 → ✅ CLOSED** (user, 2026-11-12: *"close SP-212."*) → `Closed/Sprint-SP-212.md`. No Sprint is active.)*
 
 *Last Updated: 2026-11-12 (**SP-212 AC4, AC5 ✅**; T-0673 → ✅ Verified, archived. Close awaits approval.)*
@@ -78,3 +82,9 @@
 *Last Updated: 2026-11-03 (**SP-198, SP-199 → ✅ CLOSED** (user, 2026-11-03: *"close both sprints."*).)*
 
 *Last Updated: 2026-11-02 (**SP-195, SP-196, SP-197, SP-200, SP-201 → ✅ CLOSED** (user, 2026-11-02).)*
+
+---
+
+## SP-213 — `[Cross]` [EP-054] S5: ePub export
+
+🟡 **ACTIVE 2026-11-12** → [`Sprint-SP-213.md`](Sprint-SP-213.md) · carries [T-0674] · ✅ Q1–Q8 ruled (Q1: PDF its own Sprint) · ✅ built (macOS ctest 840/840, Linux 845/845, epubcheck clean) · ⏳ the live passes (user)

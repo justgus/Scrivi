@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <cstdio>
 #include <ctime>
 
 namespace scrivi::manuscript {
@@ -510,10 +511,39 @@ static std::string docxDocumentXml(const ExportInput& in, const DocxTypography& 
     return std::string(kXmlHead) + "<w:document " + kNs + "><w:body>\n" + body.out + "</w:body></w:document>\n";
 }
 
+// The zip's bytes, every entry at a fixed time (S4 Q7: the same manuscript gives the same bytes); empty on failure. With
+// `storeFirst` the first entry is stored, not compressed (an ePub's `mimetype`).
+static std::string zipParts(const std::vector<std::pair<std::string, std::string>>& parts, bool storeFirst) {
+    // miniz converts the time with localtime(), so it is made from LOCAL 1980-01-02 00:00 and reads back as that date in
+    // every time zone.
+    std::tm tm{};
+    tm.tm_year = 80;
+    tm.tm_mday = 2;
+    tm.tm_isdst = -1;
+    MZ_TIME_T fixed = std::mktime(&tm);
+
+    mz_zip_archive z{};
+    if (!mz_zip_writer_init_heap(&z, 0, 0)) { return {}; }
+    bool ok = true;
+    for (std::size_t i = 0; i < parts.size(); ++i) {
+        const auto& [name, text] = parts[i];
+        const mz_uint level = storeFirst && i == 0 ? MZ_NO_COMPRESSION : MZ_DEFAULT_LEVEL;
+        ok = ok && mz_zip_writer_add_mem_ex_v2(&z, name.c_str(), text.data(), text.size(), nullptr, 0, level, 0, 0, &fixed,
+                                               nullptr, 0, nullptr, 0);
+    }
+    void* buf = nullptr;
+    std::size_t len = 0;
+    ok = ok && mz_zip_writer_finalize_heap_archive(&z, &buf, &len);
+    std::string bytes = ok ? std::string(static_cast<const char*>(buf), len) : std::string{};
+    if (buf) { z.m_pFree(z.m_pAlloc_opaque, buf); }   // finalize hands the buffer to the caller
+    mz_zip_writer_end(&z);
+    return bytes;
+}
+
 std::string exportDocx(const ExportInput& in, const DocxTypography& type) {
     std::vector<int> orderedStarts;
     const auto document = docxDocumentXml(in, type, &orderedStarts);
-    const std::pair<const char*, std::string> parts[] = {
+    const std::vector<std::pair<std::string, std::string>> parts{
         {"[Content_Types].xml",
          std::string(kXmlHead) +
              "<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">"
@@ -552,28 +582,114 @@ std::string exportDocx(const ExportInput& in, const DocxTypography& type) {
         {"word/numbering.xml", docxNumbering(type, orderedStarts)},
     };
 
-    // Q7: a fixed time, so the same manuscript gives the same bytes. miniz converts it with localtime(), so it is made
-    // from LOCAL 1980-01-02 00:00 and reads back as that date in every time zone.
-    std::tm tm{};
-    tm.tm_year = 80;
-    tm.tm_mday = 2;
-    tm.tm_isdst = -1;
-    MZ_TIME_T fixed = std::mktime(&tm);
-
-    mz_zip_archive z{};
-    if (!mz_zip_writer_init_heap(&z, 0, 0)) { return {}; }
-    bool ok = true;
-    for (const auto& [name, text] : parts) {
-        ok = ok && mz_zip_writer_add_mem_ex_v2(&z, name, text.data(), text.size(), nullptr, 0, MZ_DEFAULT_LEVEL, 0, 0,
-                                               &fixed, nullptr, 0, nullptr, 0);
-    }
-    void* buf = nullptr;
-    std::size_t len = 0;
-    ok = ok && mz_zip_writer_finalize_heap_archive(&z, &buf, &len);
-    std::string bytes = ok ? std::string(static_cast<const char*>(buf), len) : std::string{};
-    if (buf) { z.m_pFree(z.m_pAlloc_opaque, buf); }   // finalize hands the buffer to the caller
-    mz_zip_writer_end(&z);
-    return bytes;
+    return zipParts(parts, false);
 }
+
+// --- EPUB 3 (EP-054 S5, SP-213) ---------------------------------------------------------------------------------------
+
+namespace {
+
+// One XHTML content document. The S3 walker's HTML is already XML: <br />, <hr />, and only &amp; &lt; &gt; escaped.
+std::string xhtml(std::string_view title, std::string_view language, std::string_view body, bool nav = false) {
+    return std::string(kXmlHead) + "<!DOCTYPE html>\n<html xmlns=\"http://www.w3.org/1999/xhtml\"" +
+           (nav ? " xmlns:epub=\"http://www.idpf.org/2007/ops\"" : "") + " xml:lang=\"" + std::string(language) +
+           "\" lang=\"" + std::string(language) + "\">\n<head>\n<title>" + escaped(title) +
+           "</title>\n<link rel=\"stylesheet\" type=\"text/css\" href=\"style.css\" />\n</head>\n<body>\n" + std::string(body) +
+           "</body>\n</html>\n";
+}
+
+std::string num(double v) {
+    char buf[32];
+    std::snprintf(buf, sizeof buf, "%.3g", v);
+    return buf;
+}
+std::string em(double v) { return num(v) + "em"; }
+
+// Q5: the writer's size, indent rule and line height, and the screen's scene-break rule; no face (readers apply their own).
+std::string epubStyle(const DocxTypography& t) {
+    char size[32];
+    std::snprintf(size, sizeof size, "%.4g%%", t.size / 16 * 100);   // 16 pt is Scrivi's default: the reader's own size
+    const double gap = kLineSpacing * (t.indent == "none" ? 1.0 : kGapFraction);
+    std::string s = "body { font-size: " + std::string(size) + "; line-height: " + num(kLineSpacing) + "; }\n";
+    s += "p { margin: 0 0 " + em(gap) + "; text-indent: " + (t.indent == "every" ? em(t.indentEm) : "0") + "; }\n";
+    if (t.indent == "book") { s += "p + p { text-indent: " + em(t.indentEm) + "; }\n"; }
+    s += "ul, ol { margin: 0 0 " + em(gap) + "; }\n";
+    s += "h1, h2, h3 { line-height: " + num(kHeadingLineSpacing) + "; margin: 0 0 " + em(gap) + "; }\n";
+    for (int level = 1; level <= 3; ++level) {
+        s += "h" + std::to_string(level) + " { font-size: " + em(kHeadingScale[level - 1]) + "; }\n";
+    }
+    s += "hr { border: 0; border-top: 1px solid #808080; margin: " + em(gap) + " 20pt; }\n";
+    s += ".titlepage { text-align: center; margin-top: 8em; }\n"
+         ".titlepage h1 { font-size: " + em(33.0 / 13) + "; }\n"
+         ".titlepage p { text-indent: 0; }\n";
+    return s;
+}
+
+} // namespace
+
+std::string exportEpub(const ExportInput& in, const DocxTypography& type, const EpubMeta& meta) {
+    // One file per chapter (Q5); a chapter's scenes break with <hr />, as S3's page.
+    struct Chapter { std::string heading, body; };
+    std::vector<Chapter> chapters;
+    walk(in,
+         [&](const ExportScene& s, bool newChapter, bool) {
+             if (newChapter) {
+                 chapters.push_back({s.chapterHeading, {}});
+                 if (in.chapterTitles) { chapters.back().body += "<h2>" + escaped(s.chapterHeading) + "</h2>\n"; }
+             } else {
+                 chapters.back().body += "<hr />\n";
+             }
+         },
+         [&](std::string_view text) { chapters.back().body += sceneHtml(text); });
+
+    std::string titlePage = "<section class=\"titlepage\">\n<h1>" + escaped(in.title) + "</h1>\n";
+    if (!in.subtitle.empty()) { titlePage += "<p>" + escaped(in.subtitle) + "</p>\n"; }
+    if (!in.authors.empty()) { titlePage += "<p>" + escaped(byline(in.authors)) + "</p>\n"; }
+    titlePage += "</section>\n";
+
+    std::string toc = "<nav epub:type=\"toc\" id=\"toc\">\n<h1>Contents</h1>\n<ol>\n";
+    std::string manifest, spine;
+    std::vector<std::pair<std::string, std::string>> files;
+    for (std::size_t i = 0; i < chapters.size(); ++i) {
+        char id[16];
+        std::snprintf(id, sizeof id, "c%03zu", i + 1);
+        const std::string href = "chapter-" + std::string(id + 1) + ".xhtml";
+        toc += "<li><a href=\"" + href + "\">" + escaped(chapters[i].heading) + "</a></li>\n";
+        manifest += "<item id=\"" + std::string(id) + "\" href=\"" + href + "\" media-type=\"application/xhtml+xml\"/>\n";
+        spine += "<itemref idref=\"" + std::string(id) + "\"/>\n";
+        files.emplace_back("OEBPS/" + href, xhtml(chapters[i].heading, meta.language, chapters[i].body));
+    }
+    toc += "</ol>\n</nav>\n";
+
+    // Q6: one dc:creator per author, in byline order; the identifier is the project's, so a re-export updates the book.
+    std::string opf = std::string(kXmlHead) +
+        "<package xmlns=\"http://www.idpf.org/2007/opf\" version=\"3.0\" unique-identifier=\"bookid\" xml:lang=\"" +
+        meta.language + "\">\n<metadata xmlns:dc=\"http://purl.org/dc/elements/1.1/\">\n"
+        "<dc:identifier id=\"bookid\">" + xml(meta.identifier) + "</dc:identifier>\n"
+        "<dc:title>" + xml(in.title) + "</dc:title>\n";
+    for (const auto& a : in.authors) { opf += "<dc:creator>" + xml(a) + "</dc:creator>\n"; }
+    opf += "<dc:language>" + meta.language + "</dc:language>\n"
+           "<meta property=\"dcterms:modified\">" + meta.modified + "</meta>\n</metadata>\n<manifest>\n"
+           "<item id=\"nav\" href=\"nav.xhtml\" media-type=\"application/xhtml+xml\" properties=\"nav\"/>\n"
+           "<item id=\"style\" href=\"style.css\" media-type=\"text/css\"/>\n"
+           "<item id=\"title\" href=\"title.xhtml\" media-type=\"application/xhtml+xml\"/>\n" + manifest +
+           "</manifest>\n<spine>\n<itemref idref=\"title\"/>\n" + spine + "</spine>\n</package>\n";
+
+    std::vector<std::pair<std::string, std::string>> parts{
+        {"mimetype", "application/epub+zip"},   // first and stored: how a reader recognises the file
+        {"META-INF/container.xml",
+         std::string(kXmlHead) +
+             "<container version=\"1.0\" xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\">\n<rootfiles>\n"
+             "<rootfile full-path=\"OEBPS/content.opf\" media-type=\"application/oebps-package+xml\"/>\n"
+             "</rootfiles>\n</container>\n"},
+        {"OEBPS/content.opf", opf},
+        {"OEBPS/nav.xhtml", xhtml("Contents", meta.language, toc, true)},
+        {"OEBPS/style.css", epubStyle(type)},
+        {"OEBPS/title.xhtml", xhtml(in.title, meta.language, titlePage)},
+    };
+    parts.insert(parts.end(), files.begin(), files.end());
+    return zipParts(parts, true);
+}
+
 
 } // namespace scrivi::manuscript

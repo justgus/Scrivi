@@ -100,20 +100,22 @@ extension AppEnvironment {
 
     // MARK: — Manuscript (EP-054 S3, SP-207)
 
-    /// File ▸ Export Manuscript…: Markdown, HTML (a whole page) or a Word document (S4, SP-208), the whole manuscript or the
-    /// caret's chapter (Q2, Q3).
+    /// File ▸ Export Manuscript…: Markdown, HTML (a whole page), a Word document (S4, SP-208) or an ePub (S5, SP-213), the
+    /// whole manuscript or the caret's chapter (Q2, Q3); an ePub is always the whole manuscript (SP-213 Q7).
     func exportManuscript(_ session: ProjectSession) async {
         guard let root = session.projectRootPath else { return }
         let engine = session.engine
         await session.saveAllDirty()   // the editor's unsaved text; the core then drains the write queue
         let f = await ask("Export Manuscript",
                           "Markdown keeps the text as Scrivi stores it. HTML is a web page with every paragraph its own <p>. "
-                          + "A Word document keeps your typeface and indent in named styles.",
-                          ["Markdown", "HTML", "Word Document (.docx)", "Cancel"])
-        guard f.choice < 3 else { return }
-        let format = ["markdown", "html", "docx"][f.choice]
-        let ext = ["md", "html", "docx"][f.choice]
-        let scope = await askScope(session, "Export Manuscript")
+                          + "A Word document keeps your typeface and indent in named styles. "
+                          + "An ePub is the whole manuscript as a book for e-readers.",
+                          ["Markdown", "HTML", "Word Document (.docx)", "ePub", "Cancel"])
+        guard f.choice < 4 else { return }
+        let format = ["markdown", "html", "docx", "epub"][f.choice]
+        let ext = ["md", "html", "docx", "epub"][f.choice]
+        let scope = format == "epub" ? (cancelled: false, chapterID: nil, chapterName: nil)
+                                     : await askScope(session, "Export Manuscript")
         guard !scope.cancelled else { return }
 
         let projectName = URL(fileURLWithPath: root).deletingPathExtension().lastPathComponent
@@ -134,8 +136,8 @@ extension AppEnvironment {
         #endif
         let chapterID = scope.chapterID
         do {
-            if format == "docx" {
-                // As the archive: the core writes through a file beside the .docx, which the sandbox does not grant beside
+            if format == "docx" || format == "epub" {
+                // As the archive: the core writes through a file beside the .docx or .epub, which the sandbox does not grant beside
                 // the writer's file — so it writes into a folder the app may use, and the result is moved into place.
                 #if os(macOS)
                 let staging = stagingFolder(for: destination)
@@ -147,9 +149,10 @@ extension AppEnvironment {
                 #endif
                 let path = written.path(percentEncoded: false)
                 let face = BundledFonts.manifest.default
+                let language = Locale.preferredLanguages.first   // SP-213 Q6: there is no project language
                 _ = try await offMain("Exporting manuscript…", show: { session.archiveProgress = $0 }) {
-                    try engine.exportManuscript(projectRootPath: root, format: "docx", chapterID: chapterID,
-                                                destPath: path, defaultTypeface: face)
+                    try engine.exportManuscript(projectRootPath: root, format: format, chapterID: chapterID,
+                                                destPath: path, defaultTypeface: face, language: language)
                 }
                 #if os(macOS)
                 try moveIntoPlace(written, destination)
