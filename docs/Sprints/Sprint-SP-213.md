@@ -97,7 +97,7 @@ readers — title page with byline, a contents list of chapters, chapters, scene
 - [x] AC4 — Export Manuscript… offers ePub on the Mac, iPad and Linux (no scope question, Q7); flushed first, off the main
       thread, progress after 400 ms; the host's language passed; interop test and Linux smoke through the wrappers; engine
       stub parity green
-- [ ] AC5 — **Live passes (user):** an ePub from the Mac and from Linux opens in Apple Books (Mac, iPad) and Foliate (Linux):
+- [x] AC5 — **Live passes (user):** an ePub from the Mac and from Linux opens in Apple Books (Mac, iPad) and Foliate (Linux):
       title page with the byline, the contents list, chapters, scene breaks, emphasis and lists as in Scrivi
 
 ➡️ **Moved to the PDF Sprint by Q1:** plan steps 2 and 4 (the print page, the three PDF renderers), with Q2–Q4 as ruled.
@@ -122,3 +122,9 @@ readers — title page with byline, a contents list of chapters, chapters, scene
   copies of `the-river-of-time` and `the-stairs-of-tintagael` (60 scenes, 10 chapters). The Tintagael ePub from the Mac and
   from Linux arm64: **all 14 files identical** but `dcterms:modified` → AC1–AC4.
   ⏳ AC5: the live passes. ⏳ CI after the push.
+- **2026-11-12** — ✅ **AC5 — live passes** (user, 2026-11-12: *"The iPad is present. Steps 1-4 pass."*): ePubs from the Mac, iPad and Linux open in Apple Books (Mac, iPad) and
+  Foliate (Linux) — title page and byline, contents, chapters, scene breaks, emphasis, lists. T-0674 → ✅ Verified, archived.
+- **2026-11-12** — CI on `1aaffb3`: Scrivi Apple CI ✅; ScriviCore CI ✅ after re-running the plain macOS job (cancelled before
+  any runner took it); ⛔ **Linux App CI: the indent smoke passed every check, then aborted with heap corruption at exit** →
+  **[I-0359]** (not reproduced in 37 runs on scrivi-vm, ASan included; the failed job re-run to see whether it recurs). Not
+  this Sprint's code path, but it is red — close awaits approval and the re-run.

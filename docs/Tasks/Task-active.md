@@ -1,5 +1,7 @@
 # Active Tasks
 
+*Last Updated: 2026-11-12 (**T-0674 → ✅ Verified** ([SP-213] AC5) → `Verified/Task-verified-0674.md`.)*
+
 *Last Updated: 2026-11-12 (**T-0674 → 🟠** → `Task-unverified.md` ([SP-213] built; the live passes are the user's).)*
 
 *Last Updated: 2026-11-12 (**T-0674 → active** with [SP-213]'s activation (EP-054 S5).)*
