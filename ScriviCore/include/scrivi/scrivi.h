@@ -100,6 +100,8 @@ const char* scrivi_import_archive(const char* archivePath, const char* destFolde
  * S4 (SP-208): format "docx" WRITES a Word document to destPath (required; through a temporary file beside it, renamed into
  *   place) in the project's typeface, size and indent rule (project-settings.json; defaultTypeface? when it names none):
  *   named styles, each chapter on a new page, "* * *" scene breaks, real lists, the same bytes for the same manuscript.
+ * AC9 (SP-212): the project's named, active authors — "by A, B and C" under the title and subtitle (.docx: an Author style),
+ *   and "A; B" in HTML <meta name="author"> and .docx dc:creator (one-chapter files too); unnamed authors never; none, none.
  * result: {text, chapterCount, sceneCount}; docx: {path, chapterCount, sceneCount} */
 const char* scrivi_export_manuscript(const char* projectRootPath, const char* optionsJSON);
 

@@ -43,7 +43,7 @@ authorship is handled project side."*
 | **…but it is app-global** | ⛔ the app builds ONE `AuthorshipRef` at launch and uses it for every project (`AppEnvironment.authorshipRef`) — so a project cannot be written "as" its own pen name | `AppEnvironment.swift:21, 229` |
 | **Worlds** | ⛔ **no authorship at all**: `world.json` has `worldID`, `displayName`, epoch, dates | `WorldJson.cpp:20–25` |
 | **Persona endpoints** | ⛔ none | `scrivi.h` |
-| **Exports** | Markdown, HTML ([SP-207]) and `.docx` ([SP-208]) title pages carry the title and subtitle; ⛔ no byline (SP-208 Q1/Q7, ruled because the name was not settable) | `ManuscriptExport.cpp` |
+| **Exports** | Markdown, HTML ([SP-207]) and `.docx` ([SP-208]) title pages carry the title and subtitle; ✅ and the byline since [SP-212] (EP-054 AC9): "by A, B and C", HTML `<meta name="author">`, `.docx` Author style + `dc:creator` | `ManuscriptExport.cpp` |
 
 So the shape the user asked for in September is already in the package — a credit list (personas) and a member list
 (identities) — but nothing lets the writer name a persona, add one, or choose which one they write as, and worlds have

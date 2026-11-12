@@ -10,6 +10,8 @@
 // Number, Scene Break); Q3 each chapter on a new page; Q4 a centred "* * *"; Q5 chapter titles Heading 1, real Word lists;
 // Q6 a single newline a line break; Q7 the title alone in the document properties, and a fixed zip time, so the same
 // manuscript gives the same bytes.
+// EP-054 AC9 (SP-212, T-0673) — the byline: "by A, B and C" under the title and subtitle (`.docx`: an Author style), and
+// the authors as "A; B" in HTML <meta name="author"> and `.docx` dc:creator, on a one-chapter file too (Q2, Q3).
 // Pure: the caller reads the project; nothing here touches a file.
 
 #include <string>
@@ -27,6 +29,7 @@ struct ExportScene {
 struct ExportInput {
     std::string title;
     std::string subtitle;
+    std::vector<std::string> authors;   // the named, active authors in byline order; empty: no byline, no metadata
     bool titlePage = false;
     bool chapterTitles = true;
     std::vector<ExportScene> scenes;   // manuscript order

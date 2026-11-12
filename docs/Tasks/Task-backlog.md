@@ -1,5 +1,9 @@
 # Task Backlog
 
+*Last Updated: 2026-11-12 (**T-0673 → active** with [SP-212]'s activation.)*
+
+*Last Updated: 2026-11-12 (**T-0673 filed** with [SP-212] (🔵 Planning), [EP-054] AC9.)*
+
 *Last Updated: 2026-11-11 (**T-0672 → active** with [SP-211]'s activation.)*
 
 *Last Updated: 2026-11-11 (**T-0672 filed** with [SP-211] (🔵 Planning), [EP-058] S3.)*

@@ -1299,6 +1299,12 @@ const char* scrivi_export_manuscript(const char* projectRootPath, const char* op
         }
     }
     in.titlePage = scope == "manuscript" && (format != "html" || document == "page");
+    // AC9 (SP-212): the byline. Unnamed authors ("Scrivi", the host name) are never exported (EP-058 AC4, Q1).
+    auto authors = scrivi::identity::AuthorStore{svc, root}.read(scrivi::IdentityID{});
+    if (!authors.ok()) return heap(errorEnvelope(authors.error()));
+    for (const auto& a : authors.value().authors) {
+        if (!a.unnamed) in.authors.push_back(a.displayName);
+    }
 
     scrivi::manuscript::ManuscriptOrderResolver resolver{svc};
     auto resolved = resolver.resolve(root);

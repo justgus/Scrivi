@@ -5,6 +5,9 @@
 // (Q5–Q7); one chapter (Q2); the body alone or a whole page (Q3); queued writes land first (AC1); bad options are refused.
 // S4 (SP-208, T-0668): the .docx unzipped — the golden document.xml, the writer's typography in the styles (Q1), page and
 // scene breaks (Q3, Q4), real lists (Q5), a newline a line break (Q6), the same bytes twice (Q7), nothing left on failure.
+// AC9 (SP-212, T-0673): the byline under the title and the authors in the metadata, in every format; retired and unnamed
+// authors never; a work with no named author exactly as before (the fixture's only author is "Scrivi", so every golden
+// above the AC9 cases is that case).
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -81,6 +84,7 @@ struct ExportFixture {
         chapter2 = c2.getString("chapterID");
         save(c2.getString("firstSceneID"), c2.getString("firstSceneMetadataPath"), c2.getString("firstSceneContentPath"), kB1);
         ok(scrivi_put_project_settings(r(), R"({"subtitle":"A Romance"})"));
+        authors(R"([{"displayName":"Scrivi"}])");   // unnamed: no byline (SP-212 Q1)
     }
     ~ExportFixture() {
         scrivi_free(scrivi_close_project(r()));
@@ -95,6 +99,7 @@ struct ExportFixture {
         ok(scrivi_save_scene(pid(), r(), as(), scene.c_str(), meta.c_str(), content.c_str(), text.c_str(), 0, 0, 0.0, kId,
                              kPersona, "T"));
     }
+    void authors(const std::string& list) { ok(scrivi_set_authors(r(), (R"({"authors":)" + list + "}").c_str())); }
     JsonDoc exportWith(const std::string& options) { return ok(scrivi_export_manuscript(r(), options.c_str())); }
 };
 
@@ -262,6 +267,8 @@ TEST_CASE("Manuscript export: .docx is what the writer sees, in named styles (AC
     CHECK(styles.find(R"(<w:name w:val="Body Text"/><w:basedOn w:val="Normal"/><w:qFormat/><w:pPr><w:spacing w:after="155"/>)"
                       R"(<w:ind w:firstLine="480"/>)") != std::string::npos);
     CHECK(docxPart(file, "docProps/core.xml").find("<dc:title>The Three Musketeers</dc:title>") != std::string::npos);
+    CHECK(docxPart(file, "docProps/core.xml").find("dc:creator") == std::string::npos);   // AC9: no named author
+    CHECK(styles.find("Author") == std::string::npos);
     CHECK(docxPart(file, "word/numbering.xml").find(R"(<w:num w:numId="2"><w:abstractNumId w:val="1"/>)") !=
           std::string::npos);
     CHECK_FALSE(fs::exists(file.string() + ".tmp"));
@@ -317,4 +324,59 @@ TEST_CASE("Manuscript export: .docx — the same bytes twice; a failed write lea
     const auto nowhere = f.base / "no-such-folder" / "x.docx";
     CHECK(failed(scrivi_export_manuscript(f.r(), (R"({"format":"docx","destPath":")" + nowhere.string() + "\"}").c_str())));
     CHECK_FALSE(fs::exists(nowhere.parent_path()));
+}
+
+TEST_CASE("Manuscript export: the byline and the authors, in every format (AC9, SP-212 Q3, Q4)", "[manuscript-export][capi]") {
+    ExportFixture f;
+    f.authors(R"([{"displayName":"Alexandre Dumas"},{"displayName":"Auguste Maquet"}])");
+    CHECK(f.exportWith(R"({"format":"markdown"})").getString("text")
+              .starts_with("# The Three Musketeers\n\nA Romance\n\nby Alexandre Dumas and Auguste Maquet\n\n# The Three Presents\n"));
+    CHECK(f.exportWith(R"({"format":"html","document":"page"})").getString("text") ==
+          "<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"utf-8\">\n"
+          "<meta name=\"author\" content=\"Alexandre Dumas; Auguste Maquet\">\n<title>The Three Musketeers</title>\n</head>\n"
+          "<body>\n<h1>The Three Musketeers</h1>\n<p>A Romance</p>\n<p>by Alexandre Dumas and Auguste Maquet</p>\n" + kHtmlBody +
+          "</body>\n</html>\n");
+    CHECK(f.exportWith(R"({"format":"html","document":"body"})").getString("text") == kHtmlBody);   // Copy as HTML: none
+    const auto file = f.base / "Dumas.docx";
+    f.exportWith(R"({"format":"docx","destPath":")" + file.string() + "\"}");
+    CHECK(docxPart(file, "word/document.xml").find(para("Subtitle", run("A Romance")) +
+                                                   para("Author", run("by Alexandre Dumas and Auguste Maquet")) +
+                                                   para("Heading1", run("The Three Presents"), kPageBreak)) != std::string::npos);
+    // Q4: centred on the Subtitle's line (16 pt × 1.5 heading scale × 1.25 = 600 twips), the body size, not bold.
+    CHECK(docxPart(file, "word/styles.xml").find(
+              R"(<w:style w:type="paragraph" w:customStyle="1" w:styleId="Author"><w:name w:val="Author"/><w:basedOn w:val="Normal"/>)"
+              R"(<w:qFormat/><w:pPr><w:spacing w:line=")") != std::string::npos);
+    CHECK(docxPart(file, "docProps/core.xml").find("<dc:creator>Alexandre Dumas; Auguste Maquet</dc:creator>") !=
+          std::string::npos);
+}
+
+TEST_CASE("Manuscript export: the byline — one, three, retired and unnamed authors left out (AC9, Q1)",
+          "[manuscript-export][capi]") {
+    ExportFixture f;
+    auto titlePage = [&] {
+        const auto text = f.exportWith(R"({"format":"markdown"})").getString("text");
+        return text.substr(0, text.find("# The Three Presents"));
+    };
+    f.authors(R"([{"displayName":"Dumas"}])");
+    CHECK(titlePage() == "# The Three Musketeers\n\nA Romance\n\nby Dumas\n\n");
+    f.authors(R"([{"displayName":"Dumas"},{"displayName":"Maquet"},{"displayName":"Scrivi"},{"displayName":"Hugo"}])");
+    CHECK(titlePage() == "# The Three Musketeers\n\nA Romance\n\nby Dumas, Maquet and Hugo\n\n");
+    // A list without IDs retires every earlier author (never deletes): the four above are on disk, retired, and left out.
+    f.authors(R"([{"displayName":"Hugo"},{"displayName":"Dumas"}])");
+    CHECK(titlePage() == "# The Three Musketeers\n\nA Romance\n\nby Hugo and Dumas\n\n");
+}
+
+TEST_CASE("Manuscript export: a one-chapter file — no byline, the authors in its metadata (AC9, Q2)",
+          "[manuscript-export][capi]") {
+    ExportFixture f;
+    f.authors(R"([{"displayName":"Dumas"},{"displayName":"Maquet"}])");
+    const std::string chapter = R"(","scope":"chapter","chapterID":")" + f.chapter2;
+    CHECK(f.exportWith(R"({"format":"markdown)" + chapter + "\"}").getString("text") == "# Chapter 2\n\n1. first\n2. second\n");
+    const auto page = f.exportWith(R"({"format":"html","document":"page)" + chapter + "\"}").getString("text");
+    CHECK(page.find("<meta name=\"author\" content=\"Dumas; Maquet\">") != std::string::npos);
+    CHECK(page.find("by Dumas") == std::string::npos);
+    const auto file = f.base / "Chapter 2.docx";
+    f.exportWith(R"({"format":"docx)" + chapter + R"(","destPath":")" + file.string() + "\"}");
+    CHECK(docxPart(file, "word/document.xml").find("Author") == std::string::npos);
+    CHECK(docxPart(file, "docProps/core.xml").find("<dc:creator>Dumas; Maquet</dc:creator>") != std::string::npos);
 }

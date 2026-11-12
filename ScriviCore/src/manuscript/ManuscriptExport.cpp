@@ -246,11 +246,29 @@ std::string sceneHtml(std::string_view text) {
     return out;
 }
 
+// "by A", "by A and B", "by A, B and C" (Authorship design Q6).
+static std::string byline(const std::vector<std::string>& authors) {
+    std::string out = "by ";
+    for (std::size_t i = 0; i < authors.size(); ++i) {
+        if (i > 0) { out += i + 1 == authors.size() ? " and " : ", "; }
+        out += authors[i];
+    }
+    return out;
+}
+
+// The authors as metadata: a list a machine can split (SP-212 Q3).
+static std::string creators(const std::vector<std::string>& authors) {
+    std::string out;
+    for (const auto& a : authors) { out += (out.empty() ? "" : "; ") + a; }
+    return out;
+}
+
 std::string exportMarkdown(const ExportInput& in) {
     std::string out;
     if (in.titlePage) {
         out += "# " + in.title + "\n\n";
         if (!in.subtitle.empty()) { out += in.subtitle + "\n\n"; }
+        if (!in.authors.empty()) { out += byline(in.authors) + "\n\n"; }
     }
     walk(in,
          [&](const ExportScene& s, bool newChapter, bool first) {
@@ -265,12 +283,14 @@ std::string exportMarkdown(const ExportInput& in) {
 std::string exportHtml(const ExportInput& in, bool wholePage) {
     std::string out;
     if (wholePage) {
-        out += "<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"utf-8\">\n<title>" + escaped(in.title) +
-               "</title>\n</head>\n<body>\n";
+        out += "<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"utf-8\">\n";
+        if (!in.authors.empty()) { out += "<meta name=\"author\" content=\"" + escaped(creators(in.authors)) + "\">\n"; }
+        out += "<title>" + escaped(in.title) + "</title>\n</head>\n<body>\n";
     }
     if (in.titlePage) {
         out += "<h1>" + escaped(in.title) + "</h1>\n";
         if (!in.subtitle.empty()) { out += "<p>" + escaped(in.subtitle) + "</p>\n"; }
+        if (!in.authors.empty()) { out += "<p>" + escaped(byline(in.authors)) + "</p>\n"; }
     }
     walk(in,
          [&](const ExportScene& s, bool newChapter, bool first) {
@@ -388,7 +408,7 @@ std::string exactLine(double fontSize, double spacing) {
 // Lists as the editor draws them: no left margin, the marker hanging in front of the text (SP-163).
 long listHang(const DocxTypography& t) { return twips(t.size * 1.2); }
 
-std::string docxStyles(const DocxTypography& t) {
+std::string docxStyles(const DocxTypography& t, bool author) {
     const auto size = [&](double pt) { const auto h = std::to_string(halfPoints(pt));
                                        return "<w:sz w:val=\"" + h + "\"/><w:szCs w:val=\"" + h + "\"/>"; };
     const auto face = xml(t.typeface);
@@ -416,6 +436,12 @@ std::string docxStyles(const DocxTypography& t) {
     s += "<w:style w:type=\"paragraph\" w:styleId=\"Subtitle\"><w:name w:val=\"Subtitle\"/><w:basedOn w:val=\"Normal\"/>"
          "<w:qFormat/><w:pPr><w:spacing " + exactLine(subtitleSize, kHeadingLineSpacing) + "/><w:jc w:val=\"center\"/></w:pPr>"
          "<w:rPr>" + size(subtitleSize) + "</w:rPr></w:style>\n";
+    // SP-212 Q4: the byline at the body size, on the Subtitle's line; only when there is one, so an unbylined file is unchanged.
+    if (author) {
+        s += "<w:style w:type=\"paragraph\" w:customStyle=\"1\" w:styleId=\"Author\"><w:name w:val=\"Author\"/>"
+             "<w:basedOn w:val=\"Normal\"/><w:qFormat/><w:pPr><w:spacing " + exactLine(subtitleSize, kHeadingLineSpacing) +
+             "/><w:jc w:val=\"center\"/></w:pPr></w:style>\n";
+    }
     for (int level = 1; level <= 3; ++level) {
         const auto n = std::to_string(level);
         const double hs = t.size * kHeadingScale[level - 1];
@@ -467,6 +493,7 @@ static std::string docxDocumentXml(const ExportInput& in, const DocxTypography& 
     if (in.titlePage) {
         body.plain("Title", in.title);
         if (!in.subtitle.empty()) { body.plain("Subtitle", in.subtitle); }
+        if (!in.authors.empty()) { body.plain("Author", byline(in.authors)); }
     }
     walk(in,
          [&](const ExportScene& s, bool newChapter, bool first) {
@@ -510,7 +537,9 @@ std::string exportDocx(const ExportInput& in, const DocxTypography& type) {
         {"docProps/core.xml",
          std::string(kXmlHead) +
              "<cp:coreProperties xmlns:cp=\"http://schemas.openxmlformats.org/package/2006/metadata/core-properties\" "
-             "xmlns:dc=\"http://purl.org/dc/elements/1.1/\"><dc:title>" + xml(in.title) + "</dc:title></cp:coreProperties>\n"},
+             "xmlns:dc=\"http://purl.org/dc/elements/1.1/\"><dc:title>" + xml(in.title) + "</dc:title>" +
+             (in.authors.empty() ? "" : "<dc:creator>" + xml(creators(in.authors)) + "</dc:creator>") +
+             "</cp:coreProperties>\n"},
         {"word/_rels/document.xml.rels",
          std::string(kXmlHead) +
              "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">"
@@ -519,7 +548,7 @@ std::string exportDocx(const ExportInput& in, const DocxTypography& type) {
              "<Relationship Id=\"rId2\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/"
              "numbering\" Target=\"numbering.xml\"/></Relationships>\n"},
         {"word/document.xml", document},
-        {"word/styles.xml", docxStyles(type)},
+        {"word/styles.xml", docxStyles(type, !in.authors.empty())},
         {"word/numbering.xml", docxNumbering(type, orderedStarts)},
     };
 

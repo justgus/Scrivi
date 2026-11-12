@@ -824,6 +824,7 @@ archive files reconstructed after the fact from secondary sources.
 | T-0670 | `[ScriviCore]` EP-058 S1: authorship in the core | ✅ **SP-209** | **EP-058** | ✅ Verified 2026-11-11 | [`Verified/Task-verified-0670.md`](Verified/Task-verified-0670.md) |
 | T-0671 | `[Apple]` EP-058 S2: authorship on the Mac and iPad | 🟡 **SP-210** | **EP-058** | ✅ Verified 2026-11-11 | [`Verified/Task-verified-0671.md`](Verified/Task-verified-0671.md) |
 | T-0672 | `[Linux]` EP-058 S3: authorship on Linux | 🟡 **SP-211** | **EP-058** | ✅ Verified 2026-11-11 | [`Verified/Task-verified-0672.md`](Verified/Task-verified-0672.md) |
+| T-0673 | `[ScriviCore]` EP-054 AC9: the byline on every export | 🟡 **SP-212** | **EP-054** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
 | T-0592 | `[Apple]` E2-S3: formatting commands + lists + Option-Return | 🟡 **SP-163** | **EP-046** | ✅ **Verified 2026-10-06** | [`Task-verified-0592.md`](Verified/Task-verified-0592.md) |
 | T-0591 | `[Apple]` Balance emphasis across SCENE boundaries (cross-scene cut/copy/paste) | 🟡 **SP-163** | **EP-046** | ✅ **Verified 2026-10-06** | [`Task-verified-0591.md`](Verified/Task-verified-0591.md) |
 | T-0590 | `[Apple]` E2-S2: bold and italic + span reveal + the split rule | ✅ **SP-162** | **EP-046** | ✅ **Verified 2026-10-05** | [`Task-verified-0590.md`](Verified/Task-verified-0590.md) |
@@ -861,6 +862,12 @@ archive files reconstructed after the fact from secondary sources.
 ⚠️ **This index ended at `T-0485 (next available)` until 2026-09-10 — ✅ that was STALE.** ⚠️ **T-0485–T-0498 had all been taken**, and T-0485–T-0490/T-0492–T-0496 are archived as Verified. ⚠️ **Rows for T-0486–T-0497 are NOT reconstructed here** — ✅ **their Sprints' closed records are authoritative** (`feedback_archive_on_close`).
 
 ---
+
+*Last Updated: 2026-11-12 (**T-0673 → 🟠** ([SP-212] built).)*
+
+*Last Updated: 2026-11-12 (**T-0673 → active** with [SP-212]'s activation.)*
+
+*Last Updated: 2026-11-12 (**T-0673 filed** with [SP-212] (🔵 Planning), [EP-054] AC9.)*
 
 *Last Updated: 2026-11-11 (**T-0672 → ✅ Verified** ([SP-211] AC7 passed).)*
 

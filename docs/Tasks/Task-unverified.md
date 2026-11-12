@@ -1,5 +1,7 @@
 # Unverified Tasks
 
+*Last Updated: 2026-11-12 (**T-0673 → 🟠 Implemented - Not Verified** ([SP-212]); Linux run and the live passes (AC5) pending.)*
+
 *Last Updated: 2026-11-11 (**T-0672 → ✅ Verified** (user, 2026-11-11: *"All three (four) are fixed."*) and archived → `Verified/Task-verified-0672.md`.)*
 
 *Last Updated: 2026-11-11 (**T-0672 → 🟠 Implemented - Not Verified** ([SP-211]); the live pass (AC7) is the user's.)*
@@ -59,6 +61,23 @@ Tasks that are **implemented and awaiting user verification** before being archi
 ⚠️ This file must not disagree with [`Task-active.md`](Task-active.md) or
 [`Task-backlog.md`](Task-backlog.md). A Task implemented but unverified belongs **here** — not left
 in the backlog carrying a 🟠 status.
+
+---
+
+## 🟠 T-0673 — `[ScriviCore]` EP-054 AC9: the byline on every export
+
+**Epic:** [EP-054] (AC9) · **Status:** 🟠 Implemented - Not Verified (2026-11-12) · **Sprint:** [SP-212] (🟡 Active) →
+[`../Sprints/Sprint-SP-212.md`](../Sprints/Sprint-SP-212.md) · **Date Requested:** 2026-11-12 (user: *"Next is EP-054 AC9."*)
+
+**What:** `scrivi_export_manuscript` reads the project's ordered, named authors (`AuthorStore::read`) and every export
+carries them: "by A, B and C" under the title and subtitle in Markdown, HTML and `.docx` (an Author style), and the authors
+in HTML `<meta name="author">` and `.docx` `dc:creator` — never a retired or unnamed author ([Authorship design] Q6,
+[EP-058] AC4). The rest is SP-212's Q1–Q4 (✅ ruled as recommended).
+
+**Built (2026-11-12):** `ExportInput.authors` (`ScriviCore/src/manuscript/ManuscriptExport.hpp`); `scrivi_export_manuscript`
+reads them (`scrivi_c_api.cpp`); `byline` / `creators`, the Author style and `dc:creator` (`ManuscriptExport.cpp`).
+`ManuscriptExportCApiTests`: 3 new cases, the fixture's author unnamed so the existing goldens prove AC3. macOS ctest 837/837.
+⏳ Linux ctest on scrivi-vm and CI after the push; the live passes (SP-212 AC5) are the user's.
 
 ---
 
