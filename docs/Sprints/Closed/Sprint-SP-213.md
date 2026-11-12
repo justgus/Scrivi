@@ -1,16 +1,16 @@
 ---
 sprint: SP-213
 epic: EP-054
-status: Active
+status: Closed
 platform: Cross
 created: 2026-11-12
 ---
 
 # SP-213 — `[ScriviCore]` + `[Apple]` + `[Linux]` [EP-054] **S5**: ePub export
 
-**Status:** 🟡 **ACTIVE** 2026-11-12 (user, 2026-11-12: *"Q1–Q8 as recommended, activate and implement SP-213."*) · ✅ Q1–Q8 ruled as recommended — **Q1: ePub here; PDF its own Sprint**, carrying Q2–Q4 as ruled · planned 2026-11-12 (*"plan EP-054 S5."*).
-**Carries:** [T-0674] → [`../Tasks/Task-unverified.md`](../Tasks/Task-unverified.md).
-**Epic:** [EP-054] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md).
+**Status:** ✅ **CLOSED** 2026-11-12 (user, 2026-11-12: *"close SP-213"*) · activated 2026-11-12 (user, 2026-11-12: *"Q1–Q8 as recommended, activate and implement SP-213."*) · ✅ Q1–Q8 ruled as recommended — **Q1: ePub here; PDF its own Sprint**, carrying Q2–Q4 as ruled · planned 2026-11-12 (*"plan EP-054 S5."*).
+**Carries:** [T-0674] ✅ Verified → [`../../Tasks/Verified/Task-verified-0674.md`](../../Tasks/Verified/Task-verified-0674.md).
+**Epic:** [EP-054] → [`../../Epics/Epic-active.md`](../../Epics/Epic-active.md).
 **Builds on:** [SP-207] (S3: `scrivi_export_manuscript`, the walker, the HTML writer, Export Manuscript… on three platforms),
 [SP-208] (S4: miniz zips at a fixed time, the writer's typography read from `project-settings.json`), [SP-212] (the byline).
 **Authority:** EP-054 AC5 (PDF and ePub, chapters, scene breaks and emphasis preserved), Q5 (PDF and ePub after `.docx`),
@@ -128,3 +128,5 @@ readers — title page with byline, a contents list of chapters, chapters, scene
   any runner took it); ⛔ **Linux App CI: the indent smoke passed every check, then aborted with heap corruption at exit** →
   **[I-0359]** (not reproduced in 37 runs on scrivi-vm, ASan included; the failed job re-run to see whether it recurs). Not
   this Sprint's code path, but it is red — close awaits approval and the re-run.
+- **2026-11-12** — The re-run failed the same way (2/2 on `1aaffb3`); clean on arm64 (scrivi-vm, Docker Qt 6.4) → [I-0359] raised to High, tracked separately.
+- **2026-11-12** — ✅ **CLOSED** (user, 2026-11-12: *"close SP-213"*). EP-054 S5 (ePub) met; PDF is S5b, its own Sprint (Q1–Q4 ruled), not yet planned.

@@ -481,7 +481,7 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-210** | `[Apple]` **[EP-058] S2** — authorship on the Mac and iPad: per-project author, pen names, Authors, the prompts (T-0671) | EP-058 | 2026-11-11 | 2026-11-11 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-210.md) |
 | **SP-211** | `[Linux]` **[EP-058] S3** — authorship on Linux: the window's author, pen names, Authors, the questions (T-0672) | EP-058 | 2026-11-11 | 2026-11-11 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-211.md) |
 | **SP-212** | `[ScriviCore]` **[EP-054] AC9** — the byline on every export (T-0673) | EP-054 | 2026-11-12 | 2026-11-12 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-212.md) |
-| **SP-213** | `[Cross]` **[EP-054] S5** — ePub export (T-0674); PDF its own Sprint (Q1) | EP-054 | 2026-11-12 | — | 🟡 **ACTIVE** → [`Sprint-SP-213.md`](Sprint-SP-213.md) |
+| **SP-213** | `[Cross]` **[EP-054] S5** — ePub export (T-0674); PDF its own Sprint (Q1) | EP-054 | 2026-11-12 | 2026-11-12 | ✅ **CLOSED** → [`Closed/Sprint-SP-213.md`](Closed/Sprint-SP-213.md) |
 | **SP-160** | `[Linux]` **[EP-049] S1** — Linux writes Apple's manuscript format: escaping, paste/copy, pair deletion, Return/⌫, shared corpus (T-0586); + I-0276 | EP-049 | 2026-10-04 | 2026-10-04 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-160.md) |
 
 ## Statistics
@@ -521,6 +521,8 @@ by status, read the table.**
 > on neither time. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-11-12 (**SP-213 → ✅ CLOSED** (user, 2026-11-12: *"close SP-213"*))*
 
 *Last Updated: 2026-11-12 (**SP-213 → 🟡 ACTIVE** (user, 2026-11-12: *"Q1–Q8 as recommended, activate and implement SP-213."*))*
 

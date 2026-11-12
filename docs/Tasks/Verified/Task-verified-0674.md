@@ -8,8 +8,8 @@
 
 ## ✅ T-0674 — `[Cross]` EP-054 S5: ePub export
 
-**Epic:** [EP-054] (S5; AC5, AC7, AC8) · **Status:** ✅ **Verified 2026-11-12** (user) · **Sprint:** [SP-213] (🟡 Active) →
-[`../../Sprints/Sprint-SP-213.md`](../../Sprints/Sprint-SP-213.md) · **Date Requested:** 2026-11-12 (user: *"plan EP-054 S5."*)
+**Epic:** [EP-054] (S5; AC5, AC7, AC8) · **Status:** ✅ **Verified 2026-11-12** (user) · **Sprint:** [SP-213] (✅ Closed 2026-11-12) →
+[`../../Sprints/Closed/Sprint-SP-213.md`](../../Sprints/Closed/Sprint-SP-213.md) · **Date Requested:** 2026-11-12 (user: *"plan EP-054 S5."*)
 
 **What:** `scrivi_export_manuscript` writes an EPUB 3 of the whole manuscript (title page with byline, contents, a file per
 chapter, the writer's size and indent rule, metadata) that passes epubcheck; Export Manuscript… offers it on the Mac, iPad and
