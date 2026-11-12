@@ -1,5 +1,7 @@
 # Task Backlog
 
+*Last Updated: 2026-11-12 (**T-0675 filed** with [SP-214] (🔵 Planning), [EP-054] S5b.)*
+
 *Last Updated: 2026-11-12 (**T-0674 → active** with [SP-213]'s activation.)*
 
 *Last Updated: 2026-11-12 (**T-0674 filed** with [SP-213] (🔵 Planning), [EP-054] S5.)*
@@ -88,6 +90,7 @@ status changes on its own layer.
 | T-0663 | `[Cross]` Properties tab: the project's file facts (folder, path, dates, size) | ⚠️ None yet | 🔵 Backlog — Q1–Q5 ruled |
 | T-0667 | `[Cross]` EP-054: paste a Copy as HTML chapter into AO3 itself once it is back online | EP-054 | 🔵 Backlog — waits for AO3 |
 | T-0669 | `[Apple]` EP-054: export a whole-manuscript and a one-chapter `.docx` on the iPad (Export Manuscript… ▸ Word Document) and open them in Pages or Word there — [SP-208] AC5/AC7's iPad half | EP-054 | 🔵 Backlog — waits for the iPad |
+| T-0675 | `[Cross]` EP-054 S5b: PDF export | EP-054 | 🔵 Backlog — [SP-214] (Planning) |
 
 > ✅ **T-0477 – T-0479 LEFT this file 2026-08-31 when SP-124 was ACTIVATED**, per the standing rule that
 > active Tasks never sit in the backlog. ✅ **They are now VERIFIED (2026-09-10) and ARCHIVED** →
@@ -117,6 +120,18 @@ status changes on its own layer.
 ---
 
 ## Detail
+
+## 🔵 T-0675 — `[Cross]` EP-054 S5b: PDF export
+
+**Epic:** [EP-054] (S5b; AC5, AC9) · **Status:** 🔵 Backlog · **Sprint:** [SP-214] (🔵 Planning) →
+[`../Sprints/Sprint-SP-214.md`](../Sprints/Sprint-SP-214.md) · **Date Requested:** 2026-11-12 (user: *"plan EP-054 S5b."*)
+
+**What:** Export Manuscript… ▸ **PDF** on the Mac, iPad and Linux — the whole manuscript or the caret's chapter, in the writer's
+typeface (embedded), on the default paper, with a title page and byline, each chapter on a new page, scene breaks, emphasis and
+page numbers. The core writes a print page (`scrivi_export_manuscript`, `document: "print"`); WebKit paginates it on Apple,
+`QTextDocument` + `QPdfWriter` on Linux. Rulings and ACs: the Sprint.
+
+---
 
 ## 🔵 T-0667 — `[Cross]` EP-054: paste a Copy as HTML chapter into AO3 itself
 

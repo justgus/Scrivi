@@ -12,6 +12,8 @@
 
 *Last Updated: 2026-11-11 (**EP-058: S2 = [SP-210] created in 🔵 Planning** (user, 2026-11-11: *"plan EP-058 S2"*); Q1–Q6 to rule; [T-0671] filed.)*
 
+*Last Updated: 2026-11-12 (**EP-054: S5b = [SP-214] created in 🔵 Planning** (user, 2026-11-12: *"plan EP-054 S5b."*); Q1–Q5 to rule; [T-0675] filed.)*
+
 *Last Updated: 2026-11-12 (**EP-054: S5 = [SP-213] → ✅ Closed** (user, 2026-11-12: *"close SP-213"*); S5b PDF not yet planned.)*
 
 *Last Updated: 2026-11-12 (**EP-054: S5 = [SP-213] → 🟡 Active, built** (user, 2026-11-12: *"Q1–Q8 as recommended, activate and implement SP-213."*); Q1 split S5: **ePub here, PDF its own Sprint** (S5b, Q2–Q4 ruled with it).)*
@@ -143,7 +145,7 @@ boundary tests through `scrivi_*` with a round trip whose undo/redo replays iden
 fixtures). **S2 = [SP-206]** then puts File ▸ Export Archive… / Import Archive… on the Mac, Linux and iPad.
 
 **Sprints** (S3–S7 provisional): **S0 = [SP-193]** (✅ Closed 2026-10-25): fix before the alpha ([I-0306], [I-0313], [I-0202]) and one version everywhere ([T-0622]) · **S1 = [SP-205]** archive + worlds (core, [T-0664]) ✅ Closed 2026-11-06 · **S2 = [SP-206]** archive surfaces (Mac, Linux, iPad, [T-0665]) ✅ Closed 2026-11-09 · **S3 = [SP-207]** Markdown + HTML export ([T-0666], [I-0357]) ✅ Closed 2026-11-09; the AO3 paste → [T-0667] ·
-**S4 = [SP-208]** `.docx` export ([T-0668]) ✅ Closed 2026-11-10; the iPad pass → [T-0669] · **AC9 = [SP-212]** the byline ([T-0673]) ✅ Closed 2026-11-12 · **S5 = [SP-213]** ePub ([T-0674]) ✅ Closed 2026-11-12 · S5b PDF (SP-213 Q1–Q4 ruled; not yet planned) · S6 Markdown/text + `.docx` import · S7 Scrivener import. Each with live passes.
+**S4 = [SP-208]** `.docx` export ([T-0668]) ✅ Closed 2026-11-10; the iPad pass → [T-0669] · **AC9 = [SP-212]** the byline ([T-0673]) ✅ Closed 2026-11-12 · **S5 = [SP-213]** ePub ([T-0674]) ✅ Closed 2026-11-12 · **S5b = [SP-214]** PDF ([T-0675]) 🔵 Planning · S6 Markdown/text + `.docx` import · S7 Scrivener import. Each with live passes.
 **Depends on:** ✅ **[EP-058]** (Authorship) S1 for AC9 — met 2026-11-11 ([SP-209]) — added 2026-11-10 (user: *"it must be in place before we can finish
 the current Epic"*). ⚠️ [EP-055] needs S1–S2 on iPad to move projects onto it, unless iCloud Drive does (see
 EP-055 Q2).

@@ -434,3 +434,36 @@ jobs:
         run: |
           platforms/linux/tests/structural_baseline_smoke.sh \
             ./build/platforms/linux/scrivi_linux_structural_baseline_smoke
+
+  # ⚠️ TEMPORARY — [I-0359]: the indent smoke corrupts the heap at exit on x86_64 CI only (clean on arm64, ASan included).
+  # The same smoke under ASan + UBSan on the runner where it fails, five times. Remove when I-0359 is resolved.
+  indent-asan:
+    name: ubuntu-24.04 (Qt 6.4) indent smoke, ASan [I-0359]
+    runs-on: ubuntu-24.04
+    env:
+      SCRIVI_VERIFY_SCENE_TEXT: "1"
+      # Qt's own exit-time leaks would bury the report; I-0359 is a corruption, not a leak.
+      ASAN_OPTIONS: detect_leaks=0:abort_on_error=1
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Qt6 + build deps
+        timeout-minutes: 15
+        run: |
+          sudo apt-get update -o Acquire::Retries=3
+          sudo timeout 600 apt-get install -y --no-install-recommends -o Acquire::Retries=3 -o Acquire::http::Timeout=15 \
+            build-essential cmake ninja-build libssl-dev qt6-base-dev qt6-declarative-dev \
+            qml6-module-qtquick qml6-module-qtquick-controls qml6-module-qtquick-templates \
+            qml6-module-qtquick-layouts qml6-module-qtquick-window \
+            qml6-module-qtqml-workerscript qml6-module-qtqml-models libgl1-mesa-dev
+      - name: Configure
+        run: >
+          cmake -S . -B build -G Ninja -DSCRIVI_BUILD_LINUX=ON -DSCRIVI_BUILD_TESTS=OFF -DCMAKE_BUILD_TYPE=Debug
+          -DSCRIVI_ENABLE_SANITIZERS=ON
+      - name: Build
+        run: cmake --build build --parallel --target scrivi_linux_indent_smoke
+      - name: Indent smoke test under ASan, 5 runs
+        run: |
+          for i in 1 2 3 4 5; do
+            echo "== run $i =="
+            platforms/linux/tests/indent_smoke.sh ./build/platforms/linux/scrivi_linux_indent_smoke
+          done

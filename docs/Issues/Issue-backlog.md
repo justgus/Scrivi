@@ -76,6 +76,12 @@ OS and Qt, not its CPU), 4 runs. **Only x86_64 CI fails.**
 **Next:** the harness's exit status (abort 134 / segfault 139 / its own 1) printed by `indent_smoke.sh`; then the Linux smokes under ASan on **x86_64 with Qt
 6.4** (the CI image, or the Docker image), where it happened; failing that, TSan on the quit path.
 
+**2026-11-12 — diagnostics written (user: *"diagnostic steps will go on main"*), not yet pushed:**
+`indent_smoke.sh` now prints the harness's exit status and signal (`FAIL: harness exited 134 (SIGABRT)`; checked on scrivi-vm
+against a fake abort, a fake failed check and a pass). ⚠️ **TEMPORARY** CI job `indent-asan` in `scrivi-linux-ci.yml`: the
+indent smoke built with `SCRIVI_ENABLE_SANITIZERS=ON` (ASan + UBSan, leaks off) on `ubuntu-24.04` x86_64, run five times.
+Remove it when I-0359 is resolved.
+
 ---
 
 ## I-0356: `[Apple]` The visionOS target does not build — `.inspector` is unavailable there

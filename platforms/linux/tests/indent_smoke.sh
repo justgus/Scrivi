@@ -13,7 +13,8 @@ export XDG_DATA_HOME="$WORKDIR/xdg"
 export QT_QPA_PLATFORM=offscreen
 
 echo "== Paragraph indent and line heights =="
-OUT="$("$BIN" "$WORKDIR/projects")" || { echo "$OUT"; exit 1; }
+# [I-0359]: name the exit (134 = abort, 139 = segfault, 1 = a failed check) — CI saw only "exit 1".
+OUT="$("$BIN" "$WORKDIR/projects")" || { rc=$?; echo "$OUT"; echo "FAIL: harness exited $rc$( ((rc > 128)) && echo " (SIG$(kill -l "$rc"))")"; exit 1; }
 echo "$OUT"
 if ! echo "$OUT" | grep -qx 'indent-ok'; then
     echo "FAIL: harness did not report indent-ok"
