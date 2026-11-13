@@ -107,7 +107,7 @@ headers (title / author on each page), Standard Manuscript Format (S4 Q1), a tab
 - [x] AC1 — `scrivi_export_manuscript` `format: "html"`, `document: "print"`: the title page with the byline (whole
       manuscript only), each chapter on a new page, the writer's typography as classes both engines read, scene breaks per Q5;
       golden-file boundary tests through `scrivi_*`; macOS and Linux ctest green
-- [ ] AC2 — Mac and iPad write a PDF through WebKit: the writer's face **embedded** (Q2), the paper (Q3), 1-inch margins,
+- [x] AC2 — Mac and iPad write a PDF through WebKit: the writer's face **embedded** (Q2), the paper (Q3), 1-inch margins,
       page numbers bottom centre from the first chapter page, none on the title page (Q1, Q4), no date or title header;
       interop test through the engine — ✅ Mac; ⏳ iPad: its check is the live pass (user, 2026-11-12: *"I'll check the iPad on
       the live pass"*)
@@ -147,3 +147,16 @@ headers (title / author on each page), Standard Manuscript Format (S4 Q1), a tab
   2 pages); `bridge_parity_smoke` 74 / 0. A copy of `the-river-of-time` through the core and the Linux writer: 4 pages,
   Letter, `pdffonts` Literata embedded, `pdftotext` numbers 1–3 and none on the title page, chapters on new pages; a Mac
   sample: Letter, Literata (regular, italic) embedded, numbers 1–6. ⏳ AC5: the live passes.
+- **2026-11-13** — **Live passes (user, 2026-11-13):** *"Mac Steps 1-6 passed. iPad Steps 1-6 passed. Linux Steps 1-4 passed …
+  However, Linux Step 5 failed."* ✅ **AC2 met** (Mac and iPad). ⛔ **AC5 Linux:** in Papers the pages were blank but their
+  numbers, and too few — `dumas-prose-timelines-history` 554 pages (Mac 2379), its Chapter 2 9 (Mac 34). **Two defects in
+  `ManuscriptPdf.hpp`, both found from the user's own PDFs:** (1) every word was drawn **white** (`1 1 1 scn` in the content
+  streams) — QTextDocument's text colour is the desktop palette's, white on a dark theme; offscreen tests have a light one.
+  (2) **~80% of the text missing** (105k of 517k words; 5,404 of 7,777 blocks never laid out) — the heading-size fix ran
+  after layout, each edit re-dirtied it, and Qt never finished. ⚠️ My evidence had used a 4-page project and an offscreen
+  palette, so it could see neither. **Fixed:** the page size is set after the fix (one whole layout, paginated), and the
+  pages are drawn with a `PaintContext` whose text is black. scrivi-vm (Qt 6.10.2): Dumas under a white-text palette → 2143
+  pages, 559k words, black text, the title page shown. `settings_smoke` §5 now writes a 60-chapter manuscript under a
+  white-text palette: page count and black text checked — **each check fails on its own defect** (old writer: 65 pages + white;
+  colour fix removed: white; layout fix reverted: 65 pages), passes with the fix; `scrivi_linux` builds. ⏳ The Linux live pass
+  again (Steps 1–6).

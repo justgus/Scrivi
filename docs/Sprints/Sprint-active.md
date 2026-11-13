@@ -1,5 +1,7 @@
 # Active Sprints
 
+*Last Updated: 2026-11-13 (**SP-214:** AC2 ✅ (Mac, iPad live passes); Linux live pass failed (white text, ~80% of a long manuscript missing) → fixed; Linux pass again.)*
+
 *Last Updated: 2026-11-12 (**SP-214 built** — AC1, AC3, AC4 met, AC2 on the Mac; T-0675 → 🟠.)*
 
 *Last Updated: 2026-11-12 (**SP-214 → 🟡 ACTIVE** (user, 2026-11-12: *"Q1–Q5 as recommended, activate and implement SP-214."*))*
@@ -95,4 +97,4 @@
 
 ## SP-214 — `[Cross]` [EP-054] S5b: PDF export
 
-🟡 **ACTIVE 2026-11-12** → [`Sprint-SP-214.md`](Sprint-SP-214.md) · carries [T-0675] · ✅ Q1–Q5 ruled as recommended (SP-213 Q2–Q4 carried) · ✅ built (AC1, AC3, AC4; AC2 on the Mac) · ⏳ AC2 iPad + AC5 live passes
+🟡 **ACTIVE 2026-11-12** → [`Sprint-SP-214.md`](Sprint-SP-214.md) · carries [T-0675] · ✅ Q1–Q5 ruled as recommended (SP-213 Q2–Q4 carried) · ✅ built · ✅ AC1–AC4 · ✅ Mac + iPad live passes · ⏳ Linux live pass again (two defects fixed)

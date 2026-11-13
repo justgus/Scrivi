@@ -15,6 +15,7 @@
 #include <QLocale>
 #include <QPageSize>
 #include <QPainter>
+#include <QPalette>
 #include <QPdfWriter>
 #include <QSaveFile>
 #include <QTextBlock>
@@ -41,7 +42,6 @@ inline QString writeManuscriptPdf(const QString& html, bool titlePage, const QSt
     QTextDocument doc;
     doc.documentLayout()->setPaintDevice(&writer);
     doc.setDocumentMargin(0);
-    doc.setPageSize(text);   // QTextDocument then paginates, honouring page-break-before
     doc.setHtml(html);
     // A heading carries Qt's relative size step as well as the page's pt size, and the step wins: drop it.
     for (QTextBlock b = doc.begin(); b.isValid(); b = b.next()) {
@@ -56,7 +56,13 @@ inline QString writeManuscriptPdf(const QString& html, bool titlePage, const QSt
             }
         }
     }
+    // After the edits above: each re-dirties the layout from its heading on, and Qt never lays the rest out again (a long
+    // manuscript lost ~80% of its text). Setting the page size now lays the whole document out once, paginated.
+    doc.setPageSize(text);   // honours page-break-before
 
+    // The text's colour, black: by default it is the desktop palette's, white on a dark theme.
+    QAbstractTextDocumentLayout::PaintContext paint;
+    paint.palette.setColor(QPalette::Text, Qt::black);
     QPainter painter;
     if (!painter.begin(&writer)) {
         return QStringLiteral("could not draw the PDF");
@@ -70,7 +76,9 @@ inline QString writeManuscriptPdf(const QString& html, bool titlePage, const QSt
         }
         painter.save();
         painter.translate(margin, margin - i * text.height());
-        doc.drawContents(&painter, QRectF(QPointF(0, i * text.height()), text));
+        paint.clip = QRectF(QPointF(0, i * text.height()), text);
+        painter.setClipRect(paint.clip);
+        doc.documentLayout()->draw(&painter, paint);
         painter.restore();
         if (!titlePage || i > 0) {
             painter.setFont(numberFont);

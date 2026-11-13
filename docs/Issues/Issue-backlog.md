@@ -83,6 +83,12 @@ indent smoke built with `SCRIVI_ENABLE_SANITIZERS=ON` (ASan + UBSan, leaks off) 
 (capped at 150 min: under ASan with `SCRIVI_VERIFY_SCENE_TEXT` one run took over 15 min in Docker on arm64).
 Remove it when I-0359 is resolved.
 
+**2026-11-12 — first CI with the diagnostics (`577610b`, run 43320997652): ✅ clean everywhere.** `indent-asan` (x86_64,
+Qt 6.4, ASan + UBSan on every target, `SCRIVI_VERIFY_SCENE_TEXT=1`) passed **5 of 5**, ~26 s each (the 15-min Docker figure
+was arm64 only); the plain *Indent smoke test* passed too. So `577610b` does not reproduce it on x86_64 either: with the
+2 of 2 on `1aaffb3`, it is intermittent or layout-dependent, and ASan has not caught it yet. **`51e608b` (run 43356759680, with SP-214): clean again** — `indent-asan` 3 of 3, the plain
+indent smoke and the settings smoke (its §5 PDF included) passed. Next: watch the following runs.
+
 ---
 
 ## I-0356: `[Apple]` The visionOS target does not build — `.inspector` is unavailable there

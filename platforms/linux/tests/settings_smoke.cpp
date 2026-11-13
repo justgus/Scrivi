@@ -14,7 +14,8 @@
 //      paste and a reload;
 //   §4 Markup Hints: Ctrl+Shift+H through the real dispatch; OFF reveals nothing and the caret rules hold; persisted.
 //   §5 [SP-214] the PDF: the core's print page paginated by `writeManuscriptPdf` — the project's bundled face embedded, the
-//      title page then the chapter, through the bridge.
+//      title page then the chapter, through the bridge; a long manuscript laid out to its end, its text black on a dark
+//      desktop (the SP-214 live pass).
 // ⚠️ NOT covered (live pass only): how the faces LOOK, GNOME's bindings, the rig's Qt 6.10.
 //
 //   argv[1] = a scratch directory for the projects; $XDG_DATA_HOME drives appSupportRoot; Qt offscreen.
@@ -439,6 +440,43 @@ int main(int argc, char** argv)
     check(bytes.contains("Newsreader"), QStringLiteral("§5 … with the face embedded"));
     // Two pages: the title page, and the one chapter starting its own (page-break-before).
     check(bytes.count("/Type /Page\n") == 2, QStringLiteral("§5 … of two pages"));
+
+    // SP-214 live pass: on a dark desktop the text was drawn white, and a long manuscript lost ~80% of its text (its headings'
+    // size fix re-dirtied a layout Qt never finished). 60 chapters of 40 paragraphs, under a palette whose text is white.
+    QString chapters;
+    for (int c = 0; c < 60; ++c) {
+        chapters += QStringLiteral("<h2 class=\"chapter\">Chapter %1</h2>\n").arg(c + 1);
+        for (int p = 0; p < 40; ++p) {
+            chapters += QStringLiteral("<p>%1</p>\n").arg(QStringLiteral("A sentence long enough to wrap the line. ").repeated(6));
+        }
+    }
+    QPalette dark = QApplication::palette();
+    dark.setColor(QPalette::Text, Qt::white);
+    QApplication::setPalette(dark);
+    QString longPage = print.value(QStringLiteral("text")).toString();
+    longPage.replace(QStringLiteral("</body>"), chapters + QStringLiteral("</body>"));
+    const QString longPath = scratch + QStringLiteral("/long.pdf");
+    const QString longError = writeManuscriptPdf(longPage, true, longPath);
+    QFile longPdf(longPath);   // boundary-ok: the smoke's own export, outside any package
+    const QByteArray longBytes = longPdf.open(QIODevice::ReadOnly) ? longPdf.readAll() : QByteArray();
+    // Each chapter is over 6 pages of text; the broken layout gave ~2.
+    check(longError.isEmpty() && longBytes.count("/Type /Page\n") > 1 + 60 * 6,
+          QStringLiteral("§5 a long manuscript is laid out to its end (%1 pages)").arg(longBytes.count("/Type /Page\n")));
+    // The pages' drawing, inflated: qUncompress wants zlib data behind a 4-byte size, a hint it grows past.
+    QByteArray drawing;
+    for (qsizetype at = longBytes.indexOf("stream\n"); at >= 0; at = longBytes.indexOf("stream\n", at)) {
+        at += 7;
+        const qsizetype end = longBytes.indexOf("endstream", at);
+        if (end < 0) {
+            break;
+        }
+        const qsizetype dict = longBytes.lastIndexOf(" obj", at);   // the stream's own dictionary, from its "N 0 obj"
+        if (longBytes.mid(dict, at - dict).contains("/FlateDecode")) {
+            drawing += qUncompress(QByteArray("\x00\x01\x00\x00", 4) + longBytes.mid(at, end - at));
+        }
+        at = end + 9;   // past "endstream", which ends in "stream" too
+    }
+    check(drawing.contains("BT") && !drawing.contains("1 1 1 scn"), QStringLiteral("§5 … its text black on a dark desktop"));
 
     env.quitApplication();
     QApplication::processEvents();
