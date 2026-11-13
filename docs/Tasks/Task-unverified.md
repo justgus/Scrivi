@@ -1,5 +1,7 @@
 # Unverified Tasks
 
+*Last Updated: 2026-11-13 (**T-0678 → ✅ Verified** (user, 2026-11-13: *"mac ipad linux all pass."*) and archived → `Verified/Task-verified-0678.md`.)*
+
 *Last Updated: 2026-11-13 (**T-0678 → 🟠 Implemented - Not Verified** ([SP-215] AC7); the live passes are the user's.)*
 
 *Last Updated: 2026-11-13 (**T-0676 → ✅ Verified** (user, 2026-11-13: *"Mac steps 1-8 pass. iPad steps 1-5 pass. Linux steps 1-6 pass."*) and archived → `Verified/Task-verified-0676.md`.)*
@@ -77,21 +79,6 @@ Tasks that are **implemented and awaiting user verification** before being archi
 ⚠️ This file must not disagree with [`Task-active.md`](Task-active.md) or
 [`Task-backlog.md`](Task-backlog.md). A Task implemented but unverified belongs **here** — not left
 in the backlog carrying a 🟠 status.
-
----
-
-## 🟠 T-0678 — `[Cross]` EP-054: the export formats as submenus
-
-**Epic:** [EP-054] · **Status:** 🟠 Implemented - Not Verified (2026-11-13) · **Sprint:** [SP-215] (🟡 Active, AC7) →
-[`../Sprints/Sprint-SP-215.md`](../Sprints/Sprint-SP-215.md) · **Date Requested:** 2026-11-13 (user: *"…make it a vertical list
-of buttons like the iPad displays … That would unify the interface and make selection less error prone."*; option B ruled)
-
-**What:** File ▸ Export ▸ **Manuscript ▸** Markdown…, HTML…, Word Document…, ePub…, PDF… and **Current Chapter ▸** the same
-without ePub, on the Mac, the iPad (menu bar and toolbar's Export button) and Linux, in place of the format dialog.
-**Built (2026-11-13):** Apple `ExportMenuItems` / `ExportFormat` and `exportManuscript(_:format:currentChapter:)`
-(`Scrivi/App/ProjectArchiveFlow.swift`); Linux `ScriviWindow.cpp` submenus, `EditorShell::exportManuscript(format,
-currentChapter)`; `settings_smoke` §6 (mutation-checked). Evidence: macOS and iOS builds, interop 348; Linux ctest 847/847 and
-the menu smokes. ⏳ The live passes (SP-215 AC7).
 
 ---
 

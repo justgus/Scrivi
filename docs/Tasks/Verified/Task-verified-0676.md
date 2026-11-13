@@ -8,8 +8,8 @@
 
 ## ✅ T-0676 — `[Cross]` EP-054: File ▸ Import / Export
 
-**Epic:** [EP-054] · **Status:** ✅ **Verified 2026-11-13** (user) · **Sprint:** [SP-215] (🟡 Active) →
-[`../../Sprints/Sprint-SP-215.md`](../../Sprints/Sprint-SP-215.md) · **Date Requested:** 2026-11-13 (user: *"…'Export Manuscript'
+**Epic:** [EP-054] · **Status:** ✅ **Verified 2026-11-13** (user) · **Sprint:** [SP-215] (✅ Closed 2026-11-13) →
+[`../../Sprints/Closed/Sprint-SP-215.md`](../../Sprints/Closed/Sprint-SP-215.md) · **Date Requested:** 2026-11-13 (user: *"…'Export Manuscript'
 would be misleading if the writer only wants to export a single chapter…"*)
 
 **What:** on the Mac, iPad and Linux, File holds Copy as HTML, **Import ▸** Timeline…, Archive… and **Export ▸** Manuscript…,

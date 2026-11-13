@@ -483,7 +483,7 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-212** | `[ScriviCore]` **[EP-054] AC9** — the byline on every export (T-0673) | EP-054 | 2026-11-12 | 2026-11-12 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-212.md) |
 | **SP-213** | `[Cross]` **[EP-054] S5** — ePub export (T-0674); PDF its own Sprint (Q1) | EP-054 | 2026-11-12 | 2026-11-12 | ✅ **CLOSED** → [`Closed/Sprint-SP-213.md`](Closed/Sprint-SP-213.md) |
 | **SP-214** | `[Cross]` **[EP-054] S5b** — PDF export (T-0675) | EP-054 | 2026-11-12 | 2026-11-13 | ✅ **CLOSED** → [`Closed/Sprint-SP-214.md`](Closed/Sprint-SP-214.md) |
-| **SP-215** | `[Cross]` **[EP-054]** — File ▸ Import / Export submenus, Export ▸ Chapter…, the iPad's timeline import/export (T-0676) | EP-054 | 2026-11-13 | — | 🟡 **ACTIVE** → [`Sprint-SP-215.md`](Sprint-SP-215.md) |
+| **SP-215** | `[Cross]` **[EP-054]** — File ▸ Import / Export submenus, Export ▸ Chapter…, the iPad's timeline import/export (T-0676); AC7 the formats as submenus (T-0678) | EP-054 | 2026-11-13 | 2026-11-13 | ✅ **CLOSED** → [`Closed/Sprint-SP-215.md`](Closed/Sprint-SP-215.md) |
 | **SP-216** | `[Linux]` **[EP-054]** — the start window gets the project window's menu bar (T-0677) | EP-054 | 2026-11-13 | — | 🔵 **PLANNING** → [`Sprint-SP-216.md`](Sprint-SP-216.md) |
 | **SP-160** | `[Linux]` **[EP-049] S1** — Linux writes Apple's manuscript format: escaping, paste/copy, pair deletion, Return/⌫, shared corpus (T-0586); + I-0276 | EP-049 | 2026-10-04 | 2026-10-04 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-160.md) |
 
@@ -524,6 +524,8 @@ by status, read the table.**
 > on neither time. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-11-13 (**SP-215 → ✅ CLOSED** (user, 2026-11-13: *"close SP-215 and update CLAUDE.md to use the simulator id."*))*
 
 *Last Updated: 2026-11-13 (**SP-215 → 🟡 ACTIVE** (user, 2026-11-13: *"Q3 Current Chapter…, activate and implement SP-215"*))*
 

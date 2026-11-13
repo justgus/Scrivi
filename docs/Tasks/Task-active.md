@@ -1,5 +1,7 @@
 # Active Tasks
 
+*Last Updated: 2026-11-13 (**T-0678 → ✅ Verified** ([SP-215] AC7) → `Verified/Task-verified-0678.md`.)*
+
 *Last Updated: 2026-11-13 (**T-0678 → 🟠** → `Task-unverified.md` ([SP-215] AC7 built).)*
 
 *Last Updated: 2026-11-13 (**T-0678 filed, active** with [SP-215] AC7.)*

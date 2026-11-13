@@ -1,5 +1,7 @@
 # Active Epics
 
+*Last Updated: 2026-11-13 (**EP-054: [SP-215] → ✅ Closed** (user, 2026-11-13: *"close SP-215 and update CLAUDE.md to use the simulator id."*).)*
+
 *Last Updated: 2026-11-13 (**EP-054: [SP-215] → 🟡 Active** (user, 2026-11-13: *"Q3 Current Chapter…, activate and implement SP-215"*).)*
 
 *Last Updated: 2026-11-13 (**EP-054: [SP-216] added** (its Q1, user 2026-11-13) — 🔵 Planning.)*
@@ -155,7 +157,7 @@ boundary tests through `scrivi_*` with a round trip whose undo/redo replays iden
 fixtures). **S2 = [SP-206]** then puts File ▸ Export Archive… / Import Archive… on the Mac, Linux and iPad.
 
 **Sprints** (S3–S7 provisional): **S0 = [SP-193]** (✅ Closed 2026-10-25): fix before the alpha ([I-0306], [I-0313], [I-0202]) and one version everywhere ([T-0622]) · **S1 = [SP-205]** archive + worlds (core, [T-0664]) ✅ Closed 2026-11-06 · **S2 = [SP-206]** archive surfaces (Mac, Linux, iPad, [T-0665]) ✅ Closed 2026-11-09 · **S3 = [SP-207]** Markdown + HTML export ([T-0666], [I-0357]) ✅ Closed 2026-11-09; the AO3 paste → [T-0667] ·
-**S4 = [SP-208]** `.docx` export ([T-0668]) ✅ Closed 2026-11-10; the iPad pass → [T-0669] · **AC9 = [SP-212]** the byline ([T-0673]) ✅ Closed 2026-11-12 · **S5 = [SP-213]** ePub ([T-0674]) ✅ Closed 2026-11-12 · **S5b = [SP-214]** PDF ([T-0675]) ✅ Closed 2026-11-13 · **[SP-215]** File ▸ Import / Export, Export ▸ Chapter…, the iPad's timeline ([T-0676]) 🟡 Active · **[SP-216]** Linux's start window gets the project window's menu bar ([T-0677]) 🔵 Planning · S6 Markdown/text + `.docx` import · S7 Scrivener import. Each with live passes.
+**S4 = [SP-208]** `.docx` export ([T-0668]) ✅ Closed 2026-11-10; the iPad pass → [T-0669] · **AC9 = [SP-212]** the byline ([T-0673]) ✅ Closed 2026-11-12 · **S5 = [SP-213]** ePub ([T-0674]) ✅ Closed 2026-11-12 · **S5b = [SP-214]** PDF ([T-0675]) ✅ Closed 2026-11-13 · **[SP-215]** File ▸ Import / Export, Export ▸ Chapter…, the iPad's timeline ([T-0676]), the formats as submenus ([T-0678]) ✅ Closed 2026-11-13 · **[SP-216]** Linux's start window gets the project window's menu bar ([T-0677]) 🔵 Planning · S6 Markdown/text + `.docx` import · S7 Scrivener import. Each with live passes.
 **Depends on:** ✅ **[EP-058]** (Authorship) S1 for AC9 — met 2026-11-11 ([SP-209]) — added 2026-11-10 (user: *"it must be in place before we can finish
 the current Epic"*). ⚠️ [EP-055] needs S1–S2 on iPad to move projects onto it, unless iCloud Drive does (see
 EP-055 Q2).

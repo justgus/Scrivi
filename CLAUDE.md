@@ -159,8 +159,9 @@ ctest --test-dir build --output-on-failure
 Deployment targets: the **iOS app at 27.1** (EP-055 Q7: the iPhone Duo APIs are 27.1+), the **macOS app at 27.1**,
 the `ScriviInteropTests` target at **27.1** (it must match the app it tests), visionOS at **27.0**. Build and test the macOS
 app with `xcodebuild -scheme ScriviApp -destination 'platform=macOS' build|test`. The iOS tests (`ScriviTests-iOS`, EP-055) run
-with `xcodebuild -workspace Scrivi.xcworkspace -scheme ScriviApp-iOS -destination 'platform=iOS Simulator,name=iPhone Duo' test`
-(⚠️ a 27.1+ simulator runtime — the 27.0 devices are refused — and a name that matches ONE device: there are two "iPhone 18 Pro" on 27.2).
+with `xcodebuild -workspace Scrivi.xcworkspace -scheme ScriviApp-iOS -destination 'platform=iOS Simulator,id=1BD0746C-CEB7-47FC-8544-6CC20B566940' test`
+— an iPhone 18 Pro on iOS 27.2, by its ID (user, 2026-11-13: the iPhone Duo simulator is retired). ⚠️ A 27.1+ runtime (the 27.0
+devices are refused), and never by name: there are two "iPhone 18 Pro" on 27.2. The real iPhone Duo is the device **Remus**.
 
 **NEVER assume features, APIs, or behaviors from earlier versions of Xcode or any Apple platform.**
 

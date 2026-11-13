@@ -1,17 +1,17 @@
 ---
 sprint: SP-215
 epic: EP-054
-status: Active
+status: Closed
 platform: Cross
 created: 2026-11-13
 ---
 
 # SP-215 — `[Apple]` + `[Linux]` [EP-054] **File ▸ Import / Export**: one place for every way in and out
 
-**Status:** 🟡 **ACTIVE** 2026-11-13 (user, 2026-11-13: *"Q3 Current Chapter…, activate and implement SP-215"*) · planned 2026-11-13 (user, 2026-11-13: *"Close SP-214 and plan the import/export and Linux start window
+**Status:** ✅ **CLOSED** 2026-11-13 (user, 2026-11-13: *"close SP-215 and update CLAUDE.md to use the simulator id."*) · activated 2026-11-13 (user, 2026-11-13: *"Q3 Current Chapter…, activate and implement SP-215"*) · planned 2026-11-13 (user, 2026-11-13: *"Close SP-214 and plan the import/export and Linux start window
 sprints"*). The shape is ruled (below); ✅ Q1, Q2, Q4 ruled as recommended; Q3: "Current Chapter…".
-**Carries:** [T-0676] ✅ Verified → [`../Tasks/Verified/Task-verified-0676.md`](../Tasks/Verified/Task-verified-0676.md); [T-0678] (AC7) → [`../Tasks/Task-active.md`](../Tasks/Task-active.md).
-**Epic:** [EP-054] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md).
+**Carries:** [T-0676] ✅ Verified → [`../../Tasks/Verified/Task-verified-0676.md`](../../Tasks/Verified/Task-verified-0676.md); [T-0678] (AC7) ✅ Verified → [`../../Tasks/Verified/Task-verified-0678.md`](../../Tasks/Verified/Task-verified-0678.md).
+**Epic:** [EP-054] → [`../../Epics/Epic-active.md`](../../Epics/Epic-active.md).
 **Builds on:** [SP-206] (Export / Import Archive…), [SP-207]–[SP-214] (Export Manuscript…, its formats and the scope
 question, Copy as HTML), the timeline import/export (EP-021).
 **Followed by:** [SP-216] — Linux's start window gets the project window's menu bar, so it mirrors THIS File menu.
@@ -105,7 +105,7 @@ import/export, any change to what the exports write.
       ctest green
 - [x] AC6 — **Live passes (user):** the menus, a chapter and a manuscript exported, a timeline exported and imported back —
       on the Mac, the iPad and Linux
-- [ ] AC7 — ➕ *(added 2026-11-13, [T-0678])* **The format is a submenu, not a dialog** (user: *"On Mac and Linux we present the
+- [x] AC7 — ➕ *(added 2026-11-13, [T-0678])* **The format is a submenu, not a dialog** (user: *"On Mac and Linux we present the
       export options as a horizontal row of buttons … Is there any way we can make it a vertical list of buttons like the iPad
       displays"*; option B ruled (user, 2026-11-13: *"B, add it to SP-215 as a new AC"*)): Export ▸ **Manuscript ▸** Markdown…, HTML…, Word Document…, ePub…,
       PDF… and **Current Chapter ▸** the same without ePub — on the Mac, the iPad (menu bar and toolbar) and Linux; the format
@@ -151,3 +151,6 @@ import/export, any change to what the exports write.
   straight to the save dialog — fails on its mutations (ePub in the chapter's; never enabled). **Evidence:** macOS and iOS
   builds; interop 348 passed; package boundary clean; scrivi-vm ctest 847/847; settings, authorship, buffers, chapter-titles,
   find, format and bridge-parity smokes pass. ⏳ AC7: the live passes.
+- **2026-11-13** — ✅ **AC7 — live passes** (user, 2026-11-13: *"mac ipad linux all pass."*). AC1–AC7 met; T-0678 → ✅ Verified, archived.
+  Close awaits approval.
+- **2026-11-13** — ✅ **CLOSED** (user, 2026-11-13: *"close SP-215 and update CLAUDE.md to use the simulator id."*). Next: [SP-216], Linux's start window gets this menu bar.

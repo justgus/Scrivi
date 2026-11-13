@@ -1,5 +1,9 @@
 # Active Sprints
 
+*Last Updated: 2026-11-13 (**SP-215 → ✅ CLOSED** (user, 2026-11-13: *"close SP-215 and update CLAUDE.md to use the simulator id."*) → `Closed/Sprint-SP-215.md`. No Sprint is active.)*
+
+*Last Updated: 2026-11-13 (**SP-215 AC7 ✅** (live passes); T-0678 → ✅ Verified, archived. Close awaits approval.)*
+
 *Last Updated: 2026-11-13 (**SP-215 AC7 built**; T-0678 → 🟠.)*
 
 *Last Updated: 2026-11-13 (**SP-215 AC7 added** — the export formats as submenus ([T-0678]).)*
@@ -106,9 +110,3 @@
 *Last Updated: 2026-11-03 (**SP-198, SP-199 → ✅ CLOSED** (user, 2026-11-03: *"close both sprints."*).)*
 
 *Last Updated: 2026-11-02 (**SP-195, SP-196, SP-197, SP-200, SP-201 → ✅ CLOSED** (user, 2026-11-02).)*
-
----
-
-## SP-215 — `[Cross]` [EP-054] File ▸ Import / Export
-
-🟡 **ACTIVE 2026-11-13** → [`Sprint-SP-215.md`](Sprint-SP-215.md) · carries [T-0676], [T-0678] · ✅ Q1–Q4 ruled (Q3: "Current Chapter…") · ✅ AC1–AC6 · ➕ AC7 (formats as submenus) ✅ built · ⏳ AC7 live passes
