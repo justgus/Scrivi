@@ -1,5 +1,7 @@
 # Unverified Tasks
 
+*Last Updated: 2026-11-13 (**T-0677 → ✅ Verified** ([SP-216] AC4) → `Verified/Task-verified-0677.md`.)*
+
 *Last Updated: 2026-11-13 (**T-0677 → 🟠** ([SP-216] built).)*
 
 *Last Updated: 2026-11-13 (**T-0678 → ✅ Verified** (user, 2026-11-13: *"mac ipad linux all pass."*) and archived → `Verified/Task-verified-0678.md`.)*
@@ -81,22 +83,6 @@ Tasks that are **implemented and awaiting user verification** before being archi
 ⚠️ This file must not disagree with [`Task-active.md`](Task-active.md) or
 [`Task-backlog.md`](Task-backlog.md). A Task implemented but unverified belongs **here** — not left
 in the backlog carrying a 🟠 status.
-
----
-
-## 🟠 T-0677 — `[Linux]` EP-054: the start window gets the project window's menu bar
-
-**Epic:** [EP-054] · **Status:** 🟠 Implemented - Not Verified · **Sprint:** [SP-216] (🟡 Active) →
-[`../Sprints/Sprint-SP-216.md`](../Sprints/Sprint-SP-216.md) · **Date Requested:** 2026-11-13 (user: *"Linux's start window
-should eventually have a menu bar, so we should create one that mirrors the Project menu bar, only with all the project-only
-items greyed out."*)
-
-**What:** Linux's start window (`LandingWindow`) carries the project window's menu bar — the same menus, items and order, built
-by one builder — with the project-only items greyed out, as the Mac's menu bar is with no project open. Rulings and ACs: the
-Sprint.
-
-**Tested:** `settings_smoke` §7 (the two bars item by item, Q3's live set, Ctrl+, on the start window), mutation-checked;
-ctest 847/847; Docker Qt 6.4.2. ⏳ AC4 live pass on scrivi-vm.
 
 ---
 

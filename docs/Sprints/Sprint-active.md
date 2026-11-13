@@ -1,5 +1,9 @@
 # Active Sprints
 
+*Last Updated: 2026-11-13 (**SP-216 → ✅ CLOSED** (user, 2026-11-13: *"close SP-216 and plan the I-0349 font fix"*) → `Closed/Sprint-SP-216.md`. No Sprint is active.)*
+
+*Last Updated: 2026-11-13 (**SP-216 AC4 ✅** (live pass); T-0677 → ✅ Verified, archived. Close awaits approval.)*
+
 *Last Updated: 2026-11-13 (**SP-216 built** — AC1–AC3 met; T-0677 → 🟠.)*
 
 *Last Updated: 2026-11-13 (**SP-216 → 🟡 ACTIVE** (user, 2026-11-13: *"activate and implement SP-216"*))*
@@ -115,8 +119,3 @@
 
 *Last Updated: 2026-11-02 (**SP-195, SP-196, SP-197, SP-200, SP-201 → ✅ CLOSED** (user, 2026-11-02).)*
 
----
-
-## SP-216 — `[Linux]` [EP-054] The start window gets the project window's menu bar
-
-🟡 **ACTIVE 2026-11-13** → [`Sprint-SP-216.md`](Sprint-SP-216.md) · carries [T-0677] · ✅ Q1–Q3 ruled · ✅ built (AC1–AC3) · ⏳ AC4 live pass

@@ -1,17 +1,18 @@
 ---
 sprint: SP-216
 epic: EP-054
-status: Active
+status: Closed
+closed: 2026-11-13
 platform: Linux
 created: 2026-11-13
 ---
 
 # SP-216 — `[Linux]` [EP-054] The start window gets the project window's menu bar
 
-**Status:** 🟡 **ACTIVE** 2026-11-13 (user, 2026-11-13: *"activate and implement SP-216"*). Planned 2026-11-13 (user: *"Close SP-214 and plan the import/export and Linux start window
+**Status:** ✅ **CLOSED** 2026-11-13 (user, 2026-11-13: *"close SP-216 and plan the I-0349 font fix"*). Activated 2026-11-13 (user, 2026-11-13: *"activate and implement SP-216"*). Planned 2026-11-13 (user: *"Close SP-214 and plan the import/export and Linux start window
 sprints"*). The shape is ruled (below); ✅ Q1–Q3 ruled (2026-11-13; Q1: EP-054).
-**Carries:** [T-0677] → [`../Tasks/Task-active.md`](../Tasks/Task-active.md).
-**Epic:** [EP-054] (Q1) → [`../Epics/Epic-active.md`](../Epics/Epic-active.md).
+**Carries:** [T-0677] → ✅ Verified → [`../../Tasks/Verified/Task-verified-0677.md`](../../Tasks/Verified/Task-verified-0677.md).
+**Epic:** [EP-054] (Q1) → [`../../Epics/Epic-active.md`](../../Epics/Epic-active.md).
 **Follows:** [SP-215] — this mirrors its finished File menu, so it activates after SP-215 closes.
 **Size:** S–M — one refactor (the menu bar built once, used by two windows), no new command.
 
@@ -80,7 +81,7 @@ retiring the single-window path's page 0 ([SP-147]'s, if still pending).
 - [x] AC2 — On the start window only Q3's items are enabled, and each works from there (Settings… by Ctrl+, too; Quit by
       Ctrl+Q); the hand-wired Settings… action is gone
 - [x] AC3 — A smoke compares the two windows' menu bars item by item and checks the start window's enabled set; ctest green
-- [ ] AC4 — **Live pass (user)** on scrivi-vm: the two windows' menus side by side; each live item used from the start window
+- [x] AC4 — **Live pass (user)** on scrivi-vm: the two windows' menus side by side; each live item used from the start window
 
 ## Progress log
 
@@ -100,3 +101,5 @@ retiring the single-window path's page 0 ([SP-147]'s, if still pending).
   opens Settings… over the start window. Mutation-checked: no greying → §7 fails; no bar → §7 fails. ctest 847/847; 42/43
   smokes on the first sweep — `structural_baseline_smoke` failed once on I-0348's on-screen check (caret at y=−53207),
   then passed 3/3; not this Sprint's code (it never builds a start window).
+- **2026-11-13** — ✅ **AC4 met** (user, 2026-11-13: *"the live pass checks 1-6 all passed."*) T-0677 → ✅ Verified, archived. **All ACs met.**
+- **2026-11-13** — ✅ **CLOSED** (user, 2026-11-13: *"close SP-216 and plan the I-0349 font fix"*).

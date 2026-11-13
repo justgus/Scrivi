@@ -1,5 +1,7 @@
 # Sprint Backlog
 
+*Last Updated: 2026-11-13 (**SP-217 created in 🔵 Planning** — the I-0349 font fix (user, 2026-11-13: *"close SP-216 and plan the I-0349 font fix"*); Q1–Q3 to rule.)*
+
 *Last Updated: 2026-11-13 (**SP-216 removed** — activated 2026-11-13.)*
 
 *Last Updated: 2026-11-13 (**SP-215 removed** — activated 2026-11-13.)*
@@ -57,6 +59,14 @@
 *Last Updated: 2026-11-05 (**SP-204 removed** — activated 2026-11-05.)*
 
 Sprints listed here are in 🔵 Planning status — defined and ready to activate, but not yet started.
+
+---
+
+## No Epic
+
+### SP-217 — `[Linux]` [I-0349] Hidden markup without the fallback-font search
+
+🔵 **Planning** → [`Sprint-SP-217.md`](Sprint-SP-217.md) · fixes [I-0349] Part 2 · Q1–Q3 to rule
 
 ---
 
