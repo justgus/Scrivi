@@ -1,5 +1,9 @@
 # Active Sprints
 
+*Last Updated: 2026-11-13 (**SP-217 → ✅ CLOSED** (user, 2026-11-13: *"Linux steps 1-5 and Mac step 6 all pass, close SP-217"*) → `Closed/Sprint-SP-217.md`. No Sprint is active.)*
+
+*Last Updated: 2026-11-13 (**SP-217 AC3 ✅** (user, 2026-11-13: *"AC3 is met.  Your 500ms limit was arbitrary.  751ms is acceptable."*))*
+
 *Last Updated: 2026-11-13 (**SP-217 built** — AC1, AC2 met; AC3 river ✅, dumas 751 ms > 500 ms (accessibility, not fonts) — ruling owed.)*
 
 *Last Updated: 2026-11-13 (**SP-217 → 🟡 ACTIVE** (user, 2026-11-13: *"Q1–Q3 as recommended, activate and implement SP-217"*))*
@@ -123,8 +127,3 @@
 
 *Last Updated: 2026-11-02 (**SP-195, SP-196, SP-197, SP-200, SP-201 → ✅ CLOSED** (user, 2026-11-02).)*
 
----
-
-## SP-217 — `[Linux]` [I-0349] Hidden markup without the fallback-font search
-
-🟡 **ACTIVE 2026-11-13** → [`Sprint-SP-217.md`](Sprint-SP-217.md) · fixes [I-0349] Part 2 · ✅ Q1–Q3 ruled · ✅ AC1, AC2 · ⚠️ AC3: river ✅, dumas 751 ms (ruling owed) · ⏳ AC5 live pass

@@ -1,15 +1,16 @@
 ---
 sprint: SP-217
 epic: none
-status: Active
+status: Closed
+closed: 2026-11-13
 platform: Linux
 created: 2026-11-13
 ---
 
 # SP-217 — `[Linux]` [I-0349] Hidden markup without the fallback-font search
 
-**Status:** 🟡 **ACTIVE** 2026-11-13 (user, 2026-11-13: *"Q1–Q3 as recommended, activate and implement SP-217"*). Planned 2026-11-13 (user: *"close SP-216 and plan the I-0349 font fix"*). ✅ Q1–Q3 ruled as recommended.
-**Fixes:** [I-0349] Part 2 → [`../Issues/Issue-backlog.md`](../Issues/Issue-backlog.md).
+**Status:** ✅ **CLOSED** 2026-11-13 (user, 2026-11-13: *"Linux steps 1-5 and Mac step 6 all pass, close SP-217"*). Activated 2026-11-13 (user, 2026-11-13: *"Q1–Q3 as recommended, activate and implement SP-217"*). Planned 2026-11-13 (user: *"close SP-216 and plan the I-0349 font fix"*). ✅ Q1–Q3 ruled as recommended.
+**Fixes:** [I-0349] Part 2 → [`../../Issues/Issue-backlog.md`](../../Issues/Issue-backlog.md).
 **Epic:** none (Q1).
 **Size:** S — one format, measured before and after; no new command.
 
@@ -88,10 +89,10 @@ if the user wants it asked), moving the first layout off the main thread, [I-036
       chosen format ruled
 - [x] AC2 — Hidden markup (`\`, `**`, `#`) is drawn by the manuscript's face with no fallback-font search, and still leaves
       0.00 pt residue and the same caret stops; a smoke checks all three (mutation-checked); ctest and the smokes green
-- [ ] AC3 — On scrivi-vm, the river-of-time and dumas answer within 500 ms of `load: finished` (today 9.9 s and ~5.5 s),
+- [x] AC3 — On scrivi-vm, the river-of-time and dumas answer within 500 ms of `load: finished` (today 9.9 s and ~5.5 s),
       measured from the log
-- [ ] AC4 — Q2 and Q3 as ruled
-- [ ] AC5 — **Live pass (user)** on scrivi-vm: both projects open with no freeze; hidden markup still hidden, revealed markup still
+- [x] AC4 — Q2 and Q3 as ruled
+- [x] AC5 — **Live pass (user)** on scrivi-vm: both projects open with no freeze; hidden markup still hidden, revealed markup still
       dimmed, the caret still steps over hidden marks
 
 ## Progress log
@@ -114,3 +115,7 @@ if the user wants it asked), moving the first layout off the main thread, [I-036
 - **2026-11-13** — **Q2 measured:** first layout in a fresh process, the app font: `A` 14 ms, ◎ 37 ms (DejaVu Sans), − 18 ms
   (Noto Sans Bengali) — both under 100 ms, so **out** as ruled → [I-0361] (the timeline's zoom buttons, `TimelinePanel.cpp:57`,
   `:74`). Q3 (the Mac) is a step in the live pass.
+- **2026-11-13** — ✅ **AC3 met** (user, 2026-11-13: *"AC3 is met.  Your 500ms limit was arbitrary.  751ms is acceptable."*) dumas' 751 ms is accepted; its cause stays recorded as [I-0349] Part 3.
+- **2026-11-13** — ✅ **AC4, AC5 met** (user, 2026-11-13: *"Linux steps 1-5 and Mac step 6 all pass, close SP-217"*): Q2 → [I-0361]; Q3 measured on the Mac (step 6: no stall after the load); the
+  Linux live pass (steps 1–5) on scrivi-vm. [I-0349] Part 2 ✅ verified; Part 3 stays open in the backlog.
+- **2026-11-13** — ✅ **CLOSED** (user, 2026-11-13: *"Linux steps 1-5 and Mac step 6 all pass, close SP-217"*).
