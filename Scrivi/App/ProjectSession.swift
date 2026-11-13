@@ -37,6 +37,8 @@ import os
 
     // [SP-206] An archive export or import running for this window, once it has run 400 ms (the window's progress row).
     var archiveProgress: String?
+    // [SP-215] A timeline file read for File ▸ Import ▸ Timeline…, waiting for its epoch offset (the window's sheet).
+    var pendingTimelineImport: PendingTimelineImport?
 
     // Viewport scene loader — created on load, cleared on close.
     var viewportLoader: ViewportSceneLoader?

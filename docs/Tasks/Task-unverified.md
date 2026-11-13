@@ -1,5 +1,9 @@
 # Unverified Tasks
 
+*Last Updated: 2026-11-13 (**T-0676 → 🟠 Implemented - Not Verified** ([SP-215]); the live passes (AC6) are the user's.)*
+
+*Last Updated: 2026-11-13 (**T-0675 → ✅ Verified** (user, 2026-11-13: *"Linux steps 1-6 pass. 2148 pages for the full manuscript, 31 pages for Chapter 2."*) and archived → `Verified/Task-verified-0675.md`.)*
+
 *Last Updated: 2026-11-12 (**T-0675 → 🟠 Implemented - Not Verified** ([SP-214]); the live passes (AC5) are the user's.)*
 
 *Last Updated: 2026-11-12 (**T-0674 → ✅ Verified** (user, 2026-11-12: *"The iPad is present. Steps 1-4 pass."*) and archived → `Verified/Task-verified-0674.md`.)*
@@ -72,22 +76,22 @@ in the backlog carrying a 🟠 status.
 
 ---
 
-## 🟠 T-0675 — `[Cross]` EP-054 S5b: PDF export
+## 🟠 T-0676 — `[Cross]` EP-054: File ▸ Import / Export
 
-**Epic:** [EP-054] (S5b; AC5, AC9) · **Status:** 🟠 Implemented - Not Verified (2026-11-12) · **Sprint:** [SP-214] (🟡 Active) →
-[`../Sprints/Sprint-SP-214.md`](../Sprints/Sprint-SP-214.md) · **Date Requested:** 2026-11-12 (user: *"plan EP-054 S5b."*)
+**Epic:** [EP-054] · **Status:** 🟠 Implemented - Not Verified (2026-11-13) · **Sprint:** [SP-215] (🟡 Active) →
+[`../Sprints/Sprint-SP-215.md`](../Sprints/Sprint-SP-215.md) · **Date Requested:** 2026-11-13 (user: *"…'Export Manuscript'
+would be misleading if the writer only wants to export a single chapter…"*)
 
-**What:** Export Manuscript… ▸ **PDF** on the Mac, iPad and Linux — the whole manuscript or the caret's chapter, in the writer's
-typeface (embedded), on the default paper, with a title page and byline, each chapter on a new page, scene breaks, emphasis and
-page numbers. The core writes a print page (`scrivi_export_manuscript`, `document: "print"`); WebKit paginates it on Apple,
-`QTextDocument` + `QPdfWriter` on Linux. Rulings and ACs: the Sprint.
+**What:** on the Mac, iPad and Linux, File holds Copy as HTML, **Import ▸** Timeline…, Archive… and **Export ▸** Manuscript…,
+Current Chapter…, Timeline…, Archive…; Export ▸ Current Chapter… replaces the scope question; the toolbar's Export button matches (tooltip
+"Export"); the iPad can import and export a timeline. Rulings and ACs: the Sprint.
 
-**Built (2026-11-12):** `exportPrint` (`ScriviCore/src/manuscript/ManuscriptExport.cpp:735`); `document: "print"`
-(`scrivi_c_api.cpp:1362`, `scrivi.h`); `Scrivi/App/ManuscriptPDF.swift` (WebKit; Mac and iPad);
-`ProjectArchiveFlow.swift:140`; `ScriviEngine.exportManuscript(… printPage:)` (+ stub); Linux
-`platforms/linux/src/ManuscriptPdf.hpp`, `EditorShell::exportManuscript`, `settings_smoke` §5. Evidence: macOS ctest
-842/842, interop 2/2, iOS build; Linux ctest 847/847, settings and bridge smokes green; `pdffonts` / `pdftotext` on a real
-project. ⏳ The live passes (SP-214 AC5) are the user's, the iPad's PDF among them.
+**Built (2026-11-13):** Apple — `ImportExportCommands` / `ExportMenuItems` (`Scrivi/App/ProjectArchiveFlow.swift`), used by
+both menu bars (`ScriviApp.swift`) and the toolbar (`ProjectToolbar.swift`, tooltip "Export"); `exportManuscript(_:currentChapter:)`;
+the timeline flow moved out of the panel (`exportTimeline`, `importTimeline`, `readTimeline`, `finishTimelineImport`; the
+epoch sheet in `EditorView.swift`, `ProjectSession.pendingTimelineImport`; the iPad's picker via `ArchivePicker.timeline`).
+Linux — the File menu's submenus (`ScriviWindow.cpp`), `EditorShell::exportManuscript(bool)`, `caretChapter`; `settings_smoke` §6.
+Evidence: macOS and iOS builds, interop 348; Linux ctest 847/847, `settings_smoke` §6 (mutation-checked). ⏳ The live passes (SP-215 AC6).
 
 ---
 

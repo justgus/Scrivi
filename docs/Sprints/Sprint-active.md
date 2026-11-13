@@ -1,5 +1,13 @@
 # Active Sprints
 
+*Last Updated: 2026-11-13 (**SP-215 built** — AC5 met, AC1–AC4 built; T-0676 → 🟠.)*
+
+*Last Updated: 2026-11-13 (**SP-215 → 🟡 ACTIVE** (user, 2026-11-13: *"Q3 Current Chapter…, activate and implement SP-215"*))*
+
+*Last Updated: 2026-11-13 (**SP-214 → ✅ CLOSED** (user, 2026-11-13: *"Close SP-214 and plan the import/export and Linux start window sprints"*) → `Closed/Sprint-SP-214.md`.)*
+
+*Last Updated: 2026-11-13 (**SP-214 AC5 ✅** (Linux pass again); T-0675 → ✅ Verified, archived. Close awaits approval.)*
+
 *Last Updated: 2026-11-13 (**SP-214:** AC2 ✅ (Mac, iPad live passes); Linux live pass failed (white text, ~80% of a long manuscript missing) → fixed; Linux pass again.)*
 
 *Last Updated: 2026-11-12 (**SP-214 built** — AC1, AC3, AC4 met, AC2 on the Mac; T-0675 → 🟠.)*
@@ -95,6 +103,6 @@
 
 ---
 
-## SP-214 — `[Cross]` [EP-054] S5b: PDF export
+## SP-215 — `[Cross]` [EP-054] File ▸ Import / Export
 
-🟡 **ACTIVE 2026-11-12** → [`Sprint-SP-214.md`](Sprint-SP-214.md) · carries [T-0675] · ✅ Q1–Q5 ruled as recommended (SP-213 Q2–Q4 carried) · ✅ built · ✅ AC1–AC4 · ✅ Mac + iPad live passes · ⏳ Linux live pass again (two defects fixed)
+🟡 **ACTIVE 2026-11-13** → [`Sprint-SP-215.md`](Sprint-SP-215.md) · carries [T-0676] · ✅ Q1–Q4 ruled (Q3: "Current Chapter…") · ✅ built (AC5; AC1–AC4 in the live passes) · ⏳ AC6 live passes

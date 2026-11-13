@@ -291,7 +291,7 @@ public:
     void pickStoryStructure();
 
     // Import / Export the project timeline (SP-082, T-0345). Public triggers so the
-    // File ▸ Import/Export Timeline… menu items can drive the same flows the timeline
+    // File ▸ Import ▸ / Export ▸ Timeline… menu items can drive the same flows the timeline
     // panel's empty-area menu offers. Each forwards to the private slot (file dialog +
     // bridge). No-op if no project is loaded.
     void importTimeline();
@@ -300,15 +300,18 @@ public:
     // binds one, a save dialog for "<project>.scrivarchive", the call on a worker with the progress row after 400 ms.
     // The caller has flushed the editor; the core drains the write queue.
     void exportArchive();
-    // [SP-207] File ▸ Export Manuscript… / Copy as HTML (Apple: `AppEnvironment.exportManuscript` /
-    // `copyManuscriptAsHTML`): Markdown or HTML, the whole manuscript or the caret's chapter, `scrivi_export_manuscript` on
-    // a worker. Copy puts the HTML SOURCE (the body alone) on the clipboard as text. The caller has flushed the editor.
-    void exportManuscript();
+    // [SP-207] File ▸ Export ▸ Manuscript… / Current Chapter… and Copy as HTML (Apple: `AppEnvironment.exportManuscript` /
+    // `copyManuscriptAsHTML`): `scrivi_export_manuscript` on a worker. [SP-215] The item is the scope — `currentChapter`:
+    // the caret's chapter, no ePub. Copy asks (Q2) and puts the HTML SOURCE (the body alone) on the clipboard as text. The
+    // caller has flushed the editor.
+    void exportManuscript(bool currentChapter = false);
     void copyManuscriptAsHTML();
+    // The chapter the caret is in, named as the editor names it; false when there is none (Current Chapter… is greyed).
+    bool caretChapter(QString* chapterID = nullptr, QString* chapterName = nullptr) const;
 
 private:
-    // Q2: the whole manuscript, or the caret's chapter (asked only when there is one). False = cancelled; an empty
-    // `chapterID` = the whole manuscript.
+    // Copy as HTML: the whole manuscript, or the caret's chapter (asked only when there is one). False = cancelled; an
+    // empty `chapterID` = the whole manuscript.
     bool askManuscriptScope(const QString& title, QString& chapterID, QString& chapterName);
 
 protected:

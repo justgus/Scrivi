@@ -1,16 +1,16 @@
 ---
 sprint: SP-214
 epic: EP-054
-status: Active
+status: Closed
 platform: Cross
 created: 2026-11-12
 ---
 
 # SP-214 — `[ScriviCore]` + `[Apple]` + `[Linux]` [EP-054] **S5b**: PDF export
 
-**Status:** 🟡 **ACTIVE** 2026-11-12 (user, 2026-11-12: *"Q1–Q5 as recommended, activate and implement SP-214."*) · ✅ Q1–Q5 ruled as recommended · planned 2026-11-12 (*"plan EP-054 S5b."*).
-**Carries:** [T-0675] → [`../Tasks/Task-unverified.md`](../Tasks/Task-unverified.md).
-**Epic:** [EP-054] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md).
+**Status:** ✅ **CLOSED** 2026-11-13 (user, 2026-11-13: *"Close SP-214 and plan the import/export and Linux start window sprints"*) · activated 2026-11-12 (user, 2026-11-12: *"Q1–Q5 as recommended, activate and implement SP-214."*) · ✅ Q1–Q5 ruled as recommended · planned 2026-11-12 (*"plan EP-054 S5b."*).
+**Carries:** [T-0675] ✅ Verified → [`../../Tasks/Verified/Task-verified-0675.md`](../../Tasks/Verified/Task-verified-0675.md).
+**Epic:** [EP-054] → [`../../Epics/Epic-active.md`](../../Epics/Epic-active.md).
 **Builds on:** [SP-207] (S3: the walker, the HTML writer, Export Manuscript…), [SP-208] (S4: the writer's typography, the
 scope question), [SP-212] (the byline), [SP-213] (S5: the ePub stylesheet; **its Q1 split PDF out to here, and its Q2–Q4 are
 ruled and carried**).
@@ -115,7 +115,7 @@ headers (title / author on each page), Standard Manuscript Format (S4 Q1), a tab
       `pdffonts` shows the face embedded and `pdftotext` the numbers, for a Linux PDF and a Mac PDF
 - [x] AC4 — Export Manuscript… offers **PDF** on the Mac, iPad and Linux, then whole / the caret's chapter; flushed first,
       off the main thread where the platform allows, progress after 400 ms; engine stub parity green
-- [ ] AC5 — **Live passes (user):** a whole-manuscript and a one-chapter PDF in Preview (Mac), Files (iPad) and Papers
+- [x] AC5 — **Live passes (user):** a whole-manuscript and a one-chapter PDF in Preview (Mac), Files (iPad) and Papers
       (Linux) — face, title page and byline, chapters on new pages, scene breaks, emphasis, lists, page numbers, paper
 
 ## Progress log
@@ -160,3 +160,6 @@ headers (title / author on each page), Standard Manuscript Format (S4 Q1), a tab
   white-text palette: page count and black text checked — **each check fails on its own defect** (old writer: 65 pages + white;
   colour fix removed: white; layout fix reverted: 65 pages), passes with the fix; `scrivi_linux` builds. ⏳ The Linux live pass
   again (Steps 1–6).
+- **2026-11-13** — ✅ **AC5 — the Linux live pass again** (user, 2026-11-13: *"Linux steps 1-6 pass. 2148 pages for the full manuscript, 31 pages for Chapter 2."*). AC1–AC5 met; T-0675 → ✅ Verified,
+  archived. Close awaits approval.
+- **2026-11-13** — ✅ **CLOSED** (user, 2026-11-13: *"Close SP-214 and plan the import/export and Linux start window sprints"*). EP-054 S5b (PDF) met. Next: the Import/Export menus Sprint, then the Linux start window's menu bar.

@@ -296,40 +296,46 @@ void ScriviWindow::buildMenuBar()
     });
     editorOnlyActions_.append(closeProj);
 
-    // Timeline import/export (EP-025 / SP-082, T-0345). File operations — importing an
-    // external .scrivi-timeline.json and exporting the project timeline — so they live
-    // in File alongside Open/Close, not only in the timeline panel's right-click menu.
-    // Editor-only (a project must be open); each forwards to the EditorShell trigger
-    // (file dialog + bridge). No accelerators (no writer-standard key for them).
     file->addSeparator();
-    QAction* importTimeline = file->addAction(tr("Import Timeline…"));
-    connect(importTimeline, &QAction::triggered, this,
-            [this]() { if (editor_ != nullptr) { editor_->importTimeline(); } });
-    editorOnlyActions_.append(importTimeline);
-
-    QAction* exportTimeline = file->addAction(tr("Export Timeline…"));
-    connect(exportTimeline, &QAction::triggered, this,
-            [this]() { if (editor_ != nullptr) { editor_->exportTimeline(); } });
-    editorOnlyActions_.append(exportTimeline);
-
-    // [SP-206] EP-054 S2: the archive — Export is the project in THIS window (Q2); Import asks for the archive.
-    file->addSeparator();
-    QAction* exportArchive = file->addAction(tr("Export Archive…"));
-    connect(exportArchive, &QAction::triggered, this,
-            [this]() { if (editor_ != nullptr) { flushEditor(); editor_->exportArchive(); } });
-    editorOnlyActions_.append(exportArchive);
-    // [SP-207] EP-054 S3: this window's manuscript, or its caret's chapter.
-    QAction* exportManuscript = file->addAction(tr("Export Manuscript…"));
-    connect(exportManuscript, &QAction::triggered, this,
-            [this]() { if (editor_ != nullptr) { flushEditor(); editor_->exportManuscript(); } });
-    editorOnlyActions_.append(exportManuscript);
+    // [SP-215] EP-054: every way in and out, by verb, as on the Mac (`ImportExportCommands`): Copy as HTML, Import ▸,
+    // Export ▸. Export is the project in THIS window (SP-206 Q2); Import ▸ Archive… needs no project. The timeline (EP-025 / SP-082, T-0345) is also in the
+    // Timeline panel's menu.
     QAction* copyAsHtml = file->addAction(tr("Copy as HTML"));
     connect(copyAsHtml, &QAction::triggered, this,
             [this]() { if (editor_ != nullptr) { flushEditor(); editor_->copyManuscriptAsHTML(); } });
     editorOnlyActions_.append(copyAsHtml);
-    QAction* importArchive = file->addAction(tr("Import Archive…"));
+
+    QMenu* importMenu = file->addMenu(tr("Import"));
+    QAction* importTimeline = importMenu->addAction(tr("Timeline…"));
+    connect(importTimeline, &QAction::triggered, this,
+            [this]() { if (editor_ != nullptr) { editor_->importTimeline(); } });
+    editorOnlyActions_.append(importTimeline);
+    QAction* importArchive = importMenu->addAction(tr("Archive…"));
     connect(importArchive, &QAction::triggered, this,
             [this]() { if (shell_ != nullptr) { shell_->importArchive(); } });
+
+    QMenu* exportMenu = file->addMenu(tr("Export"));
+    QAction* exportManuscript = exportMenu->addAction(tr("Manuscript…"));
+    connect(exportManuscript, &QAction::triggered, this,
+            [this]() { if (editor_ != nullptr) { flushEditor(); editor_->exportManuscript(); } });
+    editorOnlyActions_.append(exportManuscript);
+    // Q3: the caret's chapter — greyed when there is none, so it is set as the menu opens (not in editorOnlyActions_).
+    QAction* exportChapter = exportMenu->addAction(tr("Current Chapter…"));
+    exportChapter->setObjectName(QStringLiteral("exportCurrentChapterAction"));
+    exportChapter->setEnabled(false);
+    connect(exportMenu, &QMenu::aboutToShow, this, [this, exportChapter]() {
+        exportChapter->setEnabled(editor_ != nullptr && stack_->currentWidget() == editor_ && editor_->caretChapter());
+    });
+    connect(exportChapter, &QAction::triggered, this,
+            [this]() { if (editor_ != nullptr) { flushEditor(); editor_->exportManuscript(/*currentChapter=*/true); } });
+    QAction* exportTimeline = exportMenu->addAction(tr("Timeline…"));
+    connect(exportTimeline, &QAction::triggered, this,
+            [this]() { if (editor_ != nullptr) { editor_->exportTimeline(); } });
+    editorOnlyActions_.append(exportTimeline);
+    QAction* exportArchive = exportMenu->addAction(tr("Archive…"));
+    connect(exportArchive, &QAction::triggered, this,
+            [this]() { if (editor_ != nullptr) { flushEditor(); editor_->exportArchive(); } });
+    editorOnlyActions_.append(exportArchive);
 
     file->addSeparator();
     QAction* quit = file->addAction(tr("Quit"));

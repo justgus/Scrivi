@@ -116,6 +116,14 @@ private struct ManuscriptEditorView: View {
         .sheet(isPresented: Binding(get: { session.authorPrompt != .none }, set: { _ in })) {
             AuthorPromptSheet()
         }
+        // SP-215: File ▸ Import ▸ Timeline… (and the Timeline panel's item) — the file is read; its epoch offset is asked here.
+        .sheet(item: Bindable(session).pendingTimelineImport) { pending in
+            EpochOffsetDialog(sourceName: pending.sourceName, sourceEpochLabel: pending.epochLabel,
+                              onCommit: { offsetMs, greyShade in
+                                  Task { await env.finishTimelineImport(session, pending, offsetMs: offsetMs, greyShade: greyShade) }
+                              },
+                              onCancel: { session.pendingTimelineImport = nil })
+        }
         // EP-047 (SP-167 Q1): Project ▸ Purge Stale History Branches…
         .sheet(isPresented: Bindable(session).showStaleBranches) {
             StaleBranchesSheet()
@@ -511,7 +519,9 @@ private struct ManuscriptEditorView: View {
                             revealToken += 1
                             revealRequest = SceneRevealRequest(sceneID: sceneID,
                                                                token: revealToken)
-                        }
+                        },
+                        onImportTimeline: { env.importTimeline(session) },
+                        onExportTimeline: { Task { await env.exportTimeline(session) } }
                     )
                 }
                 }

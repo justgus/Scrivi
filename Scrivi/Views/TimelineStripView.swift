@@ -815,13 +815,16 @@ struct TimelineStripView: View {
     // T-0173: invoked when a scene dot is clicked — drives manuscript navigation (which also
     // sets viewportSceneID, so the Navigator highlights automatically).
     var onSelectScene: ((String) -> Void)? = nil
+    // SP-215 Q1: Import / Export Timeline… run the window's flow (`AppEnvironment.importTimeline` / `exportTimeline`), which
+    // the File menu and the toolbar share.
+    var onImportTimeline: (() -> Void)? = nil
+    var onExportTimeline: (() -> Void)? = nil
 
     @State private var showEpochOffsetDialog = false
-    // SP-129/T-0503 — editing an ALREADY-IMPORTED timeline's epoch offset. Non-nil
-    // means the dialog is in EDIT mode for that timelineID; nil means import mode.
+    // SP-129/T-0503 — editing an ALREADY-IMPORTED timeline's epoch offset (the timelineID being edited). An import's offset
+    // is asked by the project window (SP-215).
     // ⚠️ Mirrors Linux's `onEditImportedOffsetRequested`, which is the finished surface.
     @State private var editingOffsetTimelineID: String?
-    @State private var pendingImportJSON: String = ""
     @State private var pendingImportName: String = ""
     @State private var pendingImportEpochLabel: String = ""
     @State private var showHistoricalEventEditor = false
@@ -1263,8 +1266,8 @@ struct TimelineStripView: View {
                     }
                     .disabled(authorshipRef == nil)
                     Divider()
-                    Button("Import Timeline…") { triggerImport() }
-                    Button("Export Timeline…") { triggerExport() }
+                    Button("Import Timeline…") { onImportTimeline?() }
+                    Button("Export Timeline…") { onExportTimeline?() }
                     Divider()
                     Button("Set Epoch Label…") { }
                         .disabled(true)
@@ -1463,22 +1466,15 @@ struct TimelineStripView: View {
             EpochOffsetDialog(
                 sourceName: pendingImportName,
                 sourceEpochLabel: pendingImportEpochLabel,
-                onCommit: { offsetMs, greyShade in
-                    // SP-129/T-0503: the SAME dialog serves import and edit. ⚠️ In edit
-                    // mode the grey shade is NOT reassigned — it is how the writer
-                    // recognises the row, and changing it on an offset edit would be a
-                    // silent second change she did not ask for.
+                onCommit: { offsetMs, _ in
+                    // SP-129/T-0503: an offset edit. ⚠️ The grey shade is NOT reassigned —
+                    // it is how the writer recognises the row, and changing it on an offset
+                    // edit would be a silent second change she did not ask for.
                     if let editID = editingOffsetTimelineID {
                         _ = try? engine.updateImportedTimelineOffset(
                             projectRootPath: projectRootPath,
                             timelineID: editID,
                             epochOffsetMs: offsetMs)
-                    } else {
-                        _ = try? engine.importExternalTimeline(
-                            projectRootPath: projectRootPath,
-                            timelineJSON: pendingImportJSON,
-                            epochOffsetMs: offsetMs,
-                            assignedGreyShade: greyShade)
                     }
                     model.loadImportedTimelines(projectRootPath: projectRootPath, engine: engine)
                     editingOffsetTimelineID = nil
@@ -1511,8 +1507,8 @@ struct TimelineStripView: View {
     @ViewBuilder
     private var timelineMenu: some View {
         Menu {
-            Button("Import Timeline…") { triggerImport() }
-            Button("Export Timeline…") { triggerExport() }
+            Button("Import Timeline…") { onImportTimeline?() }
+            Button("Export Timeline…") { onExportTimeline?() }
             if !model.importedTimelines.isEmpty {
                 Divider()
                 // Toggle inside a Menu renders as a native macOS checkmark menu item.
@@ -2118,45 +2114,6 @@ struct TimelineStripView: View {
     }
 
     // MARK: Import / Export
-
-    private func triggerImport() {
-        #if os(macOS)
-        let panel = NSOpenPanel()
-        panel.allowedContentTypes = [.init(filenameExtension: "json")!]
-        panel.message = "Select a .scrivi-timeline.json file to import"
-        panel.begin { response in
-            guard response == .OK, let url = panel.url,
-                  let jsonStr = try? String(contentsOf: url, encoding: .utf8) else { return }   // boundary-ok: NSPanel, writer-chosen path outside any package
-            // Parse source name and epoch label for the dialog
-            struct Peek: Decodable {
-                let sourceProjectTitle: String?
-                let epochLabel: String?
-            }
-            if let data = jsonStr.data(using: .utf8),
-               let peek = try? JSONDecoder().decode(Peek.self, from: data) {
-                DispatchQueue.main.async {
-                    pendingImportJSON = jsonStr
-                    pendingImportName = peek.sourceProjectTitle ?? "Imported Timeline"
-                    pendingImportEpochLabel = peek.epochLabel ?? "Story Open"
-                    showEpochOffsetDialog = true
-                }
-            }
-        }
-        #endif
-    }
-
-    private func triggerExport() {
-        #if os(macOS)
-        guard let result = try? engine.exportProjectTimeline(projectRootPath: projectRootPath) else { return }
-        let panel = NSSavePanel()
-        panel.allowedContentTypes = [.init(filenameExtension: "json")!]
-        panel.nameFieldStringValue = "timeline.scrivi-timeline.json"
-        panel.begin { response in
-            guard response == .OK, let url = panel.url else { return }
-            try? result.timelineJSON.write(to: url, atomically: true, encoding: .utf8)   // boundary-ok: NSPanel, writer-chosen path outside any package
-        }
-        #endif
-    }
 
     // Returns the band color for a dot's assigned band, or nil if unassigned / no structure.
     private func bandColor(for dot: TimelineViewModel.SceneDot) -> Color? {
@@ -3113,7 +3070,8 @@ private struct ImportedEventDotView: View {
 
 // MARK: — EpochOffsetDialog
 
-private struct EpochOffsetDialog: View {
+/// The epoch offset of an imported timeline: asked at import (the project window, SP-215) and when adjusted (the panel).
+struct EpochOffsetDialog: View {
 
     let sourceName: String
     let sourceEpochLabel: String

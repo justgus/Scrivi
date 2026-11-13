@@ -1,5 +1,11 @@
 # Task Backlog
 
+*Last Updated: 2026-11-13 (**T-0676 → active** with [SP-215]'s activation.)*
+
+*Last Updated: 2026-11-13 (**T-0677 → EP-054** (SP-216 Q1).)*
+
+*Last Updated: 2026-11-13 (**T-0676, T-0677 filed** with [SP-215] and [SP-216] (🔵 Planning).)*
+
 *Last Updated: 2026-11-12 (**T-0675 → active** with [SP-214]'s activation.)*
 
 *Last Updated: 2026-11-12 (**T-0675 filed** with [SP-214] (🔵 Planning), [EP-054] S5b.)*
@@ -91,6 +97,7 @@ status changes on its own layer.
 | T-0657 | `[Cross]` Navigator: collapsible chapters, the current one open, the writer's choices remembered per device | ⚠️ None yet | 🔵 Backlog |
 | T-0663 | `[Cross]` Properties tab: the project's file facts (folder, path, dates, size) | ⚠️ None yet | 🔵 Backlog — Q1–Q5 ruled |
 | T-0667 | `[Cross]` EP-054: paste a Copy as HTML chapter into AO3 itself once it is back online | EP-054 | 🔵 Backlog — waits for AO3 |
+| T-0677 | `[Linux]` EP-054: the start window gets the project window's menu bar | EP-054 | 🔵 Backlog — [SP-216] (Planning) |
 | T-0669 | `[Apple]` EP-054: export a whole-manuscript and a one-chapter `.docx` on the iPad (Export Manuscript… ▸ Word Document) and open them in Pages or Word there — [SP-208] AC5/AC7's iPad half | EP-054 | 🔵 Backlog — waits for the iPad |
 
 > ✅ **T-0477 – T-0479 LEFT this file 2026-08-31 when SP-124 was ACTIVATED**, per the standing rule that
@@ -121,6 +128,19 @@ status changes on its own layer.
 ---
 
 ## Detail
+
+## 🔵 T-0677 — `[Linux]` EP-054: the start window gets the project window's menu bar
+
+**Epic:** [EP-054] · **Status:** 🔵 Backlog · **Sprint:** [SP-216] (🔵 Planning) →
+[`../Sprints/Sprint-SP-216.md`](../Sprints/Sprint-SP-216.md) · **Date Requested:** 2026-11-13 (user: *"Linux's start window
+should eventually have a menu bar, so we should create one that mirrors the Project menu bar, only with all the project-only
+items greyed out."*)
+
+**What:** Linux's start window (`LandingWindow`) carries the project window's menu bar — the same menus, items and order, built
+by one builder — with the project-only items greyed out, as the Mac's menu bar is with no project open. Rulings and ACs: the
+Sprint.
+
+---
 
 ## 🔵 T-0667 — `[Cross]` EP-054: paste a Copy as HTML chapter into AO3 itself
 

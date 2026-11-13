@@ -4,7 +4,8 @@ import UniformTypeIdentifiers
 import AppKit
 #endif
 
-// File ▸ Export Archive… / Import Archive… (EP-054 S2, SP-206), and Export Manuscript… / Copy as HTML (S3, SP-207). ⚠️ No archive logic here: the flow asks the writer and
+// File ▸ Import ▸ / Export ▸ (SP-215): the archive (EP-054 S2, SP-206), the manuscript and Copy as HTML (S3, SP-207), the
+// timeline (moved here from the Timeline panel, SP-215 Q1). ⚠️ No archive logic here: the flow asks the writer and
 // calls `scrivi_export_archive` / `scrivi_import_archive`; a clash comes back as a conflict and the call is made again.
 //
 // Rulings: SP-206 Q1 — an import whose project is already open (same ID) is unpacked but NOT opened, because the open
@@ -23,10 +24,57 @@ struct ArchivePrompt: Identifiable {
     let reply: (Int, String) -> Void
 }
 
+/// SP-215: File ▸ Copy as HTML, Import ▸ and Export ▸ — the Mac's and the iPad's menu bar alike. With no project open only
+/// Import ▸ Archive… is enabled (Point 5).
+struct ImportExportCommands: View {
+    let env: AppEnvironment
+    let session: ProjectSession?
+
+    var body: some View {
+        Button("Copy as HTML") {
+            if let session { Task { await env.copyManuscriptAsHTML(session) } }
+        }
+        .disabled(session == nil)
+        Menu("Import") {
+            Button("Timeline…") { if let session { env.importTimeline(session) } }
+                .disabled(session == nil)
+            Button("Archive…") { env.presentImportArchive() }
+        }
+        Menu("Export") { ExportMenuItems(env: env, session: session) }
+    }
+}
+
+/// SP-215: Export ▸ Manuscript…, Current Chapter… (the caret's; greyed when there is none, Q3), Timeline…, Archive… — the File
+/// menu's submenu and the toolbar's Export button.
+struct ExportMenuItems: View {
+    let env: AppEnvironment
+    let session: ProjectSession?
+
+    var body: some View {
+        Button("Manuscript…") { if let session { Task { await env.exportManuscript(session) } } }
+            .disabled(session == nil)
+        Button("Current Chapter…") { if let session { Task { await env.exportManuscript(session, currentChapter: true) } } }
+            .disabled(session.flatMap { env.caretChapter($0) } == nil)
+        Button("Timeline…") { if let session { Task { await env.exportTimeline(session) } } }
+            .disabled(session == nil)
+        Button("Archive…") { if let session { Task { await env.exportArchive(session) } } }
+            .disabled(session == nil)
+    }
+}
+
 /// iOS: which file the archive picker is choosing.
 enum ArchivePicker: Equatable {
     case archive
     case folder(archive: URL, name: String)   // name: the project folder the writer chose
+    case timeline                             // SP-215 Q4: a .scrivi-timeline.json for File ▸ Import ▸ Timeline…
+}
+
+/// SP-215: a timeline file, read and waiting for its epoch offset (the project window shows the sheet).
+struct PendingTimelineImport: Identifiable {
+    let id = UUID()
+    let json: String
+    let sourceName: String
+    let epochLabel: String
 }
 
 @MainActor
@@ -100,27 +148,28 @@ extension AppEnvironment {
 
     // MARK: — Manuscript (EP-054 S3, SP-207)
 
-    /// File ▸ Export Manuscript…: Markdown, HTML (a whole page), a Word document (S4, SP-208), an ePub (S5, SP-213) or a PDF
-    /// (S5b, SP-214), the whole manuscript or the caret's chapter (Q2, Q3); an ePub is always the whole manuscript (SP-213 Q7).
-    func exportManuscript(_ session: ProjectSession) async {
+    /// File ▸ Export ▸ Manuscript… / Current Chapter… (SP-215: the item is the scope): Markdown, HTML (a whole page), a Word
+    /// document (S4, SP-208), an ePub (S5, SP-213, the whole manuscript only, Q7) or a PDF (S5b, SP-214).
+    func exportManuscript(_ session: ProjectSession, currentChapter: Bool = false) async {
         guard let root = session.projectRootPath else { return }
         let engine = session.engine
+        let chapter = currentChapter ? caretChapter(session) : nil
+        if currentChapter && chapter == nil { return }   // the item is disabled then
         await session.saveAllDirty()   // the editor's unsaved text; the core then drains the write queue
-        let f = await ask("Export Manuscript",
+        let formats = currentChapter ? ["markdown", "html", "docx", "pdf"] : ["markdown", "html", "docx", "epub", "pdf"]
+        let labels = ["markdown": "Markdown", "html": "HTML", "docx": "Word Document (.docx)", "epub": "ePub", "pdf": "PDF"]
+        let f = await ask(chapter.map { "Export “\($0.name)”" } ?? "Export Manuscript",
                           "Markdown keeps the text as Scrivi stores it. HTML is a web page with every paragraph its own <p>. "
                           + "A Word document keeps your typeface and indent in named styles. "
-                          + "An ePub is the whole manuscript as a book for e-readers. "
+                          + (currentChapter ? "" : "An ePub is the whole manuscript as a book for e-readers. ")
                           + "A PDF is set in your typeface, on pages, ready to print.",
-                          ["Markdown", "HTML", "Word Document (.docx)", "ePub", "PDF", "Cancel"])
-        guard f.choice < 5 else { return }
-        let format = ["markdown", "html", "docx", "epub", "pdf"][f.choice]
-        let ext = ["md", "html", "docx", "epub", "pdf"][f.choice]
-        let scope = format == "epub" ? (cancelled: false, chapterID: nil, chapterName: nil)
-                                     : await askScope(session, "Export Manuscript")
-        guard !scope.cancelled else { return }
+                          formats.map { labels[$0]! } + ["Cancel"])
+        guard f.choice < formats.count else { return }
+        let format = formats[f.choice]
+        let ext = format == "markdown" ? "md" : format
 
         let projectName = URL(fileURLWithPath: root).deletingPathExtension().lastPathComponent
-        let name = (scope.chapterName ?? projectName).replacingOccurrences(of: "/", with: "-")
+        let name = (chapter?.name ?? projectName).replacingOccurrences(of: "/", with: "-")
             .replacingOccurrences(of: ":", with: "-")
         let fileName = "\(name).\(ext)"
         #if os(macOS)
@@ -135,7 +184,7 @@ extension AppEnvironment {
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         let destination = folder.appendingPathComponent(fileName)
         #endif
-        let chapterID = scope.chapterID
+        let chapterID = chapter?.id
         do {
             if format == "pdf" {
                 // SP-214: the core's print page, paginated by WebKit (on the main actor, but WebKit lays out in its own process).
@@ -233,8 +282,8 @@ extension AppEnvironment {
         }
     }
 
-    /// The chapter the caret is in, named as the editor names it ("Chapter N" when untitled).
-    private func caretChapter(_ session: ProjectSession) -> (id: String, name: String)? {
+    /// The chapter the caret is in, named as the editor names it ("Chapter N" when untitled). Nil enables no Current Chapter….
+    func caretChapter(_ session: ProjectSession) -> (id: String, name: String)? {
         guard let loader = session.viewportLoader,
               let sceneID = loader.cursorSceneID ?? loader.viewportSceneID,
               let info = loader.allScenes.first(where: { $0.sceneID == sceneID }) else { return nil }
@@ -243,6 +292,86 @@ extension AppEnvironment {
         var chapters: [String] = []
         for s in loader.allScenes where chapters.last != s.chapterID { chapters.append(s.chapterID) }
         return (info.chapterID, "Chapter \((chapters.firstIndex(of: info.chapterID) ?? 0) + 1)")
+    }
+
+    // MARK: — Timeline (SP-215 Q1: one flow for the File menu, the toolbar and the Timeline panel)
+
+    /// File ▸ Export ▸ Timeline…: the project's timeline as a `.scrivi-timeline.json`.
+    func exportTimeline(_ session: ProjectSession) async {
+        guard let root = session.projectRootPath else { return }
+        let json: String
+        do {
+            json = try session.engine.exportProjectTimeline(projectRootPath: root).timelineJSON
+        } catch {
+            await tell("The timeline could not be exported", message(for: error))
+            return
+        }
+        let fileName = "timeline.scrivi-timeline.json"
+        #if os(macOS)
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.json]
+        panel.nameFieldStringValue = fileName
+        panel.title = "Export Timeline"
+        panel.prompt = "Export"
+        guard panel.runModal() == .OK, let destination = panel.url else { return }
+        #else
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let destination = folder.appendingPathComponent(fileName)
+        #endif
+        do {
+            // Not atomic: an atomic write goes through a file beside the destination, which the sandbox does not grant.
+            try json.write(to: destination, atomically: false, encoding: .utf8)  // boundary-ok: Export ▸ Timeline…, the file the writer chose, outside any package
+        } catch {
+            await tell("The timeline could not be exported", message(for: error))
+            return
+        }
+        #if !os(macOS)
+        share(destination)
+        #endif
+    }
+
+    /// File ▸ Import ▸ Timeline…: a `.scrivi-timeline.json`; its epoch offset is asked by the project window's sheet.
+    func importTimeline(_ session: ProjectSession) {
+        #if os(macOS)
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.json]
+        panel.allowsMultipleSelection = false
+        panel.title = "Import Timeline"
+        panel.message = "Select a .scrivi-timeline.json file to import"
+        panel.prompt = "Import"
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        Task { await readTimeline(url, into: session) }
+        #else
+        archivePicker = .timeline   // ArchiveFlowHost's picker; the pick comes back to readTimeline
+        #endif
+    }
+
+    /// Reads the chosen file and asks for its epoch offset (the window's sheet, then `finishTimelineImport`).
+    func readTimeline(_ url: URL, into session: ProjectSession) async {
+        struct Peek: Decodable { let sourceProjectTitle: String?; let epochLabel: String? }
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        guard let json = try? String(contentsOf: url, encoding: .utf8),   // boundary-ok: the picker's file, outside any package
+              let peek = try? JSONDecoder().decode(Peek.self, from: Data(json.utf8)) else {
+            await tell("The timeline could not be imported", "“\(url.lastPathComponent)” is not a Scrivi timeline file.")
+            return
+        }
+        session.pendingTimelineImport = PendingTimelineImport(json: json, sourceName: peek.sourceProjectTitle ?? "Imported Timeline",
+                                                              epochLabel: peek.epochLabel ?? "Story Open")
+    }
+
+    func finishTimelineImport(_ session: ProjectSession, _ pending: PendingTimelineImport, offsetMs: Int64, greyShade: String) async {
+        session.pendingTimelineImport = nil
+        guard let root = session.projectRootPath else { return }
+        do {
+            _ = try session.engine.importExternalTimeline(projectRootPath: root, timelineJSON: pending.json,
+                                                          epochOffsetMs: offsetMs, assignedGreyShade: greyShade)
+        } catch {
+            await tell("The timeline could not be imported", message(for: error))
+            return
+        }
+        session.timelineModel?.loadImportedTimelines(projectRootPath: root, engine: session.engine)
     }
 
     // MARK: — Import
@@ -462,7 +591,8 @@ struct ArchiveFlowHost: ViewModifier {
             .onChange(of: env.archivePicker) { _, now in if let now { step = now } }
             .fileImporter(isPresented: Binding(get: { env.archivePicker != nil },
                                                set: { if !$0 { env.archivePicker = nil } }),
-                          allowedContentTypes: env.archivePicker == .archive ? [AppEnvironment.archiveType] : [.folder],
+                          allowedContentTypes: env.archivePicker == .archive ? [AppEnvironment.archiveType]
+                                               : env.archivePicker == .timeline ? [.json] : [.folder],
                           allowsMultipleSelection: false) { result in
                 env.archivePicker = nil
                 guard case .success(let urls) = result, let url = urls.first else { return }
@@ -485,6 +615,8 @@ struct ArchiveFlowHost: ViewModifier {
                     }
                 case .folder(let archive, let name):
                     Task { await env.importArchive(archive, into: url, name: name) }
+                case .timeline:
+                    if let session = env.activeSession { Task { await env.readTimeline(url, into: session) } }
                 case nil:
                     break
                 }

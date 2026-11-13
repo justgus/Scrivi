@@ -1,5 +1,11 @@
 # Sprint Backlog
 
+*Last Updated: 2026-11-13 (**SP-215 removed** — activated 2026-11-13.)*
+
+*Last Updated: 2026-11-13 (**SP-216 → EP-054** (its Q1); SP-215 Q1, Q2, Q4 and SP-216 Q1–Q3 ruled.)*
+
+*Last Updated: 2026-11-13 (**SP-215** (EP-054) **and SP-216** (no Epic) **created in 🔵 Planning** (user, 2026-11-13: *"Close SP-214 and plan the import/export and Linux start window sprints"*); Q1–Q4 and Q1–Q3 to rule.)*
+
 *Last Updated: 2026-11-12 (**SP-214 removed** — activated 2026-11-12.)*
 
 *Last Updated: 2026-11-12 (**SP-214 created in 🔵 Planning** — EP-054 S5b (user, 2026-11-12: *"plan EP-054 S5b."*); Q1–Q5 to rule.)*
@@ -49,6 +55,14 @@
 *Last Updated: 2026-11-05 (**SP-204 removed** — activated 2026-11-05.)*
 
 Sprints listed here are in 🔵 Planning status — defined and ready to activate, but not yet started.
+
+---
+
+## EP-054 — Import & Export
+
+### SP-216 — `[Linux]` [EP-054] The start window gets the project window's menu bar
+
+🔵 **Planning** → [`Sprint-SP-216.md`](Sprint-SP-216.md) · carries [T-0677] · after [SP-215]; ✅ Q1–Q3 ruled (Q1: EP-054)
 
 ---
 

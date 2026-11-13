@@ -321,21 +321,8 @@ struct ScriviApp: App {
 
             Divider()
 
-            // [SP-206] EP-054 S2: the focused window's project (Q2); Import asks for the archive, then the folder.
-            Button("Export Archive…") {
-                if let session = focusedSession { Task { await env.exportArchive(session) } }
-            }
-            .disabled(focusedSession == nil)
-            // [SP-207] EP-054 S3: the focused window's manuscript, or its caret's chapter.
-            Button("Export Manuscript…") {
-                if let session = focusedSession { Task { await env.exportManuscript(session) } }
-            }
-            .disabled(focusedSession == nil)
-            Button("Copy as HTML") {
-                if let session = focusedSession { Task { await env.copyManuscriptAsHTML(session) } }
-            }
-            .disabled(focusedSession == nil)
-            Button("Import Archive…") { env.presentImportArchive() }
+            // [SP-215] EP-054: every way in and out, by verb. Export acts on the focused window's project (SP-206 Q2).
+            ImportExportCommands(env: env, session: focusedSession)
 
             Divider()
 
@@ -575,19 +562,7 @@ struct ScriviApp: App {
 
             Divider()
 
-            Button("Export Archive…") {
-                if let session = env.activeSession { Task { await env.exportArchive(session) } }
-            }
-            .disabled(env.activeSession == nil)
-            Button("Export Manuscript…") {
-                if let session = env.activeSession { Task { await env.exportManuscript(session) } }
-            }
-            .disabled(env.activeSession == nil)
-            Button("Copy as HTML") {
-                if let session = env.activeSession { Task { await env.copyManuscriptAsHTML(session) } }
-            }
-            .disabled(env.activeSession == nil)
-            Button("Import Archive…") { env.presentImportArchive() }
+            ImportExportCommands(env: env, session: env.activeSession)   // [SP-215]
 
             Divider()
 

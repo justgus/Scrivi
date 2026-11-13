@@ -4456,7 +4456,7 @@ void EditorShell::reloadImportedTimelines(const QVariantMap& li)
 
 void EditorShell::importTimeline()
 {
-    // Public trigger for File ▸ Import Timeline… (T-0345). Same flow the panel's
+    // Public trigger for File ▸ Import ▸ Timeline… (T-0345, SP-215). Same flow the panel's
     // empty-area menu offers. Guard: no project → no-op (the menu action is editor-only,
     // but belt-and-suspenders since a shortcut could reach it).
     if (projectPath_.isEmpty() || timeline_ == nullptr) {
@@ -4467,7 +4467,7 @@ void EditorShell::importTimeline()
 
 void EditorShell::exportTimeline()
 {
-    // Public trigger for File ▸ Export Timeline… (T-0345).
+    // Public trigger for File ▸ Export ▸ Timeline… (T-0345, SP-215).
     if (projectPath_.isEmpty()) {
         return;
     }
@@ -4546,15 +4546,25 @@ void EditorShell::exportArchive()
         0);   // never abandoned: the core is writing the file
 }
 
+bool EditorShell::caretChapter(QString* chapterID, QString* chapterName) const
+{
+    const int seg = sceneDoc_.sceneIndexForCaret(viewport_->textCursor().position());
+    if (projectPath_.isEmpty() || seg < 0 || seg >= sceneDoc_.segments().size()) {
+        return false;
+    }
+    if (chapterID != nullptr) { *chapterID = sceneDoc_.segments().at(seg).chapterID; }
+    if (chapterName != nullptr) { *chapterName = sceneDoc_.chapterHeadingText(seg); }
+    return true;
+}
+
 bool EditorShell::askManuscriptScope(const QString& title, QString& chapterID, QString& chapterName)
 {
     chapterID.clear();
     chapterName.clear();
-    const int seg = sceneDoc_.sceneIndexForCaret(viewport_->textCursor().position());
-    if (seg < 0 || seg >= sceneDoc_.segments().size()) {
+    QString id, name;
+    if (!caretChapter(&id, &name)) {
         return true;
     }
-    const QString name = sceneDoc_.chapterHeadingText(seg);
     QMessageBox box(QMessageBox::Question, title,
                     tr("The whole manuscript, or only “%1”, the chapter the caret is in?").arg(name),
                     QMessageBox::NoButton, this);
@@ -4563,35 +4573,41 @@ bool EditorShell::askManuscriptScope(const QString& title, QString& chapterID, Q
     box.addButton(QMessageBox::Cancel);
     box.exec();
     if (box.clickedButton() == chapter) {
-        chapterID = sceneDoc_.segments().at(seg).chapterID;
+        chapterID = id;
         chapterName = name;
         return true;
     }
     return box.clickedButton() == whole;
 }
 
-void EditorShell::exportManuscript()
+void EditorShell::exportManuscript(bool currentChapter)
 {
     if (projectPath_.isEmpty()) {
         return;
     }
     const QString root = projectPath_;
-    QMessageBox formatBox(QMessageBox::Question, tr("Export Manuscript"),
+    QString chapterID, chapterName;
+    if (currentChapter && !caretChapter(&chapterID, &chapterName)) {
+        return;   // the item is disabled then
+    }
+    QMessageBox formatBox(QMessageBox::Question,
+                          currentChapter ? tr("Export “%1”").arg(chapterName) : tr("Export Manuscript"),
                           tr("Markdown keeps the text as Scrivi stores it. HTML is a web page with every paragraph its "
-                             "own <p>. A Word document keeps your typeface and indent in named styles. "
-                             "An ePub is the whole manuscript as a book for e-readers. "
-                             "A PDF is set in your typeface, on pages, ready to print."),
+                             "own <p>. A Word document keeps your typeface and indent in named styles. ")
+                              + (currentChapter ? QString() : tr("An ePub is the whole manuscript as a book for e-readers. "))
+                              + tr("A PDF is set in your typeface, on pages, ready to print."),
                           QMessageBox::NoButton, this);
     formatBox.setTextFormat(Qt::PlainText);
     QPushButton* markdown = formatBox.addButton(tr("Markdown"), QMessageBox::AcceptRole);
     QPushButton* html     = formatBox.addButton(tr("HTML"), QMessageBox::AcceptRole);
     QPushButton* docx     = formatBox.addButton(tr("Word Document (.docx)"), QMessageBox::AcceptRole);
-    QPushButton* epub     = formatBox.addButton(tr("ePub"), QMessageBox::AcceptRole);
+    // SP-213 Q7: an ePub is always the whole manuscript.
+    QPushButton* epub     = currentChapter ? nullptr : formatBox.addButton(tr("ePub"), QMessageBox::AcceptRole);
     QPushButton* pdf      = formatBox.addButton(tr("PDF"), QMessageBox::AcceptRole);
     formatBox.addButton(QMessageBox::Cancel);
     formatBox.exec();
     const auto* clicked = formatBox.clickedButton();
-    if (clicked != markdown && clicked != html && clicked != docx && clicked != epub && clicked != pdf) {
+    if (clicked == nullptr || (clicked != markdown && clicked != html && clicked != docx && clicked != epub && clicked != pdf)) {
         return;
     }
     // EP-054 S4 (SP-208), S5 (SP-213): the core writes a .docx or .epub itself, to the chosen path. S5b (SP-214): a PDF is
@@ -4600,11 +4616,6 @@ void EditorShell::exportManuscript()
                            : clicked == docx ? QStringLiteral("docx")
                            : clicked == html ? QStringLiteral("html") : QStringLiteral("markdown");
     const QString ext = format == QLatin1String("markdown") ? QStringLiteral("md") : format;
-    QString chapterID, chapterName;
-    // SP-213 Q7: an ePub is always the whole manuscript.
-    if (format != QLatin1String("epub") && !askManuscriptScope(tr("Export Manuscript"), chapterID, chapterName)) {
-        return;
-    }
     QString name = chapterName.isEmpty() ? QFileInfo(root).completeBaseName() : chapterName;
     name.replace(QLatin1Char('/'), QLatin1Char('-'));
     const QString path = QFileDialog::getSaveFileName(
