@@ -226,13 +226,21 @@ ScriviWindow::ScriviWindow(QQuickWidget* landing, QString appSupportRoot,
     }
     setCentralWidget(stack_);
 
-    buildMenuBar();
+    buildMenuBar(this, this, env_);
     updateMenuState(/*editorActive=*/false);   // start on the landing page
 }
 
-void ScriviWindow::buildMenuBar()
+void ScriviWindow::buildMenuBar(QMainWindow* host, ScriviWindow* w, AppEnvironment* env)
 {
-    QMenuBar* bar = menuBar();
+    QMenuBar* bar = host->menuBar();
+    // [SP-216] the start window (`w` nullptr) has no project: its project-only items are greyed for good, below.
+    QList<QAction*> startWindowProjectOnly;
+    QList<QAction*>& editorOnlyActions = w != nullptr ? w->editorOnlyActions_ : startWindowProjectOnly;
+    const auto ed = [w]() -> EditorShell* { return w != nullptr ? w->editor_ : nullptr; };
+    // Read when used: main() hands the shell over after both windows exist.
+    const auto shell = [w, env]() -> ShellController* {
+        return w != nullptr ? w->shell_ : env != nullptr ? env->shellController() : nullptr;
+    };
 
     // --- File -------------------------------------------------------------
     // New/Open/Close all return to the landing page, which hosts the full New/Open UI
@@ -249,39 +257,43 @@ void ScriviWindow::buildMenuBar()
     QMenu* file = bar->addMenu(tr("&File"));
     QAction* newProj = file->addAction(tr("New Project…"));
     newProj->setShortcut(QKeySequence::New);
-    connect(newProj, &QAction::triggered, this, [this]() {
+    connect(newProj, &QAction::triggered, host, [=]() {
         // Return to the landing page, then ask its QML to open the New Project panel.
         // showLanding() alone only shows the landing screen (== Close Project); the New
         // Project flow lives in the landing StackView, reachable only from QML.
         // ⚠️ [SP-146] T-0561 ([R-Q3]) — RAISE LANDING; ⛔ do NOT replace the
         // manuscript in THIS window. ✅ The writer asked to create a DIFFERENT
         // project, not to close this one.
-        flushEditor();   // never lose edits
-        if (env_ != nullptr) {
-            env_->showLanding();
-        } else {
-            showLanding();   // single-window fallback (tests)
+        if (w != nullptr) {
+            w->flushEditor();   // never lose edits
         }
-        if (shell_ != nullptr) {
-            shell_->requestNewProject();
+        if (env != nullptr) {
+            env->showLanding();
+        } else if (w != nullptr) {
+            w->showLanding();   // single-window fallback (tests)
+        }
+        if (shell() != nullptr) {
+            shell()->requestNewProject();
         }
     });
 
     QAction* openProj = file->addAction(tr("Open Project…"));
     openProj->setShortcut(QKeySequence::Open);
-    connect(openProj, &QAction::triggered, this, [this]() {
+    connect(openProj, &QAction::triggered, host, [=]() {
         // Return to landing, then run its Open flow (folder picker + open) — the same as
         // the landing's Open Project button. showLanding() alone would just show the
         // landing screen (== Close Project) without the file dialog.
         // ⚠️ [SP-146] T-0561 ([R-Q3]) — RAISE LANDING, same reasoning as New.
-        flushEditor();   // never lose edits
-        if (env_ != nullptr) {
-            env_->showLanding();
-        } else {
-            showLanding();   // single-window fallback (tests)
+        if (w != nullptr) {
+            w->flushEditor();   // never lose edits
         }
-        if (shell_ != nullptr) {
-            shell_->requestOpenProject();
+        if (env != nullptr) {
+            env->showLanding();
+        } else if (w != nullptr) {
+            w->showLanding();   // single-window fallback (tests)
+        }
+        if (shell() != nullptr) {
+            shell()->requestOpenProject();
         }
     });
 
@@ -290,33 +302,35 @@ void ScriviWindow::buildMenuBar()
     // gesture writers expect for returning to the landing page. The action is
     // editor-only (disabled on landing), so the shortcut is inert there too.
     closeProj->setShortcut(QKeySequence::Close);
-    connect(closeProj, &QAction::triggered, this, [this]() {
-        flushEditor();   // never lose edits when leaving the editor
-        showLanding();
+    connect(closeProj, &QAction::triggered, host, [=]() {
+        if (w != nullptr) {
+            w->flushEditor();   // never lose edits when leaving the editor
+            w->showLanding();
+        }
     });
-    editorOnlyActions_.append(closeProj);
+    editorOnlyActions.append(closeProj);
 
     file->addSeparator();
     // [SP-215] EP-054: every way in and out, by verb, as on the Mac (`ImportExportCommands`): Copy as HTML, Import ▸,
     // Export ▸. Export is the project in THIS window (SP-206 Q2); Import ▸ Archive… needs no project. The timeline (EP-025 / SP-082, T-0345) is also in the
     // Timeline panel's menu.
     QAction* copyAsHtml = file->addAction(tr("Copy as HTML"));
-    connect(copyAsHtml, &QAction::triggered, this,
-            [this]() { if (editor_ != nullptr) { flushEditor(); editor_->copyManuscriptAsHTML(); } });
-    editorOnlyActions_.append(copyAsHtml);
+    connect(copyAsHtml, &QAction::triggered, host,
+            [=]() { if (ed() != nullptr) { w->flushEditor(); ed()->copyManuscriptAsHTML(); } });
+    editorOnlyActions.append(copyAsHtml);
 
     QMenu* importMenu = file->addMenu(tr("Import"));
     QAction* importTimeline = importMenu->addAction(tr("Timeline…"));
-    connect(importTimeline, &QAction::triggered, this,
-            [this]() { if (editor_ != nullptr) { editor_->importTimeline(); } });
-    editorOnlyActions_.append(importTimeline);
+    connect(importTimeline, &QAction::triggered, host,
+            [=]() { if (ed() != nullptr) { ed()->importTimeline(); } });
+    editorOnlyActions.append(importTimeline);
     QAction* importArchive = importMenu->addAction(tr("Archive…"));
-    connect(importArchive, &QAction::triggered, this,
-            [this]() { if (shell_ != nullptr) { shell_->importArchive(); } });
+    connect(importArchive, &QAction::triggered, host,
+            [=]() { if (shell() != nullptr) { shell()->importArchive(); } });
 
     QMenu* exportMenu = file->addMenu(tr("Export"));
     // AC7: the format is the item (the Mac's `ExportMenuItems`) — no format dialog; a chapter has no ePub (SP-213 Q7).
-    const auto addFormats = [this](QMenu* menu, bool currentChapter) {
+    const auto addFormats = [=](QMenu* menu, bool currentChapter) {
         const QList<QPair<QString, QString>> formats{{tr("Markdown…"), QStringLiteral("markdown")},
                                                      {tr("HTML…"), QStringLiteral("html")},
                                                      {tr("Word Document…"), QStringLiteral("docx")},
@@ -326,31 +340,31 @@ void ScriviWindow::buildMenuBar()
             if (currentChapter && format == QLatin1String("epub")) {
                 continue;
             }
-            connect(menu->addAction(label), &QAction::triggered, this, [this, format, currentChapter]() {
-                if (editor_ != nullptr) { flushEditor(); editor_->exportManuscript(format, currentChapter); }
+            connect(menu->addAction(label), &QAction::triggered, host, [=]() {
+                if (ed() != nullptr) { w->flushEditor(); ed()->exportManuscript(format, currentChapter); }
             });
         }
     };
     QMenu* manuscriptMenu = exportMenu->addMenu(tr("Manuscript"));
     addFormats(manuscriptMenu, false);
-    editorOnlyActions_.append(manuscriptMenu->menuAction());
-    // Q3: the caret's chapter — greyed when there is none, so it is set as the menu opens (not in editorOnlyActions_).
+    editorOnlyActions.append(manuscriptMenu->menuAction());
+    // Q3: the caret's chapter — greyed when there is none, so it is set as the menu opens (not in editorOnlyActions).
     QMenu* chapterMenu = exportMenu->addMenu(tr("Current Chapter"));
     addFormats(chapterMenu, true);
     QAction* exportChapter = chapterMenu->menuAction();
     exportChapter->setObjectName(QStringLiteral("exportCurrentChapterAction"));
     exportChapter->setEnabled(false);
-    connect(exportMenu, &QMenu::aboutToShow, this, [this, exportChapter]() {
-        exportChapter->setEnabled(editor_ != nullptr && stack_->currentWidget() == editor_ && editor_->caretChapter());
+    connect(exportMenu, &QMenu::aboutToShow, host, [=]() {
+        exportChapter->setEnabled(ed() != nullptr && w->stack_->currentWidget() == ed() && ed()->caretChapter());
     });
     QAction* exportTimeline = exportMenu->addAction(tr("Timeline…"));
-    connect(exportTimeline, &QAction::triggered, this,
-            [this]() { if (editor_ != nullptr) { editor_->exportTimeline(); } });
-    editorOnlyActions_.append(exportTimeline);
+    connect(exportTimeline, &QAction::triggered, host,
+            [=]() { if (ed() != nullptr) { ed()->exportTimeline(); } });
+    editorOnlyActions.append(exportTimeline);
     QAction* exportArchive = exportMenu->addAction(tr("Archive…"));
-    connect(exportArchive, &QAction::triggered, this,
-            [this]() { if (editor_ != nullptr) { flushEditor(); editor_->exportArchive(); } });
-    editorOnlyActions_.append(exportArchive);
+    connect(exportArchive, &QAction::triggered, host,
+            [=]() { if (ed() != nullptr) { w->flushEditor(); ed()->exportArchive(); } });
+    editorOnlyActions.append(exportArchive);
 
     file->addSeparator();
     QAction* quit = file->addAction(tr("Quit"));
@@ -359,10 +373,10 @@ void ScriviWindow::buildMenuBar()
     // ⚠️ MEASURED: `quit()` exits the event loop and does NOT close windows, so
     // with `WA_DeleteOnClose` project windows they simply stayed on screen.
     // ✅ `quitApplication()` flushes everything, then tears down from the app's own
-    // window map. ⚠️ The `env_ == nullptr` fallback keeps single-window tests working.
-    connect(quit, &QAction::triggered, this, [this]() {
-        if (env_ != nullptr) {
-            env_->quitApplication();
+    // window map. ⚠️ The `env == nullptr` fallback keeps single-window tests working.
+    connect(quit, &QAction::triggered, host, [=]() {
+        if (env != nullptr) {
+            env->quitApplication();
         } else {
             QApplication::quit();
         }
@@ -379,21 +393,21 @@ void ScriviWindow::buildMenuBar()
     // `validateUserInterfaceItem`).
     QAction* undo = edit->addAction(tr("Undo"));
     undo->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Z));
-    connect(undo, &QAction::triggered, this, [this]() { if (editor_ != nullptr) { editor_->undo(); } });
-    editorOnlyActions_.append(undo);
+    connect(undo, &QAction::triggered, host, [=]() { if (ed() != nullptr) { ed()->undo(); } });
+    editorOnlyActions.append(undo);
     QAction* redo = edit->addAction(tr("Redo"));
     redo->setShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_Z));
-    connect(redo, &QAction::triggered, this, [this]() { if (editor_ != nullptr) { editor_->redo(); } });
-    editorOnlyActions_.append(redo);
-    connect(edit, &QMenu::aboutToShow, this, [this, undo, redo]() {
-        const bool editing = editor_ != nullptr && stack_->currentWidget() == editor_;
-        undo->setEnabled(editing && editor_->undoAvailable());   // [I-0302]: at a barrier too, to show its notice
-        redo->setEnabled(editing && editor_->canRedo());
+    connect(redo, &QAction::triggered, host, [=]() { if (ed() != nullptr) { ed()->redo(); } });
+    editorOnlyActions.append(redo);
+    connect(edit, &QMenu::aboutToShow, host, [=]() {
+        const bool editing = ed() != nullptr && w->stack_->currentWidget() == ed();
+        undo->setEnabled(editing && ed()->undoAvailable());   // [I-0302]: at a barrier too, to show its notice
+        redo->setEnabled(editing && ed()->canRedo());
     });
     // ⚠️ Re-enabled on close so the SHORTCUTS keep working: a disabled action's shortcut never fires, and the can-state
     // changes between menu openings. An undo with nothing to undo does nothing.
-    connect(edit, &QMenu::aboutToHide, this, [this, undo, redo]() {
-        const bool editing = editor_ != nullptr && stack_->currentWidget() == editor_;
+    connect(edit, &QMenu::aboutToHide, host, [=]() {
+        const bool editing = ed() != nullptr && w->stack_->currentWidget() == ed();
         undo->setEnabled(editing);
         redo->setEnabled(editing);
     });
@@ -401,21 +415,21 @@ void ScriviWindow::buildMenuBar()
 
     QAction* cut = edit->addAction(tr("Cut"));
     cut->setShortcut(QKeySequence::Cut);
-    connect(cut, &QAction::triggered, this,
-            [this]() { if (editor_ != nullptr) { editor_->cutSelection(); } });
-    editorOnlyActions_.append(cut);
+    connect(cut, &QAction::triggered, host,
+            [=]() { if (ed() != nullptr) { ed()->cutSelection(); } });
+    editorOnlyActions.append(cut);
 
     QAction* copy = edit->addAction(tr("Copy"));
     copy->setShortcut(QKeySequence::Copy);
-    connect(copy, &QAction::triggered, this,
-            [this]() { if (editor_ != nullptr) { editor_->copySelection(); } });
-    editorOnlyActions_.append(copy);
+    connect(copy, &QAction::triggered, host,
+            [=]() { if (ed() != nullptr) { ed()->copySelection(); } });
+    editorOnlyActions.append(copy);
 
     QAction* paste = edit->addAction(tr("Paste"));
     paste->setShortcut(QKeySequence::Paste);
-    connect(paste, &QAction::triggered, this,
-            [this]() { if (editor_ != nullptr) { editor_->pasteClipboard(); } });
-    editorOnlyActions_.append(paste);
+    connect(paste, &QAction::triggered, host,
+            [=]() { if (ed() != nullptr) { ed()->pasteClipboard(); } });
+    editorOnlyActions.append(paste);
 
     // Edit ▸ Copy To / Paste From / Cut To Buffer (EP-026 S5, SP-179 / T-0606) — Apple's three submenus, the discoverable
     // face of the chords. ⛔ No key equivalents on the items: the chords are the EDITOR's (it claims them first); each
@@ -434,38 +448,38 @@ void ScriviWindow::buildMenuBar()
             sub->addAction(tr(m.header))->setEnabled(false);
             for (const QString& id : BufferService::slotIDs()) {
                 const auto act = m.act;
-                connect(sub->addAction(tr("Buffer %1").arg(id)), &QAction::triggered, this, [this, act, id]() {
-                    if (editor_ != nullptr) { (editor_->*act)(id); }
+                connect(sub->addAction(tr("Buffer %1").arg(id)), &QAction::triggered, host, [=]() {
+                    if (ed() != nullptr) { (ed()->*act)(id); }
                 });
             }
-            editorOnlyActions_.append(sub->menuAction());
+            editorOnlyActions.append(sub->menuAction());
         }
     }
 
     // Edit ▸ Find (SP-176 / T-0603, EP-048 S4) — Find over the presented text; ⛔ Replace waits for Linux undo (EP-026).
     edit->addSeparator();
-    for (QAction* a : addFindMenu(edit, this, [this](FindCommand command) {
-             if (editor_ != nullptr) { editor_->find(command); }
+    for (QAction* a : addFindMenu(edit, host, [=](FindCommand command) {
+             if (ed() != nullptr) { ed()->find(command); }
          })) {
-        editorOnlyActions_.append(a);
+        editorOnlyActions.append(a);
     }
 
     // --- Format (SP-175 / T-0602, EP-048 S3b) ---------------------------------
     // ✅ [SP-175] Q4: between Edit and View, as Apple ([SP-163]).
-    for (QAction* a : addFormatMenu(bar, this, [this](ManuscriptEditor::Format format) {
-             if (editor_ != nullptr) { editor_->applyFormat(format); }
+    for (QAction* a : addFormatMenu(bar, host, [=](ManuscriptEditor::Format format) {
+             if (ed() != nullptr) { ed()->applyFormat(format); }
          })) {
-        editorOnlyActions_.append(a);
+        editorOnlyActions.append(a);
     }
 
     edit->addSeparator();   // ✅ [SP-211] live pass: Settings… last, below a rule
     // EP-058 S3 ([SP-211] Q1): Edit ▸ Settings… (Ctrl+,) — the writer's settings (Apple: Scrivi ▸ Settings…, ⌘,). ⚠️ NOT in
-    // `editorOnlyActions_`: pen names belong to the writer, so the landing page has its own Ctrl+, (LandingWindow).
+    // `editorOnlyActions`: pen names belong to the writer, so it stays live on the start window too ([SP-216]).
     QAction* appSettings = edit->addAction(tr("Settings…"));
     appSettings->setObjectName(QStringLiteral("appSettingsAction"));
     appSettings->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Comma));
-    connect(appSettings, &QAction::triggered, this, [this]() {
-        SettingsDialog dlg(this);
+    connect(appSettings, &QAction::triggered, host, [=]() {
+        SettingsDialog dlg(host);
         dlg.exec();
     });
 
@@ -485,77 +499,77 @@ void ScriviWindow::buildMenuBar()
     // that the macOS→VNC path EATS Ctrl+Shift combos, ⛔ so they cannot be used.
     // ✅ [SP-175] Q1: Ctrl+Alt+S (Apple's sidebar toggle is ⌃⌘S) — Ctrl+Alt+N is Format ▸ Numbered List
     // (Apple's ⌥⌘N, [SP-174] Q4). Measured on the rig: GNOME binds no Ctrl+Alt+S.
-    showNavigatorAction_ = view->addAction(tr("Show Scene Navigator"));
-    showNavigatorAction_->setCheckable(true);
-    showNavigatorAction_->setShortcut(QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_S));
-    connect(showNavigatorAction_, &QAction::toggled, this, [this](bool on) {
-        if (editor_ != nullptr) { editor_->setNavigatorVisible(on); }
+    QAction* showNavigator = view->addAction(tr("Show Scene Navigator"));
+    showNavigator->setCheckable(true);
+    showNavigator->setShortcut(QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_S));
+    connect(showNavigator, &QAction::toggled, host, [=](bool on) {
+        if (ed() != nullptr) { ed()->setNavigatorVisible(on); }
     });
-    editorOnlyActions_.append(showNavigatorAction_);
+    editorOnlyActions.append(showNavigator);
 
-    showInspectorAction_ = view->addAction(tr("Show Inspector"));
-    showInspectorAction_->setCheckable(true);
-    showInspectorAction_->setShortcut(QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_I));
-    connect(showInspectorAction_, &QAction::toggled, this, [this](bool on) {
-        if (editor_ != nullptr) { editor_->setInspectorVisible(on); }
+    QAction* showInspector = view->addAction(tr("Show Inspector"));
+    showInspector->setCheckable(true);
+    showInspector->setShortcut(QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_I));
+    connect(showInspector, &QAction::toggled, host, [=](bool on) {
+        if (ed() != nullptr) { ed()->setInspectorVisible(on); }
     });
-    editorOnlyActions_.append(showInspectorAction_);
+    editorOnlyActions.append(showInspector);
 
     // Show Timeline (EP-025 / SP-079, T-0323) — the bottom timeline strip.
     // ✅ [SP-175] Q3: Ctrl+Alt+M. ⛔ It was Ctrl+Alt+T, which GNOME binds to OPEN A TERMINAL (measured on the
     // rig, `gsettings` media-keys `terminal`), so the desktop took the key first.
-    showTimelineAction_ = view->addAction(tr("Show Timeline"));
-    showTimelineAction_->setCheckable(true);
-    showTimelineAction_->setShortcut(QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_M));
-    connect(showTimelineAction_, &QAction::toggled, this, [this](bool on) {
-        if (editor_ != nullptr) { editor_->setTimelineVisible(on); }
+    QAction* showTimeline = view->addAction(tr("Show Timeline"));
+    showTimeline->setCheckable(true);
+    showTimeline->setShortcut(QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_M));
+    connect(showTimeline, &QAction::toggled, host, [=](bool on) {
+        if (ed() != nullptr) { ed()->setTimelineVisible(on); }
     });
-    editorOnlyActions_.append(showTimelineAction_);
+    editorOnlyActions.append(showTimeline);
 
     // Show Buffers (EP-026 S5, SP-179 / T-0606) — the ONE app-wide Copy Buffers palette, following the front project.
     // ✅ Ctrl+Alt+B (user, 2026-10-11: *"Ctrl-Alt-B is correct."*), Apple's ⌥⌘B. Every window's check follows the one
     // palette (`AppEnvironment::setBuffersPaletteVisible`).
-    showBuffersAction_ = view->addAction(tr("Show Buffers"));
-    showBuffersAction_->setCheckable(true);
-    showBuffersAction_->setShortcut(QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_B));
-    connect(showBuffersAction_, &QAction::toggled, this, [this](bool on) {
-        if (env_ != nullptr) { env_->setBuffersPaletteVisible(on); }
+    QAction* showBuffers = view->addAction(tr("Show Buffers"));
+    showBuffers->setCheckable(true);
+    showBuffers->setShortcut(QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_B));
+    connect(showBuffers, &QAction::toggled, host, [=](bool on) {
+        if (env != nullptr) { env->setBuffersPaletteVisible(on); }
     });
-    editorOnlyActions_.append(showBuffersAction_);
+    editorOnlyActions.append(showBuffers);
 
     // ✅ EP-048 S5a ([SP-182] Q4, EP-047 P11): View ▸ Show Markup Hints, Ctrl+Shift+H (Apple's ⇧⌘H). Per project window, and
     // it travels (`project-settings.json` `markupHints`, absent = ON). ⚠️ A Ctrl+Shift chord: the macOS→VNC path eats them
     // (`project_linux_vnc_input_constraints`), so it is measured on the rig (RDP), with the menu always available.
     view->addSeparator();
-    showMarkupHintsAction_ = view->addAction(tr("Show Markup Hints"));
-    showMarkupHintsAction_->setCheckable(true);
-    showMarkupHintsAction_->setShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_H));
-    connect(showMarkupHintsAction_, &QAction::toggled, this, [this](bool on) {
-        if (editor_ != nullptr) { editor_->setMarkupHints(on); }
+    QAction* showMarkupHints = view->addAction(tr("Show Markup Hints"));
+    showMarkupHints->setCheckable(true);
+    showMarkupHints->setShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_H));
+    connect(showMarkupHints, &QAction::toggled, host, [=](bool on) {
+        if (ed() != nullptr) { ed()->setMarkupHints(on); }
     });
-    editorOnlyActions_.append(showMarkupHintsAction_);
+    editorOnlyActions.append(showMarkupHints);
 
     // Story Structure… (EP-025 / SP-081, T-0330) — pick a built-in structure (Three Act
     // / Five Act / Hero's Journey / …) or remove it; the timeline paints the bands.
     QAction* storyStructure = view->addAction(tr("Story Structure…"));
-    connect(storyStructure, &QAction::triggered, this, [this]() {
-        if (editor_ != nullptr) { editor_->pickStoryStructure(); }
+    connect(storyStructure, &QAction::triggered, host, [=]() {
+        if (ed() != nullptr) { ed()->pickStoryStructure(); }
     });
-    editorOnlyActions_.append(storyStructure);
+    editorOnlyActions.append(storyStructure);
 
     // --- Scene ------------------------------------------------------------
     QMenu* scene = bar->addMenu(tr("&Scene"));
     QAction* splitScene = scene->addAction(tr("Split Scene"));
     splitScene->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Return));
-    connect(splitScene, &QAction::triggered, this,
-            [this]() { if (editor_ != nullptr) { editor_->splitScene(); } });
-    editorOnlyActions_.append(splitScene);
+    connect(splitScene, &QAction::triggered, host,
+            [=]() { if (ed() != nullptr) { ed()->splitScene(); } });
+    editorOnlyActions.append(splitScene);
 
     QAction* mergeScene = scene->addAction(tr("Merge Scene"));
     mergeScene->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Backspace));
-    connect(mergeScene, &QAction::triggered, this,
-            [this]() { if (editor_ != nullptr) { editor_->mergeScene(); } });
-    editorOnlyActions_.append(mergeScene);
+    connect(mergeScene, &QAction::triggered, host,
+            [=]() { if (ed() != nullptr) { ed()->mergeScene(); } });
+    editorOnlyActions.append(mergeScene);
 
     // --- Chapter ----------------------------------------------------------
     // Chapter ▸ Merge is the reason this menu exists: Ctrl+Shift+Backspace is swallowed
@@ -563,27 +577,27 @@ void ScriviWindow::buildMenuBar()
     QMenu* chapter = bar->addMenu(tr("&Chapter"));
     QAction* splitChapter = chapter->addAction(tr("Split Chapter"));
     splitChapter->setShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_Return));
-    connect(splitChapter, &QAction::triggered, this,
-            [this]() { if (editor_ != nullptr) { editor_->splitChapter(); } });
-    editorOnlyActions_.append(splitChapter);
+    connect(splitChapter, &QAction::triggered, host,
+            [=]() { if (ed() != nullptr) { ed()->splitChapter(); } });
+    editorOnlyActions.append(splitChapter);
 
     QAction* mergeChapter = chapter->addAction(tr("Merge Chapter"));
     mergeChapter->setShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_Backspace));
-    connect(mergeChapter, &QAction::triggered, this,
-            [this]() { if (editor_ != nullptr) { editor_->mergeChapter(); } });
-    editorOnlyActions_.append(mergeChapter);
+    connect(mergeChapter, &QAction::triggered, host,
+            [=]() { if (ed() != nullptr) { ed()->mergeChapter(); } });
+    editorOnlyActions.append(mergeChapter);
 
     // --- Project ----------------------------------------------------------
     QMenu* project = bar->addMenu(tr("&Project"));
     // ✅ EP-026 S3 ([SP-204]; Apple: EP-047 SP-167 Q1) — an ACTION, not a setting: its own dialog.
     QAction* purgeStale = project->addAction(tr("Purge Stale History Branches…"));
     purgeStale->setObjectName(QStringLiteral("purgeStaleBranchesAction"));
-    connect(purgeStale, &QAction::triggered, this, [this]() {
-        if (editor_ != nullptr) {
-            editor_->purgeStaleBranches();
+    connect(purgeStale, &QAction::triggered, host, [=]() {
+        if (ed() != nullptr) {
+            ed()->purgeStaleBranches();
         }
     });
-    editorOnlyActions_.append(purgeStale);
+    editorOnlyActions.append(purgeStale);
 
     // --- Project ▸ Manage Worlds… (EP-035 AC3, SP-127 / T-0494) ----------
     //
@@ -592,29 +606,29 @@ void ScriviWindow::buildMenuBar()
     // with ZERO callers, so a project whose world had MOVED could not be repaired
     // from the Linux app at all.
     //
-    // ⚠️ Gated on a project being open (editorOnlyActions_) — unlike Help ▸ About,
+    // ⚠️ Gated on a project being open (editorOnlyActions) — unlike Help ▸ About,
     // worlds are a property OF a project and the action is meaningless without one.
     QAction* worldsAction = project->addAction(tr("Manage Worlds…"));
-    connect(worldsAction, &QAction::triggered, this, [this]() {
-        if (editor_ != nullptr) {
-            editor_->manageWorlds();
+    connect(worldsAction, &QAction::triggered, host, [=]() {
+        if (ed() != nullptr) {
+            ed()->manageWorlds();
         }
     });
-    editorOnlyActions_.append(worldsAction);
+    editorOnlyActions.append(worldsAction);
 
     project->addSeparator();   // ✅ [SP-211] live pass: Project Settings… last, below a rule
     QAction* settings = project->addAction(tr("Project Settings…"));
     // ✅ [SP-211] Q2 (Apple: ⌥⌘, since SP-210): Ctrl+, is the app's Settings.
     settings->setShortcut(QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_Comma));
-    connect(settings, &QAction::triggered, this, [this]() {
+    connect(settings, &QAction::triggered, host, [=]() {
         // ✅ EP-048 S5a ([SP-182]): the real dialog — it replaces the T-0312 "coming soon" stub. Changes apply live.
-        if (editor_ == nullptr || editor_->preferences() == nullptr) {
+        if (ed() == nullptr || ed()->preferences() == nullptr) {
             return;
         }
-        ProjectSettingsDialog dlg(editor_->preferences(), this);
+        ProjectSettingsDialog dlg(ed()->preferences(), host);
         dlg.exec();
     });
-    editorOnlyActions_.append(settings);
+    editorOnlyActions.append(settings);
 
 
 
@@ -630,8 +644,8 @@ void ScriviWindow::buildMenuBar()
     // build?" is at the landing screen, before opening anything.
     QMenu* help = bar->addMenu(tr("&Help"));
     QAction* about = help->addAction(tr("About Scrivi"));
-    connect(about, &QAction::triggered, this, [this]() {
-        QDialog dlg(this);
+    connect(about, &QAction::triggered, host, [=]() {
+        QDialog dlg(host);
         dlg.setWindowTitle(tr("About Scrivi"));
         auto* layout = new QVBoxLayout(&dlg);
 
@@ -661,10 +675,22 @@ void ScriviWindow::buildMenuBar()
     // [SP-185] T-0612 — Help ▸ Show Log Folder: the diagnostic log, for a writer to send with a report. Not gated either.
     QAction* showLog = help->addAction(tr("Show Log Folder"));
     showLog->setObjectName(QStringLiteral("showLogFolderAction"));
-    connect(showLog, &QAction::triggered, this, []() {
+    connect(showLog, &QAction::triggered, host, []() {
         QDir().mkpath(DiagnosticLog::folder());
         QDesktopServices::openUrl(QUrl::fromLocalFile(DiagnosticLog::folder()));
     });
+
+    if (w != nullptr) {
+        w->showNavigatorAction_ = showNavigator;
+        w->showInspectorAction_ = showInspector;
+        w->showTimelineAction_ = showTimeline;
+        w->showBuffersAction_ = showBuffers;
+        w->showMarkupHintsAction_ = showMarkupHints;
+    } else {
+        for (QAction* a : startWindowProjectOnly) {
+            a->setEnabled(false);
+        }
+    }
 }
 
 void ScriviWindow::updateMenuState(bool editorActive)

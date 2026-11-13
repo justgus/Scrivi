@@ -18,6 +18,7 @@
 //      desktop (the SP-214 live pass).
 //   §6 [SP-215] File ▸ Copy as HTML, Import ▸ and Export ▸ in the Mac's order; the formats as submenus (AC7), a chapter's
 //      without ePub; Current Chapter enabled at a chapter, and its PDF… straight to the save dialog.
+//   §7 [SP-216] the start window's menu bar is the project window's, item by item, with only Q3's items live; Ctrl+, there.
 // ⚠️ NOT covered (live pass only): how the faces LOOK, GNOME's bindings, the rig's Qt 6.10.
 //
 //   argv[1] = a scratch directory for the projects; $XDG_DATA_HOME drives appSupportRoot; Qt offscreen.
@@ -33,6 +34,7 @@
 #include "ProjectPreferences.hpp"
 #include "ProjectSettingsDialog.hpp"
 #include "ScriviBridge.hpp"
+#include "LandingWindow.hpp"
 #include "ScriviWindow.hpp"
 
 #include <QAction>
@@ -535,6 +537,59 @@ int main(int argc, char** argv)
         if (chapterMenu != nullptr) { chapterMenu->actions().value(3)->trigger(); }
         settle();
         check(saved, QStringLiteral("§6 Current Chapter ▸ PDF… opens the save dialog, with no question first (%1)").arg(other));
+    }
+
+    // ── §7 [SP-216] the start window has the project window's menu bar, only Q3's items live ──────────────────────────────
+    {
+        // Every item as its path ("File/Import/Archive…", a separator as "File/—"), and the enabled leaves.
+        // A leaf is live only when its submenus are too: a greyed submenu does not open.
+        const std::function<void(const QList<QAction*>&, const QString&, bool, QStringList&, QStringList&)> walk =
+            [&walk](const QList<QAction*>& actions, const QString& at, bool open, QStringList& items, QStringList& live) {
+                for (QAction* a : actions) {
+                    const QString path = at + (a->isSeparator() ? QStringLiteral("—") : a->text());
+                    items << path;
+                    if (a->menu() != nullptr) {
+                        walk(a->menu()->actions(), path + QLatin1Char('/'), open && a->isEnabled(), items, live);
+                    } else if (open && !a->isSeparator() && a->isEnabled()) {
+                        live << path;
+                    }
+                }
+            };
+        LandingWindow landing(nullptr, &env);
+        QStringList projectItems, projectLive, startItems, startLive;
+        walk(wa->menuBar()->actions(), QString(), true, projectItems, projectLive);
+        walk(landing.menuBar()->actions(), QString(), true, startItems, startLive);
+        check(projectItems.size() > 60 && startItems == projectItems,
+              QStringLiteral("§7 the start window's menus, items, submenus and order are the project window's (%1 vs %2 items)")
+                  .arg(startItems.size()).arg(projectItems.size()));
+        const QStringList q3{QStringLiteral("&File/New Project…"), QStringLiteral("&File/Open Project…"),
+                             QStringLiteral("&File/Import/Archive…"), QStringLiteral("&File/Quit"),
+                             QStringLiteral("&Edit/Settings…"), QStringLiteral("&Help/About Scrivi"),
+                             QStringLiteral("&Help/Show Log Folder")};
+        check(startLive == q3, QStringLiteral("§7 only New, Open, Import ▸ Archive…, Quit, Settings…, About, Show Log Folder are "
+                                              "live on the start window (%1)").arg(startLive.join(QStringLiteral(", "))));
+        QMenu* startEdit = landing.menuBar()->actions().value(1)->menu();
+        Q_EMIT startEdit->aboutToShow();
+        Q_EMIT startEdit->aboutToHide();
+        check(!startEdit->actions().value(0)->isEnabled(), QStringLiteral("§7 opening Edit leaves Undo greyed there"));
+        QAction* quit = landing.menuBar()->actions().value(0)->menu()->actions().constLast();
+        // The platform's Quit key (GNOME: Ctrl+Q; offscreen binds none, so Ctrl+Q itself is the live pass's).
+        check(quit->text() == QStringLiteral("Quit") && quit->shortcut() == QKeySequence(QKeySequence::Quit),
+              QStringLiteral("§7 Quit on the platform's Quit key there (%1: %2)").arg(quit->text(), quit->shortcut().toString()));
+        // Ctrl+, reaches the start window: Settings… opens over it.
+        landing.show();
+        landing.activateWindow();
+        check(QTest::qWaitForWindowActive(&landing), QStringLiteral("§7 the start window comes to the front"));
+        bool settingsOpened = false;
+        QTimer::singleShot(0, &landing, [&] {
+            QWidget* modal = QApplication::activeModalWidget();
+            settingsOpened = modal != nullptr && modal->parentWidget() == &landing;
+            if (modal != nullptr) { modal->close(); }
+        });
+        QTest::keyClick(&landing, Qt::Key_Comma, Qt::ControlModifier);
+        settle();
+        check(settingsOpened, QStringLiteral("§7 Ctrl+, opens Settings… over the start window"));
+        landing.hide();
     }
 
     env.quitApplication();

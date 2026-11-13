@@ -1,9 +1,7 @@
 #include "LandingWindow.hpp"
 
 #include "AppEnvironment.hpp"
-#include "AuthorshipDialogs.hpp"
-
-#include <QAction>
+#include "ScriviWindow.hpp"
 
 #include <QApplication>
 #include <QCloseEvent>
@@ -23,16 +21,9 @@ LandingWindow::LandingWindow(QQuickWidget* landing, AppEnvironment* env)
         setCentralWidget(landing_);
     }
 
-    // ✅ [SP-211] live pass: the landing window has no menu bar, so Edit ▸ Settings…'s Ctrl+, never reached it. The same
-    // action, by its shortcut — pen names belong to the writer, not a project.
-    auto* settings = new QAction(tr("Settings…"), this);
-    settings->setObjectName(QStringLiteral("landingSettingsAction"));
-    settings->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Comma));
-    connect(settings, &QAction::triggered, this, [this]() {
-        SettingsDialog dlg(this);
-        dlg.exec();
-    });
-    addAction(settings);
+    // [SP-216] the project window's menu bar, built by the same builder, its project-only items greyed (Apple: one menu bar,
+    // its project items disabled with no project). It carries Settings… (Ctrl+,), which [SP-211] had wired here by hand.
+    ScriviWindow::buildMenuBar(this, nullptr, env_);
 }
 
 void LandingWindow::showRestored()

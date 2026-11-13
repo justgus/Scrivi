@@ -153,6 +153,11 @@ public:
     // The modal "Please wait — saving updates…" dialog with a spinner, shown at once over `parent` (nullptr: app-modal).
     static QProgressDialog* showSavingUpdates(QWidget* parent);
 
+    // [SP-216] Q2 — THE menu bar, built once for both kinds of window: a project window passes itself as `w`; the start
+    // window passes nullptr, and every project-only item is greyed for good there (Apple: one menu bar, its project items
+    // disabled with no project). Items that need no project (New, Open, Import ▸ Archive…, Settings…, Quit, Help) work in both.
+    static void buildMenuBar(QMainWindow* host, ScriviWindow* w, AppEnvironment* env);
+
     ~ScriviWindow() override;
 
 protected:
@@ -162,9 +167,6 @@ protected:
     void changeEvent(QEvent* event) override;
 
 private:
-    // Build the native menu bar (SP-077, T-0310/T-0311/T-0312) and stash the actions
-    // whose enabled state depends on whether the editor page is active.
-    void buildMenuBar();
     // Enable/disable the editor-only actions (Edit, Scene, Chapter, Project, File▸Close)
     // for the current page. Called from showEditor/showLanding.
     void updateMenuState(bool editorActive);

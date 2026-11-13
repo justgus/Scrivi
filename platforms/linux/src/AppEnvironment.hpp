@@ -330,6 +330,7 @@ public:
     // from ANY window can drive the landing QML's existing flow ([R-Q3]) —
     // ⛔ rather than each window reimplementing an open UI.
     void setShellController(ShellController* shell) { shell_ = shell; }
+    [[nodiscard]] ShellController* shellController() const { return shell_; }
 
     // ---- EP-026 S5 (SP-179 / T-0606): the Buffers palette and the FRONT project -------------------
     //

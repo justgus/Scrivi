@@ -1,16 +1,16 @@
 ---
 sprint: SP-216
 epic: EP-054
-status: Planning
+status: Active
 platform: Linux
 created: 2026-11-13
 ---
 
 # SP-216 — `[Linux]` [EP-054] The start window gets the project window's menu bar
 
-**Status:** 🔵 **Planning** 2026-11-13 (user, 2026-11-13: *"Close SP-214 and plan the import/export and Linux start window
+**Status:** 🟡 **ACTIVE** 2026-11-13 (user, 2026-11-13: *"activate and implement SP-216"*). Planned 2026-11-13 (user: *"Close SP-214 and plan the import/export and Linux start window
 sprints"*). The shape is ruled (below); ✅ Q1–Q3 ruled (2026-11-13; Q1: EP-054).
-**Carries:** [T-0677] → [`../Tasks/Task-backlog.md`](../Tasks/Task-backlog.md).
+**Carries:** [T-0677] → [`../Tasks/Task-active.md`](../Tasks/Task-active.md).
 **Epic:** [EP-054] (Q1) → [`../Epics/Epic-active.md`](../Epics/Epic-active.md).
 **Follows:** [SP-215] — this mirrors its finished File menu, so it activates after SP-215 closes.
 **Size:** S–M — one refactor (the menu bar built once, used by two windows), no new command.
@@ -75,11 +75,11 @@ retiring the single-window path's page 0 ([SP-147]'s, if still pending).
 
 ## Acceptance Criteria
 
-- [ ] AC1 — The start window has a menu bar with the same menus, items, submenus and order as a project window, built by one
+- [x] AC1 — The start window has a menu bar with the same menus, items, submenus and order as a project window, built by one
       builder (Q2)
-- [ ] AC2 — On the start window only Q3's items are enabled, and each works from there (Settings… by Ctrl+, too; Quit by
+- [x] AC2 — On the start window only Q3's items are enabled, and each works from there (Settings… by Ctrl+, too; Quit by
       Ctrl+Q); the hand-wired Settings… action is gone
-- [ ] AC3 — A smoke compares the two windows' menu bars item by item and checks the start window's enabled set; ctest green
+- [x] AC3 — A smoke compares the two windows' menu bars item by item and checks the start window's enabled set; ctest green
 - [ ] AC4 — **Live pass (user)** on scrivi-vm: the two windows' menus side by side; each live item used from the start window
 
 ## Progress log
@@ -88,3 +88,15 @@ retiring the single-window path's page 0 ([SP-147]'s, if still pending).
   window sprints"*), issued via `next-id.py`; [T-0677] filed. The mirror and the order after [SP-215] ruled in chat; Q1–Q3 to
   rule.
 - **2026-11-13** — ✅ **Q1–Q3 ruled** (user, 2026-11-13: *"For SP-216, Q1: add it to EP-054.  Q2: as recommended.  Q3: same as the Mac (as recommended)."*). Q1: under EP-054 (the File menu it mirrors is EP-054's).
+- **2026-11-13** — 🟡 **Activated** (user, 2026-11-13: *"activate and implement SP-216"*).
+- **2026-11-13** — ✅ **Built; AC1–AC3 met** (AC2's Ctrl+Q in AC4). `ScriviWindow::buildMenuBar(host, w, env)` is static and
+  builds both bars (`ScriviWindow.cpp:233`): a project window passes itself; `LandingWindow` passes nullptr
+  (`LandingWindow.cpp:26`), and its project-only items are greyed for good. The shell is read when used
+  (`AppEnvironment::shellController()`), since `main()` creates it after the start window. The hand-wired
+  `landingSettingsAction` is gone; `authorship_smoke` now finds `appSettingsAction` on the start window.
+  **Checks** (Docker, Qt 6.4.2, arm64; scrivi-vm unreachable): `settings_smoke` §7 compares the two bars item by item
+  (108 items: titles, separators, submenus, order), checks that the live leaves are exactly Q3's seven, that opening Edit
+  leaves Undo greyed, that Quit carries the platform's Quit key (offscreen binds none, so Ctrl+Q is AC4's), and that Ctrl+,
+  opens Settings… over the start window. Mutation-checked: no greying → §7 fails; no bar → §7 fails. ctest 847/847; 42/43
+  smokes on the first sweep — `structural_baseline_smoke` failed once on I-0348's on-screen check (caret at y=−53207),
+  then passed 3/3; not this Sprint's code (it never builds a start window).

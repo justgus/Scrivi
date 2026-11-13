@@ -196,8 +196,9 @@ int main(int argc, char** argv)
               QStringLiteral("§5 Settings… is last in Edit, below a rule"));
     }
     LandingWindow landing(nullptr, &env);   // main() builds the app's; this one is the same class
-    QAction* landingSettings = landing.findChild<QAction*>(QStringLiteral("landingSettingsAction"));
-    check(landingSettings != nullptr && landingSettings->shortcut() == QKeySequence(Qt::CTRL | Qt::Key_Comma),
+    QAction* landingSettings = landing.findChild<QAction*>(QStringLiteral("appSettingsAction"));   // [SP-216]: its menu bar's
+    check(landingSettings != nullptr && landingSettings->isEnabled()
+              && landingSettings->shortcut() == QKeySequence(Qt::CTRL | Qt::Key_Comma),
           QStringLiteral("§5 the landing window has Ctrl+, for Settings"));
     QAction* projectSettings = menuAction(wo, QStringLiteral("Project Settings…"));
     check(projectSettings != nullptr && projectSettings->shortcut() == QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_Comma),
