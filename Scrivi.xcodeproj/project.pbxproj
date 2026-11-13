@@ -59,6 +59,7 @@
 		C073_BF /* WorldsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C073 /* WorldsView.swift */; };
 		C074_BF /* WorldBookmarkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C074 /* WorldBookmarkStore.swift */; };
 		C2A5_BF /* ProjectArchiveFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A5 /* ProjectArchiveFlow.swift */; };
+		C2A6_BF /* ManuscriptPDF.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A6 /* ManuscriptPDF.swift */; };
 		C075_BF /* WorldVolumeStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = C075 /* WorldVolumeStatus.swift */; };
 		C076_BF /* WorldWarningView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C076 /* WorldWarningView.swift */; };
 		C077_BF /* SourcesCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C077 /* SourcesCard.swift */; };
@@ -129,6 +130,7 @@
 		D073_BF /* WorldsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C073 /* WorldsView.swift */; };
 		D074_BF /* WorldBookmarkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C074 /* WorldBookmarkStore.swift */; };
 		D2A5_BF /* ProjectArchiveFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A5 /* ProjectArchiveFlow.swift */; };
+		D2A6_BF /* ManuscriptPDF.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A6 /* ManuscriptPDF.swift */; };
 		D075_BF /* WorldVolumeStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = C075 /* WorldVolumeStatus.swift */; };
 		D076_BF /* WorldWarningView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C076 /* WorldWarningView.swift */; };
 		D077_BF /* SourcesCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C077 /* SourcesCard.swift */; };
@@ -198,6 +200,7 @@
 		E073_BF /* WorldsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C073 /* WorldsView.swift */; };
 		E074_BF /* WorldBookmarkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C074 /* WorldBookmarkStore.swift */; };
 		E2A5_BF /* ProjectArchiveFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A5 /* ProjectArchiveFlow.swift */; };
+		E2A6_BF /* ManuscriptPDF.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A6 /* ManuscriptPDF.swift */; };
 		E075_BF /* WorldVolumeStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = C075 /* WorldVolumeStatus.swift */; };
 		E076_BF /* WorldWarningView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C076 /* WorldWarningView.swift */; };
 		E077_BF /* SourcesCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C077 /* SourcesCard.swift */; };
@@ -297,6 +300,7 @@
 		C073 /* WorldsView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = WorldsView.swift; path = Scrivi/Views/WorldsView.swift; sourceTree = SOURCE_ROOT; };
 		C074 /* WorldBookmarkStore.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = WorldBookmarkStore.swift; path = Scrivi/App/WorldBookmarkStore.swift; sourceTree = SOURCE_ROOT; };
 		C2A5 /* ProjectArchiveFlow.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ProjectArchiveFlow.swift; path = Scrivi/App/ProjectArchiveFlow.swift; sourceTree = SOURCE_ROOT; };
+		C2A6 /* ManuscriptPDF.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptPDF.swift; path = Scrivi/App/ManuscriptPDF.swift; sourceTree = SOURCE_ROOT; };
 		C075 /* WorldVolumeStatus.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = WorldVolumeStatus.swift; path = Scrivi/App/WorldVolumeStatus.swift; sourceTree = SOURCE_ROOT; };
 		C076 /* WorldWarningView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = WorldWarningView.swift; path = Scrivi/Views/WorldWarningView.swift; sourceTree = SOURCE_ROOT; };
 		C077 /* SourcesCard.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = SourcesCard.swift; path = Scrivi/Views/Inspector/SourcesCard.swift; sourceTree = SOURCE_ROOT; };
@@ -444,6 +448,7 @@
 				C037 /* ProjectBookmarkStore.swift */,
 				C074 /* WorldBookmarkStore.swift */,
 				C2A5 /* ProjectArchiveFlow.swift */,
+				C2A6 /* ManuscriptPDF.swift */,
 				C075 /* WorldVolumeStatus.swift */,
 				C038 /* ScriviURL.swift */,
 				C050 /* ProjectSession.swift */,
@@ -787,6 +792,7 @@
 				C037_BF /* ProjectBookmarkStore.swift in Sources */,
 				C074_BF /* WorldBookmarkStore.swift in Sources */,
 				C2A5_BF /* ProjectArchiveFlow.swift in Sources */,
+				C2A6_BF /* ManuscriptPDF.swift in Sources */,
 				C075_BF /* WorldVolumeStatus.swift in Sources */,
 				C038_BF /* ScriviURL.swift in Sources */,
 				C050_BF /* ProjectSession.swift in Sources */,
@@ -863,6 +869,7 @@
 				D037_BF /* ProjectBookmarkStore.swift in Sources */,
 				D074_BF /* WorldBookmarkStore.swift in Sources */,
 				D2A5_BF /* ProjectArchiveFlow.swift in Sources */,
+				D2A6_BF /* ManuscriptPDF.swift in Sources */,
 				D075_BF /* WorldVolumeStatus.swift in Sources */,
 				D038_BF /* ScriviURL.swift in Sources */,
 				D050_BF /* ProjectSession.swift in Sources */,
@@ -939,6 +946,7 @@
 				E037_BF /* ProjectBookmarkStore.swift in Sources */,
 				E074_BF /* WorldBookmarkStore.swift in Sources */,
 				E2A5_BF /* ProjectArchiveFlow.swift in Sources */,
+				E2A6_BF /* ManuscriptPDF.swift in Sources */,
 				E075_BF /* WorldVolumeStatus.swift in Sources */,
 				E038_BF /* ScriviURL.swift in Sources */,
 				E050_BF /* ProjectSession.swift in Sources */,

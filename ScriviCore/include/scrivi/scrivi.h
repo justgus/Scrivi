@@ -92,8 +92,8 @@ const char* scrivi_export_archive(const char* projectRootPath, const char* archi
 const char* scrivi_import_archive(const char* archivePath, const char* destFolderPath, const char* optionsJSON);
 
 /* EP-054 S3 (SP-207) — the manuscript as Markdown or HTML. Waits for the project's queued writes, then reads the scenes.
- * optionsJSON: {format: "markdown"|"html"|"docx"|"epub", destPath? (docx, epub), defaultTypeface? (docx), language? (epub), scope?: "manuscript"|"chapter", chapterID? (scope "chapter"),
- *               document?: "page"|"body" (html only: a whole page, or the body alone for pasting)}
+ * optionsJSON: {format: "markdown"|"html"|"docx"|"epub", destPath? (docx, epub), defaultTypeface? (docx, epub, print), language? (epub), scope?: "manuscript"|"chapter", chapterID? (scope "chapter"),
+ *               document?: "page"|"body"|"print" (html only: a whole page, the body alone for pasting, or the print page)}
  * HTML is what the writer SEES: every paragraph its own <p>, a single newline <br />, italic/bold <em>/<strong>, headings
  * <h1>-<h3>, lists <ul>/<ol>; every other character escaped. Chapter titles (<h2> / "#") follow showChapterTitles in
  * project-settings.json; scene breaks are <hr /> / "* * *"; the title page only for the whole manuscript as a file.
@@ -106,7 +106,10 @@ const char* scrivi_import_archive(const char* archivePath, const char* destFolde
  *   docx: a title page with the byline, a contents nav, a file per chapter, the writer's size and indent rule; language?
  *   (BCP 47, the host's preferred language; "und" when absent); dc:identifier urn:uuid:<projectID>; dcterms:modified the
  *   export time, so two exports differ only there.
- * result: {text, chapterCount, sceneCount}; docx, epub: {path, chapterCount, sceneCount} */
+ * S5b (SP-214): document "print" is the page a platform paginates into a PDF: the writer's typography as CSS both WebKit
+ *   and QTextDocument read (font sizes pt, lengths and line heights px, classes, no combinators; the book indent as class "indent"), the title page (whole
+ *   manuscript), then each chapter starting a new page (class "chapter": page-break-before), scene breaks <hr />.
+ * result: {text, chapterCount, sceneCount}; print adds typeface (the face to embed); docx, epub: {path, chapterCount, sceneCount} */
 const char* scrivi_export_manuscript(const char* projectRootPath, const char* optionsJSON);
 
 /* Every scene whose story time is EXPLICITLY SET, in manuscript order.

@@ -1,5 +1,9 @@
 # Active Sprints
 
+*Last Updated: 2026-11-12 (**SP-214 built** — AC1, AC3, AC4 met, AC2 on the Mac; T-0675 → 🟠.)*
+
+*Last Updated: 2026-11-12 (**SP-214 → 🟡 ACTIVE** (user, 2026-11-12: *"Q1–Q5 as recommended, activate and implement SP-214."*))*
+
 *Last Updated: 2026-11-12 (**SP-213 → ✅ CLOSED** (user, 2026-11-12: *"close SP-213"*) → `Closed/Sprint-SP-213.md`. No Sprint is active.)*
 
 *Last Updated: 2026-11-12 (**SP-213 AC5 ✅**; T-0674 → ✅ Verified, archived; Linux CI red → [I-0359]. Close awaits approval.)*
@@ -87,3 +91,8 @@
 
 *Last Updated: 2026-11-02 (**SP-195, SP-196, SP-197, SP-200, SP-201 → ✅ CLOSED** (user, 2026-11-02).)*
 
+---
+
+## SP-214 — `[Cross]` [EP-054] S5b: PDF export
+
+🟡 **ACTIVE 2026-11-12** → [`Sprint-SP-214.md`](Sprint-SP-214.md) · carries [T-0675] · ✅ Q1–Q5 ruled as recommended (SP-213 Q2–Q4 carried) · ✅ built (AC1, AC3, AC4; AC2 on the Mac) · ⏳ AC2 iPad + AC5 live passes

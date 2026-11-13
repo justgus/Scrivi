@@ -9054,6 +9054,52 @@ extension ScriviInteropTests {
     }
 }
 
+#if os(macOS)
+import PDFKit
+
+extension ScriviInteropTests {
+    /// EP-054 S5b (SP-214): the print page through the engine, paginated by WebKit — the face embedded (Q2), the title page
+    /// unnumbered and the first chapter page "1" (Q1, Q4), one chapter with no title page, no date or title header (Q3).
+    @Test("SP-214: a PDF of the print page — face embedded, numbered from the first chapter page")
+    @MainActor
+    func manuscriptPDFThroughEngine() async throws {
+        let f = try makeProjectFixture()
+        let opened = try f.engine.openProject(projectRootPath: f.projectDir.path, appSupportRoot: f.appSupport.path)
+        defer { f.engine.closeProject(projectRootPath: f.projectDir.path) }
+        let scene = try #require(opened.scenes.first)
+        _ = try f.engine.saveScene(projectID: opened.projectID, projectRootPath: f.projectDir.path,
+                                   appSupportRoot: f.appSupport.path, sceneID: scene.sceneID,
+                                   sceneMetadataPath: scene.metadataPath, sceneContentPath: scene.contentPath,
+                                   markdown: "One *two* three.", authorshipRef: f.ref)
+
+        let page = try f.engine.exportManuscript(projectRootPath: f.projectDir.path, format: "html", printPage: true,
+                                                 defaultTypeface: "Literata")
+        #expect(page.typeface == "Literata")
+        #expect((page.text ?? "").contains("page-break-before: always"))
+        let whole = URL(fileURLWithPath: f.appSupport.path + "/Interop.pdf")
+        try await ManuscriptPDF.write(html: page.text ?? "", typeface: "Literata", titlePage: true, to: whole)
+        let pdf = try #require(PDFDocument(url: whole))
+        #expect(pdf.pageCount == 2)
+        let title = pdf.page(at: 0)?.string ?? "", first = pdf.page(at: 1)?.string ?? ""
+        #expect(title.contains("Interop Git Test") && !title.contains("1"))
+        let firstText = first.trimmingCharacters(in: .whitespacesAndNewlines)
+        #expect(first.contains("One two three.") && firstText.hasSuffix("1"))
+        #expect(!first.contains("Interop Git Test"))   // no WebKit header naming the page
+        let bytes = try Data(contentsOf: whole)
+        #expect(bytes.range(of: Data("Literata".utf8)) != nil)   // the face, embedded — not a system fallback
+
+        let chapter = try f.engine.exportManuscript(projectRootPath: f.projectDir.path, format: "html",
+                                                    chapterID: scene.chapterID, printPage: true)
+        let one = URL(fileURLWithPath: f.appSupport.path + "/Chapter.pdf")
+        try await ManuscriptPDF.write(html: chapter.text ?? "", typeface: "Literata", titlePage: false, to: one)
+        let single = try #require(PDFDocument(url: one))
+        let only = (single.page(at: 0)?.string ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        #expect(single.pageCount == 1)
+        #expect(only.hasSuffix("1"))
+    }
+}
+#endif
+
 // MARK: — EP-058 S2 (SP-210): authorship through the engine and the session
 
 /// ⚠️ "Unnamed" also matches the LAST identity name any test minted (a process-wide record in the core), so these tests

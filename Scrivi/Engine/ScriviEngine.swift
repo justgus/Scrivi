@@ -159,9 +159,10 @@ public final class ScriviEngine: @unchecked Sendable {
     /// `format` "docx" writes to `destPath` (EP-054 S4); `defaultTypeface` is the face when the project names none.
     /// `format` "epub" writes the whole manuscript to `destPath` (S5, SP-213); `language` is its BCP 47 language.
     public func exportManuscript(projectRootPath: String, format: String, chapterID: String? = nil,
-                                 wholePage: Bool = true, destPath: String? = nil,
+                                 wholePage: Bool = true, printPage: Bool = false, destPath: String? = nil,
                                  defaultTypeface: String? = nil, language: String? = nil) throws -> ExportManuscriptResult {
-        var options: [String: Any] = ["format": format, "document": wholePage ? "page" : "body"]
+        // printPage (SP-214): the page a platform paginates into a PDF.
+        var options: [String: Any] = ["format": format, "document": printPage ? "print" : wholePage ? "page" : "body"]
         if let chapterID { options["scope"] = "chapter"; options["chapterID"] = chapterID }
         if let destPath { options["destPath"] = destPath }
         if let defaultTypeface { options["defaultTypeface"] = defaultTypeface }
@@ -2031,7 +2032,7 @@ public final class ScriviEngine: @unchecked Sendable {
     public func closeProject(projectRootPath: String) { /* no-op: nothing was ever opened */ }
     public func exportArchive(projectRootPath: String, archivePath: String, includeWorlds: Bool) throws -> ExportArchiveResult { try unavailable() }
     public func importArchive(archivePath: String, destFolderPath: String, projectFolderName: String = "", replaceProject: Bool = false, worldFolderNames: [String: String] = [:]) throws -> ImportArchiveResult { try unavailable() }
-    public func exportManuscript(projectRootPath: String, format: String, chapterID: String? = nil, wholePage: Bool = true, destPath: String? = nil, defaultTypeface: String? = nil, language: String? = nil) throws -> ExportManuscriptResult { try unavailable() }
+    public func exportManuscript(projectRootPath: String, format: String, chapterID: String? = nil, wholePage: Bool = true, printPage: Bool = false, destPath: String? = nil, defaultTypeface: String? = nil, language: String? = nil) throws -> ExportManuscriptResult { try unavailable() }
     public func openSceneForBulkLoad(projectRootPath: String, appSupportRoot: String, projectID: String, sceneID: String) throws -> OpenSceneResult { try unavailable() }
     public func saveScene(projectID: String, projectRootPath: String, appSupportRoot: String, sceneID: String, sceneMetadataPath: String, sceneContentPath: String, markdown: String, selectionAnchor: Int = 0, selectionFocus: Int = 0, scroll: Double = 0, authorshipRef: AuthorshipRef) throws -> SaveSceneResult { try unavailable() }
     public func scanForExternalChanges(projectRootPath: String, appSupportRoot: String, includeGitStatus: Bool = true) throws -> ScanResult { try unavailable() }
@@ -2317,6 +2318,7 @@ public struct SceneInfo: Decodable, Sendable {
 public struct ExportManuscriptResult: Decodable, Sendable {
     public let text: String?   // markdown, html
     public let path: String?   // docx: the file written
+    public let typeface: String?   // the print page: the face the PDF is set in
     public let chapterCount: Int
     public let sceneCount: Int
 }

@@ -1,15 +1,15 @@
 ---
 sprint: SP-214
 epic: EP-054
-status: Planning
+status: Active
 platform: Cross
 created: 2026-11-12
 ---
 
 # SP-214 — `[ScriviCore]` + `[Apple]` + `[Linux]` [EP-054] **S5b**: PDF export
 
-**Status:** 🔵 **PLANNING** 2026-11-12 (user, 2026-11-12: *"plan EP-054 S5b."*) · Q1–Q5 to rule.
-**Carries:** [T-0675] → [`../Tasks/Task-backlog.md`](../Tasks/Task-backlog.md).
+**Status:** 🟡 **ACTIVE** 2026-11-12 (user, 2026-11-12: *"Q1–Q5 as recommended, activate and implement SP-214."*) · ✅ Q1–Q5 ruled as recommended · planned 2026-11-12 (*"plan EP-054 S5b."*).
+**Carries:** [T-0675] → [`../Tasks/Task-unverified.md`](../Tasks/Task-unverified.md).
 **Epic:** [EP-054] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md).
 **Builds on:** [SP-207] (S3: the walker, the HTML writer, Export Manuscript…), [SP-208] (S4: the writer's typography, the
 scope question), [SP-212] (the byline), [SP-213] (S5: the ePub stylesheet; **its Q1 split PDF out to here, and its Q2–Q4 are
@@ -91,28 +91,29 @@ iPad and Linux.
 
 ## Questions
 
-| # | Question | Recommendation |
+| # | Question | Ruling |
 | - | -------- | -------------- |
-| **Q1** | **The page numbers on Apple.** WebKit's own header and footer adds a date and title (Q3 refuses). (a) **Mac:** print with headers and footers off, then draw each number onto the finished pages with PDFKit (`PDFPage.draw(with:to:)`); **iPad:** `UIPrintPageRenderer`'s footer draws them as the pages are made. (b) Both with PDFKit after the fact, one code path. (c) CSS page-margin boxes (`@page { @bottom-center { content: counter(page) } }`) — not known to be supported by WebKit; would be tried first and dropped if not. | **(a).** Each platform uses its documented way to own a footer; the iPad needs no second pass. ⚠️ If (a)'s Mac pass loses the PDF's text or links, that is surfaced. |
-| **Q2** | **The writer's face inside WebKit** (bundled fonts are invisible to WebKit's process). (a) the **host** adds an `@font-face` rule to the print page pointing at the bundled font file (read access granted with `loadFileURL(_:allowingReadAccessTo:)`), for the bundled faces only; system faces need nothing; (b) the same, but the font file inlined as a `data:` URL (no file access; a few hundred KB per face in memory); (c) the core writes `@font-face` (it would have to know app bundle paths — a platform fact in the core). | **(a).** The face stays a platform fact, the core page stays the same on every platform, and Linux needs nothing. (b) is the fallback if WebKit refuses the file access. |
-| **Q3** | **"The system's default paper" where there is none to read.** Mac: `NSPrintInfo.shared.paperSize`. iPad and Linux: (a) **from the region** — US Letter where the region measures in US units (`Locale.measurementSystem == .us`; `QLocale::measurementSystem() == ImperialUSSystem`), A4 elsewhere; (b) Linux links QtPrintSupport for the default printer's paper (a new module, and a machine without a printer still has none). | **(a).** The same answer on both, no new module; it is the paper a writer in that region buys. |
-| **Q4** | **Numbering.** (a) **The first chapter's first page is page 1**; the title page counts nothing (book convention: front matter); (b) the title page is page 1, its number hidden, so text starts on 2. A one-chapter PDF has no title page and starts at 1 either way. | **(a).** A writer reading "page 1" expects their opening line. |
-| **Q5** | **The scene break.** (a) **The rule, as in Scrivi and the ePub** (`<hr />`, inset); ⚠️ if `QTextDocument` cannot inset it, a full-width rule on Linux; (b) a centred `#` (Standard Manuscript Format's mark — but S4 Q1 ruled SMF out). | **(a).** One look across export formats; the Linux limit, if real, is recorded at the AC. |
+| **Q1** | **The page numbers on Apple.** WebKit's own header and footer adds a date and title (Q3 refuses). (a) **Mac:** print with headers and footers off, then draw each number onto the finished pages with PDFKit (`PDFPage.draw(with:to:)`); **iPad:** `UIPrintPageRenderer`'s footer draws them as the pages are made. (b) Both with PDFKit after the fact, one code path. (c) CSS page-margin boxes (`@page { @bottom-center { content: counter(page) } }`) — not known to be supported by WebKit; would be tried first and dropped if not. | ✅ **RULED as recommended (user, 2026-11-12).** **(a).** Each platform uses its documented way to own a footer; the iPad needs no second pass. ⚠️ If (a)'s Mac pass loses the PDF's text or links, that is surfaced. |
+| **Q2** | **The writer's face inside WebKit** (bundled fonts are invisible to WebKit's process). (a) the **host** adds an `@font-face` rule to the print page pointing at the bundled font file (read access granted with `loadFileURL(_:allowingReadAccessTo:)`), for the bundled faces only; system faces need nothing; (b) the same, but the font file inlined as a `data:` URL (no file access; a few hundred KB per face in memory); (c) the core writes `@font-face` (it would have to know app bundle paths — a platform fact in the core). | ✅ **RULED as recommended (user, 2026-11-12).** **(a).** The face stays a platform fact, the core page stays the same on every platform, and Linux needs nothing. (b) is the fallback if WebKit refuses the file access. |
+| **Q3** | **"The system's default paper" where there is none to read.** Mac: `NSPrintInfo.shared.paperSize`. iPad and Linux: (a) **from the region** — US Letter where the region measures in US units (`Locale.measurementSystem == .us`; `QLocale::measurementSystem() == ImperialUSSystem`), A4 elsewhere; (b) Linux links QtPrintSupport for the default printer's paper (a new module, and a machine without a printer still has none). | ✅ **RULED as recommended (user, 2026-11-12).** **(a).** The same answer on both, no new module; it is the paper a writer in that region buys. |
+| **Q4** | **Numbering.** (a) **The first chapter's first page is page 1**; the title page counts nothing (book convention: front matter); (b) the title page is page 1, its number hidden, so text starts on 2. A one-chapter PDF has no title page and starts at 1 either way. | ✅ **RULED as recommended (user, 2026-11-12).** **(a).** A writer reading "page 1" expects their opening line. |
+| **Q5** | **The scene break.** (a) **The rule, as in Scrivi and the ePub** (`<hr />`, inset); ⚠️ if `QTextDocument` cannot inset it, a full-width rule on Linux; (b) a centred `#` (Standard Manuscript Format's mark — but S4 Q1 ruled SMF out). | ✅ **RULED as recommended (user, 2026-11-12).** **(a).** One look across export formats; the Linux limit, if real, is recorded at the AC. |
 
 ⛔ **NOT in this Sprint:** any import (S6–S7), print to a printer (File ▸ Print), a page-size or margin chooser, running
 headers (title / author on each page), Standard Manuscript Format (S4 Q1), a table of contents page, cover image, the ePub.
 
 ## Acceptance Criteria
 
-- [ ] AC1 — `scrivi_export_manuscript` `format: "html"`, `document: "print"`: the title page with the byline (whole
+- [x] AC1 — `scrivi_export_manuscript` `format: "html"`, `document: "print"`: the title page with the byline (whole
       manuscript only), each chapter on a new page, the writer's typography as classes both engines read, scene breaks per Q5;
       golden-file boundary tests through `scrivi_*`; macOS and Linux ctest green
 - [ ] AC2 — Mac and iPad write a PDF through WebKit: the writer's face **embedded** (Q2), the paper (Q3), 1-inch margins,
       page numbers bottom centre from the first chapter page, none on the title page (Q1, Q4), no date or title header;
-      interop test through the engine
-- [ ] AC3 — Linux writes the same through `QTextDocument` + `QPdfWriter`; Linux smoke through the bridge; on scrivi-vm
+      interop test through the engine — ✅ Mac; ⏳ iPad: its check is the live pass (user, 2026-11-12: *"I'll check the iPad on
+      the live pass"*)
+- [x] AC3 — Linux writes the same through `QTextDocument` + `QPdfWriter`; Linux smoke through the bridge; on scrivi-vm
       `pdffonts` shows the face embedded and `pdftotext` the numbers, for a Linux PDF and a Mac PDF
-- [ ] AC4 — Export Manuscript… offers **PDF** on the Mac, iPad and Linux, then whole / the caret's chapter; flushed first,
+- [x] AC4 — Export Manuscript… offers **PDF** on the Mac, iPad and Linux, then whole / the caret's chapter; flushed first,
       off the main thread where the platform allows, progress after 400 ms; engine stub parity green
 - [ ] AC5 — **Live passes (user):** a whole-manuscript and a one-chapter PDF in Preview (Mac), Files (iPad) and Papers
       (Linux) — face, title page and byline, chapters on new pages, scene breaks, emphasis, lists, page numbers, paper
@@ -121,3 +122,28 @@ headers (title / author on each page), Standard Manuscript Format (S4 Q1), a tab
 
 - **2026-11-12** — 🔵 **Created in Planning** (user, 2026-11-12: *"plan EP-054 S5b."*). Q1–Q5 to rule; SP-213's Q2–Q4 carried
   as ruled. ⚠️ SP-213's font-embedding finding corrected for WebKit (→ Q2).
+- **2026-11-12** — 🟡 **Activated, Q1–Q5 ruled as recommended** (user, 2026-11-12: *"Q1–Q5 as recommended, activate and implement SP-214."*).
+- **2026-11-12** — ✅ **Built** — AC1, AC3, AC4 met; AC2 met on the Mac — the iPad builds, its PDF is checked in the live pass.
+  **Core:** `exportPrint` / `printStyle` (`ManuscriptExport.cpp:711`, `:735`), `document: "print"` + `typeface` in the result
+  (`scrivi_c_api.cpp:1362`, `scrivi.h`); 2 boundary cases (19 / 919 assertions).
+  **Apple:** `Scrivi/App/ManuscriptPDF.swift` (new, in the pbxproj for the Mac, iOS and visionOS targets) — an off-screen
+  `WKWebView`; Mac: `printOperation(with:)` saved with headers and footers off, then each page redrawn with its number
+  (Q1); iPad: `UIPrintPageRenderer` with our footer into `UIGraphicsPDFRenderer`; Q2's `@font-face` rules on the bundle's
+  font files, `loadHTMLString(baseURL: Fonts/)`. Export Manuscript… ▸ **PDF** (`ProjectArchiveFlow.swift:140`).
+  **Linux:** `platforms/linux/src/ManuscriptPdf.hpp` (new, header-only so none of the 14 targets that compile the shell
+  changes) — `QTextDocument` paginated onto `QPdfWriter` page by page, our number in the foot; in the export's worker thread
+  (`EditorShell.cpp:4621`). `settings_smoke` §5 (`settings_smoke.cpp:428`).
+  ⚠️ **What QTextDocument does not read (found by probing Qt 6.4 on scrivi-vm, so the plan's CSS assumption was wrong):**
+  a length in **pt** is dropped (margins, indents) — px works; a `line-height` in **%** is of the font's own line spacing,
+  not its size (lines came out ~1.9×) — px is exact in both; and a heading's built-in size step overrides its CSS size —
+  the Linux writer clears it after parsing. So the page's lengths and line heights are **px** (1/96 in, the same in both
+  engines; the Linux writer works at 96 dpi), font sizes pt.
+  ⚠️ **Bold on Linux (Qt 6.4):** the bundled variable faces expose only Regular and Italic to Qt
+  (`QFontDatabase::styles("Literata")` = Italic, Regular), so headings and **bold** print in the regular weight on Linux.
+  The Mac's PDF is bold. Not this Sprint's code — a Qt 6.4 font limit; raised with the user, not filed.
+  **Evidence:** macOS ctest **842/842**; interop `manuscriptPDFThroughEngine` + `manuscriptExportThroughEngine` passed (2
+  pages, title page unnumbered, "1" on the chapter page, Literata embedded, no WebKit header); iOS build succeeded; stub
+  parity, ABI guard and package boundary clean. scrivi-vm: ctest **847/847**; `settings_smoke` pass (§5: Newsreader embedded,
+  2 pages); `bridge_parity_smoke` 74 / 0. A copy of `the-river-of-time` through the core and the Linux writer: 4 pages,
+  Letter, `pdffonts` Literata embedded, `pdftotext` numbers 1–3 and none on the title page, chapters on new pages; a Mac
+  sample: Letter, Literata (regular, italic) embedded, numbers 1–6. ⏳ AC5: the live passes.

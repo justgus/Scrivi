@@ -436,7 +436,7 @@ jobs:
             ./build/platforms/linux/scrivi_linux_structural_baseline_smoke
 
   # ⚠️ TEMPORARY — [I-0359]: the indent smoke corrupts the heap at exit on x86_64 CI only (clean on arm64, ASan included).
-  # The same smoke under ASan + UBSan on the runner where it fails, five times. Remove when I-0359 is resolved.
+  # The same smoke under ASan + UBSan on the runner where it fails, three times. Remove when I-0359 is resolved.
   indent-asan:
     name: ubuntu-24.04 (Qt 6.4) indent smoke, ASan [I-0359]
     runs-on: ubuntu-24.04
@@ -461,9 +461,11 @@ jobs:
           -DSCRIVI_ENABLE_SANITIZERS=ON
       - name: Build
         run: cmake --build build --parallel --target scrivi_linux_indent_smoke
-      - name: Indent smoke test under ASan, 5 runs
+      # ⚠️ ASan + SCRIVI_VERIFY_SCENE_TEXT is slow: one run took over 15 min in Docker (arm64), so three, and a cap.
+      - name: Indent smoke test under ASan, 3 runs
+        timeout-minutes: 150
         run: |
-          for i in 1 2 3 4 5; do
+          for i in 1 2 3; do
             echo "== run $i =="
             platforms/linux/tests/indent_smoke.sh ./build/platforms/linux/scrivi_linux_indent_smoke
           done

@@ -56,6 +56,7 @@
 #include "HistoricalEventDialog.hpp"
 #include "ManuscriptEditor.hpp"
 #include "ManuscriptEscapes.hpp"
+#include "ManuscriptPdf.hpp"
 #include "ManuscriptPresenter.hpp"
 #include "NavigatorTree.hpp"
 #include "SceneInspector.hpp"
@@ -4578,21 +4579,25 @@ void EditorShell::exportManuscript()
     QMessageBox formatBox(QMessageBox::Question, tr("Export Manuscript"),
                           tr("Markdown keeps the text as Scrivi stores it. HTML is a web page with every paragraph its "
                              "own <p>. A Word document keeps your typeface and indent in named styles. "
-                             "An ePub is the whole manuscript as a book for e-readers."),
+                             "An ePub is the whole manuscript as a book for e-readers. "
+                             "A PDF is set in your typeface, on pages, ready to print."),
                           QMessageBox::NoButton, this);
     formatBox.setTextFormat(Qt::PlainText);
     QPushButton* markdown = formatBox.addButton(tr("Markdown"), QMessageBox::AcceptRole);
     QPushButton* html     = formatBox.addButton(tr("HTML"), QMessageBox::AcceptRole);
     QPushButton* docx     = formatBox.addButton(tr("Word Document (.docx)"), QMessageBox::AcceptRole);
     QPushButton* epub     = formatBox.addButton(tr("ePub"), QMessageBox::AcceptRole);
+    QPushButton* pdf      = formatBox.addButton(tr("PDF"), QMessageBox::AcceptRole);
     formatBox.addButton(QMessageBox::Cancel);
     formatBox.exec();
     const auto* clicked = formatBox.clickedButton();
-    if (clicked != markdown && clicked != html && clicked != docx && clicked != epub) {
+    if (clicked != markdown && clicked != html && clicked != docx && clicked != epub && clicked != pdf) {
         return;
     }
-    // EP-054 S4 (SP-208), S5 (SP-213): the core writes a .docx or .epub itself, to the chosen path.
-    const QString format = clicked == epub ? QStringLiteral("epub") : clicked == docx ? QStringLiteral("docx")
+    // EP-054 S4 (SP-208), S5 (SP-213): the core writes a .docx or .epub itself, to the chosen path. S5b (SP-214): a PDF is
+    // the core's print page, paginated here.
+    const QString format = clicked == pdf ? QStringLiteral("pdf") : clicked == epub ? QStringLiteral("epub")
+                           : clicked == docx ? QStringLiteral("docx")
                            : clicked == html ? QStringLiteral("html") : QStringLiteral("markdown");
     const QString ext = format == QLatin1String("markdown") ? QStringLiteral("md") : format;
     QString chapterID, chapterName;
@@ -4605,14 +4610,20 @@ void EditorShell::exportManuscript()
     const QString path = QFileDialog::getSaveFileName(
         this, tr("Export Manuscript"),
         QDir(QFileInfo(root).absolutePath()).filePath(name + QLatin1Char('.') + ext),
-        format == QLatin1String("epub") ? tr("ePub (*.epub)")
+        format == QLatin1String("pdf") ? tr("PDF (*.pdf)")
+        : format == QLatin1String("epub") ? tr("ePub (*.epub)")
         : format == QLatin1String("docx") ? tr("Word Document (*.docx)")
         : format == QLatin1String("html") ? tr("HTML (*.html)") : tr("Markdown (*.md)"));
     if (path.isEmpty()) {
         return;
     }
 
-    QVariantMap options{{QStringLiteral("format"), format}, {QStringLiteral("document"), QStringLiteral("page")}};
+    const bool toPdf = format == QLatin1String("pdf");
+    QVariantMap options{{QStringLiteral("format"), toPdf ? QStringLiteral("html") : format},
+                        {QStringLiteral("document"), toPdf ? QStringLiteral("print") : QStringLiteral("page")}};
+    if (toPdf) {
+        options.insert(QStringLiteral("defaultTypeface"), BundledFonts::manifest().defaultFace);
+    }
     if (format == QLatin1String("docx") || format == QLatin1String("epub")) {
         options.insert(QStringLiteral("destPath"), path);
         options.insert(QStringLiteral("defaultTypeface"), BundledFonts::manifest().defaultFace);
@@ -4630,7 +4641,15 @@ void EditorShell::exportManuscript()
     if (progressDelay_ != nullptr) { progressDelay_->start(); }
     AsyncCall::run<QVariantMap>(
         this,
-        [root, options]() { return ScriviBridge().exportManuscript(root, options); },
+        [root, options, toPdf, path, titlePage = chapterID.isEmpty()]() {
+            QVariantMap r = ScriviBridge().exportManuscript(root, options);
+            if (toPdf && !r.contains(QStringLiteral("errorMessage"))) {
+                const QString error = writeManuscriptPdf(r.value(QStringLiteral("text")).toString(), titlePage, path);
+                if (!error.isEmpty()) { r.insert(QStringLiteral("errorMessage"), error); }
+                else { r.insert(QStringLiteral("path"), path); }
+            }
+            return r;
+        },
         [this, path](QVariantMap r) {
             hideLoadProgress();
             if (r.contains(QStringLiteral("errorMessage"))) {
@@ -4639,7 +4658,7 @@ void EditorShell::exportManuscript()
                 return;
             }
             if (r.contains(QStringLiteral("path"))) {
-                return;   // a .docx or .epub: the core wrote it
+                return;   // a .docx or .epub: the core wrote it; a PDF: written above
             }
             QFile file(path);   // boundary-ok: QFileDialog export, writer-chosen path
             if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate) ||

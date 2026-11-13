@@ -13,6 +13,8 @@
 //      text change, no scene file written, no history step); the face survives typing, Return, undo, a paste, a structured
 //      paste and a reload;
 //   §4 Markup Hints: Ctrl+Shift+H through the real dispatch; OFF reveals nothing and the caret rules hold; persisted.
+//   §5 [SP-214] the PDF: the core's print page paginated by `writeManuscriptPdf` — the project's bundled face embedded, the
+//      title page then the chapter, through the bridge.
 // ⚠️ NOT covered (live pass only): how the faces LOOK, GNOME's bindings, the rig's Qt 6.10.
 //
 //   argv[1] = a scratch directory for the projects; $XDG_DATA_HOME drives appSupportRoot; Qt offscreen.
@@ -22,6 +24,7 @@
 #include "EditorShell.hpp"
 #include "HistoryCapture.hpp"
 #include "ManuscriptEditor.hpp"
+#include "ManuscriptPdf.hpp"
 #include "ManuscriptPresenter.hpp"
 #include "ManuscriptTypography.hpp"
 #include "ProjectPreferences.hpp"
@@ -421,6 +424,21 @@ int main(int argc, char** argv)
     });
     check(settingsFile(C).value(QStringLiteral("typeface")).toString() == QStringLiteral("Future Face"),
           QStringLiteral("§2 … and still stored after a save"));
+
+    // ── §5 [SP-214] The PDF: the print page paginated here, in the project's face ──────────────────────────────────────────
+    const QVariantMap print = bridge.exportManuscript(B.dir, {{QStringLiteral("format"), QStringLiteral("html")},
+                                                             {QStringLiteral("document"), QStringLiteral("print")},
+                                                             {QStringLiteral("defaultTypeface"), QStringLiteral("Literata")}});
+    check(!bridge.lastCallFailed() && print.value(QStringLiteral("typeface")).toString() == QStringLiteral("Newsreader"),
+          QStringLiteral("§5 the print page names the project's face"));
+    const QString pdfPath = scratch + QStringLiteral("/b.pdf");
+    const QString pdfError = writeManuscriptPdf(print.value(QStringLiteral("text")).toString(), true, pdfPath);
+    QFile pdf(pdfPath);   // boundary-ok: the smoke's own export, outside any package
+    const QByteArray bytes = pdf.open(QIODevice::ReadOnly) ? pdf.readAll() : QByteArray();
+    check(pdfError.isEmpty() && bytes.startsWith("%PDF-"), QStringLiteral("§5 a PDF is written (%1)").arg(pdfError));
+    check(bytes.contains("Newsreader"), QStringLiteral("§5 … with the face embedded"));
+    // Two pages: the title page, and the one chapter starting its own (page-break-before).
+    check(bytes.count("/Type /Page\n") == 2, QStringLiteral("§5 … of two pages"));
 
     env.quitApplication();
     QApplication::processEvents();

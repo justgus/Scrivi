@@ -1,5 +1,7 @@
 # Unverified Tasks
 
+*Last Updated: 2026-11-12 (**T-0675 → 🟠 Implemented - Not Verified** ([SP-214]); the live passes (AC5) are the user's.)*
+
 *Last Updated: 2026-11-12 (**T-0674 → ✅ Verified** (user, 2026-11-12: *"The iPad is present. Steps 1-4 pass."*) and archived → `Verified/Task-verified-0674.md`.)*
 
 *Last Updated: 2026-11-12 (**T-0674 → 🟠 Implemented - Not Verified** ([SP-213]); the live passes (AC5) are the user's.)*
@@ -67,6 +69,25 @@ Tasks that are **implemented and awaiting user verification** before being archi
 ⚠️ This file must not disagree with [`Task-active.md`](Task-active.md) or
 [`Task-backlog.md`](Task-backlog.md). A Task implemented but unverified belongs **here** — not left
 in the backlog carrying a 🟠 status.
+
+---
+
+## 🟠 T-0675 — `[Cross]` EP-054 S5b: PDF export
+
+**Epic:** [EP-054] (S5b; AC5, AC9) · **Status:** 🟠 Implemented - Not Verified (2026-11-12) · **Sprint:** [SP-214] (🟡 Active) →
+[`../Sprints/Sprint-SP-214.md`](../Sprints/Sprint-SP-214.md) · **Date Requested:** 2026-11-12 (user: *"plan EP-054 S5b."*)
+
+**What:** Export Manuscript… ▸ **PDF** on the Mac, iPad and Linux — the whole manuscript or the caret's chapter, in the writer's
+typeface (embedded), on the default paper, with a title page and byline, each chapter on a new page, scene breaks, emphasis and
+page numbers. The core writes a print page (`scrivi_export_manuscript`, `document: "print"`); WebKit paginates it on Apple,
+`QTextDocument` + `QPdfWriter` on Linux. Rulings and ACs: the Sprint.
+
+**Built (2026-11-12):** `exportPrint` (`ScriviCore/src/manuscript/ManuscriptExport.cpp:735`); `document: "print"`
+(`scrivi_c_api.cpp:1362`, `scrivi.h`); `Scrivi/App/ManuscriptPDF.swift` (WebKit; Mac and iPad);
+`ProjectArchiveFlow.swift:140`; `ScriviEngine.exportManuscript(… printPage:)` (+ stub); Linux
+`platforms/linux/src/ManuscriptPdf.hpp`, `EditorShell::exportManuscript`, `settings_smoke` §5. Evidence: macOS ctest
+842/842, interop 2/2, iOS build; Linux ctest 847/847, settings and bridge smokes green; `pdffonts` / `pdftotext` on a real
+project. ⏳ The live passes (SP-214 AC5) are the user's, the iPad's PDF among them.
 
 ---
 

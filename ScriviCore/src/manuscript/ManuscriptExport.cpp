@@ -692,4 +692,82 @@ std::string exportEpub(const ExportInput& in, const DocxTypography& type, const 
 }
 
 
+
+// --- The print page (EP-054 S5b, SP-214) ------------------------------------------------------------------------------
+
+namespace {
+
+std::string pt(double v) { return num(v) + "pt"; }
+// QTextDocument drops a length in pt; a CSS px is 1/96 inch in both engines (Linux paginates at 96 dpi).
+std::string px(double points) { return num(points * 96 / 72) + "px"; }
+
+// Adds a class to a block's opening tag ("<p>" → "<p class=\"c\">", "<ol start=\"2\">" → "<ol class=\"c\" start=\"2\">").
+void classify(std::string& html, std::size_t at, std::string_view cls) {
+    html.insert(html.find_first_of(" >", at), " class=\"" + std::string(cls) + "\"");
+}
+
+// The writer's typography in units and selectors QTextDocument reads as well as WebKit: font sizes in pt, lengths in px, classes,
+// no combinators. Line heights are px too: a % is of the font's own line spacing in QTextDocument, of its size in WebKit.
+std::string printStyle(const DocxTypography& t) {
+    const double gap = t.size * kLineSpacing * (t.indent == "none" ? 1.0 : kGapFraction);
+    std::string s = "body { ";
+    if (!t.typeface.empty()) { s += "font-family: \"" + t.typeface + "\"; "; }
+    s += "font-size: " + pt(t.size) + "; }\n";
+    s += "p, li { line-height: " + px(t.size * kLineSpacing) + "; }\n";
+    s += "p { margin: 0 0 " + px(gap) + " 0; text-indent: " + (t.indent == "every" ? px(t.size * t.indentEm) : "0") + "; }\n";
+    if (t.indent == "book") { s += "p.indent { text-indent: " + px(t.size * t.indentEm) + "; }\n"; }
+    s += "ul, ol { margin: 0 0 " + px(gap) + " 0; }\n";
+    for (int level = 1; level <= 3; ++level) {
+        const double size = t.size * kHeadingScale[level - 1];
+        s += "h" + std::to_string(level) + " { font-size: " + pt(size) + "; line-height: " + px(size * kHeadingLineSpacing) +
+             "; margin: 0 0 " + px(gap) + " 0; }\n";
+    }
+    s += "hr { border: 0; border-top: 1px solid #808080; margin: " + px(gap) + " " + px(20) + "; }\n";   // Q5: the rule, inset
+    s += ".chapter { page-break-before: always; }\n";
+    s += ".titlepage { text-align: center; text-indent: 0; }\n"
+         "h1.titlepage { font-size: " + pt(t.size * 33.0 / 13) + "; line-height: " + px(t.size * 33.0 / 13 * kHeadingLineSpacing) +
+         "; margin-top: " + px(t.size * 8) + "; }\n";
+    return s;
+}
+
+} // namespace
+
+std::string exportPrint(const ExportInput& in, const DocxTypography& type) {
+    std::string out = "<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"utf-8\">\n";
+    if (!in.authors.empty()) { out += "<meta name=\"author\" content=\"" + escaped(creators(in.authors)) + "\">\n"; }
+    out += "<title>" + escaped(in.title) + "</title>\n<style>\n" + printStyle(type) + "</style>\n</head>\n<body>\n";
+    // Q3: the title page alone on its page; then every chapter starts a new one.
+    if (in.titlePage) {
+        out += "<h1 class=\"titlepage\">" + escaped(in.title) + "</h1>\n";
+        if (!in.subtitle.empty()) { out += "<p class=\"titlepage\">" + escaped(in.subtitle) + "</p>\n"; }
+        if (!in.authors.empty()) { out += "<p class=\"titlepage\">" + escaped(byline(in.authors)) + "</p>\n"; }
+    }
+    bool breakNext = false;
+    walk(in,
+         [&](const ExportScene& s, bool newChapter, bool first) {
+             if (newChapter) {
+                 breakNext = !first || in.titlePage;
+                 if (in.chapterTitles) {
+                     out += std::string(breakNext ? "<h2 class=\"chapter\">" : "<h2>") + escaped(s.chapterHeading) + "</h2>\n";
+                     breakNext = false;
+                 }
+             } else {
+                 out += "<hr />\n";
+             }
+         },
+         [&](std::string_view text) {
+             auto html = sceneHtml(text);
+             // The book indent is "p + p": a paragraph straight after another (the ePub's selector, spelled as a class).
+             if (type.indent == "book") {
+                 for (auto at = html.find("</p>\n<p>"); at != std::string::npos; at = html.find("</p>\n<p>", at + 1)) {
+                     classify(html, at + 6, "indent");
+                 }
+             }
+             if (breakNext) { classify(html, 0, "chapter"); breakNext = false; }
+             out += html;
+         });
+    out += "</body>\n</html>\n";
+    return out;
+}
+
 } // namespace scrivi::manuscript

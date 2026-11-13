@@ -1279,8 +1279,8 @@ const char* scrivi_export_manuscript(const char* projectRootPath, const char* op
         return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "an epub export is of the whole manuscript"));
     if (scope != "manuscript" && scope != "chapter")
         return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "scope must be manuscript or chapter"));
-    if (document != "page" && document != "body")
-        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "document must be page or body"));
+    if (document != "page" && document != "body" && document != "print")
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "document must be page, body or print"));
 
     auto svc = abiServices();
     auto projectText = svc.fileSystem->readTextFile(scrivi::util::join(root, "project.json"));
@@ -1306,7 +1306,7 @@ const char* scrivi_export_manuscript(const char* projectRootPath, const char* op
             type.indentEm = std::clamp(v.getDouble("indentEm", type.indentEm), 0.5, 4.0);
         }
     }
-    in.titlePage = scope == "manuscript" && (format != "html" || document == "page");
+    in.titlePage = scope == "manuscript" && (format != "html" || document != "body");
     // SP-213 Q6: the host's language (BCP 47; there is no project setting), kept to the characters a tag may hold.
     std::string language;
     for (char c : o.getString("language")) {
@@ -1359,6 +1359,9 @@ const char* scrivi_export_manuscript(const char* projectRootPath, const char* op
         // Written beside the destination and renamed into place, so a failed export leaves no file at destPath.
         if (auto w = scrivi::util::atomicWriteTextFile(destPath, bytes); !w.ok()) return heap(errorEnvelope(w.error()));
         doc.setString("path", destPath);
+    } else if (format == "html" && document == "print") {
+        doc.setString("text", scrivi::manuscript::exportPrint(in, type));
+        doc.setString("typeface", type.typeface);   // SP-214 Q2: the face the host must hand WebKit (its fonts are not WebKit's)
     } else {
         doc.setString("text", format == "html" ? scrivi::manuscript::exportHtml(in, document == "page")
                                                : scrivi::manuscript::exportMarkdown(in));

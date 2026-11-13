@@ -79,7 +79,8 @@ OS and Qt, not its CPU), 4 runs. **Only x86_64 CI fails.**
 **2026-11-12 — diagnostics written (user: *"diagnostic steps will go on main"*), not yet pushed:**
 `indent_smoke.sh` now prints the harness's exit status and signal (`FAIL: harness exited 134 (SIGABRT)`; checked on scrivi-vm
 against a fake abort, a fake failed check and a pass). ⚠️ **TEMPORARY** CI job `indent-asan` in `scrivi-linux-ci.yml`: the
-indent smoke built with `SCRIVI_ENABLE_SANITIZERS=ON` (ASan + UBSan, leaks off) on `ubuntu-24.04` x86_64, run five times.
+indent smoke built with `SCRIVI_ENABLE_SANITIZERS=ON` (ASan + UBSan, leaks off) on `ubuntu-24.04` x86_64, run three times
+(capped at 150 min: under ASan with `SCRIVI_VERIFY_SCENE_TEXT` one run took over 15 min in Docker on arm64).
 Remove it when I-0359 is resolved.
 
 ---

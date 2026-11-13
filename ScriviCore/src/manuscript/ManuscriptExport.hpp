@@ -60,6 +60,10 @@ struct EpubMeta {
 // The .epub file's bytes; empty only when the zip could not be built.
 [[nodiscard]] std::string exportEpub(const ExportInput& in, const DocxTypography& type, const EpubMeta& meta);
 
+// The print page (EP-054 S5b): an HTML page with the writer's typography, the title page alone on its page and each chapter
+// on a new one, for the platforms to paginate into a PDF (WebKit on Apple, QTextDocument on Linux).
+[[nodiscard]] std::string exportPrint(const ExportInput& in, const DocxTypography& type);
+
 // One scene's text as HTML blocks, one per line.
 [[nodiscard]] std::string sceneHtml(std::string_view text);
 

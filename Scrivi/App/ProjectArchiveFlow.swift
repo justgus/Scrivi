@@ -100,8 +100,8 @@ extension AppEnvironment {
 
     // MARK: — Manuscript (EP-054 S3, SP-207)
 
-    /// File ▸ Export Manuscript…: Markdown, HTML (a whole page), a Word document (S4, SP-208) or an ePub (S5, SP-213), the
-    /// whole manuscript or the caret's chapter (Q2, Q3); an ePub is always the whole manuscript (SP-213 Q7).
+    /// File ▸ Export Manuscript…: Markdown, HTML (a whole page), a Word document (S4, SP-208), an ePub (S5, SP-213) or a PDF
+    /// (S5b, SP-214), the whole manuscript or the caret's chapter (Q2, Q3); an ePub is always the whole manuscript (SP-213 Q7).
     func exportManuscript(_ session: ProjectSession) async {
         guard let root = session.projectRootPath else { return }
         let engine = session.engine
@@ -109,11 +109,12 @@ extension AppEnvironment {
         let f = await ask("Export Manuscript",
                           "Markdown keeps the text as Scrivi stores it. HTML is a web page with every paragraph its own <p>. "
                           + "A Word document keeps your typeface and indent in named styles. "
-                          + "An ePub is the whole manuscript as a book for e-readers.",
-                          ["Markdown", "HTML", "Word Document (.docx)", "ePub", "Cancel"])
-        guard f.choice < 4 else { return }
-        let format = ["markdown", "html", "docx", "epub"][f.choice]
-        let ext = ["md", "html", "docx", "epub"][f.choice]
+                          + "An ePub is the whole manuscript as a book for e-readers. "
+                          + "A PDF is set in your typeface, on pages, ready to print.",
+                          ["Markdown", "HTML", "Word Document (.docx)", "ePub", "PDF", "Cancel"])
+        guard f.choice < 5 else { return }
+        let format = ["markdown", "html", "docx", "epub", "pdf"][f.choice]
+        let ext = ["md", "html", "docx", "epub", "pdf"][f.choice]
         let scope = format == "epub" ? (cancelled: false, chapterID: nil, chapterName: nil)
                                      : await askScope(session, "Export Manuscript")
         guard !scope.cancelled else { return }
@@ -136,7 +137,29 @@ extension AppEnvironment {
         #endif
         let chapterID = scope.chapterID
         do {
-            if format == "docx" || format == "epub" {
+            if format == "pdf" {
+                // SP-214: the core's print page, paginated by WebKit (on the main actor, but WebKit lays out in its own process).
+                #if os(macOS)
+                let staging = stagingFolder(for: destination)
+                try? FileManager.default.createDirectory(at: staging, withIntermediateDirectories: true)
+                defer { try? FileManager.default.removeItem(at: staging) }
+                let written = staging.appendingPathComponent(fileName)
+                #else
+                let written = destination
+                #endif
+                let face = BundledFonts.manifest.default
+                try await showingProgress("Exporting manuscript…", show: { session.archiveProgress = $0 }) {
+                    let page = try await Task.detached(priority: .userInitiated) {
+                        try engine.exportManuscript(projectRootPath: root, format: "html", chapterID: chapterID, printPage: true,
+                                                    defaultTypeface: face)
+                    }.value
+                    try await ManuscriptPDF.write(html: page.text ?? "", typeface: page.typeface ?? face,
+                                                  titlePage: chapterID == nil, to: written)
+                }
+                #if os(macOS)
+                try moveIntoPlace(written, destination)
+                #endif
+            } else if format == "docx" || format == "epub" {
                 // As the archive: the core writes through a file beside the .docx or .epub, which the sandbox does not grant beside
                 // the writer's file — so it writes into a folder the app may use, and the result is moved into place.
                 #if os(macOS)
@@ -396,12 +419,18 @@ extension AppEnvironment {
     /// Runs `work` off the main actor; `show` gets `label` once it has run 400 ms, and nil when it ends.
     private func offMain<T: Sendable>(_ label: String, show: @escaping @MainActor (String?) -> Void,
                                       _ work: @escaping @Sendable () throws -> T) async throws -> T {
+        try await showingProgress(label, show: show) { try await Task.detached(priority: .userInitiated, operation: work).value }
+    }
+
+    /// `show` gets `label` once `work` has run 400 ms, and nil when it ends.
+    private func showingProgress<T>(_ label: String, show: @escaping @MainActor (String?) -> Void,
+                                    _ work: () async throws -> T) async throws -> T {
         let reveal = Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(400))
             if !Task.isCancelled { show(label) }
         }
         defer { reveal.cancel(); show(nil) }
-        return try await Task.detached(priority: .userInitiated, operation: work).value
+        return try await work()
     }
 
     #if !os(macOS)

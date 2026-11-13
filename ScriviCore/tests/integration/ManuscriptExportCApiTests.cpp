@@ -8,6 +8,8 @@
 // AC9 (SP-212, T-0673): the byline under the title and the authors in the metadata, in every format; retired and unnamed
 // authors never; a work with no named author exactly as before (the fixture's only author is "Scrivi", so every golden
 // above the AC9 cases is that case).
+// S5b (SP-214, T-0675): the print page — the writer's typography in pt (sizes), px (lengths, line heights) and classes (what QTextDocument reads as well as
+// WebKit), the title page, each chapter starting a page, the book indent as a class; the face returned for the host.
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -515,4 +517,65 @@ TEST_CASE("Manuscript export: ePub — the whole manuscript only, to a path; the
     CHECK_FALSE(fs::exists(file));
     f.exportWith(R"({"format":"epub","language":"fr\" x=\"<","destPath":")" + file.string() + "\"}");
     CHECK(docxPart(file, "OEBPS/content.opf").find("xml:lang=\"frx\">") != std::string::npos);
+}
+
+// S5b (SP-214, T-0675): the print page a platform paginates into a PDF.
+namespace {
+std::string printPage(const std::string& style, const std::string& body) {
+    return "<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"utf-8\">\n"
+           "<meta name=\"author\" content=\"Alexandre Dumas; Auguste Maquet\">\n"
+           "<title>The Three Musketeers</title>\n<style>\n" + style + "</style>\n</head>\n<body>\n" + body +
+           "</body>\n</html>\n";
+}
+} // namespace
+
+TEST_CASE("Manuscript export: the print page — typography, title page, a chapter per page (AC1, Q3-Q5)",
+          "[manuscript-export][capi]") {
+    ExportFixture f;
+    f.authors(R"([{"displayName":"Alexandre Dumas"},{"displayName":"Auguste Maquet"}])");
+    const JsonDoc r = f.exportWith(R"({"format":"html","document":"print","defaultTypeface":"Literata"})");
+    CHECK(r.getString("typeface") == "Literata");
+    CHECK(r.getString("text") == printPage(
+        "body { font-family: \"Literata\"; font-size: 16pt; }\n"
+        "p, li { line-height: 30.9px; }\n"
+        "p { margin: 0 0 10.3px 0; text-indent: 0; }\n"
+        "p.indent { text-indent: 32px; }\n"
+        "ul, ol { margin: 0 0 10.3px 0; }\n"
+        "h1 { font-size: 27.1pt; line-height: 45.1px; margin: 0 0 10.3px 0; }\n"
+        "h2 { font-size: 22.2pt; line-height: 36.9px; margin: 0 0 10.3px 0; }\n"
+        "h3 { font-size: 19.7pt; line-height: 32.8px; margin: 0 0 10.3px 0; }\n"
+        "hr { border: 0; border-top: 1px solid #808080; margin: 10.3px 26.7px; }\n"
+        ".chapter { page-break-before: always; }\n"
+        ".titlepage { text-align: center; text-indent: 0; }\n"
+        "h1.titlepage { font-size: 40.6pt; line-height: 67.7px; margin-top: 171px; }\n",
+        "<h1 class=\"titlepage\">The Three Musketeers</h1>\n"
+        "<p class=\"titlepage\">A Romance</p>\n"
+        "<p class=\"titlepage\">by Alexandre Dumas and Auguste Maquet</p>\n" +
+        // Every chapter starts a page, the first after the title page; scenes break with the rule (Q5).
+        std::string(kHtmlBody).replace(kHtmlBody.find("<h2>Chapter 2"), 4, "<h2 class=\"chapter\">")
+                              .replace(0, 4, "<h2 class=\"chapter\">")));
+}
+
+TEST_CASE("Manuscript export: the print page — the book indent, titles hidden, one chapter (AC1, Q3)",
+          "[manuscript-export][capi]") {
+    ExportFixture f;
+    const JsonDoc opened = ok(scrivi_open_project(f.r(), f.as(), kId));
+    const JsonDoc b1 = opened.arrayItem("scenes", 2);
+    f.save(b1.getString("sceneID"), b1.getString("metadataPath"), b1.getString("contentPath"), "One.\n\nTwo.\n\nThree.\n\n- x");
+    // The book indent: a paragraph straight after a paragraph, spelled as a class (QTextDocument reads no "p + p").
+    std::string text = f.exportWith(R"({"format":"html","document":"print","scope":"chapter","chapterID":")" + f.chapter2 +
+                                    "\"}").getString("text");
+    CHECK(text.find("<h1") == std::string::npos);   // one chapter: no title page, and its heading starts no new page
+    CHECK(text.find("<body>\n<h2>Chapter 2</h2>\n<p>One.</p>\n<p class=\"indent\">Two.</p>\n<p class=\"indent\">Three.</p>\n"
+                    "<ul>") != std::string::npos);
+    CHECK(text.find("font-family") == std::string::npos);   // no face chosen and none from the host: the engine's own
+
+    // Titles hidden: the chapter's first block carries the break; "every" indents in the stylesheet, no classes.
+    ok(scrivi_put_project_settings(f.r(), R"({"subtitle":"A Romance","showChapterTitles":false,"paragraphIndent":"every"})"));
+    text = f.exportWith(R"({"format":"html","document":"print"})").getString("text");
+    CHECK(text.find("<h2") == std::string::npos);
+    CHECK(text.find("<p class=\"titlepage\">A Romance</p>\n<h1 class=\"chapter\">Heading One</h1>") != std::string::npos);
+    CHECK(text.find("<p>Second scene.</p>\n<p class=\"chapter\">One.</p>\n<p>Two.</p>") != std::string::npos);
+    CHECK(text.find("p { margin: 0 0 10.3px 0; text-indent: 32px; }") != std::string::npos);
+    CHECK(text.find("indent\"") == std::string::npos);
 }

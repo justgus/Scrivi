@@ -1,5 +1,7 @@
 # Sprint Backlog
 
+*Last Updated: 2026-11-12 (**SP-214 removed** — activated 2026-11-12.)*
+
 *Last Updated: 2026-11-12 (**SP-214 created in 🔵 Planning** — EP-054 S5b (user, 2026-11-12: *"plan EP-054 S5b."*); Q1–Q5 to rule.)*
 
 *Last Updated: 2026-11-12 (**SP-213 removed** — activated 2026-11-12.)*
@@ -47,14 +49,6 @@
 *Last Updated: 2026-11-05 (**SP-204 removed** — activated 2026-11-05.)*
 
 Sprints listed here are in 🔵 Planning status — defined and ready to activate, but not yet started.
-
----
-
-## EP-054 — Import & Export
-
-### SP-214 — `[Cross]` [EP-054] S5b: PDF export
-
-🔵 **Planning** → [`Sprint-SP-214.md`](Sprint-SP-214.md) · carries [T-0675] · Q1–Q5 to rule (SP-213 Q2–Q4 carried as ruled)
 
 ---
 
