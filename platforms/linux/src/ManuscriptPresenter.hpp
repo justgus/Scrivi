@@ -121,7 +121,8 @@ private:
     bool lineRevealed(int blockNumber) const { return revealedLines_.contains(blockNumber); }
     void onContentsChange(int from, int removed, int added);
 
-    QTextCharFormat hiddenFormat() const;
+    // Draws `count` characters of this line from `start` hidden (W3, [I-0349]).
+    void hide(int start, int count, const QString& text);
     QTextCharFormat dimmedFormat() const;
     QTextCharFormat chapterTitleFormat() const;
 

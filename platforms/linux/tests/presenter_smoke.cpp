@@ -5,7 +5,9 @@
 // Each check names the AC it is evidence for. ⚠️ The live pass on the rig is still owed — a suite
 // cannot say whether a writer can read it (`feedback_live_pass_finds_what_suites_cannot`).
 
+#include <QAbstractTextDocumentLayout>
 #include <QApplication>
+#include <QFontInfo>
 #include <QElapsedTimer>
 #include <QKeyEvent>
 #include <QTextBlock>
@@ -91,8 +93,22 @@ struct Harness {
         }
         return -1;
     }
-    // DRAWN hidden: the presenter applied its 0.01 pt format (⛔ not merely "no format").
-    bool drawnHidden(int at) { const qreal s = drawnSize(at); return s > 0 && s < 0.1; }
+    // DRAWN hidden: the presenter applied its hidden format, ~1 px and transparent (⛔ not merely "no format").
+    bool drawnHidden(int at) { const qreal s = drawnSize(at); return s > 0 && s < 1.0; }
+    // [I-0349] (SP-217): the face that DRAWS the character at `at`, and at what pixel size — "" when no glyph run.
+    QString drawnBy(int at, qreal* pixels = nullptr)
+    {
+        // ⛔ A 0 px character is drawn by no face, and asking Qt 6.4 for its glyph run segfaults: report none.
+        if (const qreal size = drawnSize(at); size >= 0 && size * editor.logicalDpiY() / 72.0 < 0.5) {
+            return {};
+        }
+        const QTextBlock b = doc.document()->findBlock(base() + at);
+        doc.document()->documentLayout()->blockBoundingRect(b);   // laid out with the current formats
+        const auto runs = b.layout()->glyphRuns(base() + at - b.position(), 1);
+        if (runs.isEmpty() || !runs.first().rawFont().isValid()) { return {}; }
+        if (pixels != nullptr) { *pixels = runs.first().rawFont().pixelSize(); }
+        return runs.first().rawFont().familyName();
+    }
     bool hidden(int at) { return presenter.isHidden(base() + at); }
 };
 
@@ -104,6 +120,13 @@ void escapes()
     check(!h.hidden(3), "L4: the escaped mark is visible");
     check(std::abs(h.x(3) - h.x(2)) < 0.5, QStringLiteral("L4: a hidden backslash has no width (%1 vs %2)").arg(h.x(2)).arg(h.x(3)));
     check(h.body() == QStringLiteral("Mr\\. Smith said \\*no\\*."), "L3: stored text untouched");
+    // [I-0349] (SP-217): the hidden backslash is drawn by the manuscript's OWN face at a real size — at 0 px no face has a
+    // glyph and Qt searched every fallback font (9.5 s for 3 scenes on a desktop with 2,278 fonts).
+    qreal px = 0;
+    const QString face = h.drawnBy(2, &px);
+    const QString own = QFontInfo(h.doc.document()->defaultFont()).family();
+    check(face == own && px >= 1.0, QStringLiteral("I-0349: a hidden backslash is drawn by %1 at >= 1 px (by \"%2\" at %3 px)")
+                                        .arg(own, face).arg(px));
     Harness hb(QStringLiteral("line one\\\nline two"));
     check(hb.hidden(8), "L4: hard-break backslash hidden (a line follows)");
     Harness he(QStringLiteral("end.\\\n\nnext."));
@@ -120,9 +143,14 @@ void headings()
     h.caret(line + 6);
     check(h.pos() == line + 6, "caret rests inside the heading text");
     check(!h.hidden(line), "L6: prefix revealed with the caret on its line");
-    check(h.drawnSize(line) > 0.5, "L6: revealed prefix drawn at body size, not 0.01 pt");
+    check(h.drawnSize(line) > 1.0, "L6: revealed prefix drawn at body size, not hidden");
     h.caret(0);
     check(h.hidden(line) && h.drawnHidden(line), "L6: prefix hidden again when the caret leaves");
+    const QString own = QFontInfo(h.doc.document()->defaultFont()).family();
+    qreal px = 0;
+    const QString face = h.drawnBy(line, &px);
+    check(face == own && px >= 1.0, QStringLiteral("I-0349: a hidden `#` is drawn by %1 at >= 1 px (by \"%2\" at %3 px)")
+                                        .arg(own, face).arg(px));
     check(h.body() == QStringLiteral("Body first.\n\n## Chapter heading\n\nAfter."), "L3: stored text untouched");
 }
 
@@ -133,6 +161,11 @@ void emphasis()
     h.caret(0);
     check(h.hidden(2) && h.hidden(3) && h.hidden(8) && h.hidden(9), "L6: bold markers hidden");
     check(h.drawnHidden(2) && h.drawnHidden(9), "L6: bold markers DRAWN hidden");
+    {
+        const QString own = QFontInfo(h.doc.document()->defaultFont()).family();
+        qreal px = 0;
+        check(h.drawnBy(2, &px) == own && px >= 1.0, "I-0349: a hidden `*` is drawn by the manuscript's own face at >= 1 px");
+    }
     check(std::abs(h.x(4) - h.x(2)) < 0.5, "L6: hidden `**` has no width");
     check(h.hidden(15) && h.hidden(18), "L6: italic markers hidden");
     // Span reveal (SP-162 amendment): at the span's first character.

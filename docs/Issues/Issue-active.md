@@ -1,5 +1,7 @@
 # Active Issues
 
+*Last Updated: 2026-11-13 — **I-0349 → here** from the backlog, with [SP-217]'s activation (user, 2026-11-13: *"Q1–Q3 as recommended, activate and implement SP-217"*).*
+
 Issues awaiting **user verification**. An Issue leaves this file only when the user verifies it
 (→ `Verified/Issue-verified-XXXX-YYYY.md`, batched in decades of ten) or approves its closure
 (→ `Closed/`).
@@ -8,6 +10,7 @@ Issues awaiting **user verification**. An Issue leaves this file only when the u
 
 | ID | Title | Severity | Sprint | Status |
 | -- | ----- | -------- | ------ | ------ |
+| **I-0349** | `[Linux]` ⛔ **After a load the window freezes ~5.5 s — GNOME offers "Wait or Force Quit"** (user, 2026-11-04: *"It only started happening today"*). ✅ Measured: the first paint of the manuscript loads FALLBACK FONTS one by one through fontconfig (`QFontEngineMulti::ensureEngineAt` → `FT_New_Face`, main-thread stack sampled); present since at least 2026-11-02 (build 1.0.321); the dialog is likely new with today's gnome-shell upgrade. ✅ A part was mine ([SP-203]'s accessibility layer handled each of a load's thousands of events alone) — coalesced. → [details](#i-0349) | High | [SP-217] (🟡 Active) | 🟡 **Active** |
 | **I-0358** | `[CI]` ScriviCore CI's **macOS sanitizers** job takes 3 to 56+ minutes, almost all of it in Build. **Cause** (the 51-min Build of run "SP-208 Live pass 2", 2026-11-10): `cmake --build build --parallel` with no count is an **unbounded `make -j`** under the Makefile generator, so all 267 compiles started within 8 s, then nothing finished for 39 min — sanitized compiles thrashing a 3-core runner's memory (the scrivi-vm OOM of 2026-11-11, again). The Linux CI uses Ninja and is bounded. Still running 30 min in on `c979b63`. **Fix:** `--parallel "$(getconf _NPROCESSORS_ONLN)"` (`.github/workflows/scrivi-core-ci.yml:57`). **Verify:** the macOS sanitizers Build step in single-digit minutes on the next pushes. **First run with the fix** (`98fe9cf`, 2026-11-12): all four jobs green; macOS sanitizers Build **66 s**, the whole job 3 min 20 s. **Second** (`1aaffb3`): macOS sanitizers job **4 min** in all, green. (The plain macOS job of that run was cancelled before any runner took it — no steps ran; green on re-run.) ⚠️ Earlier unfixed runs also had fast Builds, so this needs a few more pushes in a row. | Low | — | 🟠 **Resolved - Not Verified** |
 | **I-0242** | `[Linux]` ⛔ **THE WRITER'S CARD STACK IS IGNORED — Linux ENUMERATES KINDS instead of honouring the chosen stack, and DROPS any card that is empty.** ⚠️ **FOUND BY THE USER on the real rig, 2026-09-21**, during [SP-142]'s live pass on `the-stairs-of-tintagael` — ⛔ **not by any test.** ✅ **USER RULING (2026-09-21), and it is the whole specification:** ⚠️ ***"The writer chooses which Card elements to display and in what order they appear. Therefore, if the writer chooses to display an empty card in the stack, then it should be displayed with an appropriate 'No Objects to Display' message. Apple already does this. Linux must as well."*** ⚠️ **REPORTED AS 'Factions is missing'; ⛔ THAT IS THE SYMPTOM, NOT THE DEFECT.** ✅ **Linux CAN render factions** — it derives kinds from `ObjectKindScope`/`kAllStorableKinds` and hardcodes nothing (the standing rule WAS followed). ⛔ **THE DEFECT IS THAT IT NEVER ASKS WHAT THE WRITER CHOSE.** ✅ **`SceneInspector.cpp:551` lists the CORE's kinds and `:577` skips any with no entries in this scene** (*"a kind with nothing in this scene is simply not a row"*) — ⚠️ **so the stack is DERIVED FROM DATA, while Apple's is DECLARED BY THE WRITER.** ⚠️ **APPLE IS THE REFERENCE AND IT IS EXPLICIT:** `ObjectCard.swift:450` renders *"No <kind> in this scene yet."* with the comment ⚠️ ***"§2: empty is a normal state, not an error."*** ⛔ **THE ROOT CAUSE IS A DANGLING READ.** ✅ **`inspector-layout.json` HOLDS the answer — `defaultStacks` and per-scene `scenes` — and [T-0537] just proved Linux ROUND-TRIPS both LOSSLESSLY.** ⚠️ **But `InspectorLayoutStore` exposes ONLY `selectedTab`: ⛔ ZERO reads of `defaultStacks` or `scenes` anywhere in `platforms/linux/`.** ✅ **So Linux has been faithfully PRESERVING a document it does not consult** — ⚠️ **`project_capability_without_surface` in its exact form: a dangling read with no reader.** ⚠️ **CONSEQUENCE BEYOND THE MISSING CARD: ORDER IS ALSO WRONG.** ⛔ **Linux emits kinds in the CORE's order; the writer's chosen order is in `defaultStacks` and is ignored** — ✅ **the user's ruling names order explicitly.** ⚠️ **AND IT BLOCKS THE STACK PICKER ([EP-036] AC4b): a '+' menu that adds a card to a stack nothing reads would change nothing on screen.** ⛔ **That picker had NO Task number; ⚠️ an earlier draft of this row cited `T-0543`, which is now [SP-134]'s — ✅ corrected 2026-09-22.** | **Medium** | ⛔ **UNASSIGNED** — ⚠️ **candidate for [EP-036]; ✅ it is the PREREQUISITE for T-0543, so they should sequence together** | 🔵 **Open** |
 |  **I-0244** | `[Linux]` ⚠️ **THE LINUX APP HAS NONE OF [EP-040]'s EDITOR SHELL, AND NOTHING TRACKS THE GAP.** ⚠️ **RAISED 2026-09-22 from the user's own observation during [SP-135]'s live pass:** ⚠️ ***"I did not toggle the panels on Linux or any of the more recent UI changes because many of them have not been made on Linux yet."*** ✅ **MEASURED THE SAME DAY, not asserted:** ⛔ **Linux has ZERO `QToolBar`/`addToolBar` in `platforms/linux/src/`** · ⛔ **ZERO navigator-visibility state** · ⚠️ **Apple now has a `.toolbar` with 3 `ControlGroup`s and SIX `safeAreaBar`s.** ⚠️ **THIS IS NOT A DEFECT IN EITHER PLATFORM.** ✅ **[EP-040] is scoped `[Apple]` DELIBERATELY** — ⛔ **but four Sprints of shell work ([SP-134] toolbar · [SP-135] bars · [SP-136] inspector column · [SP-137] detail sheet) have no Linux counterpart, and NO Epic, Sprint or Issue records that.** ⚠️ **`feedback_linux_adopts_apple_shape` is the standing rule: *Apple is the reference for architecture; a shape change on Apple must be made the same way on Linux in the SAME work.*** ⛔ **That has not happened, and the divergence is now FOUR SPRINTS DEEP AND GROWING.** ✅ **WHAT THE APPLE WORK ALREADY PROVED, and Linux will re-earn without it:** ⚠️ **[I-0203]'s root cause was that bars were STACK SIBLINGS** — ✅ **Linux's `EditorShell` uses the same layout idiom** — ⚠️ **and the Navigator was unrecoverable because NOTHING OWNED ITS VISIBILITY STATE.** ⛔ **Linux's pane visibility is SESSION-SCOPED ONLY (SP-078/T-0320), which is the same class of gap.** ⚠️ **IT IS NOT [EP-043]'s EITHER:** ✅ **that Epic is the SESSION (multi-window, restore, geometry)** — ⛔ **this is the SHELL (toolbar, bars, panes).** ✅ **They are adjacent and both wait on the same `EditorShell` rework, which is an argument for SEQUENCING them together, not for merging them.** ⚠️ **NOT URGENT AND NOT A REGRESSION** — ✅ **Linux works as it did** — ⛔ **but an untracked divergence is how a port silently falls behind, which is exactly what the Porting Outline exists to prevent.** ---- ⚠️ **A PERFORMANCE EXPECTATION IS INHERITED FROM [I-0213]** (⚠️ *`[Apple]` chapter create froze the app ~2.7 s on a 1,174-scene manuscript; now `~305–400 ms` of work*) **AND IS RECORDED HERE SO LINUX DOES NOT RE-DISCOVER IT AS A DEFECT.** ✅ **[I-0213] was VERIFIED on Apple 2026-09-24 with `createChapter WORK=396.7 ms` on 1,179 scenes, ⚠️ measured DELIBERATELY from a USB mount as a WORST-CASE FLOOR.** ⚠️ **The user named what follows:** *"On Linux it will be even worse because it has to also come through this computer's operating system."* ✅ **SO A LINUX FIGURE WORSE THAN `396.7 ms` ON THE SAME FIXTURE IS ANTICIPATED — ⛔ NOT a regression against [I-0213], and NOT a new Issue on its own.** ⛔ **NOTHING HAS BEEN MEASURED ON LINUX YET; ✅ this is an EXPECTATION TO TEST AGAINST, not a claim about the rig.** ⚠️ **When the Linux editor shell is built, the structural ops MUST be timed with the SAME `[SCRIVI-STRUCT]`-style instrumentation** — ✅ **[I-0213] proved the cost was UNATTRIBUTABLE until each op reported its own number, and that three code-read diagnoses were wrong before it did.** | **Low** | ⛔ **UNASSIGNED — awaiting its OWN Epic.** ✅ **SCOPE RULED 2026-09-26 ([EP-043] [R-Q5], user-approved): it becomes its OWN `[Linux]` Epic, SEQUENCED AFTER [EP-043]** — ⛔ **NOT ACs inside it.** ⚠️ **THIS ROW PREVIOUSLY SAID *"sequenced WITH or after"*; ✅ it is AFTER, and [EP-043]'s record now says the same** — ⛔ **the two records disagreed and no longer do.** ✅ **WHY NOT FOLDED IN: this Issue is FOUR Apple Sprints deep ([SP-134]–[SP-137]), and folding it into a SESSION Epic would repeat the [EP-035] AC1 collapse [I-0178] cites.** ✅ **THE COLLISION IS ALREADY HANDLED: [SP-145] carries a NAMED CARVE-OUT** — ⚠️ **its extraction takes `inspectorVisible_` + `timelineVisible_` onto the session object** (⛔ **per-project state, not per-widget**), ✅ **so this Epic will NOT have to re-open `EditorShell` for pane state.** ⚠️ **Of this Issue's THREE measured gaps, ONLY pane-visibility overlapped, and that is the carve-out** | 🔵 **Open**  |
@@ -207,6 +210,50 @@ scoped **together with I-0131 and I-0132**, which are the same underlying questi
 
 
 
+
+---
+
+## I-0349: `[Linux]` After a load the window freezes ~5.5 s ("Wait or Force Quit")
+
+**Found:** 2026-11-04 (user: *"After load the UI freezes and the 'Wait or force Quit' dialog surfaces. wait a few seconds and it
+goes away … It only started happening today."*); in both of [T-0661]'s logs too (5.5 s after `load: finished`).
+**Measured (scrivi-vm, the real app in its own display and bus, a throwaway copy of app-support, dumas over the share):**
+| Run | After `load: finished` |
+|---|---|
+| today (1.0.352), accessibility on | stall 5.3 s |
+| today, no D-Bus | stall 5.3 s |
+| before today's accessibility code (`21ca0bb`), accessibility on | stall 4.8 s |
+| 2026-11-02 evidence logs (1.0.321) | stall ≥ 2.3 s (the watchdog's second report) |
+**Where:** the main thread, sampled twice with gdb during the stall: `ManuscriptEditor::paintEvent` → `QPlainTextDocumentLayout::
+layoutBlock` → `QTextEngine::shapeText` → `QFontEngineMulti::ensureEngineAt` → `QFontconfigDatabase` / `FT_New_Face` — the FIRST
+paint shaping the manuscript and loading fallback font engines one at a time. Font packages and caches did not change today
+(caches 2026-11-02); `gnome-shell` was upgraded at 12:21 — it shows the "Wait or Force Quit" dialog.
+**Part 1 — mine, fixed (2026-11-04):** [SP-203]'s layer handled each accessibility event alone; a load's highlight pass raises one
+per block (thousands), each a page-map refresh. ✅ Coalesced per turn: one refresh, the turn's edits re-sent; a burst (> 50)
+re-sends only the caret. `ManuscriptAccessibility.cpp` (`flush`); AT-SPI check still passes (keystroke insert, caret). Its share
+of the freeze: the first page build, ~130–180 ms.
+**Part 2 — open:** which characters send the first paint to fallback fonts, and keeping that off the window's way. ⏳
+**Part 2 — ✅ the cause found (2026-11-13)** (user, 2026-11-13: *"I loaded a small project with no world
+/mnt/scrivi-net/projects/the-river-of-time.scrivi … it took almost 10 seconds … I need to know why"*):
+- **The log** (build 1.0.391): `load: finished in 202 ms (3 scenes)`, then the window did not answer for **9.9 s**, "nothing
+  Scrivi has marked"; again on relaunch (9.8 s). The project does have a world (Eskandar, 35 objects, resolved).
+- **Reproduced off the share** (scrivi-vm, the user's build, a copy of the project + world + app-support in `/tmp`, Xvfb):
+  12.5 s. So it is not SMB.
+- **Where** (main thread, gdb): `EditorShell::refreshBranchMarks` (`EditorShell.cpp:2783`) → `ManuscriptEditor::
+  visibleBlockNumbers` (`ManuscriptEditor.cpp:1094`) → `QPlainTextDocumentLayout::layoutBlock` → `QTextEngine::shapeText` →
+  `QFontEngineMulti::ensureEngineAt` → `FT_New_Face` — the first layout of the manuscript.
+- **Which character** (gdb on `stringToCMap` / `ensureEngineAt`): **`U+005C`, the backslash**, with Qt trying fallback engine
+  1, 2, 3, 4, … in turn. These scenes store every `.` and `,` escaped (`\.`, `\,`), and a hidden escape backslash is drawn in
+  `ManuscriptPresenter::hiddenFormat()` (`ManuscriptPresenter.cpp:284`) at **0.01 pt** — 0 px. At that size no engine yields a
+  glyph, so Qt opens fallback font after fallback font, and scrivi-vm has **2,278** (`fc-list`). Any hidden markup (`**`, `#`,
+  escapes) takes the same path; dumas' 5.5 s was sampled in the same stack (Part 1's record).
+- **The fix** (not built): hide markup at a size that still resolves to ≥ 1 px in the manuscript's own (bundled) family, so the
+  primary engine answers — keeping W3's zero-width residue (design §2.4) — then measure the load again on scrivi-vm.
+**Part 2 — 🟠 fixed in [SP-217] (2026-11-13), not verified:** a hidden mark is drawn at 0.75 pt (1 px) in the manuscript's face,
+its advance cancelled by letter spacing (`ManuscriptPresenter::hide`, `ManuscriptPresenter.cpp:282`). scrivi-vm, before → after:
+the-river-of-time 11.6 s → **no stall**; dumas 11.0 s → **751 ms**.
+**Part 3 — open (found 2026-11-13):** dumas' remaining 751 ms is the accessibility layer rebuilding the Find presented text for
+all 1,174 scenes at once on the main thread (`ManuscriptAccessibility` → `PresentedText::refresh` → `buildScene`), sampled.
 
 ---
 

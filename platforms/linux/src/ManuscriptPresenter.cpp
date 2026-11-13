@@ -1,5 +1,6 @@
 #include "ManuscriptPresenter.hpp"
 
+#include <QFontMetricsF>
 #include <QGuiApplication>
 #include <QPalette>
 #include <QScreen>
@@ -278,13 +279,22 @@ QVector<int> ManuscriptPresenter::hiddenAtRest(const QString& blockText) const
 
 // ── Drawing ──────────────────────────────────────────────────────────────────────────────────────
 
-QTextCharFormat ManuscriptPresenter::hiddenFormat() const
+void ManuscriptPresenter::hide(int start, int count, const QString& text)
 {
-    // W3 (design §2.4): 0.01 pt + transparent = 0.00 pt residue on `QPlainTextEdit`.
+    // W3 (design §2.4): hidden, with no width. ✅ [I-0349] (SP-217): at ~1 px in the manuscript's own face, its advance
+    // cancelled by letter spacing. ⛔ Never 0.01 pt (0 px): the face then yields no glyph and Qt opens every fallback font in
+    // turn — 9.5 s for a 3-scene manuscript on a desktop with 2,278 fonts. Same residue as 0.01 pt (SP-217 spike).
+    QFont onePixel = document()->defaultFont();
+    onePixel.setPointSizeF(0.75);
+    const QFontMetricsF metrics(onePixel);
     QTextCharFormat f;
-    f.setFontPointSize(0.01);
+    f.setFontPointSize(0.75);
     f.setForeground(Qt::transparent);
-    return f;
+    f.setFontLetterSpacingType(QFont::AbsoluteSpacing);
+    for (int k = start; k < start + count && k < text.size(); ++k) {
+        f.setFontLetterSpacing(-metrics.horizontalAdvance(text.at(k)));
+        setFormat(k, 1, f);
+    }
 }
 
 QTextCharFormat ManuscriptPresenter::dimmedFormat() const
@@ -446,7 +456,11 @@ void ManuscriptPresenter::highlightBlock(const QString& text)
     // 2. Heading prefixes: hidden, or dimmed on a revealed line.
     for (const auto& h : a.headings) {
         if (const auto p = local(h.prefix)) {
-            setFormat(p->first, p->second, lineRevealed(line.blockNumber()) ? dimmedFormat() : hiddenFormat());
+            if (lineRevealed(line.blockNumber())) {
+                setFormat(p->first, p->second, dimmedFormat());
+            } else {
+                hide(p->first, p->second, text);
+            }
         }
     }
     // 3. Inline markers: hidden, or dimmed inside a revealed span.
@@ -462,12 +476,16 @@ void ManuscriptPresenter::highlightBlock(const QString& text)
                 shown = true;
             }
         }
-        setFormat(r->first, r->second, shown ? dimmedFormat() : hiddenFormat());
+        if (shown) {
+            setFormat(r->first, r->second, dimmedFormat());
+        } else {
+            hide(r->first, r->second, text);
+        }
     }
     // 4. Escape backslashes: always hidden.
     for (int e : in.escapes) {
         if (e >= off && e < off + len) {
-            setFormat(e - off, 1, hiddenFormat());
+            hide(e - off, 1, text);
         }
     }
     // 5. List prefixes: visible, dimmed ([SP-163] Q7). ⚠️ No hanging indent — a highlighter cannot set a
