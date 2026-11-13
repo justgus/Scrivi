@@ -16,8 +16,8 @@
 //   §5 [SP-214] the PDF: the core's print page paginated by `writeManuscriptPdf` — the project's bundled face embedded, the
 //      title page then the chapter, through the bridge; a long manuscript laid out to its end, its text black on a dark
 //      desktop (the SP-214 live pass).
-//   §6 [SP-215] File ▸ Copy as HTML, Import ▸ and Export ▸ in the Mac's order; Current Chapter… enabled at a chapter, and it
-//      goes from the format prompt (no ePub) straight to the save dialog.
+//   §6 [SP-215] File ▸ Copy as HTML, Import ▸ and Export ▸ in the Mac's order; the formats as submenus (AC7), a chapter's
+//      without ePub; Current Chapter enabled at a chapter, and its PDF… straight to the save dialog.
 // ⚠️ NOT covered (live pass only): how the faces LOOK, GNOME's bindings, the rig's Qt 6.10.
 //
 //   argv[1] = a scratch directory for the projects; $XDG_DATA_HOME drives appSupportRoot; Qt offscreen.
@@ -35,7 +35,6 @@
 #include "ScriviBridge.hpp"
 #include "ScriviWindow.hpp"
 
-#include <QAbstractButton>
 #include <QAction>
 #include <QApplication>
 #include <QClipboard>
@@ -505,39 +504,37 @@ int main(int argc, char** argv)
     }
     check(importMenu != nullptr && texts(importMenu) == QStringList{QStringLiteral("Timeline…"), QStringLiteral("Archive…")},
           QStringLiteral("§6 Import ▸ Timeline…, Archive…"));
-    check(exportMenu != nullptr && texts(exportMenu) == QStringList{QStringLiteral("Manuscript…"), QStringLiteral("Current Chapter…"),
+    check(exportMenu != nullptr && texts(exportMenu) == QStringList{QStringLiteral("Manuscript"), QStringLiteral("Current Chapter"),
                                                                     QStringLiteral("Timeline…"), QStringLiteral("Archive…")},
-          QStringLiteral("§6 Export ▸ Manuscript…, Current Chapter…, Timeline…, Archive…"));
+          QStringLiteral("§6 Export ▸ Manuscript, Current Chapter, Timeline…, Archive…"));
     if (exportMenu != nullptr) {
-        QAction* chapterItem = exportMenu->actions().value(1);
+        // AC7: the format is the item — a submenu each, a chapter without ePub.
+        QMenu* manuscriptMenu = exportMenu->actions().value(0)->menu();
+        QMenu* chapterMenu = exportMenu->actions().value(1)->menu();
+        const QStringList chapterFormats{QStringLiteral("Markdown…"), QStringLiteral("HTML…"), QStringLiteral("Word Document…"),
+                                         QStringLiteral("PDF…")};
+        check(manuscriptMenu != nullptr && texts(manuscriptMenu) == QStringList{QStringLiteral("Markdown…"), QStringLiteral("HTML…"),
+                                                                                QStringLiteral("Word Document…"), QStringLiteral("ePub…"),
+                                                                                QStringLiteral("PDF…")},
+              QStringLiteral("§6 Export ▸ Manuscript ▸ Markdown…, HTML…, Word Document…, ePub…, PDF…"));
+        check(chapterMenu != nullptr && texts(chapterMenu) == chapterFormats,
+              QStringLiteral("§6 Export ▸ Current Chapter ▸ the same, without ePub (%1)")
+                  .arg(chapterMenu != nullptr ? texts(chapterMenu).join(QStringLiteral(", ")) : QString()));
         caretAt(ea, positionOf(ea, QStringLiteral("Bravo scene.")) + 2);
         Q_EMIT exportMenu->aboutToShow();
-        check(chapterItem->isEnabled(), QStringLiteral("§6 Current Chapter… is enabled with the caret in a chapter"));
-        // The chapter's format prompt (no ePub), then straight to the save dialog — no scope question (Q3, Point 1).
-        bool prompted = false, saved = false;
-        QStringList buttons;
+        check(exportMenu->actions().value(1)->isEnabled(), QStringLiteral("§6 Current Chapter is enabled with the caret in a chapter"));
+        // Current Chapter ▸ PDF… goes straight to the save dialog: no format or scope question.
+        bool saved = false;
+        QString other;
         QTimer::singleShot(0, wa, [&] {
-            auto* box = qobject_cast<QMessageBox*>(QApplication::activeModalWidget());
-            if (box == nullptr) { return; }
-            prompted = box->windowTitle().startsWith(QStringLiteral("Export “"));
-            QAbstractButton* markdown = nullptr;
-            for (QAbstractButton* b : box->buttons()) {
-                buttons << b->text();
-                if (b->text() == QStringLiteral("Markdown")) { markdown = b; }
-            }
-            QTimer::singleShot(0, wa, [&] {
-                auto* dialog = qobject_cast<QFileDialog*>(QApplication::activeModalWidget());
-                saved = dialog != nullptr;
-                if (dialog != nullptr) { dialog->reject(); }
-                else if (QWidget* w = QApplication::activeModalWidget()) { w->close(); }
-            });
-            if (markdown != nullptr) { markdown->click(); } else { box->reject(); }
+            QWidget* modal = QApplication::activeModalWidget();
+            saved = qobject_cast<QFileDialog*>(modal) != nullptr;
+            if (!saved && modal != nullptr) { other = modal->windowTitle(); }
+            if (modal != nullptr) { modal->close(); }
         });
-        chapterItem->trigger();
+        if (chapterMenu != nullptr) { chapterMenu->actions().value(3)->trigger(); }
         settle();
-        check(prompted && !buttons.contains(QStringLiteral("ePub")),
-              QStringLiteral("§6 Current Chapter… asks the format for the chapter, without ePub (%1)").arg(buttons.join(QStringLiteral(", "))));
-        check(saved, QStringLiteral("§6 … then the save dialog, with no scope question"));
+        check(saved, QStringLiteral("§6 Current Chapter ▸ PDF… opens the save dialog, with no question first (%1)").arg(other));
     }
 
     env.quitApplication();

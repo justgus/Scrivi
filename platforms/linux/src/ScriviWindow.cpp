@@ -315,19 +315,34 @@ void ScriviWindow::buildMenuBar()
             [this]() { if (shell_ != nullptr) { shell_->importArchive(); } });
 
     QMenu* exportMenu = file->addMenu(tr("Export"));
-    QAction* exportManuscript = exportMenu->addAction(tr("Manuscript…"));
-    connect(exportManuscript, &QAction::triggered, this,
-            [this]() { if (editor_ != nullptr) { flushEditor(); editor_->exportManuscript(); } });
-    editorOnlyActions_.append(exportManuscript);
+    // AC7: the format is the item (the Mac's `ExportMenuItems`) — no format dialog; a chapter has no ePub (SP-213 Q7).
+    const auto addFormats = [this](QMenu* menu, bool currentChapter) {
+        const QList<QPair<QString, QString>> formats{{tr("Markdown…"), QStringLiteral("markdown")},
+                                                     {tr("HTML…"), QStringLiteral("html")},
+                                                     {tr("Word Document…"), QStringLiteral("docx")},
+                                                     {tr("ePub…"), QStringLiteral("epub")},
+                                                     {tr("PDF…"), QStringLiteral("pdf")}};
+        for (const auto& [label, format] : formats) {
+            if (currentChapter && format == QLatin1String("epub")) {
+                continue;
+            }
+            connect(menu->addAction(label), &QAction::triggered, this, [this, format, currentChapter]() {
+                if (editor_ != nullptr) { flushEditor(); editor_->exportManuscript(format, currentChapter); }
+            });
+        }
+    };
+    QMenu* manuscriptMenu = exportMenu->addMenu(tr("Manuscript"));
+    addFormats(manuscriptMenu, false);
+    editorOnlyActions_.append(manuscriptMenu->menuAction());
     // Q3: the caret's chapter — greyed when there is none, so it is set as the menu opens (not in editorOnlyActions_).
-    QAction* exportChapter = exportMenu->addAction(tr("Current Chapter…"));
+    QMenu* chapterMenu = exportMenu->addMenu(tr("Current Chapter"));
+    addFormats(chapterMenu, true);
+    QAction* exportChapter = chapterMenu->menuAction();
     exportChapter->setObjectName(QStringLiteral("exportCurrentChapterAction"));
     exportChapter->setEnabled(false);
     connect(exportMenu, &QMenu::aboutToShow, this, [this, exportChapter]() {
         exportChapter->setEnabled(editor_ != nullptr && stack_->currentWidget() == editor_ && editor_->caretChapter());
     });
-    connect(exportChapter, &QAction::triggered, this,
-            [this]() { if (editor_ != nullptr) { flushEditor(); editor_->exportManuscript(/*currentChapter=*/true); } });
     QAction* exportTimeline = exportMenu->addAction(tr("Timeline…"));
     connect(exportTimeline, &QAction::triggered, this,
             [this]() { if (editor_ != nullptr) { editor_->exportTimeline(); } });

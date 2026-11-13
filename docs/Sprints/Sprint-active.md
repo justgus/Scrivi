@@ -1,5 +1,11 @@
 # Active Sprints
 
+*Last Updated: 2026-11-13 (**SP-215 AC7 built**; T-0678 → 🟠.)*
+
+*Last Updated: 2026-11-13 (**SP-215 AC7 added** — the export formats as submenus ([T-0678]).)*
+
+*Last Updated: 2026-11-13 (**SP-215 AC1–AC6 ✅** (live passes); T-0676 → ✅ Verified, archived. Close awaits approval.)*
+
 *Last Updated: 2026-11-13 (**SP-215 built** — AC5 met, AC1–AC4 built; T-0676 → 🟠.)*
 
 *Last Updated: 2026-11-13 (**SP-215 → 🟡 ACTIVE** (user, 2026-11-13: *"Q3 Current Chapter…, activate and implement SP-215"*))*
@@ -105,4 +111,4 @@
 
 ## SP-215 — `[Cross]` [EP-054] File ▸ Import / Export
 
-🟡 **ACTIVE 2026-11-13** → [`Sprint-SP-215.md`](Sprint-SP-215.md) · carries [T-0676] · ✅ Q1–Q4 ruled (Q3: "Current Chapter…") · ✅ built (AC5; AC1–AC4 in the live passes) · ⏳ AC6 live passes
+🟡 **ACTIVE 2026-11-13** → [`Sprint-SP-215.md`](Sprint-SP-215.md) · carries [T-0676], [T-0678] · ✅ Q1–Q4 ruled (Q3: "Current Chapter…") · ✅ AC1–AC6 · ➕ AC7 (formats as submenus) ✅ built · ⏳ AC7 live passes

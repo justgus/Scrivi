@@ -827,7 +827,8 @@ archive files reconstructed after the fact from secondary sources.
 | T-0673 | `[ScriviCore]` EP-054 AC9: the byline on every export | 🟡 **SP-212** | **EP-054** | ✅ Verified 2026-11-12 | [`Verified/Task-verified-0673.md`](Verified/Task-verified-0673.md) |
 | T-0674 | `[Cross]` EP-054 S5: ePub export | ✅ **SP-213** | **EP-054** | ✅ Verified 2026-11-12 | [`Verified/Task-verified-0674.md`](Verified/Task-verified-0674.md) |
 | T-0675 | `[Cross]` EP-054 S5b: PDF export | ✅ **SP-214** | **EP-054** | ✅ Verified 2026-11-13 | [`Verified/Task-verified-0675.md`](Verified/Task-verified-0675.md) |
-| T-0676 | `[Cross]` EP-054: File ▸ Import / Export submenus, Export ▸ Chapter…, the iPad's timeline import/export | 🟡 **SP-215** | **EP-054** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
+| T-0676 | `[Cross]` EP-054: File ▸ Import / Export submenus, Export ▸ Chapter…, the iPad's timeline import/export | 🟡 **SP-215** | **EP-054** | ✅ Verified 2026-11-13 | [`Verified/Task-verified-0676.md`](Verified/Task-verified-0676.md) |
+| T-0678 | `[Cross]` EP-054: the export formats as submenus | 🟡 **SP-215** | **EP-054** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
 | T-0677 | `[Linux]` EP-054: the start window gets the project window's menu bar | 🔵 **SP-216** | **EP-054** | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
 | T-0592 | `[Apple]` E2-S3: formatting commands + lists + Option-Return | 🟡 **SP-163** | **EP-046** | ✅ **Verified 2026-10-06** | [`Task-verified-0592.md`](Verified/Task-verified-0592.md) |
 | T-0591 | `[Apple]` Balance emphasis across SCENE boundaries (cross-scene cut/copy/paste) | 🟡 **SP-163** | **EP-046** | ✅ **Verified 2026-10-06** | [`Task-verified-0591.md`](Verified/Task-verified-0591.md) |
@@ -866,6 +867,12 @@ archive files reconstructed after the fact from secondary sources.
 ⚠️ **This index ended at `T-0485 (next available)` until 2026-09-10 — ✅ that was STALE.** ⚠️ **T-0485–T-0498 had all been taken**, and T-0485–T-0490/T-0492–T-0496 are archived as Verified. ⚠️ **Rows for T-0486–T-0497 are NOT reconstructed here** — ✅ **their Sprints' closed records are authoritative** (`feedback_archive_on_close`).
 
 ---
+
+*Last Updated: 2026-11-13 (**T-0678 → 🟠** ([SP-215] AC7 built).)*
+
+*Last Updated: 2026-11-13 (**T-0678 filed, active** with [SP-215] AC7.)*
+
+*Last Updated: 2026-11-13 (**T-0676 → ✅ Verified** ([SP-215] AC6 passed).)*
 
 *Last Updated: 2026-11-13 (**T-0676 → 🟠** ([SP-215] built).)*
 

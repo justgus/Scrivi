@@ -300,11 +300,11 @@ public:
     // binds one, a save dialog for "<project>.scrivarchive", the call on a worker with the progress row after 400 ms.
     // The caller has flushed the editor; the core drains the write queue.
     void exportArchive();
-    // [SP-207] File ▸ Export ▸ Manuscript… / Current Chapter… and Copy as HTML (Apple: `AppEnvironment.exportManuscript` /
-    // `copyManuscriptAsHTML`): `scrivi_export_manuscript` on a worker. [SP-215] The item is the scope — `currentChapter`:
-    // the caret's chapter, no ePub. Copy asks (Q2) and puts the HTML SOURCE (the body alone) on the clipboard as text. The
-    // caller has flushed the editor.
-    void exportManuscript(bool currentChapter = false);
+    // [SP-207] File ▸ Export ▸ Manuscript ▸ / Current Chapter ▸ and Copy as HTML (Apple: `AppEnvironment.exportManuscript` /
+    // `copyManuscriptAsHTML`): `scrivi_export_manuscript` on a worker. [SP-215] The items are the scope and the format
+    // (`markdown`, `html`, `docx`, `epub`, `pdf`; AC7) — `currentChapter`: the caret's chapter, no ePub. Copy asks (Q2) and
+    // puts the HTML SOURCE (the body alone) on the clipboard as text. The caller has flushed the editor.
+    void exportManuscript(const QString& format, bool currentChapter = false);
     void copyManuscriptAsHTML();
     // The chapter the caret is in, named as the editor names it; false when there is none (Current Chapter… is greyed).
     bool caretChapter(QString* chapterID = nullptr, QString* chapterName = nullptr) const;

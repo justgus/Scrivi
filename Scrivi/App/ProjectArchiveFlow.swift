@@ -51,15 +51,39 @@ struct ExportMenuItems: View {
     let session: ProjectSession?
 
     var body: some View {
-        Button("Manuscript…") { if let session { Task { await env.exportManuscript(session) } } }
+        // AC7: the format is the item (Pages' Export To ▸) — no format dialog; a chapter has no ePub (SP-213 Q7).
+        Menu("Manuscript") { formats(currentChapter: false) }
             .disabled(session == nil)
-        Button("Current Chapter…") { if let session { Task { await env.exportManuscript(session, currentChapter: true) } } }
+        Menu("Current Chapter") { formats(currentChapter: true) }
             .disabled(session.flatMap { env.caretChapter($0) } == nil)
         Button("Timeline…") { if let session { Task { await env.exportTimeline(session) } } }
             .disabled(session == nil)
         Button("Archive…") { if let session { Task { await env.exportArchive(session) } } }
             .disabled(session == nil)
     }
+
+    @ViewBuilder private func formats(currentChapter: Bool) -> some View {
+        ForEach(ExportFormat.allCases.filter { !currentChapter || $0 != .epub }, id: \.self) { format in
+            Button(format.label) {
+                if let session { Task { await env.exportManuscript(session, format: format, currentChapter: currentChapter) } }
+            }
+        }
+    }
+}
+
+/// The manuscript's export formats, in menu order.
+enum ExportFormat: String, CaseIterable {
+    case markdown, html, docx, epub, pdf
+    var label: String {
+        switch self {
+        case .markdown: "Markdown…"
+        case .html: "HTML…"
+        case .docx: "Word Document…"
+        case .epub: "ePub…"
+        case .pdf: "PDF…"
+        }
+    }
+    var fileExtension: String { self == .markdown ? "md" : rawValue }
 }
 
 /// iOS: which file the archive picker is choosing.
@@ -148,25 +172,16 @@ extension AppEnvironment {
 
     // MARK: — Manuscript (EP-054 S3, SP-207)
 
-    /// File ▸ Export ▸ Manuscript… / Current Chapter… (SP-215: the item is the scope): Markdown, HTML (a whole page), a Word
-    /// document (S4, SP-208), an ePub (S5, SP-213, the whole manuscript only, Q7) or a PDF (S5b, SP-214).
-    func exportManuscript(_ session: ProjectSession, currentChapter: Bool = false) async {
+    /// File ▸ Export ▸ Manuscript ▸ / Current Chapter ▸ (SP-215: the items are the scope and the format, AC7): Markdown, HTML
+    /// (a whole page), a Word document (S4, SP-208), an ePub (S5, SP-213, the whole manuscript only, Q7) or a PDF (S5b, SP-214).
+    func exportManuscript(_ session: ProjectSession, format kind: ExportFormat, currentChapter: Bool = false) async {
         guard let root = session.projectRootPath else { return }
         let engine = session.engine
         let chapter = currentChapter ? caretChapter(session) : nil
-        if currentChapter && chapter == nil { return }   // the item is disabled then
+        if currentChapter && (chapter == nil || kind == .epub) { return }   // not offered then
         await session.saveAllDirty()   // the editor's unsaved text; the core then drains the write queue
-        let formats = currentChapter ? ["markdown", "html", "docx", "pdf"] : ["markdown", "html", "docx", "epub", "pdf"]
-        let labels = ["markdown": "Markdown", "html": "HTML", "docx": "Word Document (.docx)", "epub": "ePub", "pdf": "PDF"]
-        let f = await ask(chapter.map { "Export “\($0.name)”" } ?? "Export Manuscript",
-                          "Markdown keeps the text as Scrivi stores it. HTML is a web page with every paragraph its own <p>. "
-                          + "A Word document keeps your typeface and indent in named styles. "
-                          + (currentChapter ? "" : "An ePub is the whole manuscript as a book for e-readers. ")
-                          + "A PDF is set in your typeface, on pages, ready to print.",
-                          formats.map { labels[$0]! } + ["Cancel"])
-        guard f.choice < formats.count else { return }
-        let format = formats[f.choice]
-        let ext = format == "markdown" ? "md" : format
+        let format = kind.rawValue
+        let ext = kind.fileExtension
 
         let projectName = URL(fileURLWithPath: root).deletingPathExtension().lastPathComponent
         let name = (chapter?.name ?? projectName).replacingOccurrences(of: "/", with: "-")

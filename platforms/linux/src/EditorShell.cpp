@@ -4580,41 +4580,19 @@ bool EditorShell::askManuscriptScope(const QString& title, QString& chapterID, Q
     return box.clickedButton() == whole;
 }
 
-void EditorShell::exportManuscript(bool currentChapter)
+void EditorShell::exportManuscript(const QString& format, bool currentChapter)
 {
     if (projectPath_.isEmpty()) {
         return;
     }
     const QString root = projectPath_;
     QString chapterID, chapterName;
-    if (currentChapter && !caretChapter(&chapterID, &chapterName)) {
-        return;   // the item is disabled then
-    }
-    QMessageBox formatBox(QMessageBox::Question,
-                          currentChapter ? tr("Export “%1”").arg(chapterName) : tr("Export Manuscript"),
-                          tr("Markdown keeps the text as Scrivi stores it. HTML is a web page with every paragraph its "
-                             "own <p>. A Word document keeps your typeface and indent in named styles. ")
-                              + (currentChapter ? QString() : tr("An ePub is the whole manuscript as a book for e-readers. "))
-                              + tr("A PDF is set in your typeface, on pages, ready to print."),
-                          QMessageBox::NoButton, this);
-    formatBox.setTextFormat(Qt::PlainText);
-    QPushButton* markdown = formatBox.addButton(tr("Markdown"), QMessageBox::AcceptRole);
-    QPushButton* html     = formatBox.addButton(tr("HTML"), QMessageBox::AcceptRole);
-    QPushButton* docx     = formatBox.addButton(tr("Word Document (.docx)"), QMessageBox::AcceptRole);
-    // SP-213 Q7: an ePub is always the whole manuscript.
-    QPushButton* epub     = currentChapter ? nullptr : formatBox.addButton(tr("ePub"), QMessageBox::AcceptRole);
-    QPushButton* pdf      = formatBox.addButton(tr("PDF"), QMessageBox::AcceptRole);
-    formatBox.addButton(QMessageBox::Cancel);
-    formatBox.exec();
-    const auto* clicked = formatBox.clickedButton();
-    if (clicked == nullptr || (clicked != markdown && clicked != html && clicked != docx && clicked != epub && clicked != pdf)) {
+    // Not offered then: no caret chapter, or an ePub of a chapter (SP-213 Q7: an ePub is always the whole manuscript).
+    if (currentChapter && (!caretChapter(&chapterID, &chapterName) || format == QLatin1String("epub"))) {
         return;
     }
     // EP-054 S4 (SP-208), S5 (SP-213): the core writes a .docx or .epub itself, to the chosen path. S5b (SP-214): a PDF is
     // the core's print page, paginated here.
-    const QString format = clicked == pdf ? QStringLiteral("pdf") : clicked == epub ? QStringLiteral("epub")
-                           : clicked == docx ? QStringLiteral("docx")
-                           : clicked == html ? QStringLiteral("html") : QStringLiteral("markdown");
     const QString ext = format == QLatin1String("markdown") ? QStringLiteral("md") : format;
     QString name = chapterName.isEmpty() ? QFileInfo(root).completeBaseName() : chapterName;
     name.replace(QLatin1Char('/'), QLatin1Char('-'));

@@ -1,5 +1,9 @@
 # Unverified Tasks
 
+*Last Updated: 2026-11-13 (**T-0678 → 🟠 Implemented - Not Verified** ([SP-215] AC7); the live passes are the user's.)*
+
+*Last Updated: 2026-11-13 (**T-0676 → ✅ Verified** (user, 2026-11-13: *"Mac steps 1-8 pass. iPad steps 1-5 pass. Linux steps 1-6 pass."*) and archived → `Verified/Task-verified-0676.md`.)*
+
 *Last Updated: 2026-11-13 (**T-0676 → 🟠 Implemented - Not Verified** ([SP-215]); the live passes (AC6) are the user's.)*
 
 *Last Updated: 2026-11-13 (**T-0675 → ✅ Verified** (user, 2026-11-13: *"Linux steps 1-6 pass. 2148 pages for the full manuscript, 31 pages for Chapter 2."*) and archived → `Verified/Task-verified-0675.md`.)*
@@ -76,22 +80,18 @@ in the backlog carrying a 🟠 status.
 
 ---
 
-## 🟠 T-0676 — `[Cross]` EP-054: File ▸ Import / Export
+## 🟠 T-0678 — `[Cross]` EP-054: the export formats as submenus
 
-**Epic:** [EP-054] · **Status:** 🟠 Implemented - Not Verified (2026-11-13) · **Sprint:** [SP-215] (🟡 Active) →
-[`../Sprints/Sprint-SP-215.md`](../Sprints/Sprint-SP-215.md) · **Date Requested:** 2026-11-13 (user: *"…'Export Manuscript'
-would be misleading if the writer only wants to export a single chapter…"*)
+**Epic:** [EP-054] · **Status:** 🟠 Implemented - Not Verified (2026-11-13) · **Sprint:** [SP-215] (🟡 Active, AC7) →
+[`../Sprints/Sprint-SP-215.md`](../Sprints/Sprint-SP-215.md) · **Date Requested:** 2026-11-13 (user: *"…make it a vertical list
+of buttons like the iPad displays … That would unify the interface and make selection less error prone."*; option B ruled)
 
-**What:** on the Mac, iPad and Linux, File holds Copy as HTML, **Import ▸** Timeline…, Archive… and **Export ▸** Manuscript…,
-Current Chapter…, Timeline…, Archive…; Export ▸ Current Chapter… replaces the scope question; the toolbar's Export button matches (tooltip
-"Export"); the iPad can import and export a timeline. Rulings and ACs: the Sprint.
-
-**Built (2026-11-13):** Apple — `ImportExportCommands` / `ExportMenuItems` (`Scrivi/App/ProjectArchiveFlow.swift`), used by
-both menu bars (`ScriviApp.swift`) and the toolbar (`ProjectToolbar.swift`, tooltip "Export"); `exportManuscript(_:currentChapter:)`;
-the timeline flow moved out of the panel (`exportTimeline`, `importTimeline`, `readTimeline`, `finishTimelineImport`; the
-epoch sheet in `EditorView.swift`, `ProjectSession.pendingTimelineImport`; the iPad's picker via `ArchivePicker.timeline`).
-Linux — the File menu's submenus (`ScriviWindow.cpp`), `EditorShell::exportManuscript(bool)`, `caretChapter`; `settings_smoke` §6.
-Evidence: macOS and iOS builds, interop 348; Linux ctest 847/847, `settings_smoke` §6 (mutation-checked). ⏳ The live passes (SP-215 AC6).
+**What:** File ▸ Export ▸ **Manuscript ▸** Markdown…, HTML…, Word Document…, ePub…, PDF… and **Current Chapter ▸** the same
+without ePub, on the Mac, the iPad (menu bar and toolbar's Export button) and Linux, in place of the format dialog.
+**Built (2026-11-13):** Apple `ExportMenuItems` / `ExportFormat` and `exportManuscript(_:format:currentChapter:)`
+(`Scrivi/App/ProjectArchiveFlow.swift`); Linux `ScriviWindow.cpp` submenus, `EditorShell::exportManuscript(format,
+currentChapter)`; `settings_smoke` §6 (mutation-checked). Evidence: macOS and iOS builds, interop 348; Linux ctest 847/847 and
+the menu smokes. ⏳ The live passes (SP-215 AC7).
 
 ---
 
