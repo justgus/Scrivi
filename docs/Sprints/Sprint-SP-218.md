@@ -10,7 +10,7 @@ created: 2026-11-14
 
 **Status:** 🟡 **ACTIVE** 2026-11-14 (user, 2026-11-14: *"Ok, activate andimplement SP-218"*) · planned 2026-11-14 (user: *"We're ready to begin planning S6, the Markdown/text and .docx impor."*);
 ✅ Q1–Q8 ruled as recommended (user, 2026-11-14: *"Q1-Q8 as recommended."*).
-**Carries:** [T-0679] → [`../Tasks/Task-active.md`](../Tasks/Task-active.md); [I-0362] → [`../Issues/Issue-active.md`](../Issues/Issue-active.md) (found in the Mac live pass).
+**Carries:** [T-0679] → [`../Tasks/Task-active.md`](../Tasks/Task-active.md); [I-0362] → [`../Issues/Issue-active.md`](../Issues/Issue-active.md) (found in the Mac live pass); [I-0363] (found in the Linux live pass).
 **Epic:** [EP-054] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md).
 **Followed by:** S6b — `.docx` import (Q1), not yet created; Q6 and Q7 below are ruled for it.
 **Builds on:** [SP-207] (the Markdown export this must read back), [SP-215] (File ▸ Import), EP-029's structured paste
@@ -149,3 +149,6 @@ reported), inline object references ([EP-032]).
   open, the iPad first says why it closes (Continue / Cancel) — `presentImportManuscript`, `ProjectArchiveFlow.swift`; iOS build ✅.
   ⚠️ The pasted step list ran the Linux steps 3–4 on the iPad (iPad step 6 and Linux step 1 lost in the copy): iPad step 6 and
   every Linux step still to run.
+- **2026-11-15 — live pass (user), next round:** iPad steps 1–2 ✅ pass (the new alert: Cancel keeps the project, Continue closes it;
+  the existing project refused). Linux, import as a new project ❌: the save dialog's Save went grey and nothing happened → filed
+  [I-0363], fixed to Import Archive's name-then-folder dialogs (`ScriviWindow.cpp`); compiled on scrivi-vm, not yet run.

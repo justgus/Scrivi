@@ -155,23 +155,25 @@ void ShellController::importManuscript(EditorShell* into)
             return;
         }
     }
-    // A new project, where the writer names it (as New Project).
-    QString root = QFileDialog::getSaveFileName(parent, tr("Import “%1” as a New Project").arg(stem),
-                                                QFileInfo(source).absolutePath() + QLatin1Char('/') + stem +
-                                                    QStringLiteral(".scrivi"));
-    if (root.isEmpty()) {
+    // A new project: its name, then its folder, as Import Archive asks. (SP-218 live pass: the GTK save dialog's Save went grey
+    // and never returned on a ".scrivi" name.) The core refuses a folder already there, and says so.
+    bool ok = false;
+    QString name = QInputDialog::getText(parent, tr("Import “%1”").arg(stem),
+                                         tr("Name the project, then choose the folder to put it in."),
+                                         QLineEdit::Normal, stem, &ok).trimmed();
+    if (!ok || name.isEmpty()) {
         return;
     }
-    if (!root.endsWith(QStringLiteral(".scrivi"))) {
-        root += QStringLiteral(".scrivi");
-    }
-    // The dialog asked about replacing; the core never writes over a folder, so the old one goes to the Trash first.
-    if (QFileInfo::exists(root) && !QFile::moveToTrash(root)) {
-        QMessageBox::warning(parent, tr("The manuscript could not be imported"),
-                             tr("“%1” could not be moved to the Trash.").arg(QFileInfo(root).fileName()));
+    const QString folder = QFileDialog::getExistingDirectory(
+        parent, tr("Choose the folder to put “%1” in").arg(name),
+        QFileInfo(source).absolutePath(), QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+    if (folder.isEmpty()) {
         return;
     }
-    runManuscriptImport(source, root, nullptr);
+    if (!name.endsWith(QStringLiteral(".scrivi"))) {
+        name += QStringLiteral(".scrivi");
+    }
+    runManuscriptImport(source, QDir(folder).filePath(name), nullptr);
 }
 
 void ShellController::runManuscriptImport(const QString& source, const QString& projectRoot, EditorShell* into)
