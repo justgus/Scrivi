@@ -36,6 +36,9 @@
 #include "manuscript/ProjectIndex.hpp"
 #include "manuscript/ManuscriptOrderResolver.hpp"
 #include "manuscript/ManuscriptExport.hpp"
+#include "manuscript/ManuscriptImport.hpp"
+#include "manuscript/ChapterRenamer.hpp"
+#include "domain/Slug.hpp"
 #include "manuscript/FragmentExtractor.hpp"
 #include "manuscript/FragmentPaster.hpp"
 #include "manuscript/RangeOperations.hpp"
@@ -1368,6 +1371,117 @@ const char* scrivi_export_manuscript(const char* projectRootPath, const char* op
     }
     doc.setInt64("chapterCount", static_cast<int64_t>(chapters.size()));
     doc.setInt64("sceneCount", static_cast<int64_t>(in.scenes.size()));
+    return heap(okEnvelope(std::move(doc)));
+  });
+}
+
+static const char* putOpaqueDocument(const char* projectRootPath, const char* fileName, const char* documentJson);
+
+// EP-054 S6a (SP-218): a manuscript from Markdown or plain text. Without newProject it only reads: the Range goes to the
+// host's own structured paste (one undo step). With newProject it creates that project and fills it.
+const char* scrivi_import_manuscript(const char* sourcePath, const char* optionsJSON) {
+  return guarded([&]() -> const char* {
+    SCRIVI_REQUIRE_PATH(sourcePath, "sourcePath");
+    auto parsed = scrivi::util::parseJson(*S(optionsJSON) != '\0' ? S(optionsJSON) : "{}");
+    if (!parsed.ok() || !parsed.value().isObject())
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "optionsJSON is not a JSON object"));
+    const auto& o = parsed.value();
+    const std::filesystem::path source{S(sourcePath)};
+    std::string ext = source.extension().string();
+    std::ranges::transform(ext, ext.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    const std::string format = o.getString("format", ext == ".txt" || ext == ".text" ? "text" : "markdown");
+    if (format != "markdown" && format != "text")
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "format must be markdown or text"));
+
+    // A manuscript is megabytes; anything far past that is not one, and is never read whole.
+    constexpr std::uintmax_t kMaxBytes = 64u << 20;
+    std::error_code ec;
+    const auto size = std::filesystem::file_size(source, ec);
+    if (ec) return heap(errorEnvelope(scrivi::ErrorCode::ioError, "the file cannot be read: " + source.string()));
+    if (size > kMaxBytes)
+        return heap(errorEnvelope(scrivi::Error{scrivi::ErrorCode::invalidArgument, "the file is too large to be a manuscript",
+                                                source.string(), "tooLarge"}));
+    auto svc = abiServices();
+    auto bytes = svc.fileSystem->readTextFile(source.string());
+    if (!bytes.ok()) return heap(errorEnvelope(bytes.error()));
+    auto imported = scrivi::manuscript::importManuscript(bytes.value(), format == "markdown");
+    if (!imported.ok()) return heap(errorEnvelope(imported.error()));
+    auto& m = imported.value();
+
+    scrivi::util::JsonDoc doc;
+    if (!m.title.empty()) doc.setString("title", m.title);
+    if (!m.subtitle.empty()) doc.setString("subtitle", m.subtitle);
+    doc.setString("encoding", m.encoding);
+    for (const auto& n : m.report) {
+        scrivi::util::JsonDoc e;
+        e.setString("kind", n.kind);
+        e.setInt64("count", static_cast<int64_t>(n.count));
+        e.setString("example", n.example);
+        doc.appendToArray("report", std::move(e));
+    }
+    doc.setInt64("chapterCount", static_cast<int64_t>(m.chapterCount));
+    doc.setInt64("sceneCount", static_cast<int64_t>(m.range.size()));
+
+    const auto np = o.getSubDoc("newProject");
+    if (!np.isObject() || np.getString("projectRootPath").empty()) {
+        if (m.opensChapter) {   // at a caret the first chapter opens one: an empty first entry stays with the caret scene
+            scrivi::manuscript::RangeEntry head;
+            head.chapterID = scrivi::ChapterID{"~import-caret"};
+            m.range.entries().push_front(std::move(head));
+        }
+        if (!m.range.empty()) doc.setSubDoc("range", m.range.toJson());
+        return heap(okEnvelope(std::move(doc)));
+    }
+
+    // A new project: the file's title, else its name; the first chapter is the project's own.
+    const std::string root = np.getString("projectRootPath");
+    SCRIVI_PROJECT_WRITE(root.c_str());
+    if (std::filesystem::exists(root, ec))   // never over a folder already there: the host asked for a new one
+        return heap(errorEnvelope(scrivi::Error{scrivi::ErrorCode::invalidArgument, "the folder already exists", root,
+                                                "exists"}));
+    const std::string title = !m.title.empty() ? m.title : source.stem().string();
+    const scrivi::AuthorshipRef author{scrivi::IdentityID{np.getString("identityID")},
+                                       scrivi::PersonaID{np.getString("personaID")}, np.getString("displayName")};
+    scrivi::CreateProjectRequest req;
+    req.projectRootPath = root;
+    req.appSupportRoot  = np.getString("appSupportRoot");
+    req.title           = title;
+    req.slug            = scrivi::util::makeSlug(title);
+    req.author          = author;
+    auto created = core().createProject(req);
+    if (!created.ok()) return heap(errorEnvelope(created.error()));
+    const auto& c = created.value();
+    if (!m.range.empty()) {
+        if (const auto& first = m.range.entries().front(); !first.chapterTitle.empty()) {
+            scrivi::manuscript::ChapterRenamer renamer{svc};
+            auto path = renamer.findChapterMetadataPath(root, c.firstChapterID);
+            if (!path.ok()) return heap(errorEnvelope(path.error()));
+            auto renamed = renamer.rename({root, path.value(), first.chapterTitle});
+            if (!renamed.ok()) return heap(errorEnvelope(renamed.error()));
+        }
+        scrivi::manuscript::PasteFragmentRequest paste;
+        paste.projectRootPath = root;
+        paste.appSupportRoot  = req.appSupportRoot;
+        paste.projectID       = c.project.projectID;
+        paste.author          = author;
+        paste.fragment        = m.range.toFragment();
+        paste.caretSceneID    = c.firstSceneID;
+        scrivi::manuscript::FragmentPaster paster{svc};
+        auto pasted = paster.paste(paste);
+        if (!pasted.ok()) return heap(errorEnvelope(pasted.error()));
+    }
+    if (!m.subtitle.empty()) {
+        scrivi::util::JsonDoc settings;
+        settings.setString("subtitle", m.subtitle);
+        const char* raw = putOpaqueDocument(root.c_str(), "project-settings.json", settings.dump().c_str());
+        auto put = scrivi::util::parseJson(raw);
+        scrivi_free(raw);
+        if (!put.ok() || !put.value().getBool("ok"))
+            return heap(errorEnvelope(scrivi::ErrorCode::ioError, "the subtitle could not be written: " + root));
+    }
+    doc.setString("projectRoot", root);
+    doc.setString("projectID", c.project.projectID.value);
+    if (m.title.empty()) doc.setString("title", title);
     return heap(okEnvelope(std::move(doc)));
   });
 }

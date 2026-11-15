@@ -12,15 +12,18 @@
 #include <QDialogButtonBox>
 #include <QDir>
 #include <QFileDialog>
+#include <QFile>
 #include <QFileInfo>
 #include <QFont>
 #include <QInputDialog>
+#include <QJsonObject>
 #include <QKeySequence>
 #include <QLabel>
 #include <QLineEdit>
 #include <QMenu>
 #include <QMenuBar>
 #include <QMessageBox>
+#include <QPointer>
 #include <QProgressDialog>
 #include <QPushButton>
 #include <QQuickWidget>
@@ -84,6 +87,145 @@ void ShellController::openEditor(const QString& projectPath, const QString& titl
     if (window_ != nullptr) {
         window_->showEditor(projectPath, title, openedProject);
     }
+}
+
+// ---- [SP-218] Import Manuscript ----------------------------------------------
+
+namespace {
+
+// Q8: what the import kept only as text, or left out — the Mac's `tellNotes`, word for word.
+QString importNotes(const QVariantList& report)
+{
+    QStringList out;
+    for (const QVariant& v : report) {
+        const QVariantMap n = v.toMap();
+        const int count = n.value(QStringLiteral("count")).toInt();
+        const QString kind = n.value(QStringLiteral("kind")).toString(), example = n.value(QStringLiteral("example")).toString();
+        const QString lines = count == 1 ? QObject::tr("1 line") : QObject::tr("%1 lines").arg(count);
+        if (kind == QLatin1String("encodingGuessed")) {
+            out << QObject::tr("It was read as Windows-1252 text. If accented letters look wrong, it used another encoding.");
+        } else if (kind == QLatin1String("hardWrapped")) {
+            out << QObject::tr("Its lines look hard-wrapped. Every line break was kept, so paragraphs may break mid-sentence.");
+        } else if (kind == QLatin1String("byline")) {
+            out << QObject::tr("The byline “%1” was left out: a project’s authors are set in Authors.").arg(example);
+        } else if (kind == QLatin1String("link")) {
+            out << QObject::tr("%1 with links, kept as text (first: “%2”).").arg(lines, example);
+        } else if (kind == QLatin1String("image")) {
+            out << QObject::tr("%1 with images, kept as text — pictures are not imported (first: “%2”).").arg(lines, example);
+        } else if (kind == QLatin1String("code")) {
+            out << QObject::tr("%1 of code, kept as text (first: “%2”).").arg(lines, example);
+        } else if (kind == QLatin1String("blockQuote")) {
+            out << QObject::tr("%1 quoted with “>”, kept as text (first: “%2”).").arg(lines, example);
+        } else if (kind == QLatin1String("html")) {
+            out << QObject::tr("%1 with HTML, kept as text (first: “%2”).").arg(lines, example);
+        } else if (kind == QLatin1String("table")) {
+            out << QObject::tr("%1 of a table, kept as text (first: “%2”).").arg(lines, example);
+        } else {
+            out << QObject::tr("%1: %2 (first: “%3”).").arg(lines, kind, example);
+        }
+    }
+    return out.join(QStringLiteral("\n\n"));
+}
+
+} // namespace
+
+void ShellController::importManuscript(EditorShell* into)
+{
+    QWidget* parent = QApplication::activeWindow();
+    const QString source = QFileDialog::getOpenFileName(parent, tr("Import Manuscript"), QDir::homePath(),
+                                                        tr("Markdown or text (*.md *.markdown *.txt *.text);;All files (*)"));
+    if (source.isEmpty()) {
+        return;
+    }
+    const QString stem = QFileInfo(source).completeBaseName();
+    if (into != nullptr && !into->currentProjectPath().isEmpty()) {
+        QMessageBox box(QMessageBox::Question, tr("Import “%1”").arg(stem),
+                        tr("As a new project, or into “%1” at the caret?")
+                            .arg(QFileInfo(into->currentProjectPath()).completeBaseName()),
+                        QMessageBox::NoButton, parent);
+        QPushButton* asNew = box.addButton(tr("New Project…"), QMessageBox::AcceptRole);
+        QPushButton* here  = box.addButton(tr("Into This Project"), QMessageBox::AcceptRole);
+        box.addButton(QMessageBox::Cancel);
+        box.exec();
+        if (box.clickedButton() == here) {
+            runManuscriptImport(source, {}, into);
+            return;
+        }
+        if (box.clickedButton() != asNew) {
+            return;
+        }
+    }
+    // A new project, where the writer names it (as New Project).
+    QString root = QFileDialog::getSaveFileName(parent, tr("Import “%1” as a New Project").arg(stem),
+                                                QFileInfo(source).absolutePath() + QLatin1Char('/') + stem +
+                                                    QStringLiteral(".scrivi"));
+    if (root.isEmpty()) {
+        return;
+    }
+    if (!root.endsWith(QStringLiteral(".scrivi"))) {
+        root += QStringLiteral(".scrivi");
+    }
+    // The dialog asked about replacing; the core never writes over a folder, so the old one goes to the Trash first.
+    if (QFileInfo::exists(root) && !QFile::moveToTrash(root)) {
+        QMessageBox::warning(parent, tr("The manuscript could not be imported"),
+                             tr("“%1” could not be moved to the Trash.").arg(QFileInfo(root).fileName()));
+        return;
+    }
+    runManuscriptImport(source, root, nullptr);
+}
+
+void ShellController::runManuscriptImport(const QString& source, const QString& projectRoot, EditorShell* into)
+{
+    QWidget* parent = QApplication::activeWindow();
+    auto* progress = new QProgressDialog(tr("Importing manuscript…"), QString(), 0, 0, parent);
+    progress->setWindowModality(Qt::WindowModal);
+    progress->setMinimumDuration(0);
+    progress->setAttribute(Qt::WA_DeleteOnClose);
+    progress->hide();
+    QTimer::singleShot(400, progress, [progress]() { progress->show(); });
+
+    // The identity is resolved here, on the GUI thread (idempotent, as the editor's own bridge).
+    ScriviBridge identity;
+    identity.bootstrap(QStringLiteral("Scrivi"), appSupportRoot_);
+    const WorkerBridge::Handle handle = WorkerBridge::handleFor(&identity);
+    const QString support = appSupportRoot_;
+    const QPointer<EditorShell> target = into;
+    AsyncCall::run<QVariantMap>(
+        this,
+        [handle, source, projectRoot, support]() {
+            WorkerBridge bridge(handle);
+            return bridge->importManuscript(source, projectRoot, support);
+        },
+        [this, source, projectRoot, target, progress](QVariantMap r) {
+            progress->close();
+            QWidget* parent = QApplication::activeWindow();
+            const QString stem = QFileInfo(source).completeBaseName();
+            if (r.contains(QStringLiteral("errorMessage")) || r.isEmpty()) {
+                const QString message = r.value(QStringLiteral("errorDetail")).toString() == QStringLiteral("exists")
+                    ? tr("“%1” already exists. Choose another name for the imported project.").arg(QFileInfo(projectRoot).fileName())
+                    : r.value(QStringLiteral("errorMessage"), tr("The file could not be read.")).toString();
+                QMessageBox::warning(parent, tr("The manuscript could not be imported"), message);
+                return;
+            }
+            if (projectRoot.isEmpty()) {
+                const QJsonObject range = QJsonObject::fromVariantMap(r.value(QStringLiteral("range")).toMap());
+                if (range.isEmpty()) {
+                    QMessageBox::information(parent, tr("Nothing to import"),
+                                             tr("“%1” holds no text.").arg(QFileInfo(source).fileName()));
+                    return;
+                }
+                if (target != nullptr) { target->pasteRange(range); }   // its progress, its one undo step
+            }
+            if (const QVariantList report = r.value(QStringLiteral("report")).toList(); !report.isEmpty()) {
+                QMessageBox::information(parent, tr("“%1” was imported, with notes").arg(stem), importNotes(report));
+            }
+            if (!projectRoot.isEmpty()) {
+                if (env_ != nullptr) { env_->showLanding(); }
+                emit openPathRequested(r.value(QStringLiteral("projectRoot"), projectRoot).toString());
+            }
+        },
+        [progress]() { progress->close(); },
+        projectRoot.isEmpty() ? AsyncCall::kDefaultTimeoutMs : 0);   // a new project is never abandoned: it writes
 }
 
 // ---- [SP-206] Import Archive -------------------------------------------------
@@ -320,6 +462,12 @@ void ScriviWindow::buildMenuBar(QMainWindow* host, ScriviWindow* w, AppEnvironme
     editorOnlyActions.append(copyAsHtml);
 
     QMenu* importMenu = file->addMenu(tr("Import"));
+    // [SP-218] Q2: with no project open it makes one.
+    QAction* importManuscript = importMenu->addAction(tr("Manuscript…"));
+    connect(importManuscript, &QAction::triggered, host, [=]() {
+        if (w != nullptr) { w->flushEditor(); }
+        if (shell() != nullptr) { shell()->importManuscript(ed()); }
+    });
     QAction* importTimeline = importMenu->addAction(tr("Timeline…"));
     connect(importTimeline, &QAction::triggered, host,
             [=]() { if (ed() != nullptr) { ed()->importTimeline(); } });

@@ -72,9 +72,36 @@ int digitAt(const std::vector<unsigned int>& ds, std::size_t i) {
     return i < ds.size() ? ds[i] : 0;
 }
 
+bool hasLegacy(std::string_view k) {
+    return std::any_of(k.begin(), k.end(), [](char c) { return c >= 'a' && c <= 'z'; });
+}
+
 } // namespace
 
 std::string keyBetween(std::string_view lo, std::string_view hi) {
+    // A pre-T-0358 project keeps its lowercase keys (no rebalance runs), and lowercase sorts above every caps digit, so the
+    // digit descent below cannot reach past one. Next to one, a caps segment is added under lo's first segment instead.
+    if (hasLegacy(lo) || hasLegacy(hi)) {
+        if (lo == "0") lo = {};   // keyBefore's open bottom
+        if (hi == "Z") hi = {};   // keyAfter's open top
+        if (!lo.empty() && !hi.empty() && !(lo < hi)) { return {}; }
+        if (hasLegacy(lo)) {
+            // head + "." + t sorts above lo (= head or head.loTail, t > loTail), and below hi: either hi continues head
+            // with a dot (t < hiTail) or hi passes head some other way, above every head + "." + anything.
+            const std::size_t dot = lo.find('.');
+            const std::string_view head   = lo.substr(0, dot);
+            const std::string_view loTail = dot == std::string_view::npos ? std::string_view{} : lo.substr(dot + 1);
+            const bool under = hi.size() > head.size() + 1 && hi.substr(0, head.size()) == head && hi[head.size()] == '.';
+            const std::string tail = keyBetween(loTail, under ? hi.substr(head.size() + 1) : std::string_view{});
+            if (tail.empty()) { return {}; }
+            return std::string(head) + "." + tail;
+        }
+        // Only hi has lowercase. Its caps prefix, then 'Z', sorts below it (caps < lowercase), so a caps key below that works.
+        const std::string capsBound = std::string(hi.substr(0, hi.find_first_of("abcdefghijklmnopqrstuvwxyz"))) + "Z";
+        if (!lo.empty() && !(lo < capsBound)) { return {}; }
+        return keyBetween(lo, capsBound);
+    }
+
     const bool hiOpen = (hi == "") || (hi[0] == kGenDigits[kGenBase-1]);
     const bool loOpen = (lo == "") || (lo[0] == kGenDigits[0]);
 

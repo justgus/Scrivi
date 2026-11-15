@@ -486,6 +486,7 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-215** | `[Cross]` **[EP-054]** — File ▸ Import / Export submenus, Export ▸ Chapter…, the iPad's timeline import/export (T-0676); AC7 the formats as submenus (T-0678) | EP-054 | 2026-11-13 | 2026-11-13 | ✅ **CLOSED** → [`Closed/Sprint-SP-215.md`](Closed/Sprint-SP-215.md) |
 | **SP-216** | `[Linux]` **[EP-054]** — the start window gets the project window's menu bar (T-0677) | EP-054 | 2026-11-13 | 2026-11-13 | ✅ **CLOSED** → [`Closed/Sprint-SP-216.md`](Closed/Sprint-SP-216.md) |
 | **SP-217** | `[Linux]` **[I-0349]** — hidden markup without the fallback-font search | — | 2026-11-13 | 2026-11-13 | ✅ **CLOSED** → [`Closed/Sprint-SP-217.md`](Closed/Sprint-SP-217.md) |
+| **SP-218** | `[Cross]` **[EP-054] S6a** — Markdown and plain-text import (T-0679); `.docx` import its own Sprint (Q1) | EP-054 | 2026-11-14 | — | 🟡 **ACTIVE** → [`Sprint-SP-218.md`](Sprint-SP-218.md) |
 | **SP-160** | `[Linux]` **[EP-049] S1** — Linux writes Apple's manuscript format: escaping, paste/copy, pair deletion, Return/⌫, shared corpus (T-0586); + I-0276 | EP-049 | 2026-10-04 | 2026-10-04 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-160.md) |
 
 ## Statistics
@@ -525,6 +526,10 @@ by status, read the table.**
 > on neither time. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-11-14 (**SP-218 → 🟡 ACTIVE** (user, 2026-11-14: *"Ok, activate andimplement SP-218"*))*
+
+*Last Updated: 2026-11-14 (**SP-218 created in 🔵 Planning** (user, 2026-11-14: *"We're ready to begin planning S6, the Markdown/text and .docx impor."*), issued via `next-id.py`; T-0679 filed; Q1–Q8 ruled as recommended.)*
 
 *Last Updated: 2026-11-13 (**SP-217 → ✅ CLOSED** (user, 2026-11-13: *"Linux steps 1-5 and Mac step 6 all pass, close SP-217"*))*
 

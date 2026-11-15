@@ -72,6 +72,8 @@ import os
     var createChapterAction: (() -> Void)?
     var mergeSceneAction:   (() -> Void)?
     var mergeChapterAction: (() -> Void)?
+    /// File ▸ Import ▸ Manuscript… into this project (SP-218): the editor's structured paste at the caret. Mac only.
+    var importRangeAction: ((ScriviRange) -> Void)?
 
     // Scene/Chapter boundary navigation (2026-08-18). Menu-only for now — every
     // conventional key equivalent is already taken (⌘↑/↓ document, ⌥↑/↓ paragraph,

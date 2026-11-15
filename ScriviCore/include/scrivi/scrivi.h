@@ -112,6 +112,24 @@ const char* scrivi_import_archive(const char* archivePath, const char* destFolde
  * result: {text, chapterCount, sceneCount}; print adds typeface (the face to embed); docx, epub: {path, chapterCount, sceneCount} */
 const char* scrivi_export_manuscript(const char* projectRootPath, const char* optionsJSON);
 
+/* EP-054 S6a (SP-218) — a manuscript written elsewhere, from Markdown or plain text (format from the extension: .txt / .text
+ * are text, anything else Markdown; or optionsJSON {format: "markdown"|"text"}). Markdown: `#` opens a chapter, `##`–`######`
+ * stay in the text, a thematic break paragraph (`* * *`, `***`, `---`, `___`) opens a scene, text before the first `#` is an
+ * untitled first chapter; exactly the export's title page (`# Title`, an optional subtitle, `by …`, then a `#`) is the title.
+ * Text: literal (every mark escaped, as typing stores it), paragraphs at blank lines, scenes at a line of only `* * *`, `***`
+ * or `#`, one chapter. UTF-8 (BOM stripped), UTF-16 with a BOM, else Windows-1252; a single newline stays a line break.
+ * Empty scenes are left out, except a chapter's only one. Refused (error.detail): "notText", "tooLarge" (over 64 MB).
+ * Without optionsJSON.newProject it READS ONLY: result {range?, title?, subtitle?, encoding, report?, chapterCount, sceneCount}
+ *   — `range` (scrivi.range.v1, placeholder IDs) is for the host's structured paste at the caret (scrivi_range_paste), so it
+ *   is one undo step; when the file opens with a chapter heading its first entry is empty, so the paste opens that chapter.
+ * With newProject {projectRootPath, appSupportRoot, identityID, personaID, displayName} it CREATES that project — titled
+ *   from the title page or the file's name, the subtitle in project-settings.json, the first chapter the project's own —
+ *   and returns {projectRoot, projectID, title, …} instead of the range; the host then opens it. Refused ("exists") when
+ *   projectRootPath is already there: nothing is written over.
+ * report: [{kind, count, example}] — what is kept only as text or was consumed: encodingGuessed, hardWrapped, byline, link,
+ *   image, code, blockQuote, html, table. WARNING: "range" / "report" are OMITTED when empty. */
+const char* scrivi_import_manuscript(const char* sourcePath, const char* optionsJSON);
+
 /* Every scene whose story time is EXPLICITLY SET, in manuscript order.
  *
  * SPARSE: scenes sitting on the derived default chain are OMITTED -- their

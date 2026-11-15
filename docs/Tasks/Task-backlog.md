@@ -1,5 +1,9 @@
 # Task Backlog
 
+*Last Updated: 2026-11-14 (**T-0679 → active** with [SP-218]'s activation.)*
+
+*Last Updated: 2026-11-14 (**T-0679 filed** with [SP-218] (🔵 Planning), [EP-054] S6a.)*
+
 *Last Updated: 2026-11-13 (**T-0677 → active** with [SP-216]'s activation.)*
 
 *Last Updated: 2026-11-13 (**T-0676 → active** with [SP-215]'s activation.)*

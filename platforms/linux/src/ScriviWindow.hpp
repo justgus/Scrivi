@@ -75,6 +75,11 @@ public:
     // through Landing's own open flow — unless a copy of it is already open (Q1: unpacked, not opened, and said so).
     Q_INVOKABLE void importArchive(const QString& archivePath = {});
 
+    // [SP-218] EP-054 S6a — File ▸ Import ▸ Manuscript… (Apple: `AppEnvironment.presentImportManuscript`): a Markdown or text
+    // file; with a project open, New Project… or Into This Project (`into`'s structured paste, one undo step); then what was
+    // kept only as text (Q8). A new project opens through Landing's own open flow, as an imported archive does.
+    void importManuscript(EditorShell* into);
+
 signals:
     void newProjectRequested();
     void openProjectRequested();
@@ -83,6 +88,7 @@ signals:
 
 private:
     void runImport(const QString& archivePath, const QString& folder, const QVariantMap& options);
+    void runManuscriptImport(const QString& source, const QString& projectRoot, EditorShell* into);
 
     ScriviWindow* window_ = nullptr;
     QString appSupportRoot_;

@@ -194,7 +194,7 @@ import UniformTypeIdentifiers
     #if !os(macOS)
     // iOS single-scene helper: close the open project so the Landing view (which hosts the
     // New Project sheet and the Open document importer) returns to the single window.
-    private func closeActiveProjectForLanding() {
+    func closeActiveProjectForLanding() {
         if let pid = activeSession?.openProjectResult?.projectID {
             closeProject(projectID: pid)
         }

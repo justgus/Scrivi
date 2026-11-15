@@ -122,6 +122,7 @@ struct ManuscriptTextView: NSViewRepresentable {
         session.createChapterAction = { [weak coordinator] in coordinator?.takeFocus(); coordinator?.handleCreateChapter() }
         session.mergeSceneAction    = { [weak coordinator] in coordinator?.takeFocus(); coordinator?.handleMergeScene() }
         session.mergeChapterAction  = { [weak coordinator] in coordinator?.takeFocus(); coordinator?.handleMergeChapter() }
+        session.importRangeAction   = { [weak coordinator] range in coordinator?.takeFocus(); _ = coordinator?.pasteStructuredRange(range) }
 
         // Scene/Chapter boundary navigation — menu-only until a key equivalent is ruled.
         // Same take-focus-first discipline: a menu click leaves first responder alone, and

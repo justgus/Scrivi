@@ -423,6 +423,25 @@ int main(int argc, char* argv[])
         check(!bridge.lastCallFailed() && book.value(QStringLiteral("path")).toString() == epub && bookFile.open(QIODevice::ReadOnly)
                   && bookFile.read(64).contains("mimetypeapplication/epub+zip"),
               "exportManuscript: an .epub is written to destPath");
+
+        // EP-054 S6a (SP-218): Import ▸ Manuscript… through the bridge — the Range to paste, a new project, a refusal.
+        const QString importFile = QDir(out).filePath(QStringLiteral("bridge-parity-import.md"));
+        QFile source(importFile);   // boundary-ok: the smoke's own import file, outside any package
+        check(source.open(QIODevice::WriteOnly) && source.write("# One\n\nA [link](x).\n\n* * *\n\nTwo.\n") > 0,
+              "importManuscript: the source file is written");
+        source.close();
+        const QVariantMap read = bridge.importManuscript(importFile);
+        check(!bridge.lastCallFailed() && read.value(QStringLiteral("range")).toMap().value(QStringLiteral("scenes")).toList().size() == 3
+                  && read.value(QStringLiteral("report")).toList().size() == 1,
+              "importManuscript: the Range to paste and the notes come back");
+        const QString made = QDir(out).filePath(QStringLiteral("Imported.scrivi"));
+        const QVariantMap created = bridge.importManuscript(importFile, made, appSupport);
+        check(!bridge.lastCallFailed() && created.value(QStringLiteral("projectRoot")).toString() == made
+                  && QFileInfo::exists(QDir(made).filePath(QStringLiteral("project.json"))),
+              "importManuscript: a new project is made from the file");
+        const QVariantMap again = bridge.importManuscript(importFile, made, appSupport);
+        check(bridge.lastCallFailed() && again.value(QStringLiteral("errorDetail")).toString() == QStringLiteral("exists"),
+              "importManuscript: never over a folder already there");
     }
 
     std::fprintf(stderr, "bridge_parity_smoke: %d checks, %d failures\n", checks, failures);

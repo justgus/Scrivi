@@ -157,6 +157,11 @@ public:
     // [SP-207] EP-054 S3 — `scrivi_export_manuscript`: {text, chapterCount, sceneCount}. Blocking: call it on a worker.
     // `options`: {format: "markdown"|"html", scope?: "manuscript"|"chapter", chapterID?, document?: "page"|"body"}.
     QVariantMap exportManuscript(const QString& projectRootPath, const QVariantMap& options);
+    // EP-054 S6a (SP-218): `scrivi_import_manuscript`. An empty `newProjectRoot` only reads — the result's `range` is for
+    // `EditorShell::pasteRange` (one undo step). Otherwise it creates that project from the file, credited to the writer's
+    // default pen name ("Scrivi" when there is none, which the project's author prompt asks about — EP-058).
+    QVariantMap importManuscript(const QString& sourcePath, const QString& newProjectRoot = {},
+                                 const QString& appSupportRoot = {});
 
     // Loads a single scene's body (SP-061 / T-0235). Calls scrivi_open_scene and
     // returns its ok "result": {scene{sceneID,chapterID,title,slug,metadataPath,

@@ -7314,6 +7314,26 @@ struct UndoAfterStructuralOpTests {
         #expect(try h.onDisk(target) == "Alpha Bravo Pre")
     }
 
+    /// SP-218 Q2: File ▸ Import ▸ Manuscript… into this project is the editor's structured paste — one undo step.
+    @Test("an imported manuscript pastes at the caret; one undo takes it all back")
+    func importedManuscriptPastesAndUndoes() async throws {
+        let h = try await harness(["Alpha Bravo"])
+        await h.loader.saveScene(at: 0, engine: h.env.engine, ref: try #require(h.env.authorshipRef))
+        h.caret(scene: 0, at: 6)                                    // after "Alpha "
+        let file = FileManager.default.temporaryDirectory.appendingPathComponent("import-\(UUID().uuidString).md")
+        try "one\n\n* * *\n\ntwo *it*".write(to: file, atomically: true, encoding: .utf8)
+        defer { try? FileManager.default.removeItem(at: file) }
+        let range = try #require(try h.env.engine.importManuscript(sourcePath: file.path).range)
+        #expect(h.c.pasteStructuredRange(range))
+        try await h.landed()
+        #expect(h.loader.segments.map(\.text) == ["Alpha one", "two *it*Bravo"])
+        try h.listMatchesDisk("the import")
+        h.c.performUndo()
+        try await h.landed()
+        #expect(h.loader.segments.map(\.text) == ["Alpha Bravo"], "one undo step")
+        try h.listMatchesDisk("the import's undo")
+    }
+
     /// [I-0294] — the paste splits the target AS SAVED and then reloads every scene from disk: ⛔ typing the autosave had
     /// not written yet was dropped (`" Pre"` gone from `"threeBravo Pre"`). Two scenes typed in, neither saved.
     @Test("structured paste right after typing keeps the typing — in the target and in another scene")
@@ -9004,6 +9024,31 @@ extension ScriviInteropTests {
 // MARK: — [SP-207] EP-054 S3: the manuscript export through ScriviEngine
 
 extension ScriviInteropTests {
+    @Test("SP-218: importManuscript through ScriviEngine — the Range to paste, a new project, the notes")
+    func manuscriptImportThroughEngine() throws {
+        let f = try makeProjectFixture()
+        let source = URL(fileURLWithPath: f.appSupport.path).appendingPathComponent("Imported Book.md")
+        try "# One\n\nA [link](x).\n\n* * *\n\nTwo.\n\n# Three\n\nFour.".write(to: source, atomically: true, encoding: .utf8)
+
+        let read = try f.engine.importManuscript(sourcePath: source.path)
+        let range = try #require(read.range)
+        #expect(range.scenes.map(\.text) == ["", "A [link](x).", "Two.", "Four."])   // the empty head: "One" opens a chapter
+        #expect(range.scenes.map(\.chapterTitle) == ["", "One", "One", "Three"])
+        #expect(read.chapterCount == 2 && read.sceneCount == 3 && read.encoding == "utf-8")   // the head is no scene
+        #expect(read.report.map(\.kind) == ["link"] && read.projectRoot == nil)
+
+        let root = URL(fileURLWithPath: f.appSupport.path).appendingPathComponent("Imported.scrivi").path
+        let made = try f.engine.importManuscript(sourcePath: source.path, newProject: (root, f.appSupport.path, f.ref))
+        #expect(made.projectRoot == root && made.title == "Imported Book" && made.range == nil)
+        let opened = try f.engine.openProject(projectRootPath: root, appSupportRoot: f.appSupport.path)
+        defer { f.engine.closeProject(projectRootPath: root) }
+        #expect(opened.scenes.count == 3)
+        // Never over a folder already there.
+        #expect(throws: ScriviError.self) {
+            try f.engine.importManuscript(sourcePath: source.path, newProject: (root, f.appSupport.path, f.ref))
+        }
+    }
+
     @Test("SP-207: exportManuscript through ScriviEngine — HTML body, a whole page, Markdown, one chapter")
     func manuscriptExportThroughEngine() throws {
         let f = try makeProjectFixture()

@@ -25,7 +25,7 @@ struct ArchivePrompt: Identifiable {
 }
 
 /// SP-215: File ▸ Copy as HTML, Import ▸ and Export ▸ — the Mac's and the iPad's menu bar alike. With no project open only
-/// Import ▸ Archive… is enabled (Point 5).
+/// Import ▸ Manuscript… and Archive… are enabled (Point 5; SP-218).
 struct ImportExportCommands: View {
     let env: AppEnvironment
     let session: ProjectSession?
@@ -36,6 +36,8 @@ struct ImportExportCommands: View {
         }
         .disabled(session == nil)
         Menu("Import") {
+            // SP-218 Q2: with no project open it makes one.
+            Button("Manuscript…") { env.presentImportManuscript(session) }
             Button("Timeline…") { if let session { env.importTimeline(session) } }
                 .disabled(session == nil)
             Button("Archive…") { env.presentImportArchive() }
@@ -91,6 +93,8 @@ enum ArchivePicker: Equatable {
     case archive
     case folder(archive: URL, name: String)   // name: the project folder the writer chose
     case timeline                             // SP-215 Q4: a .scrivi-timeline.json for File ▸ Import ▸ Timeline…
+    case manuscript                           // SP-218: a Markdown or text file for File ▸ Import ▸ Manuscript…
+    case manuscriptFolder(source: URL)        // … and the folder its new project goes in
 }
 
 /// SP-215: a timeline file, read and waiting for its epoch offset (the project window shows the sheet).
@@ -389,6 +393,128 @@ extension AppEnvironment {
         session.timelineModel?.loadImportedTimelines(projectRootPath: root, engine: session.engine)
     }
 
+    // MARK: — Manuscript import (EP-054 S6a, SP-218)
+
+    static let manuscriptTypes: [UTType] = [.plainText] + ["md", "markdown"].compactMap { UTType(filenameExtension: $0) }
+
+    /// File ▸ Import ▸ Manuscript…: a Markdown or text file. Q2: a new project, or — on the Mac, with a project open — into it
+    /// at the caret as one undo step. ⚠️ The iPad makes a new project only: its editor has no structured paste yet (EP-055).
+    func presentImportManuscript(_ session: ProjectSession?) {
+        #if os(macOS)
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = Self.manuscriptTypes
+        panel.allowsMultipleSelection = false
+        panel.title = "Import Manuscript"
+        panel.message = "Choose a Markdown or plain-text file"
+        panel.prompt = "Import"
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        Task { await importManuscript(url, into: session) }
+        #else
+        closeActiveProjectForLanding()
+        archivePicker = .manuscript
+        #endif
+    }
+
+    #if os(macOS)
+    func importManuscript(_ source: URL, into session: ProjectSession?) async {
+        let scoped = source.startAccessingSecurityScopedResource()
+        defer { if scoped { source.stopAccessingSecurityScopedResource() } }
+        let stem = source.deletingPathExtension().lastPathComponent
+        let sourcePath = source.path(percentEncoded: false)
+        if let session, let paste = session.importRangeAction, let root = session.projectRootPath {
+            let name = URL(fileURLWithPath: root).deletingPathExtension().lastPathComponent
+            let r = await ask("Import “\(stem)”", "As a new project, or into “\(name)” at the caret?",
+                              ["New Project…", "Into This Project", "Cancel"])
+            if r.choice == 2 { return }
+            if r.choice == 1 {
+                let engine = session.engine
+                do {
+                    let result = try await offMain("Importing manuscript…", show: { session.archiveProgress = $0 }) {
+                        try engine.importManuscript(sourcePath: sourcePath)
+                    }
+                    guard let range = result.range else {
+                        await tell("Nothing to import", "“\(source.lastPathComponent)” holds no text.")
+                        return
+                    }
+                    paste(range)   // the editor's structured paste: its progress, its one undo step
+                    await tellNotes(result, stem)
+                } catch {
+                    await tell("The manuscript could not be imported", message(for: error))
+                }
+                return
+            }
+        }
+        // A new project, where the writer names it (as New Project).
+        let panel = NSSavePanel()
+        panel.title = "Import “\(stem)” as a New Project"
+        panel.nameFieldLabel = "Project folder:"
+        panel.nameFieldStringValue = stem
+        panel.canCreateDirectories = true
+        panel.prompt = "Import"
+        panel.allowedContentTypes = [UTType("com.caposoft.scrivi.project") ?? .package]
+        guard panel.runModal() == .OK, var project = panel.url else { return }
+        if project.pathExtension != "scrivi" { project.deletePathExtension(); project.appendPathExtension("scrivi") }
+        // The panel asked about replacing; the core never writes over a folder, so the old one goes to the Trash first.
+        if FileManager.default.fileExists(atPath: project.path(percentEncoded: false)) {
+            do { try FileManager.default.trashItem(at: project, resultingItemURL: nil) } catch {
+                await tell("The manuscript could not be imported", message(for: error))
+                return
+            }
+        }
+        await importManuscriptAsProject(sourcePath, stem, at: project)
+    }
+    #else
+    /// iPad: the new project goes in the folder the writer picked; the folder's grant is HELD while it is open.
+    func importManuscript(_ source: URL, intoFolder folder: URL) async {
+        let scoped = source.startAccessingSecurityScopedResource()
+        defer { if scoped { source.stopAccessingSecurityScopedResource() } }
+        _ = folder.startAccessingSecurityScopedResource()
+        let stem = source.deletingPathExtension().lastPathComponent
+        await importManuscriptAsProject(source.path(percentEncoded: false), stem,
+                                        at: folder.appendingPathComponent("\(stem).scrivi", isDirectory: true))
+    }
+    #endif
+
+    private func importManuscriptAsProject(_ sourcePath: String, _ stem: String, at project: URL) async {
+        guard let ref = authorshipRef else { return }
+        // The writer's default pen name; none yet → "Scrivi", which the project's author prompt asks about (EP-058).
+        let author = AuthorshipRef(identityID: ref.identityID, personaID: ref.personaID,
+                                   displayName: penNames.default.isEmpty ? "Scrivi" : penNames.default)
+        let engine = engine, root = project.path(percentEncoded: false), support = appSupportRoot
+        do {
+            let result = try await offMain("Importing manuscript…", show: { [weak self] in self?.archiveProgress = $0 }) {
+                try engine.importManuscript(sourcePath: sourcePath, newProject: (root, support, author))
+            }
+            await tellNotes(result, stem)
+            await openProjectFile(at: URL(fileURLWithPath: result.projectRoot ?? root, isDirectory: true))
+        } catch let e as ScriviError where e.detail == "exists" {
+            await tell("“\(project.lastPathComponent)” already exists", "Choose another name for the imported project.")
+        } catch {
+            await tell("The manuscript could not be imported", message(for: error))
+        }
+    }
+
+    /// Q8: what the import kept only as text, or left out. Nothing to say, no sheet.
+    private func tellNotes(_ result: ImportManuscriptResult, _ stem: String) async {
+        guard !result.report.isEmpty else { return }
+        let lines = result.report.map { n -> String in
+            let lines = n.count == 1 ? "1 line" : "\(n.count) lines"
+            switch n.kind {
+            case "encodingGuessed": return "It was read as Windows-1252 text. If accented letters look wrong, it used another encoding."
+            case "hardWrapped": return "Its lines look hard-wrapped. Every line break was kept, so paragraphs may break mid-sentence."
+            case "byline": return "The byline “\(n.example)” was left out: a project’s authors are set in Authors."
+            case "link": return "\(lines) with links, kept as text (first: “\(n.example)”)."
+            case "image": return "\(lines) with images, kept as text — pictures are not imported (first: “\(n.example)”)."
+            case "code": return "\(lines) of code, kept as text (first: “\(n.example)”)."
+            case "blockQuote": return "\(lines) quoted with “>”, kept as text (first: “\(n.example)”)."
+            case "html": return "\(lines) with HTML, kept as text (first: “\(n.example)”)."
+            case "table": return "\(lines) of a table, kept as text (first: “\(n.example)”)."
+            default: return "\(lines): \(n.kind) (first: “\(n.example)”)."
+            }
+        }
+        await tell("“\(stem)” was imported, with notes", lines.joined(separator: "\n\n"))
+    }
+
     // MARK: — Import
 
     #if os(macOS)
@@ -607,7 +733,8 @@ struct ArchiveFlowHost: ViewModifier {
             .fileImporter(isPresented: Binding(get: { env.archivePicker != nil },
                                                set: { if !$0 { env.archivePicker = nil } }),
                           allowedContentTypes: env.archivePicker == .archive ? [AppEnvironment.archiveType]
-                                               : env.archivePicker == .timeline ? [.json] : [.folder],
+                                               : env.archivePicker == .timeline ? [.json]
+                                               : env.archivePicker == .manuscript ? AppEnvironment.manuscriptTypes : [.folder],
                           allowsMultipleSelection: false) { result in
                 env.archivePicker = nil
                 guard case .success(let urls) = result, let url = urls.first else { return }
@@ -632,6 +759,19 @@ struct ArchiveFlowHost: ViewModifier {
                     Task { await env.importArchive(archive, into: url, name: name) }
                 case .timeline:
                     if let session = env.activeSession { Task { await env.readTimeline(url, into: session) } }
+                case .manuscript:
+                    // As the archive: say why a second picker is coming, then pick the new project's folder.
+                    Task { @MainActor in
+                        await Self.untilNothingPresented()
+                        let r = await env.ask("Import “\(url.deletingPathExtension().lastPathComponent)”",
+                                              "It becomes a new project. Choose the folder to put it in.",
+                                              ["Choose Folder…", "Cancel"])
+                        guard r.choice == 0 else { return }
+                        await Self.untilNothingPresented()
+                        env.archivePicker = .manuscriptFolder(source: url)
+                    }
+                case .manuscriptFolder(let source):
+                    Task { await env.importManuscript(source, intoFolder: url) }
                 case nil:
                     break
                 }

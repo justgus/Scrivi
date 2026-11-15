@@ -228,6 +228,28 @@ TEST_CASE("legacy lowercase keys stay VALID even though generation is caps-only 
     REQUIRE(isOrderKey("z"));
 }
 
+TEST_CASE("keys are generated next to legacy lowercase keys, in byte order, in caps", "[OrderKey][SP-218]") {
+    // SP-218 live pass: no rebalance runs, so a pre-T-0358 project's chapters are still "chapter-k", "chapter-s" — and a
+    // paste that opened a chapter there failed ("could not find a free chapter order key").
+    const std::vector<std::pair<std::string, std::string>> gaps = {
+        {"k", "s"}, {"V", "k"}, {"001", "c"}, {"s", ""}, {"s", "Z"}, {"", "c"}, {"0", "c"}, {"k", "k.A"}, {"k", "kk"},
+        {"k.I", "s"}, {"aV", "b"}, {"A", "Ak"}, {"A.5", "A.k"}};
+    for (const auto& [lo, hi] : gaps) {
+        INFO(lo << " .. " << hi);
+        std::string prev = lo;
+        for (int i = 0; i < 40; ++i) {   // and again after each, as a paste of many chapters does
+            const std::string k = keyBetween(prev, hi);
+            REQUIRE(isOrderKey(k));
+            if (!prev.empty() && prev != "0") REQUIRE(prev < k);
+            if (!hi.empty() && hi != "Z") REQUIRE(k < hi);
+            const auto lower = [](const std::string& s) { return s.find_first_of("abcdefghijklmnopqrstuvwxyz"); };
+            if (lower(lo) == std::string::npos) REQUIRE(lower(k) == std::string::npos);   // never a new lowercase key
+            prev = k;
+        }
+    }
+    REQUIRE(keyBetween("s", "k").empty());   // out of order
+}
+
 TEST_CASE("rebalancedKeys returns short, spread, ascending, valid caps keys (T-0358)",
           "[OrderKey][T-0358]") {
     // Single-char spread tops out at 34 keys ('1'..'Y'); 0 and 'Z' are reserved sentinels.

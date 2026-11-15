@@ -172,6 +172,24 @@ public final class ScriviEngine: @unchecked Sendable {
         return try decodeC(raw)
     }
 
+    // MARK: — importManuscript (EP-054 S6a, SP-218)
+
+    /// A manuscript from a Markdown or plain-text file. With `newProject` nil it only reads: the result's `range` is for
+    /// the structured paste at the caret (one undo step). With `newProject` it creates that project from the file and
+    /// returns its root. ⚠️ Blocking — call it off the main actor.
+    public func importManuscript(sourcePath: String, newProject: (root: String, appSupportRoot: String, authorshipRef: AuthorshipRef)? = nil)
+        throws -> ImportManuscriptResult {
+        var options: [String: Any] = [:]
+        if let np = newProject {
+            options["newProject"] = ["projectRootPath": np.root, "appSupportRoot": np.appSupportRoot,
+                                     "identityID": np.authorshipRef.identityID, "personaID": np.authorshipRef.personaID,
+                                     "displayName": np.authorshipRef.displayName]
+        }
+        let json = String(decoding: try JSONSerialization.data(withJSONObject: options), as: UTF8.self)
+        let raw = sourcePath.withCString { sp in json.withCString { oj in scrivi_import_manuscript(sp, oj) } }
+        return try decodeC(raw)
+    }
+
     // MARK: — openScene
 
     public func openScene(
@@ -2033,6 +2051,7 @@ public final class ScriviEngine: @unchecked Sendable {
     public func exportArchive(projectRootPath: String, archivePath: String, includeWorlds: Bool) throws -> ExportArchiveResult { try unavailable() }
     public func importArchive(archivePath: String, destFolderPath: String, projectFolderName: String = "", replaceProject: Bool = false, worldFolderNames: [String: String] = [:]) throws -> ImportArchiveResult { try unavailable() }
     public func exportManuscript(projectRootPath: String, format: String, chapterID: String? = nil, wholePage: Bool = true, printPage: Bool = false, destPath: String? = nil, defaultTypeface: String? = nil, language: String? = nil) throws -> ExportManuscriptResult { try unavailable() }
+    public func importManuscript(sourcePath: String, newProject: (root: String, appSupportRoot: String, authorshipRef: AuthorshipRef)? = nil) throws -> ImportManuscriptResult { try unavailable() }
     public func openSceneForBulkLoad(projectRootPath: String, appSupportRoot: String, projectID: String, sceneID: String) throws -> OpenSceneResult { try unavailable() }
     public func saveScene(projectID: String, projectRootPath: String, appSupportRoot: String, sceneID: String, sceneMetadataPath: String, sceneContentPath: String, markdown: String, selectionAnchor: Int = 0, selectionFocus: Int = 0, scroll: Double = 0, authorshipRef: AuthorshipRef) throws -> SaveSceneResult { try unavailable() }
     public func scanForExternalChanges(projectRootPath: String, appSupportRoot: String, includeGitStatus: Bool = true) throws -> ScanResult { try unavailable() }
@@ -2321,6 +2340,36 @@ public struct ExportManuscriptResult: Decodable, Sendable {
     public let typeface: String?   // the print page: the face the PDF is set in
     public let chapterCount: Int
     public let sceneCount: Int
+}
+
+public struct ImportManuscriptResult: Decodable, Sendable {
+    /// What was kept only as text, or consumed (scrivi.h): encodingGuessed, hardWrapped, byline, link, image, code,
+    /// blockQuote, html, table.
+    public struct Note: Decodable, Sendable { public let kind: String; public let count: Int; public let example: String }
+    public let range: ScriviRange?     // reading only; absent for an empty file
+    public let title: String?
+    public let subtitle: String?
+    public let encoding: String
+    public let report: [Note]
+    public let chapterCount: Int
+    public let sceneCount: Int
+    public let projectRoot: String?    // newProject only
+    public let projectID: String?
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: K.self)
+        range        = try c.decodeIfPresent(ScriviRange.self, forKey: .range)
+        title        = try c.decodeIfPresent(String.self, forKey: .title)
+        subtitle     = try c.decodeIfPresent(String.self, forKey: .subtitle)
+        encoding     = try c.decode(String.self, forKey: .encoding)
+        report       = try c.decodeIfPresent([Note].self, forKey: .report) ?? []   // omitted when empty
+        chapterCount = try c.decode(Int.self, forKey: .chapterCount)
+        sceneCount   = try c.decode(Int.self, forKey: .sceneCount)
+        projectRoot  = try c.decodeIfPresent(String.self, forKey: .projectRoot)
+        projectID    = try c.decodeIfPresent(String.self, forKey: .projectID)
+    }
+    private enum K: String, CodingKey {
+        case range, title, subtitle, encoding, report, chapterCount, sceneCount, projectRoot, projectID
+    }
 }
 
 public struct ExportArchiveResult: Decodable, Sendable {

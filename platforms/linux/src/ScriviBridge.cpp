@@ -1733,6 +1733,31 @@ QVariantMap ScriviBridge::exportManuscript(const QString& projectRootPath, const
     return withErrorDetail(json, std::move(result), lastCallFailed());
 }
 
+QVariantMap ScriviBridge::importManuscript(const QString& sourcePath, const QString& newProjectRoot,
+                                           const QString& appSupportRoot)
+{
+    QJsonObject options;
+    if (!newProjectRoot.isEmpty()) {
+        if (!ready_) {
+            tlsLastCallFailed = true;   // never reaches parseEnvelope; see fragmentPaste
+            emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+            return {};
+        }
+        const QString pen = getPenNames(appSupportRoot).value(QStringLiteral("default")).toString();
+        options.insert(QStringLiteral("newProject"),
+                       QJsonObject{{QStringLiteral("projectRootPath"), newProjectRoot},
+                                   {QStringLiteral("appSupportRoot"), appSupportRoot},
+                                   {QStringLiteral("identityID"), identityID_},
+                                   {QStringLiteral("personaID"), personaID_},
+                                   {QStringLiteral("displayName"), pen.isEmpty() ? QStringLiteral("Scrivi") : pen}});
+    }
+    const QByteArray opts = QJsonDocument(options).toJson(QJsonDocument::Compact);
+    const ScriviString envelope(scrivi_import_manuscript(sourcePath.toUtf8().constData(), opts.constData()));
+    const QString json = envelope.toQString();
+    QVariantMap result = parseEnvelope(json);
+    return withErrorDetail(json, std::move(result), lastCallFailed());
+}
+
 QVariantMap ScriviBridge::listWorlds(const QString& projectRootPath)
 {
     if (!ready_) {

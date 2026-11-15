@@ -1,5 +1,9 @@
 # Sprint Backlog
 
+*Last Updated: 2026-11-14 (**SP-218 removed** — activated 2026-11-14.)*
+
+*Last Updated: 2026-11-14 (**SP-218 created in 🔵 Planning** — EP-054 S6a, Markdown and plain-text import (user, 2026-11-14: *"We're ready to begin planning S6, the Markdown/text and .docx impor."*); ✅ Q1–Q8 ruled as recommended.)*
+
 *Last Updated: 2026-11-13 (**SP-217 removed** — activated 2026-11-13.)*
 
 *Last Updated: 2026-11-13 (**SP-217 created in 🔵 Planning** — the I-0349 font fix (user, 2026-11-13: *"close SP-216 and plan the I-0349 font fix"*); Q1–Q3 to rule.)*

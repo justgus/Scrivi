@@ -1,5 +1,7 @@
 # Active Sprints
 
+*Last Updated: 2026-11-14 (**SP-218 → 🟡 ACTIVE** (user, 2026-11-14: *"Ok, activate andimplement SP-218"*))*
+
 *Last Updated: 2026-11-13 (**SP-217 → ✅ CLOSED** (user, 2026-11-13: *"Linux steps 1-5 and Mac step 6 all pass, close SP-217"*) → `Closed/Sprint-SP-217.md`. No Sprint is active.)*
 
 *Last Updated: 2026-11-13 (**SP-217 AC3 ✅** (user, 2026-11-13: *"AC3 is met.  Your 500ms limit was arbitrary.  751ms is acceptable."*))*
@@ -127,3 +129,9 @@
 
 *Last Updated: 2026-11-02 (**SP-195, SP-196, SP-197, SP-200, SP-201 → ✅ CLOSED** (user, 2026-11-02).)*
 
+
+---
+
+## SP-218 — `[Cross]` [EP-054] S6a: Markdown and plain-text import
+
+🟡 **ACTIVE 2026-11-14** → [`Sprint-SP-218.md`](Sprint-SP-218.md) · carries [T-0679] · ✅ Q1–Q8 ruled

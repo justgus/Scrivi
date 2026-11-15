@@ -1,5 +1,7 @@
 # Unverified Tasks
 
+*Last Updated: 2026-11-14 (**T-0679 → 🟠 Implemented - Not Verified** ([SP-218] built); the live passes are the user's.)*
+
 *Last Updated: 2026-11-13 (**T-0677 → ✅ Verified** ([SP-216] AC4) → `Verified/Task-verified-0677.md`.)*
 
 *Last Updated: 2026-11-13 (**T-0677 → 🟠** ([SP-216] built).)*
@@ -83,6 +85,24 @@ Tasks that are **implemented and awaiting user verification** before being archi
 ⚠️ This file must not disagree with [`Task-active.md`](Task-active.md) or
 [`Task-backlog.md`](Task-backlog.md). A Task implemented but unverified belongs **here** — not left
 in the backlog carrying a 🟠 status.
+
+---
+
+## 🟠 T-0679 — `[Cross]` EP-054: import a manuscript from Markdown or plain text
+
+**Epic:** [EP-054] (AC6, AC7, AC8) · **Status:** 🟠 Implemented - Not Verified (2026-11-14) · **Sprint:** [SP-218] (🟡 Active) →
+[`../Sprints/Sprint-SP-218.md`](../Sprints/Sprint-SP-218.md) · **Date Requested:** 2026-11-14 (user: *"We're ready to begin planning
+S6, the Markdown/text and .docx impor."*)
+
+**What:** `scrivi_import_manuscript` reads a Markdown or `.txt` file into a `scrivi.range.v1` and a report of what it could
+not map; File ▸ Import ▸ Manuscript… on the Mac, iPad and Linux creates a new project from it or (Mac, Linux) pastes it into
+the open project at the caret as one undo step. Rulings and ACs: the Sprint.
+**Built (2026-11-14):** core `ScriviCore/src/manuscript/ManuscriptImport.cpp` (pure parser) and `scrivi_import_manuscript`
+(`scrivi_c_api.cpp`, `scrivi.h`); Apple `ScriviEngine.importManuscript` (+ stub), `presentImportManuscript` /
+`importManuscript` (`Scrivi/App/ProjectArchiveFlow.swift`), `ProjectSession.importRangeAction` → the editor's
+`pasteStructuredRange`; Linux `ScriviBridge::importManuscript`, `ShellController::importManuscript` (`ScriviWindow.cpp`) →
+`EditorShell::pasteRange`. Evidence: `ManuscriptImportCApiTests` (11 cases + a timed one); macOS ctest 853/853, Linux (Docker,
+GCC) 857/857; interop 350/350; 43/43 Linux smokes. ⏳ The live passes (SP-218 AC7).
 
 ---
 
