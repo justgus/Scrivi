@@ -1,5 +1,7 @@
 # Task Backlog
 
+*Last Updated: 2026-11-15 (**T-0680, T-0681 filed** from [SP-218]'s iPad live pass (user: *"option 1. And yes file the landing page as a Task."*).)*
+
 *Last Updated: 2026-11-14 (**T-0679 → active** with [SP-218]'s activation.)*
 
 *Last Updated: 2026-11-14 (**T-0679 filed** with [SP-218] (🔵 Planning), [EP-054] S6a.)*
@@ -104,6 +106,8 @@ status changes on its own layer.
 | T-0663 | `[Cross]` Properties tab: the project's file facts (folder, path, dates, size) | ⚠️ None yet | 🔵 Backlog — Q1–Q5 ruled |
 | T-0667 | `[Cross]` EP-054: paste a Copy as HTML chapter into AO3 itself once it is back online | EP-054 | 🔵 Backlog — waits for AO3 |
 | T-0669 | `[Apple]` EP-054: export a whole-manuscript and a one-chapter `.docx` on the iPad (Export Manuscript… ▸ Word Document) and open them in Pages or Word there — [SP-208] AC5/AC7's iPad half | EP-054 | 🔵 Backlog — waits for the iPad |
+| T-0680 | `[Apple]` EP-054: Import ▸ Manuscript… **Into This Project** on the iPad, at the caret, one undo step | EP-054 | 🔵 Backlog — waits for EP-055 S2/S3 (the iPad's structured paste and undo) |
+| T-0681 | `[Apple]` iPad Landing: **Import…** in place of Import Archive…, asking Manuscript… / Timeline… / Archive… | ⚠️ None yet | 🔵 Backlog |
 
 > ✅ **T-0477 – T-0479 LEFT this file 2026-08-31 when SP-124 was ACTIVATED**, per the standing rule that
 > active Tasks never sit in the backlog. ✅ **They are now VERIFIED (2026-09-10) and ARCHIVED** →
@@ -133,6 +137,30 @@ status changes on its own layer.
 ---
 
 ## Detail
+
+## 🔵 T-0680 — `[Apple]` EP-054: Import Manuscript into the open project on the iPad
+
+**Epic:** [EP-054] (S6a, [SP-218] Q2) · **Status:** 🔵 Backlog · **Sprint:** Not Assigned · **Date Requested:** 2026-11-15 (from
+[SP-218]'s iPad live pass; user: *"option 1"*)
+
+**What:** SP-218 Q2 (c) ruled New Project / Into This Project on every platform; the iPad got New Project only, because its editor
+has no structured paste or structural undo (`ManuscriptUITextView.swift:12`, EP-055 S2/S3). When it has them: with a project open,
+the iPad asks New Project / Into This Project as the Mac does (`ProjectArchiveFlow.swift`, `importManuscript(_:into:)`), and Into
+This Project pastes the Range at the caret as one undo step. Until then the iPad says why the project closes
+(`presentImportManuscript`, SP-218).
+
+---
+
+## 🔵 T-0681 — `[Apple]` iPad Landing: one Import… button
+
+**Epic:** ⚠️ None yet · **Status:** 🔵 Backlog · **Sprint:** Not Assigned · **Date Requested:** 2026-11-15 (user, [SP-218]'s iPad
+live pass: the iPad is used through its larger surfaces more than its menus; *"a nice to have"*)
+
+**What:** replace the Landing's **Import Archive…** (`LandingView.swift:38`) with **Import…**, which asks **Manuscript…**,
+**Timeline…** or **Archive…**. ⚠️ Timeline import needs an open project ([SP-215]), and the Landing has none — rule whether
+Timeline… is shown greyed or left out.
+
+---
 
 ## 🔵 T-0667 — `[Cross]` EP-054: paste a Copy as HTML chapter into AO3 itself
 

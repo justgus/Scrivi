@@ -91,7 +91,7 @@ reported), inline object references ([EP-032]).
       file over the size cap; macOS and Linux ctest green
 - [ ] AC5 — File ▸ Import ▸ Manuscript… on the Mac, iPad and Linux: New Project / Into This Project with a project open, a
       new project with none; into a project is one undo step; the report sheet; off the main thread, progress after 400 ms —
-      ✅ built; ⚠️ the iPad offers New Project only (log)
+      ✅ built; ⚠️ the iPad offers New Project only — ruled for this Sprint, Into This Project → [T-0680]
 - [ ] AC6 — Interop tests and a Linux bridge smoke green; engine stub parity, ABI guard and boundary checks green; CI green
       — ✅ all but CI, which runs on the push
 - [ ] AC7 — **Live passes (user)** on the Mac, iPad and Linux: plan step 6
@@ -140,3 +140,12 @@ reported), inline object references ([EP-032]).
   Manuscript…); ABI guard, stub parity, package boundary, TextKit 2, layout and type-source checks clean. ⚠️ Not yet: CI (on
   the push), scrivi-vm (did not answer) and the rig.
 - **2026-11-14 — Mac live pass (user):** steps 1 and 2 pass; **step 3 fails**: "Into This Project" beeps and pastes nothing (`could not find a free chapter order key`). The project's chapters have pre-T-0358 lowercase keys (`chapter-k`, `chapter-s`), and `keyBetween` could not make a key next to one, so every chapter- or scene-creating paste in such a project failed, not only the import → filed [I-0362], fixed in `util/OrderKey.cpp`. ctest **855/855** (2 new). The new import test fails on the old `OrderKey.cpp` with the live pass's error. Step 3 to be re-run.
+- **2026-11-14 — after the push (`4c1bf2a`):** Mac step 3 ✅ passes (user: *"step 3 passes now"*; the byline note shown) → [I-0362] ✅ Verified. Interop **350/350**. scrivi-vm (pulled and built by the user) ctest **860/860**. CI: Apple ✅, ScriviCore ✅, Linux App still running when logged. Still to run: Mac steps 4–6, iPad, Linux.
+- **2026-11-15 — live pass (user):** Mac steps 4–6 ✅ pass (literal `.txt`, Windows-1252 note, hard-wrap note). iPad steps 1–5 ✅
+  pass (new project, byline note). ⚠️ **iPad with a project open:** the import closes it and offers New Project only. That is the
+  build's limitation logged above, but **it departs from Q2 (c)**, ruled for every platform, and was never put to the user.
+  ✅ Ruled (user: *"option 1. And yes file the landing page as a Task."*): New Project only on the iPad for this Sprint; Into This
+  Project there → [T-0680] (waits for EP-055 S2/S3); the Landing's one **Import…** button → [T-0681]. Fixed now: with a project
+  open, the iPad first says why it closes (Continue / Cancel) — `presentImportManuscript`, `ProjectArchiveFlow.swift`; iOS build ✅.
+  ⚠️ The pasted step list ran the Linux steps 3–4 on the iPad (iPad step 6 and Linux step 1 lost in the copy): iPad step 6 and
+  every Linux step still to run.

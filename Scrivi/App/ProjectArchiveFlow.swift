@@ -410,8 +410,18 @@ extension AppEnvironment {
         guard panel.runModal() == .OK, let url = panel.url else { return }
         Task { await importManuscript(url, into: session) }
         #else
-        closeActiveProjectForLanding()
-        archivePicker = .manuscript
+        // SP-218: say why the open project closes, rather than closing it unasked (Into This Project waits for T-0680).
+        Task { @MainActor in
+            if session != nil {
+                let r = await ask("Import a Manuscript",
+                                  "On the iPad an import becomes a new project, so this project closes first. "
+                                  + "Importing into an open project is not on the iPad yet.",
+                                  ["Continue", "Cancel"])
+                guard r.choice == 0 else { return }
+            }
+            closeActiveProjectForLanding()
+            archivePicker = .manuscript
+        }
         #endif
     }
 
