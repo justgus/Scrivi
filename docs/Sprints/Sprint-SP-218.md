@@ -81,20 +81,20 @@ reported), inline object references ([EP-032]).
 
 ## Acceptance Criteria
 
-- [ ] AC1 — Step 0 measured and recorded: a ~1,000-scene import through the paste, its time and its undo step; ruled
-      acceptable before the surfaces are built — ✅ measured (log, 2026-11-14); ⏳ the ruling is the user's
+- [x] AC1 — Step 0 measured and recorded: a ~1,000-scene import through the paste, its time and its undo step; ruled
+      acceptable before the surfaces are built — ✅ measured (log, 2026-11-14); ✅ ruled acceptable (user, 2026-11-15: *"AC1: these are acceptable."*)
 - [x] AC2 — `scrivi_import_manuscript` reads Markdown per Q3 and text per Q4–Q5 into a `scrivi.range.v1` (⚠️ not a fragment: see the log), writes nothing,
       and reports per Q8 (the encoding, a hard-wrapped file, the consumed byline, anything unmapped)
 - [x] AC3 — Round trip: each S3 Markdown fixture exported, imported and exported again gives the same bytes (fixtures without
       a writer's `#` inside a scene, Q3)
 - [x] AC4 — Boundary tests through `scrivi_*` (EP-054 AC7): every Q3–Q5 case, the three encodings, a refused binary file, a
       file over the size cap; macOS and Linux ctest green
-- [ ] AC5 — File ▸ Import ▸ Manuscript… on the Mac, iPad and Linux: New Project / Into This Project with a project open, a
+- [x] AC5 — File ▸ Import ▸ Manuscript… on the Mac, iPad and Linux: New Project / Into This Project with a project open, a
       new project with none; into a project is one undo step; the report sheet; off the main thread, progress after 400 ms —
       ✅ built; ⚠️ the iPad offers New Project only — ruled for this Sprint, Into This Project → [T-0680]
-- [ ] AC6 — Interop tests and a Linux bridge smoke green; engine stub parity, ABI guard and boundary checks green; CI green
-      — ✅ all but CI, which runs on the push
-- [ ] AC7 — **Live passes (user)** on the Mac, iPad and Linux: plan step 6
+- [x] AC6 — Interop tests and a Linux bridge smoke green; engine stub parity, ABI guard and boundary checks green; CI green
+      — ✅ CI green on the last push touching each (ScriviCore `4c1bf2a`, Apple `e9bc82e`, Linux App `5eb7635`)
+- [x] AC7 — **Live passes (user)** on the Mac, iPad and Linux: plan step 6
 
 ## Progress log
 
@@ -152,3 +152,8 @@ reported), inline object references ([EP-032]).
 - **2026-11-15 — live pass (user), next round:** iPad steps 1–2 ✅ pass (the new alert: Cancel keeps the project, Continue closes it;
   the existing project refused). Linux, import as a new project ❌: the save dialog's Save went grey and nothing happened → filed
   [I-0363], fixed to Import Archive's name-then-folder dialogs (`ScriviWindow.cpp`); compiled on scrivi-vm, not yet run.
+- **2026-11-15 — Linux live pass (user, `5eb7635`):** steps 1–5 ✅ (*"pushed and rebuilt on the VM. Ran Linux steps 1-5. all passed."*): export, import as a new project (name, then folder),
+  the existing project refused, Into This Project at the caret on `the-sentinel-of-centauri copy` with one undo, literal `.txt`
+  → [I-0363] ✅ Verified; [T-0679] ✅ Verified and archived. AC5, AC7 done. Open: AC1 (the user's ruling), AC6 (CI on `5eb7635`).
+- **2026-11-15 — AC1 ruled** (user: *"AC1: these are acceptable."*). CI: ScriviCore ✅ `4c1bf2a` (no core change since), Apple ✅
+  `e9bc82e` (the iPad alert), Linux App ✅ `5eb7635` ([I-0363]). All ACs met; awaiting the user's close.
