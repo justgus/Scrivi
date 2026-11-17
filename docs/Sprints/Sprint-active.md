@@ -1,5 +1,9 @@
 # Active Sprints
 
+*Last Updated: 2026-11-15 (**SP-219 → 🟡 ACTIVE** (user, 2026-11-15: *"Make the test files.  Put them in /Users/justgus/ScriviLinux/projects/imports.  Q1-Q5 as recommended, activate and implement SP-219"*))*
+
+*Last Updated: 2026-11-15 (**SP-218 → ✅ CLOSED** (user, 2026-11-15: *"close SP-218 then plan S6b."*) → `Closed/Sprint-SP-218.md`. No Sprint is active.)*
+
 *Last Updated: 2026-11-14 (**SP-218 → 🟡 ACTIVE** (user, 2026-11-14: *"Ok, activate andimplement SP-218"*))*
 
 *Last Updated: 2026-11-13 (**SP-217 → ✅ CLOSED** (user, 2026-11-13: *"Linux steps 1-5 and Mac step 6 all pass, close SP-217"*) → `Closed/Sprint-SP-217.md`. No Sprint is active.)*
@@ -132,6 +136,6 @@
 
 ---
 
-## SP-218 — `[Cross]` [EP-054] S6a: Markdown and plain-text import
+## SP-219 — `[Cross]` [EP-054] S6b: `.docx` import
 
-🟡 **ACTIVE 2026-11-14** → [`Sprint-SP-218.md`](Sprint-SP-218.md) · carries [T-0679] · ✅ Q1–Q8 ruled
+🟡 **ACTIVE 2026-11-15** → [`Sprint-SP-219.md`](Sprint-SP-219.md) · carries [T-0682] · ✅ Q1–Q5 ruled

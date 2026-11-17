@@ -30,6 +30,16 @@ FetchContent_Declare(
     SOURCE_SUBDIR not-a-cmake-project
 )
 FetchContent_MakeAvailable(miniz)
+
+# EP-054 S6b / SP-219 (SP-218 Q6, ruled 2026-11-14) — pugixml, the XML reader behind .docx import. Pinned like miniz; only
+# pugixml.cpp is compiled, straight into this library. PRIVATE — never in a public header. It never expands a DTD's entities.
+FetchContent_Declare(
+    pugixml
+    URL https://github.com/zeux/pugixml/releases/download/v1.14/pugixml-1.14.tar.gz
+    URL_HASH SHA256=2f10e276870c64b1db6809050a75e11a897a8d7456c4be5c6b2e35a11168a015
+    SOURCE_SUBDIR not-a-cmake-project
+)
+FetchContent_MakeAvailable(pugixml)
 enable_language(C)
 
 add_library(ScriviCore STATIC)
@@ -58,6 +68,7 @@ target_sources(ScriviCore
         src/project_package/ProjectArchive.cpp
         src/manuscript/ManuscriptOrderResolver.cpp
         src/manuscript/ManuscriptExport.cpp
+        src/manuscript/ManuscriptDocx.cpp
         src/manuscript/ManuscriptImport.cpp
         src/manuscript/ProjectIndex.cpp
         src/manuscript/ChapterIndex.cpp
@@ -134,10 +145,13 @@ target_sources(ScriviCore
         src/markdown/Editing.cpp
         ${md4c_SOURCE_DIR}/src/md4c.c
         ${miniz_SOURCE_DIR}/miniz.c
+        ${pugixml_SOURCE_DIR}/src/pugixml.cpp
 )
 
 target_include_directories(ScriviCore SYSTEM PRIVATE ${md4c_SOURCE_DIR}/src)
 target_include_directories(ScriviCore SYSTEM PRIVATE ${miniz_SOURCE_DIR})
+target_include_directories(ScriviCore SYSTEM PRIVATE ${pugixml_SOURCE_DIR}/src)
+target_compile_definitions(ScriviCore PRIVATE PUGIXML_NO_XPATH)
 # Only mz_* names: the zlib-compatible aliases could collide with a zlib a platform layer links (Qt on Linux).
 target_compile_definitions(ScriviCore PRIVATE MINIZ_NO_ZLIB_COMPATIBLE_NAMES)
 

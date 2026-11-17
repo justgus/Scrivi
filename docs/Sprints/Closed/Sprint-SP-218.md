@@ -1,17 +1,18 @@
 ---
 sprint: SP-218
 epic: EP-054
-status: Active
+status: Closed
+closed: 2026-11-15
 platform: Cross
 created: 2026-11-14
 ---
 
 # SP-218 — `[ScriviCore]` + `[Apple]` + `[Linux]` [EP-054] **S6a**: Markdown and plain-text import
 
-**Status:** 🟡 **ACTIVE** 2026-11-14 (user, 2026-11-14: *"Ok, activate andimplement SP-218"*) · planned 2026-11-14 (user: *"We're ready to begin planning S6, the Markdown/text and .docx impor."*);
+**Status:** ✅ **CLOSED** 2026-11-15 (user, 2026-11-15: *"close SP-218 then plan S6b."*) · activated 2026-11-14 (user, 2026-11-14: *"Ok, activate andimplement SP-218"*) · planned 2026-11-14 (user: *"We're ready to begin planning S6, the Markdown/text and .docx impor."*);
 ✅ Q1–Q8 ruled as recommended (user, 2026-11-14: *"Q1-Q8 as recommended."*).
-**Carries:** [T-0679] → [`../Tasks/Task-active.md`](../Tasks/Task-active.md); [I-0362] → [`../Issues/Issue-active.md`](../Issues/Issue-active.md) (found in the Mac live pass); [I-0363] (found in the Linux live pass).
-**Epic:** [EP-054] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md).
+**Carries:** [T-0679] ✅ → [`../../Tasks/Verified/Task-verified-0679.md`](../../Tasks/Verified/Task-verified-0679.md); [I-0362] (found in the Mac live pass), [I-0363] (the Linux live pass) ✅ → [`../../Issues/Verified/Issue-verified-0361-0370.md`](../../Issues/Verified/Issue-verified-0361-0370.md). Filed from it: [T-0680], [T-0681] (backlog).
+**Epic:** [EP-054] → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md).
 **Followed by:** S6b — `.docx` import (Q1), not yet created; Q6 and Q7 below are ruled for it.
 **Builds on:** [SP-207] (the Markdown export this must read back), [SP-215] (File ▸ Import), EP-029's structured paste
 (`scrivi_fragment_paste` / `scrivi_fragment_uncut_paste`) and its one-step undo.
@@ -157,3 +158,4 @@ reported), inline object references ([EP-032]).
   → [I-0363] ✅ Verified; [T-0679] ✅ Verified and archived. AC5, AC7 done. Open: AC1 (the user's ruling), AC6 (CI on `5eb7635`).
 - **2026-11-15 — AC1 ruled** (user: *"AC1: these are acceptable."*). CI: ScriviCore ✅ `4c1bf2a` (no core change since), Apple ✅
   `e9bc82e` (the iPad alert), Linux App ✅ `5eb7635` ([I-0363]). All ACs met; awaiting the user's close.
+- **2026-11-15** — ✅ **CLOSED** (user: *"close SP-218 then plan S6b."*). [I-0362], [I-0363] archived; [T-0679] archived earlier the same day.

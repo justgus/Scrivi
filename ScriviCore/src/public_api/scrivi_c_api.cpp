@@ -36,6 +36,7 @@
 #include "manuscript/ProjectIndex.hpp"
 #include "manuscript/ManuscriptOrderResolver.hpp"
 #include "manuscript/ManuscriptExport.hpp"
+#include "manuscript/ManuscriptDocx.hpp"
 #include "manuscript/ManuscriptImport.hpp"
 #include "manuscript/ChapterRenamer.hpp"
 #include "domain/Slug.hpp"
@@ -1389,9 +1390,9 @@ const char* scrivi_import_manuscript(const char* sourcePath, const char* options
     const std::filesystem::path source{S(sourcePath)};
     std::string ext = source.extension().string();
     std::ranges::transform(ext, ext.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-    const std::string format = o.getString("format", ext == ".txt" || ext == ".text" ? "text" : "markdown");
-    if (format != "markdown" && format != "text")
-        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "format must be markdown or text"));
+    std::string format = o.getString("format");
+    if (!format.empty() && format != "markdown" && format != "text" && format != "docx")
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "format must be markdown, text or docx"));
 
     // A manuscript is megabytes; anything far past that is not one, and is never read whole.
     constexpr std::uintmax_t kMaxBytes = 64u << 20;
@@ -1404,7 +1405,17 @@ const char* scrivi_import_manuscript(const char* sourcePath, const char* options
     auto svc = abiServices();
     auto bytes = svc.fileSystem->readTextFile(source.string());
     if (!bytes.ok()) return heap(errorEnvelope(bytes.error()));
-    auto imported = scrivi::manuscript::importManuscript(bytes.value(), format == "markdown");
+    // S6b Q2: a Word document is found by its bytes, whatever its name; a Word 97–2003 one is refused with what to do.
+    if (scrivi::manuscript::looksLikeLegacyDoc(bytes.value()))
+        return heap(errorEnvelope(scrivi::Error{scrivi::ErrorCode::invalidArgument,
+                                                "This is a Word 97–2003 document. Save it as .docx in Word or Pages, and "
+                                                "import that.", source.string(), "legacyDoc"}));
+    if (format.empty())
+        format = scrivi::manuscript::looksLikeZip(bytes.value()) ? "docx"
+               : ext == ".txt" || ext == ".text"                 ? "text"
+                                                                 : "markdown";
+    auto imported = format == "docx" ? scrivi::manuscript::importDocx(bytes.value())
+                                     : scrivi::manuscript::importManuscript(bytes.value(), format == "markdown");
     if (!imported.ok()) return heap(errorEnvelope(imported.error()));
     auto& m = imported.value();
 

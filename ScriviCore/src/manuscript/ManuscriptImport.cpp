@@ -225,7 +225,7 @@ struct Chapter {
 
 } // namespace
 
-Result<ImportedManuscript> importManuscript(std::string_view bytes, bool markdown) {
+Result<ImportedManuscript> importManuscript(std::string_view bytes, bool markdown, bool reportMarkup) {
     using R = Result<ImportedManuscript>;
     ImportedManuscript out;
     const std::string text = decode(bytes, out.encoding);
@@ -283,7 +283,7 @@ Result<ImportedManuscript> importManuscript(std::string_view bytes, bool markdow
         }
         std::size_t from = 0;
         for (std::size_t li = 0; li < b.size(); ++li) {
-            noteMarkdown(b[li], notes);
+            if (reportMarkup) { noteMarkdown(b[li], notes); }
             auto heading = chapterHeading(b[li]);
             if (!heading) { continue; }
             if (li > from) { chapters.back().paragraph(joined(Block(b.begin() + from, b.begin() + li))); }

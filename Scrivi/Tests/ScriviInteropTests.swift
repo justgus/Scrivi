@@ -9049,6 +9049,25 @@ extension ScriviInteropTests {
         }
     }
 
+    @Test("SP-219: a .docx through ScriviEngine — Scrivi's own export read back, its text kept")
+    func docxImportThroughEngine() throws {
+        let f = try makeProjectFixture()
+        let opened = try f.engine.openProject(projectRootPath: f.projectDir.path, appSupportRoot: f.appSupport.path)
+        let scene = try #require(opened.scenes.first)
+        _ = try f.engine.saveScene(projectID: opened.projectID, projectRootPath: f.projectDir.path,
+                                   appSupportRoot: f.appSupport.path, sceneID: scene.sceneID,
+                                   sceneMetadataPath: scene.metadataPath, sceneContentPath: scene.contentPath,
+                                   markdown: "One *two*\nthree \\* four", authorshipRef: f.ref)
+        f.engine.closeProject(projectRootPath: f.projectDir.path)
+        let docx = f.appSupport.path + "/Interop.docx"
+        _ = try f.engine.exportManuscript(projectRootPath: f.projectDir.path, format: "docx", destPath: docx)
+
+        let read = try f.engine.importManuscript(sourcePath: docx)
+        let range = try #require(read.range)
+        #expect(range.scenes.last?.text == "One *two*\nthree \\* four")
+        #expect(read.encoding == "utf-8" && read.projectRoot == nil)
+    }
+
     @Test("SP-207: exportManuscript through ScriviEngine — HTML body, a whole page, Markdown, one chapter")
     func manuscriptExportThroughEngine() throws {
         let f = try makeProjectFixture()

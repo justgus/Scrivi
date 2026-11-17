@@ -36,7 +36,8 @@ struct ImportedManuscript {
     bool opensChapter = false;   // the first chapter has its own heading (pasted at a caret, it opens a chapter there)
 };
 
-// invalidArgument "notText" when the bytes are not text (a NUL after decoding).
-[[nodiscard]] Result<ImportedManuscript> importManuscript(std::string_view bytes, bool markdown);
+// invalidArgument "notText" when the bytes are not text (a NUL after decoding). `reportMarkup` false: the Markdown was
+// written by Scrivi (a .docx's, SP-219), so its own marks are not reported as links, code or HTML.
+[[nodiscard]] Result<ImportedManuscript> importManuscript(std::string_view bytes, bool markdown, bool reportMarkup = true);
 
 } // namespace scrivi::manuscript

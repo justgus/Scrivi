@@ -1,5 +1,9 @@
 # Task Backlog
 
+*Last Updated: 2026-11-15 (**T-0682 → active** with [SP-219]'s activation.)*
+
+*Last Updated: 2026-11-15 (**T-0682 filed** with [SP-219] (🔵 Planning), [EP-054] S6b.)*
+
 *Last Updated: 2026-11-15 (**T-0680, T-0681 filed** from [SP-218]'s iPad live pass (user: *"option 1. And yes file the landing page as a Task."*).)*
 
 *Last Updated: 2026-11-14 (**T-0679 → active** with [SP-218]'s activation.)*

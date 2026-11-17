@@ -1,5 +1,9 @@
 # Sprint Backlog
 
+*Last Updated: 2026-11-15 (**SP-219 removed** — activated 2026-11-15.)*
+
+*Last Updated: 2026-11-15 (**SP-219 created in 🔵 Planning** — EP-054 S6b, `.docx` import (user, 2026-11-15: *"close SP-218 then plan S6b."*); Q1–Q5 to rule.)*
+
 *Last Updated: 2026-11-14 (**SP-218 removed** — activated 2026-11-14.)*
 
 *Last Updated: 2026-11-14 (**SP-218 created in 🔵 Planning** — EP-054 S6a, Markdown and plain-text import (user, 2026-11-14: *"We're ready to begin planning S6, the Markdown/text and .docx impor."*); ✅ Q1–Q8 ruled as recommended.)*

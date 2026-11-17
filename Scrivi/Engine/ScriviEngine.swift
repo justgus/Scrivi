@@ -174,9 +174,9 @@ public final class ScriviEngine: @unchecked Sendable {
 
     // MARK: — importManuscript (EP-054 S6a, SP-218)
 
-    /// A manuscript from a Markdown or plain-text file. With `newProject` nil it only reads: the result's `range` is for
-    /// the structured paste at the caret (one undo step). With `newProject` it creates that project from the file and
-    /// returns its root. ⚠️ Blocking — call it off the main actor.
+    /// A manuscript from a Markdown, plain-text or Word (.docx, SP-219) file. With `newProject` nil it only reads: the
+    /// result's `range` is for the structured paste at the caret (one undo step). With `newProject` it creates that project
+    /// from the file and returns its root. ⚠️ Blocking — call it off the main actor.
     public func importManuscript(sourcePath: String, newProject: (root: String, appSupportRoot: String, authorshipRef: AuthorshipRef)? = nil)
         throws -> ImportManuscriptResult {
         var options: [String: Any] = [:]

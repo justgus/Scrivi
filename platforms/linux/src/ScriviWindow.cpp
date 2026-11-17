@@ -102,6 +102,9 @@ QString importNotes(const QVariantList& report)
         const int count = n.value(QStringLiteral("count")).toInt();
         const QString kind = n.value(QStringLiteral("kind")).toString(), example = n.value(QStringLiteral("example")).toString();
         const QString lines = count == 1 ? QObject::tr("1 line") : QObject::tr("%1 lines").arg(count);
+        const auto many = [count](const QString& one, const QString& more) {
+            return count == 1 ? QObject::tr("1 %1").arg(one) : QObject::tr("%1 %2").arg(count).arg(more);
+        };
         if (kind == QLatin1String("encodingGuessed")) {
             out << QObject::tr("It was read as Windows-1252 text. If accented letters look wrong, it used another encoding.");
         } else if (kind == QLatin1String("hardWrapped")) {
@@ -120,6 +123,25 @@ QString importNotes(const QVariantList& report)
             out << QObject::tr("%1 with HTML, kept as text (first: “%2”).").arg(lines, example);
         } else if (kind == QLatin1String("table")) {
             out << QObject::tr("%1 of a table, kept as text (first: “%2”).").arg(lines, example);
+        // SP-219: a Word document's
+        } else if (kind == QLatin1String("picture")) {
+            out << QObject::tr("%1 left out — pictures are not imported (first: in “%2”).").arg(many(QObject::tr("picture"), QObject::tr("pictures")), example);
+        } else if (kind == QLatin1String("docxTable")) {
+            out << QObject::tr("%1: the text was kept, cell by cell, as paragraphs (first: “%2”).").arg(many(QObject::tr("table"), QObject::tr("tables")), example);
+        } else if (kind == QLatin1String("footnote")) {
+            out << QObject::tr("%1 left out (first: in “%2”).").arg(many(QObject::tr("footnote"), QObject::tr("footnotes")), example);
+        } else if (kind == QLatin1String("endnote")) {
+            out << QObject::tr("%1 left out (first: in “%2”).").arg(many(QObject::tr("endnote"), QObject::tr("endnotes")), example);
+        } else if (kind == QLatin1String("comment")) {
+            out << QObject::tr("%1 left out (first: on “%2”).").arg(many(QObject::tr("comment"), QObject::tr("comments")), example);
+        } else if (kind == QLatin1String("textBox")) {
+            out << QObject::tr("%1 left out, with their text (first: in “%2”).").arg(many(QObject::tr("text box"), QObject::tr("text boxes")), example);
+        } else if (kind == QLatin1String("equation")) {
+            out << QObject::tr("%1 left out (first: in “%2”).").arg(many(QObject::tr("equation"), QObject::tr("equations")), example);
+        } else if (kind == QLatin1String("headerFooter")) {
+            out << QObject::tr("Headers and footers were left out (first: “%1”).").arg(example);
+        } else if (kind == QLatin1String("formatting")) {
+            out << QObject::tr("%1 with formatting Scrivi does not keep — underline, strikethrough, colour, fonts, sizes or alignment — kept as plain text (first: “%2”).").arg(lines, example);
         } else {
             out << QObject::tr("%1: %2 (first: “%3”).").arg(lines, kind, example);
         }
@@ -133,7 +155,7 @@ void ShellController::importManuscript(EditorShell* into)
 {
     QWidget* parent = QApplication::activeWindow();
     const QString source = QFileDialog::getOpenFileName(parent, tr("Import Manuscript"), QDir::homePath(),
-                                                        tr("Markdown or text (*.md *.markdown *.txt *.text);;All files (*)"));
+                                                        tr("Markdown, text or Word (*.md *.markdown *.txt *.text *.docx);;All files (*)"));
     if (source.isEmpty()) {
         return;
     }

@@ -396,6 +396,7 @@ extension AppEnvironment {
     // MARK: — Manuscript import (EP-054 S6a, SP-218)
 
     static let manuscriptTypes: [UTType] = [.plainText] + ["md", "markdown"].compactMap { UTType(filenameExtension: $0) }
+        + [UTType("org.openxmlformats.wordprocessingml.document")].compactMap { $0 }   // SP-219: .docx
 
     /// File ▸ Import ▸ Manuscript…: a Markdown or text file. Q2: a new project, or — on the Mac, with a project open — into it
     /// at the caret as one undo step. ⚠️ The iPad makes a new project only: its editor has no structured paste yet (EP-055).
@@ -405,7 +406,7 @@ extension AppEnvironment {
         panel.allowedContentTypes = Self.manuscriptTypes
         panel.allowsMultipleSelection = false
         panel.title = "Import Manuscript"
-        panel.message = "Choose a Markdown or plain-text file"
+        panel.message = "Choose a Markdown, plain-text or Word file"
         panel.prompt = "Import"
         guard panel.runModal() == .OK, let url = panel.url else { return }
         Task { await importManuscript(url, into: session) }
@@ -509,6 +510,7 @@ extension AppEnvironment {
         guard !result.report.isEmpty else { return }
         let lines = result.report.map { n -> String in
             let lines = n.count == 1 ? "1 line" : "\(n.count) lines"
+            func many(_ one: String, _ more: String) -> String { n.count == 1 ? "1 \(one)" : "\(n.count) \(more)" }
             switch n.kind {
             case "encodingGuessed": return "It was read as Windows-1252 text. If accented letters look wrong, it used another encoding."
             case "hardWrapped": return "Its lines look hard-wrapped. Every line break was kept, so paragraphs may break mid-sentence."
@@ -519,6 +521,16 @@ extension AppEnvironment {
             case "blockQuote": return "\(lines) quoted with “>”, kept as text (first: “\(n.example)”)."
             case "html": return "\(lines) with HTML, kept as text (first: “\(n.example)”)."
             case "table": return "\(lines) of a table, kept as text (first: “\(n.example)”)."
+            // SP-219: a Word document's
+            case "picture": return "\(many("picture", "pictures")) left out — pictures are not imported (first: in “\(n.example)”)."
+            case "docxTable": return "\(many("table", "tables")): the text was kept, cell by cell, as paragraphs (first: “\(n.example)”)."
+            case "footnote": return "\(many("footnote", "footnotes")) left out (first: in “\(n.example)”)."
+            case "endnote": return "\(many("endnote", "endnotes")) left out (first: in “\(n.example)”)."
+            case "comment": return "\(many("comment", "comments")) left out (first: on “\(n.example)”)."
+            case "textBox": return "\(many("text box", "text boxes")) left out, with their text (first: in “\(n.example)”)."
+            case "equation": return "\(many("equation", "equations")) left out (first: in “\(n.example)”)."
+            case "headerFooter": return "Headers and footers were left out (first: “\(n.example)”)."
+            case "formatting": return "\(lines) with formatting Scrivi does not keep — underline, strikethrough, colour, fonts, sizes or alignment — kept as plain text (first: “\(n.example)”)."
             default: return "\(lines): \(n.kind) (first: “\(n.example)”)."
             }
         }
