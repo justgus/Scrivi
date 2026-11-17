@@ -488,6 +488,7 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-217** | `[Linux]` **[I-0349]** — hidden markup without the fallback-font search | — | 2026-11-13 | 2026-11-13 | ✅ **CLOSED** → [`Closed/Sprint-SP-217.md`](Closed/Sprint-SP-217.md) |
 | **SP-218** | `[Cross]` **[EP-054] S6a** — Markdown and plain-text import (T-0679); `.docx` import its own Sprint (Q1) | EP-054 | 2026-11-14 | 2026-11-15 | ✅ **CLOSED** → [`Closed/Sprint-SP-218.md`](Closed/Sprint-SP-218.md) |
 | **SP-219** | `[Cross]` **[EP-054] S6b** — `.docx` import (T-0682) | EP-054 | 2026-11-15 | 2026-11-17 | ✅ **CLOSED** → [`Closed/Sprint-SP-219.md`](Closed/Sprint-SP-219.md) |
+| **SP-220** | `[Cross]` **[EP-054] S7** — Scrivener import (T-0683) | EP-054 | 2026-11-17 | — | 🟡 **ACTIVE** → [`Sprint-SP-220.md`](Sprint-SP-220.md) |
 | **SP-160** | `[Linux]` **[EP-049] S1** — Linux writes Apple's manuscript format: escaping, paste/copy, pair deletion, Return/⌫, shared corpus (T-0586); + I-0276 | EP-049 | 2026-10-04 | 2026-10-04 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-160.md) |
 
 ## Statistics
@@ -527,6 +528,10 @@ by status, read the table.**
 > on neither time. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-11-17 (**SP-220 → 🟡 ACTIVE** (user, 2026-11-17: *"activate and implement SP-220"*))*
+
+*Last Updated: 2026-11-17 (**SP-220 created in 🔵 Planning** (user, 2026-11-17: *"plan S7 Scrivener import"*), issued via `next-id.py`; T-0683 filed; Q1–Q7 to rule.)*
 
 *Last Updated: 2026-11-17 (**SP-219 → ✅ CLOSED** (user, 2026-11-17: *"yes, close SP-219."*))*
 

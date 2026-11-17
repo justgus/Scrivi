@@ -1,5 +1,7 @@
 # Active Sprints
 
+*Last Updated: 2026-11-17 (**SP-220 → 🟡 ACTIVE** (user, 2026-11-17: *"activate and implement SP-220"*))*
+
 *Last Updated: 2026-11-17 (**SP-219 → ✅ CLOSED** (user, 2026-11-17: *"yes, close SP-219."*) → `Closed/Sprint-SP-219.md`. No Sprint is active.)*
 
 *Last Updated: 2026-11-15 (**SP-219 → 🟡 ACTIVE** (user, 2026-11-15: *"Make the test files.  Put them in /Users/justgus/ScriviLinux/projects/imports.  Q1-Q5 as recommended, activate and implement SP-219"*))*
@@ -137,3 +139,9 @@
 
 
 ---
+
+---
+
+## SP-220 — `[Cross]` [EP-054] S7: Scrivener import
+
+🟡 **ACTIVE 2026-11-17** → [`Sprint-SP-220.md`](Sprint-SP-220.md) · carries [T-0683] · ✅ Q1–Q6, Q3a, Q7a ruled

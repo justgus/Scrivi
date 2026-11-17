@@ -7334,6 +7334,36 @@ struct UndoAfterStructuralOpTests {
         try h.listMatchesDisk("the import's undo")
     }
 
+    /// SP-220 Q4: a Scrivener project's Range carries each scene's seed through `ScriviRange` — the new scene gets its synopsis.
+    @Test("an imported Scrivener project pastes with each scene's synopsis; one undo takes it back")
+    func importedScrivenerPastesWithItsSynopsis() async throws {
+        let h = try await harness(["Alpha Bravo"])
+        await h.loader.saveScene(at: 0, engine: h.env.engine, ref: try #require(h.env.authorshipRef))
+        h.caret(scene: 0, at: 6)                                    // after "Alpha "
+        let scriv = FileManager.default.temporaryDirectory.appendingPathComponent("import-\(UUID().uuidString).scriv")
+        let data = scriv.appendingPathComponent("Files/Data")
+        try FileManager.default.createDirectory(at: data.appendingPathComponent("A2"), withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: scriv) }
+        try (#"<ScrivenerProject Version="2.0"><Binder><BinderItem UUID="D0" Type="DraftFolder"><Children>"#
+             + #"<BinderItem UUID="A1" Type="Text"><Title>Opening</Title></BinderItem>"#
+             + #"<BinderItem UUID="A2" Type="Text"><Title>Second</Title></BinderItem>"#
+             + #"</Children></BinderItem></Binder></ScrivenerProject>"#)
+            .write(to: scriv.appendingPathComponent("Book.scrivx"), atomically: true, encoding: .utf8)
+        try #"{\rtf1\ansi two {\i it}\par }"#.write(to: data.appendingPathComponent("A2/content.rtf"), atomically: true, encoding: .utf8)
+        try "The start.".write(to: data.appendingPathComponent("A2/synopsis.txt"), atomically: true, encoding: .utf8)
+        let range = try #require(try h.env.engine.importManuscript(sourcePath: scriv.path).range)
+        #expect(range.scenes.last?.sceneMeta?.contains("The start.") == true, "the seed decodes into ScriviRange")
+        #expect(h.c.pasteStructuredRange(range))
+        try await h.landed()
+        #expect(h.loader.segments.map(\.text) == ["Alpha ", "two *it*Bravo"])
+        let meta = try String(contentsOf: h.root.url.appendingPathComponent(h.loader.segments[1].metadataPath), encoding: .utf8)
+        #expect(meta.contains("The start."), "the new scene's outline is the synopsis")
+        try h.listMatchesDisk("the import")
+        h.c.performUndo()
+        try await h.landed()
+        #expect(h.loader.segments.map(\.text) == ["Alpha Bravo"], "one undo step")
+    }
+
     /// [I-0294] — the paste splits the target AS SAVED and then reloads every scene from disk: ⛔ typing the autosave had
     /// not written yet was dropped (`" Pre"` gone from `"threeBravo Pre"`). Two scenes typed in, neither saved.
     @Test("structured paste right after typing keeps the typing — in the target and in another scene")

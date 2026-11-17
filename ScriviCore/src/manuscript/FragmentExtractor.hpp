@@ -62,6 +62,7 @@ struct FragmentPiece {
     std::string chapterTitle;  // present (non-empty semantics) only when opensWith == Chapter
     std::string sceneTitle;    // this scene's title (captured so paste can restore it — T-0357)
     std::string text;          // this scene's selected body (divider/heading-free by construction)
+    std::string sceneMeta;     // SP-220: an import's seed (Range.hpp) — the outline, tags and status; never serialized
     Partial     partial       = Partial::None;
 };
 

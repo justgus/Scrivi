@@ -38,6 +38,7 @@ struct ImportExportCommands: View {
         Menu("Import") {
             // SP-218 Q2: with no project open it makes one.
             Button("Manuscript…") { env.presentImportManuscript(session) }
+            Button("Scrivener Project…") { env.presentImportManuscript(session, scrivener: true) }   // SP-220 Q6
             Button("Timeline…") { if let session { env.importTimeline(session) } }
                 .disabled(session == nil)
             Button("Archive…") { env.presentImportArchive() }
@@ -94,6 +95,7 @@ enum ArchivePicker: Equatable {
     case folder(archive: URL, name: String)   // name: the project folder the writer chose
     case timeline                             // SP-215 Q4: a .scrivi-timeline.json for File ▸ Import ▸ Timeline…
     case manuscript                           // SP-218: a Markdown or text file for File ▸ Import ▸ Manuscript…
+    case scrivener                            // SP-220: a .scriv folder or its zipped backup, File ▸ Import ▸ Scrivener Project…
     case manuscriptFolder(source: URL)        // … and the folder its new project goes in
 }
 
@@ -397,16 +399,21 @@ extension AppEnvironment {
 
     static let manuscriptTypes: [UTType] = [.plainText] + ["md", "markdown"].compactMap { UTType(filenameExtension: $0) }
         + [UTType("org.openxmlformats.wordprocessingml.document")].compactMap { $0 }   // SP-219: .docx
+    /// SP-220 Q6: a `.scriv` — a package where Scrivener is installed, a plain folder where it is not — or its zipped backup.
+    static let scrivenerTypes: [UTType] = [UTType(filenameExtension: "scriv", conformingTo: .package), .folder, .zip].compactMap { $0 }
 
     /// File ▸ Import ▸ Manuscript…: a Markdown or text file. Q2: a new project, or — on the Mac, with a project open — into it
     /// at the caret as one undo step. ⚠️ The iPad makes a new project only: its editor has no structured paste yet (EP-055).
-    func presentImportManuscript(_ session: ProjectSession?) {
+    /// SP-220: `scrivener` — a Scrivener project instead, by the same road (the core reads the folder or the zip).
+    func presentImportManuscript(_ session: ProjectSession?, scrivener: Bool = false) {
         #if os(macOS)
         let panel = NSOpenPanel()
-        panel.allowedContentTypes = Self.manuscriptTypes
+        panel.allowedContentTypes = scrivener ? Self.scrivenerTypes : Self.manuscriptTypes
+        panel.canChooseDirectories = scrivener
         panel.allowsMultipleSelection = false
-        panel.title = "Import Manuscript"
-        panel.message = "Choose a Markdown, plain-text or Word file"
+        panel.title = scrivener ? "Import Scrivener Project" : "Import Manuscript"
+        panel.message = scrivener ? "Choose a Scrivener project (.scriv), or its zipped backup"
+                                  : "Choose a Markdown, plain-text or Word file"
         panel.prompt = "Import"
         guard panel.runModal() == .OK, let url = panel.url else { return }
         Task { await importManuscript(url, into: session) }
@@ -421,7 +428,7 @@ extension AppEnvironment {
                 guard r.choice == 0 else { return }
             }
             closeActiveProjectForLanding()
-            archivePicker = .manuscript
+            archivePicker = scrivener ? .scrivener : .manuscript
         }
         #endif
     }
@@ -531,6 +538,18 @@ extension AppEnvironment {
             case "equation": return "\(many("equation", "equations")) left out (first: in “\(n.example)”)."
             case "headerFooter": return "Headers and footers were left out (first: “\(n.example)”)."
             case "formatting": return "\(lines) with formatting Scrivi does not keep — underline, strikethrough, colour, fonts, sizes or alignment — kept as plain text (first: “\(n.example)”)."
+            // SP-220: a Scrivener project's
+            case "outsideDraft": return "\(many("item", "items")) left out: only the Draft is imported, not Research, the Trash or anything else outside it (first: “\(n.example)”)."
+            case "notCompiled": return "\(many("document", "documents")) marked not to include in compile, imported all the same (first: “\(n.example)”)."
+            case "parts": return "\(many("folder", "folders")) above the chapters left out; their chapters are kept (first: “\(n.example)”)."
+            case "label": return "\(many("label", "labels")) left out (first: on “\(n.example)”)."
+            case "status": return "\(many("status", "statuses")) Scrivi has no place for left out (first: \(n.example))."
+            case "documentNotes": return "Notes on \(many("document", "documents")) left out (first: “\(n.example)”)."
+            case "snapshots": return "Snapshots of \(many("document", "documents")) left out (first: “\(n.example)”)."
+            case "customMetadata": return "Custom metadata on \(many("document", "documents")) left out (first: “\(n.example)”)."
+            case "documentLink": return "\(many("link", "links")) to other documents, kept as text (first: in “\(n.example)”)."
+            case "media": return "\(many("file", "files")) in the Draft left out — pictures, PDFs and other files are not imported (first: “\(n.example)”)."
+            case "notRtf": return "\(many("document", "documents")) Scrivi could not read as RTF, left out (first: “\(n.example)”)."
             default: return "\(lines): \(n.kind) (first: “\(n.example)”)."
             }
         }
@@ -756,7 +775,8 @@ struct ArchiveFlowHost: ViewModifier {
                                                set: { if !$0 { env.archivePicker = nil } }),
                           allowedContentTypes: env.archivePicker == .archive ? [AppEnvironment.archiveType]
                                                : env.archivePicker == .timeline ? [.json]
-                                               : env.archivePicker == .manuscript ? AppEnvironment.manuscriptTypes : [.folder],
+                                               : env.archivePicker == .manuscript ? AppEnvironment.manuscriptTypes
+                                               : env.archivePicker == .scrivener ? AppEnvironment.scrivenerTypes : [.folder],
                           allowsMultipleSelection: false) { result in
                 env.archivePicker = nil
                 guard case .success(let urls) = result, let url = urls.first else { return }
@@ -781,7 +801,7 @@ struct ArchiveFlowHost: ViewModifier {
                     Task { await env.importArchive(archive, into: url, name: name) }
                 case .timeline:
                     if let session = env.activeSession { Task { await env.readTimeline(url, into: session) } }
-                case .manuscript:
+                case .manuscript, .scrivener:
                     // As the archive: say why a second picker is coming, then pick the new project's folder.
                     Task { @MainActor in
                         await Self.untilNothingPresented()

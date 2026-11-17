@@ -133,7 +133,19 @@ const char* scrivi_export_manuscript(const char* projectRootPath, const char* op
  *   projectRootPath is already there: nothing is written over.
  * report: [{kind, count, example}] — what is kept only as text or was consumed: encodingGuessed, hardWrapped, byline, link,
  *   image, code, blockQuote, html, table; from a .docx also picture, docxTable (its text kept), footnote, endnote, comment, textBox,
- *   equation, headerFooter, formatting (underline, strikethrough, colour, a font or size not the document's own, alignment). WARNING: "range" / "report" are OMITTED when empty. */
+ *   equation, headerFooter, formatting (underline, strikethrough, colour, a font or size not the document's own, alignment).
+ * S7 (SP-220): a Scrivener project — sourcePath a `.scriv` FOLDER, or a `.zip` backup holding one (format "scrivener" is
+ *   then implied). Scrivener 3 (`Files/Data/<UUID>/`) and Mac 2 / Windows 1 (`Files/Docs/<ID>`); anything else refused
+ *   "notScrivener". The Draft only. Only a FOLDER is a chapter (its title the chapter's); every text document is a scene, its
+ *   title the scene's, in binder order in its nearest folder's chapter; documents straight in the Draft make an untitled
+ *   chapter per run; an empty folder an empty chapter; a paragraph of only `* * *`, `***` or `#` opens a scene. Each RTF
+ *   is read as the .docx's text is (italic / bold kept, literal). Empty scenes are KEPT (each is a titled document). A range
+ *   entry may carry `sceneMeta`, a seed: the scene's outline (Scrivener's synopsis), tags (keywords) and status (First Draft
+ *   → draft, Revised Draft → revised, Final Draft / Done → final), which scrivi_range_paste gives the new scene (and the new
+ *   project's scenes). A file past 64 MB is "tooLarge". The report adds: outsideDraft (Research, Trash, …), notCompiled
+ *   (imported), parts (folders above a chapter), label, status (one Scrivi has no place for), documentNotes, snapshots,
+ *   customMetadata, documentLink, media, notRtf; and picture, docxTable, footnote, comment, link, formatting as a .docx.
+ *   WARNING: "range" / "report" are OMITTED when empty. */
 const char* scrivi_import_manuscript(const char* sourcePath, const char* optionsJSON);
 
 /* Every scene whose story time is EXPLICITLY SET, in manuscript order.
@@ -1150,6 +1162,8 @@ const char* scrivi_fragment_uncut_paste(const char* projectRootPath,
  * ✅ [SP-191] Q3b: a Range entry may carry `sceneMeta` / `chapterMeta` — the removed scene's / chapter's sidecar, serialized
  * as a STRING. A cut and a relabel that empties a chapter fill them; a paste that keeps an entry's ID (the manuscript no
  * longer has it) writes them back, so an undo restores the sidecar exactly. An empty `sceneID` / `chapterID` mints one.
+ * ✅ SP-220: an entry with an EMPTY `sceneID` and a `sceneMeta` (an import's seed) gives the new scene that sidecar's
+ * outline, tags and status — never its IDs or paths. The first entry joins the caret scene, so its seed is not applied.
  * ✅ [SP-188] Q3: a Range may carry a top-level `"join": { sceneID, byte, balanced, plain }` — set by scrivi_range_cut on
  * the Range it returns when it BALANCED the join (head and tail joined directly would leave an emphasis span open): at
  * `byte` of the survivor it wrote `balanced` where the plain join had `plain`. An UNDO RECORD: scrivi_range_paste puts

@@ -37,6 +37,7 @@
 #include "manuscript/ManuscriptOrderResolver.hpp"
 #include "manuscript/ManuscriptExport.hpp"
 #include "manuscript/ManuscriptDocx.hpp"
+#include "manuscript/ManuscriptScrivener.hpp"
 #include "manuscript/ManuscriptImport.hpp"
 #include "manuscript/ChapterRenamer.hpp"
 #include "domain/Slug.hpp"
@@ -1387,35 +1388,46 @@ const char* scrivi_import_manuscript(const char* sourcePath, const char* options
     if (!parsed.ok() || !parsed.value().isObject())
         return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "optionsJSON is not a JSON object"));
     const auto& o = parsed.value();
-    const std::filesystem::path source{S(sourcePath)};
+    std::filesystem::path source{S(sourcePath)};
+    if (source.filename().empty()) source = source.parent_path();   // a folder named with a trailing `/`
     std::string ext = source.extension().string();
     std::ranges::transform(ext, ext.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
     std::string format = o.getString("format");
-    if (!format.empty() && format != "markdown" && format != "text" && format != "docx")
-        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "format must be markdown, text or docx"));
+    if (!format.empty() && format != "markdown" && format != "text" && format != "docx" && format != "scrivener")
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "format must be markdown, text, docx or scrivener"));
 
-    // A manuscript is megabytes; anything far past that is not one, and is never read whole.
-    constexpr std::uintmax_t kMaxBytes = 64u << 20;
-    std::error_code ec;
-    const auto size = std::filesystem::file_size(source, ec);
-    if (ec) return heap(errorEnvelope(scrivi::ErrorCode::ioError, "the file cannot be read: " + source.string()));
-    if (size > kMaxBytes)
-        return heap(errorEnvelope(scrivi::Error{scrivi::ErrorCode::invalidArgument, "the file is too large to be a manuscript",
-                                                source.string(), "tooLarge"}));
     auto svc = abiServices();
-    auto bytes = svc.fileSystem->readTextFile(source.string());
-    if (!bytes.ok()) return heap(errorEnvelope(bytes.error()));
-    // S6b Q2: a Word document is found by its bytes, whatever its name; a Word 97–2003 one is refused with what to do.
-    if (scrivi::manuscript::looksLikeLegacyDoc(bytes.value()))
-        return heap(errorEnvelope(scrivi::Error{scrivi::ErrorCode::invalidArgument,
-                                                "This is a Word 97–2003 document. Save it as .docx in Word or Pages, and "
-                                                "import that.", source.string(), "legacyDoc"}));
-    if (format.empty())
-        format = scrivi::manuscript::looksLikeZip(bytes.value()) ? "docx"
-               : ext == ".txt" || ext == ".text"                 ? "text"
-                                                                 : "markdown";
-    auto imported = format == "docx" ? scrivi::manuscript::importDocx(bytes.value())
-                                     : scrivi::manuscript::importManuscript(bytes.value(), format == "markdown");
+    std::error_code ec;
+    // S7 Q6: a Scrivener project is a `.scriv` folder, or a zipped backup holding one.
+    const bool folder = std::filesystem::is_directory(source, ec);
+    if (folder || ext == ".zip") format = "scrivener";
+    std::optional<scrivi::Result<scrivi::manuscript::ImportedManuscript>> read;
+    if (format == "scrivener") {
+        read = folder ? scrivi::manuscript::importScrivenerFolder(*svc.fileSystem, source.string())
+                      : scrivi::manuscript::importScrivenerZip(source.string());
+    } else {
+        // A manuscript is megabytes; anything far past that is not one, and is never read whole.
+        constexpr std::uintmax_t kMaxBytes = 64u << 20;
+        const auto size = std::filesystem::file_size(source, ec);
+        if (ec) return heap(errorEnvelope(scrivi::ErrorCode::ioError, "the file cannot be read: " + source.string()));
+        if (size > kMaxBytes)
+            return heap(errorEnvelope(scrivi::Error{scrivi::ErrorCode::invalidArgument,
+                                                    "the file is too large to be a manuscript", source.string(), "tooLarge"}));
+        auto bytes = svc.fileSystem->readTextFile(source.string());
+        if (!bytes.ok()) return heap(errorEnvelope(bytes.error()));
+        // S6b Q2: a Word document is found by its bytes, whatever its name; a Word 97–2003 one is refused with what to do.
+        if (scrivi::manuscript::looksLikeLegacyDoc(bytes.value()))
+            return heap(errorEnvelope(scrivi::Error{scrivi::ErrorCode::invalidArgument,
+                                                    "This is a Word 97–2003 document. Save it as .docx in Word or Pages, and "
+                                                    "import that.", source.string(), "legacyDoc"}));
+        if (format.empty())
+            format = scrivi::manuscript::looksLikeZip(bytes.value()) ? "docx"
+                   : ext == ".txt" || ext == ".text"                 ? "text"
+                                                                     : "markdown";
+        read = format == "docx" ? scrivi::manuscript::importDocx(bytes.value())
+                                : scrivi::manuscript::importManuscript(bytes.value(), format == "markdown");
+    }
+    auto& imported = *read;
     if (!imported.ok()) return heap(errorEnvelope(imported.error()));
     auto& m = imported.value();
 
@@ -1477,6 +1489,7 @@ const char* scrivi_import_manuscript(const char* sourcePath, const char* options
         paste.author          = author;
         paste.fragment        = m.range.toFragment();
         paste.caretSceneID    = c.firstSceneID;
+        paste.firstPieceNamesTarget = true;   // S7: the first scene's title and seed are the new project's first scene's
         scrivi::manuscript::FragmentPaster paster{svc};
         auto pasted = paster.paste(paste);
         if (!pasted.ok()) return heap(errorEnvelope(pasted.error()));

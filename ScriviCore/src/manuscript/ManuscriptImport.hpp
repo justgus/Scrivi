@@ -14,6 +14,7 @@
 #include "scrivi/Result.hpp"
 
 #include <cstddef>
+#include <cstdint>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -35,6 +36,10 @@ struct ImportedManuscript {
     std::size_t chapterCount = 0;
     bool opensChapter = false;   // the first chapter has its own heading (pasted at a caret, it opens a chapter there)
 };
+
+// Shared with the .docx and RTF readers.
+void appendUtf8(std::string& out, std::uint32_t cp);
+[[nodiscard]] std::string fromWindows1252(std::string_view bytes);
 
 // invalidArgument "notText" when the bytes are not text (a NUL after decoding). `reportMarkup` false: the Markdown was
 // written by Scrivi (a .docx's, SP-219), so its own marks are not reported as links, code or HTML.

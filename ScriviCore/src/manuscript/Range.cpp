@@ -106,6 +106,7 @@ Fragment Range::toFragment() const
         FragmentPiece p;
         p.text = it->text;
         p.sceneTitle = it->sceneTitle;
+        if (it->sceneID.value.empty()) { p.sceneMeta = it->sceneMeta; }   // SP-220: an import's seed
         if (it == entries_.begin()) {
             p.opensWith = OpensWith::None;
         } else if (opensChapter(std::prev(it), it)) {

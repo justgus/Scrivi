@@ -289,10 +289,7 @@ std::string escapedLineStart(std::string line) {
     return line;
 }
 
-struct Segment {
-    std::string text;
-    bool bold = false, italic = false;
-};
+} // namespace
 
 // Runs → one Markdown paragraph: emphasis per piece of a line, spaces kept outside the marks, each line trimmed.
 std::string inlineMarkdown(const std::vector<Segment>& runs) {
@@ -330,6 +327,8 @@ std::string inlineMarkdown(const std::vector<Segment>& runs) {
     }
     return result;
 }
+
+namespace {
 
 std::string oneLine(std::string_view s) {
     std::string out(trim(s));

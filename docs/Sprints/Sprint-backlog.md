@@ -1,5 +1,9 @@
 # Sprint Backlog
 
+*Last Updated: 2026-11-17 (**SP-220 removed** — activated 2026-11-17.)*
+
+*Last Updated: 2026-11-17 (**SP-220 created in 🔵 Planning** — EP-054 S7, Scrivener import (user, 2026-11-17: *"plan S7 Scrivener import"*); Q1–Q7 to rule.)*
+
 *Last Updated: 2026-11-15 (**SP-219 removed** — activated 2026-11-15.)*
 
 *Last Updated: 2026-11-15 (**SP-219 created in 🔵 Planning** — EP-054 S6b, `.docx` import (user, 2026-11-15: *"close SP-218 then plan S6b."*); Q1–Q5 to rule.)*

@@ -142,6 +142,29 @@ QString importNotes(const QVariantList& report)
             out << QObject::tr("Headers and footers were left out (first: “%1”).").arg(example);
         } else if (kind == QLatin1String("formatting")) {
             out << QObject::tr("%1 with formatting Scrivi does not keep — underline, strikethrough, colour, fonts, sizes or alignment — kept as plain text (first: “%2”).").arg(lines, example);
+        // SP-220: a Scrivener project's
+        } else if (kind == QLatin1String("outsideDraft")) {
+            out << QObject::tr("%1 left out: only the Draft is imported, not Research, the Trash or anything else outside it (first: “%2”).").arg(many(QObject::tr("item"), QObject::tr("items")), example);
+        } else if (kind == QLatin1String("notCompiled")) {
+            out << QObject::tr("%1 marked not to include in compile, imported all the same (first: “%2”).").arg(many(QObject::tr("document"), QObject::tr("documents")), example);
+        } else if (kind == QLatin1String("parts")) {
+            out << QObject::tr("%1 above the chapters left out; their chapters are kept (first: “%2”).").arg(many(QObject::tr("folder"), QObject::tr("folders")), example);
+        } else if (kind == QLatin1String("label")) {
+            out << QObject::tr("%1 left out (first: on “%2”).").arg(many(QObject::tr("label"), QObject::tr("labels")), example);
+        } else if (kind == QLatin1String("status")) {
+            out << QObject::tr("%1 Scrivi has no place for left out (first: %2).").arg(many(QObject::tr("status"), QObject::tr("statuses")), example);
+        } else if (kind == QLatin1String("documentNotes")) {
+            out << QObject::tr("Notes on %1 left out (first: “%2”).").arg(many(QObject::tr("document"), QObject::tr("documents")), example);
+        } else if (kind == QLatin1String("snapshots")) {
+            out << QObject::tr("Snapshots of %1 left out (first: “%2”).").arg(many(QObject::tr("document"), QObject::tr("documents")), example);
+        } else if (kind == QLatin1String("customMetadata")) {
+            out << QObject::tr("Custom metadata on %1 left out (first: “%2”).").arg(many(QObject::tr("document"), QObject::tr("documents")), example);
+        } else if (kind == QLatin1String("documentLink")) {
+            out << QObject::tr("%1 to other documents, kept as text (first: in “%2”).").arg(many(QObject::tr("link"), QObject::tr("links")), example);
+        } else if (kind == QLatin1String("media")) {
+            out << QObject::tr("%1 in the Draft left out — pictures, PDFs and other files are not imported (first: “%2”).").arg(many(QObject::tr("file"), QObject::tr("files")), example);
+        } else if (kind == QLatin1String("notRtf")) {
+            out << QObject::tr("%1 Scrivi could not read as RTF, left out (first: “%2”).").arg(many(QObject::tr("document"), QObject::tr("documents")), example);
         } else {
             out << QObject::tr("%1: %2 (first: “%3”).").arg(lines, kind, example);
         }
@@ -151,11 +174,29 @@ QString importNotes(const QVariantList& report)
 
 } // namespace
 
-void ShellController::importManuscript(EditorShell* into)
+void ShellController::importManuscript(EditorShell* into, bool scrivener)
 {
     QWidget* parent = QApplication::activeWindow();
-    const QString source = QFileDialog::getOpenFileName(parent, tr("Import Manuscript"), QDir::homePath(),
-                                                        tr("Markdown, text or Word (*.md *.markdown *.txt *.text *.docx);;All files (*)"));
+    QString source;
+    if (!scrivener) {
+        source = QFileDialog::getOpenFileName(parent, tr("Import Manuscript"), QDir::homePath(),
+                                              tr("Markdown, text or Word (*.md *.markdown *.txt *.text *.docx);;All files (*)"));
+    } else {
+        // [SP-220] Q6: a .scriv is a folder here; Qt's dialogs choose a folder or a file, never both, so ask which.
+        QMessageBox which(QMessageBox::Question, tr("Import a Scrivener Project"),
+                          tr("Choose the project's .scriv folder, or a zipped backup of it."), QMessageBox::NoButton, parent);
+        QPushButton* folder = which.addButton(tr("Project Folder…"), QMessageBox::AcceptRole);
+        QPushButton* zipped = which.addButton(tr("Zipped Backup…"), QMessageBox::AcceptRole);
+        which.addButton(QMessageBox::Cancel);
+        which.exec();
+        if (which.clickedButton() == folder) {
+            source = QFileDialog::getExistingDirectory(parent, tr("Import Scrivener Project"), QDir::homePath(),
+                                                       QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+        } else if (which.clickedButton() == zipped) {
+            source = QFileDialog::getOpenFileName(parent, tr("Import Scrivener Backup"), QDir::homePath(),
+                                                  tr("Zipped backup (*.zip);;All files (*)"));
+        }
+    }
     if (source.isEmpty()) {
         return;
     }
@@ -491,6 +532,11 @@ void ScriviWindow::buildMenuBar(QMainWindow* host, ScriviWindow* w, AppEnvironme
     connect(importManuscript, &QAction::triggered, host, [=]() {
         if (w != nullptr) { w->flushEditor(); }
         if (shell() != nullptr) { shell()->importManuscript(ed()); }
+    });
+    QAction* importScrivener = importMenu->addAction(tr("Scrivener Project…"));   // [SP-220] Q6
+    connect(importScrivener, &QAction::triggered, host, [=]() {
+        if (w != nullptr) { w->flushEditor(); }
+        if (shell() != nullptr) { shell()->importManuscript(ed(), true); }
     });
     QAction* importTimeline = importMenu->addAction(tr("Timeline…"));
     connect(importTimeline, &QAction::triggered, host,

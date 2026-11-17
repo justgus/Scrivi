@@ -9,6 +9,7 @@
 #include "manuscript/SceneReader.hpp"
 #include "manuscript/SceneRenamer.hpp"
 #include "manuscript/SceneWriter.hpp"
+#include "schemas/SceneMetaJson.hpp"
 #include "util/PathUtils.hpp"
 
 #include <memory>
@@ -105,6 +106,21 @@ Result<PasteFragmentResult> FragmentPaster::paste(const PasteFragmentRequest& re
         if (!r.ok()) return Result<void>::failure(r.error());
         return Result<void>::success();
     };
+    // ✅ SP-220 Q4: an import's seed gives a freshly-created scene its outline, tags and status.
+    auto applySceneSeed = [&](const RelativePath& metaPath, const std::string& seed) -> Result<void> {
+        if (seed.empty()) return Result<void>::success();
+        auto parsedSeed = schemas::parseSceneMeta(seed);
+        if (!parsedSeed.ok()) return Result<void>::failure(parsedSeed.error());
+        const auto abs = util::join(root, metaPath);
+        auto text = services_.fileSystem->readTextFile(abs);
+        if (!text.ok()) return Result<void>::failure(text.error());
+        auto meta = schemas::parseSceneMeta(text.value());
+        if (!meta.ok()) return Result<void>::failure(meta.error());
+        meta.value().outline = parsedSeed.value().outline;
+        meta.value().tags    = parsedSeed.value().tags;
+        meta.value().status  = parsedSeed.value().status;
+        return services_.fileSystem->atomicWriteTextFile(abs, schemas::serializeSceneMeta(meta.value()));
+    };
     // Apply a captured chapter title to a freshly-created chapter (T-0357).
     auto applyChapterTitle = [&](const RelativePath& metaPath, const std::string& title) -> Result<void> {
         if (title.empty()) return Result<void>::success();
@@ -154,6 +170,12 @@ Result<PasteFragmentResult> FragmentPaster::paste(const PasteFragmentRequest& re
     // is never used in paste — each cross-boundary piece becomes its own scene, so the scene
     // split IS the boundary.
     runSceneBody = head + frag.pieces.front().text;
+    if (request.firstPieceNamesTarget) {
+        auto st = applySceneTitle(target.metadataPath, frag.pieces.front().sceneTitle);
+        if (!st.ok()) return R::failure(st.error());
+        auto sd = applySceneSeed(target.metadataPath, frag.pieces.front().sceneMeta);
+        if (!sd.ok()) return R::failure(sd.error());
+    }
 
     // Subsequent pieces each create a scene or a chapter after the running insertion point.
     for (std::size_t i = 1; i < frag.pieces.size(); ++i) {
@@ -182,6 +204,8 @@ Result<PasteFragmentResult> FragmentPaster::paste(const PasteFragmentRequest& re
             if (!ct.ok()) return R::failure(ct.error());
             auto st = applySceneTitle(ch.value().firstSceneMetadataPath, piece.sceneTitle);
             if (!st.ok()) return R::failure(st.error());
+            auto sd = applySceneSeed(ch.value().firstSceneMetadataPath, piece.sceneMeta);
+            if (!sd.ok()) return R::failure(sd.error());
 
             runChapterID     = ch.value().chapterID;
             runSceneID       = ch.value().firstSceneID;
@@ -209,6 +233,8 @@ Result<PasteFragmentResult> FragmentPaster::paste(const PasteFragmentRequest& re
             // Restore the captured scene title (T-0357).
             auto st = applySceneTitle(sc.value().metadataPath, piece.sceneTitle);
             if (!st.ok()) return R::failure(st.error());
+            auto sd = applySceneSeed(sc.value().metadataPath, piece.sceneMeta);
+            if (!sd.ok()) return R::failure(sd.error());
 
             runSceneID       = sc.value().sceneID;
             runSceneMetaPath = sc.value().metadataPath;

@@ -782,6 +782,7 @@ document**, not from memory.*
   NTP poll catches it. ✅ `/etc/systemd/timesyncd.conf.d/scrivi-poll.conf`: `[Time]` / `PollIntervalMaxSec=64` (default max
   34 min), then `sudo systemctl restart systemd-timesyncd` — a reopened VM is right within about a minute (2026-11-17).
   Check: `timedatectl timesync-status` (Poll interval max 1min 4s, Offset in ms).
+  ✅ 2026-11-17: the VM down for hours, then started — the clock was right as soon as the user logged in (offset −4.8 ms).
   ⚠️ 2026-11-17: found 26 h slow with timesyncd running but NOT answering (`timesync-status` timed out; off D-Bus; last log
   2026-11-13). A restart fixed it, and a clock set back 1 h was corrected within 30 s. Cause not found — if `timesync-status`
   times out again, investigate before restarting.

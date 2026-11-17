@@ -19,6 +19,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iterator>
+#include <map>
 #include <string>
 #include <unistd.h>
 #include <utility>
@@ -704,4 +705,414 @@ TEST_CASE("Manuscript import (.docx): the every-case fixture", "[manuscript-impo
                        "1. first step\n2. second step\n\nKept, an accepted insertion.");
     CHECK(e[5].title == "Chapter Two");
     CHECK(e[5].text == "A word is underlined here.\n\nCell A\n\nCell B\n\nA footnote here and a comment.\n\nThe last paragraph.");
+}
+
+// ---- S7 (SP-220, T-0683): a Scrivener project — Q1–Q6, Q3a; the fixtures made in Scrivener 3.5.2 (Q7a).
+
+namespace {
+
+// A synthetic `.scriv`: the binder's items, and each document's files by their path inside the project.
+struct Scriv {
+    std::string binder;   // the Draft's <Children> content
+    std::string outside;  // BinderItems after the Draft (Research, Trash)
+    std::vector<std::pair<std::string, std::string>> files;
+    std::string version = "2.0";
+    std::string lists;    // StatusSettings / Keywords
+};
+
+fs::path writeScriv(const ImportFixture& f, const std::string& name, const Scriv& s) {
+    const fs::path root = f.base / (name + ".scriv");
+    fs::create_directories(root);
+    std::ofstream(root / (name + ".scrivx"))
+        << R"(<?xml version="1.0" encoding="UTF-8"?><ScrivenerProject Version=")" << s.version << R"("><Binder>)"
+        << R"(<BinderItem UUID="00000000-0000-0000-0000-00000000D0D0" ID="0" Type="DraftFolder"><Title>Draft</Title><Children>)"
+        << s.binder << "</Children></BinderItem>" << s.outside << "</Binder>" << s.lists << "</ScrivenerProject>";
+    for (const auto& [rel, bytes] : s.files) {
+        fs::create_directories((root / rel).parent_path());
+        std::ofstream(root / rel, std::ios::binary) << bytes;
+    }
+    return root;
+}
+
+std::string item(const std::string& type, const std::string& id, const std::string& title, const std::string& inner = {},
+                 const std::string& meta = "<IncludeInCompile>Yes</IncludeInCompile>", const std::string& extra = {}) {
+    return R"(<BinderItem UUID=")" + id + R"(" ID=")" + id + R"(" Type=")" + type + R"("><Title>)" + title +
+           "</Title><MetaData>" + meta + "</MetaData>" + extra + (inner.empty() ? "" : "<Children>" + inner + "</Children>") +
+           "</BinderItem>";
+}
+
+std::string rtf(const std::string& body) {
+    return "{\\rtf1\\ansi\\ansicpg1252\\cocoartf2909\n{\\fonttbl\\f0\\froman\\fcharset0 Palatino-Roman;}\n"
+           "{\\colortbl;\\red255\\green255\\blue255;\\red0\\green0\\blue0;\\red200\\green0\\blue0;}\n"
+           "\\pard\\pardirnatural\\partightenfactor0\n\\f0\\fs26 \\cf0 " + body + "}";
+}
+
+std::string data(const std::string& uuid, const std::string& file) { return "Files/Data/" + uuid + "/" + file; }
+
+// Each entry with its scene title and seed.
+struct Scene { std::string chapter, chapterTitle, title, text, seed; };
+
+std::vector<Scene> scenes(const JsonDoc& result) {
+    std::vector<Scene> out;
+    const JsonDoc range = result.getSubDoc("range");
+    for (std::size_t i = 0; i < range.arraySize("scenes"); ++i) {
+        const JsonDoc e = range.arrayItem("scenes", i);
+        CHECK(e.getString("sceneID").empty());
+        out.push_back({e.getString("chapterID"), e.getString("chapterTitle"), e.getString("sceneTitle"), e.getString("text"),
+                       e.getString("sceneMeta")});
+    }
+    return out;
+}
+
+JsonDoc note(const JsonDoc& result, const std::string& kind) {
+    for (std::size_t i = 0; i < result.arraySize("report"); ++i) {
+        if (result.arrayItem("report", i).getString("kind") == kind) return result.arrayItem("report", i);
+    }
+    FAIL("no " << kind << " note in " << result.dump());
+    return {};
+}
+
+fs::path fixture(const std::string& name) { return fs::path(SCRIVI_TEST_FIXTURES_DIR) / "scrivener" / name; }
+
+} // namespace
+
+TEST_CASE("Manuscript import (Scrivener): only a folder is a chapter; texts and their children are scenes (Q3, Q3a)",
+          "[manuscript-import][scrivener][capi]") {
+    ImportFixture f;
+    Scriv s;
+    s.binder = item("Text", "A1", "Prologue") +
+               item("Folder", "B1", "Part", item("Folder", "C1", "One",
+                    item("Text", "D1", "Parent", item("Text", "E1", "Child")) + item("Folder", "C2", "Nested",
+                         item("Text", "F1", "Inside")) + item("Text", "G1", "Back in One"))) +
+               item("Folder", "H1", "Empty") + item("Text", "I1", "Epilogue");
+    for (const char* id : {"A1", "D1", "E1", "F1", "G1", "I1"}) s.files.push_back({data(id, "content.rtf"), rtf(std::string(id) + "\\\n")});
+    const JsonDoc r = ok(scrivi_import_manuscript(writeScriv(f, "Book", s).c_str(), ""));
+    INFO(r.dump());
+    const auto e = scenes(r);
+    REQUIRE(e.size() == 7);
+    // The Draft's own documents: an untitled chapter; so the paste does not open one.
+    CHECK((e[0].chapterTitle == "" && e[0].title == "Prologue" && e[0].text == "A1"));
+    CHECK((e[1].chapterTitle == "One" && e[1].title == "Parent" && e[2].title == "Child" && e[1].chapter == e[2].chapter));
+    CHECK((e[3].chapterTitle == "Nested" && e[3].title == "Inside"));
+    // Back in One after a nested folder: One again, as its own run (reading order is kept).
+    CHECK((e[4].chapterTitle == "One" && e[4].title == "Back in One" && e[4].chapter != e[1].chapter));
+    CHECK((e[5].chapterTitle == "Empty" && e[5].text.empty()));   // an empty folder is an empty chapter
+    CHECK((e[6].chapterTitle == "" && e[6].title == "Epilogue"));
+    CHECK(r.getInt64("chapterCount") == 6);
+    CHECK(note(r, "parts").getString("example") == "Part");
+}
+
+TEST_CASE("Manuscript import (Scrivener): the RTF reader — emphasis, characters, skipped destinations, breaks (Q5)",
+          "[manuscript-import][scrivener][capi]") {
+    ImportFixture f;
+    Scriv s;
+    s.binder = item("Text", "A1", "One");
+    s.files.push_back({data("A1", "content.rtf"), rtf(
+        "Plain {\\i italic} and {\\b bold\\b0 } then \\i on\\i0 .\\par "
+        "Caf\\'e9 \\u8212? \\uc0\\u8226 \\uc1 \\emdash \\ldblquote q\\rdblquote  \\u-10179?\\u-8704? a\\tab b\\line c\\~d \\{x\\} \\\\\\par "
+        "Text{\\footnote\\pard foot text\\par} goes on; "
+        "{\\*\\expandedcolortbl;;}{\\*\\unknownthing hidden}{\\*\\shppict{\\pict\\pngblip 0011}}"
+        "{\\field{\\*\\fldinst{HYPERLINK \"scrivlnk://AB\"}}{\\fldrslt linked}} and {\\field{\\*\\fldinst{HYPERLINK \"https://x\"}}{\\fldrslt web}}\\par "
+        "* * *\\par "
+        "After the break: 5 * 3 _x_ `c`\\par "
+        "# not a heading\\par "
+        "{\\cf3 red} words\\par "
+        "{\\cf2 black} words\\par "
+        "\\trowd\\pard\\intbl Cell A\\cell Cell B\\cell\\row\\pard After the table.\\par ")});
+    const JsonDoc r = ok(scrivi_import_manuscript(writeScriv(f, "Rtf", s).c_str(), ""));
+    INFO(r.dump());
+    const auto e = scenes(r);
+    REQUIRE(e.size() == 2);   // a `* * *` paragraph opens a scene inside the document
+    CHECK(e[0].title == "One");
+    CHECK(e[0].text == "Plain *italic* and **bold** then *on*.\n\n"
+                       "Café — •—“q” \xF0\x9F\x98\x80 a\tb\nc\xC2\xA0" "d {x} \\\\\n\n"
+                       "Text goes on; linked and web");   // a footnote's own \\par never ends the paragraph it sits in
+    CHECK(e[1].title.empty());
+    CHECK(e[1].text == "After the break: 5 \\* 3 \\_x\\_ \\`c\\`\n\n\\# not a heading\n\nred words\n\nblack words\n\n"
+                       "Cell A\n\nCell B\n\nAfter the table.");
+    CHECK(note(r, "footnote").getInt64("count") == 1);
+    CHECK(note(r, "picture").getInt64("count") == 1);
+    CHECK(note(r, "documentLink").getInt64("count") == 1);
+    CHECK(note(r, "link").getInt64("count") == 1);
+    CHECK(note(r, "docxTable").getInt64("count") == 1);
+    CHECK(note(r, "formatting").getString("example") == "red words");   // black is not formatting
+    CHECK(note(r, "formatting").getInt64("count") == 1);
+}
+
+TEST_CASE("Manuscript import (Scrivener): the metadata — synopsis, keywords, status as a seed; the rest reported (Q2, Q4)",
+          "[manuscript-import][scrivener][capi]") {
+    ImportFixture f;
+    Scriv s;
+    s.lists = R"(<StatusSettings><StatusItems><Status ID="-1">No Status</Status><Status ID="0">To Do</Status>)"
+              R"(<Status ID="2">First Draft</Status><Status ID="3">Revised Draft</Status><Status ID="5">Done</Status>)"
+              R"(</StatusItems></StatusSettings><Keywords><Keyword ID="0"><Title>harbour</Title></Keyword>)"
+              R"(<Keyword ID="1"><Title>night</Title></Keyword></Keywords>)";
+    s.binder = item("Folder", "C1", "Chapter",
+                    item("Text", "A1", "Revised", {},
+                         "<IncludeInCompile>Yes</IncludeInCompile><StatusID>3</StatusID><LabelID>2</LabelID>",
+                         R"(<Keywords><KeywordID>1</KeywordID><KeywordID>0</KeywordID></Keywords>)") +
+                    item("Text", "A2", "Done", {}, "<IncludeInCompile>Yes</IncludeInCompile><StatusID>5</StatusID>") +
+                    item("Text", "A3", "To do", {}, "<IncludeInCompile>No</IncludeInCompile><StatusID>0</StatusID>"
+                         "<CustomMetaData><MetaDataItem><FieldID>x</FieldID><Value>y</Value></MetaDataItem></CustomMetaData>") +
+                    item("Text", "A4", "Plain") + item("Image", "A5", "A picture"));
+    s.outside = item("ResearchFolder", "R0", "Research", item("Text", "R1", "Notes on ships")) +
+                item("TrashFolder", "T0", "Trash", item("Text", "T1", "Gone"));
+    s.files = {{data("A1", "content.rtf"), rtf("Text.\\par ")}, {data("A1", "synopsis.txt"), "They arrive.\n"},
+               {data("A1", "notes.rtf"), rtf("Check the tide.\\par ")},
+               {data("A1", "content.comments"), R"(<Comments><Comment ID="a"><![CDATA[x]]></Comment>)"
+                                                R"(<Comment ID="b" Footnote="Yes"><![CDATA[y]]></Comment></Comments>)"},
+               {"Snapshots/A2.snapshots/index.xml", "<SnapshotIndexes/>"}};
+    const JsonDoc r = ok(scrivi_import_manuscript(writeScriv(f, "Meta", s).c_str(), ""));
+    INFO(r.dump());
+    const auto e = scenes(r);
+    // A titled first chapter: the first entry is the caret's empty head, so a paste opens the chapter (as S6a's).
+    REQUIRE(e.size() == 5);
+    CHECK((e[0].text.empty() && e[0].title.empty() && e[0].seed.empty()));
+    const auto seed = [](const std::string& json) { auto p = parseJson(json); REQUIRE(p.ok()); return JsonDoc(std::move(p.value())); };
+    const JsonDoc revised = seed(e[1].seed);
+    CHECK(revised.getString("schema") == "scrivi.scene.v1");
+    CHECK(revised.getString("outline") == "They arrive.");
+    CHECK(revised.getString("status") == "revised");
+    REQUIRE(revised.arraySize("tags") == 2);
+    CHECK((revised.arrayItem("tags", 0).dump() == R"("night")" && revised.arrayItem("tags", 1).dump() == R"("harbour")"));
+    CHECK(seed(e[2].seed).getString("status") == "final");   // Done
+    CHECK(e[3].seed.empty());                                // To Do has no place: draft, reported
+    CHECK(e[4].seed.empty());                                // nothing to seed
+    CHECK(note(r, "status").getString("example") == "“To Do” on To do");
+    CHECK(note(r, "label").getString("example") == "Revised");
+    CHECK(note(r, "documentNotes").getString("example") == "Revised");
+    CHECK(note(r, "comment").getInt64("count") == 1);
+    CHECK(note(r, "footnote").getInt64("count") == 1);
+    CHECK(note(r, "snapshots").getString("example") == "Done");
+    CHECK(note(r, "notCompiled").getString("example") == "To do");   // imported, and named
+    CHECK(e[3].title == "To do");
+    CHECK(note(r, "customMetadata").getString("example") == "To do");
+    CHECK(note(r, "media").getString("example") == "A picture");
+    CHECK(note(r, "outsideDraft").getInt64("count") == 2);
+    CHECK(note(r, "outsideDraft").getString("example") == "Notes on ships");
+}
+
+TEST_CASE("Manuscript import (Scrivener): refused — not a project, a version it does not read, no Draft (Q1)",
+          "[manuscript-import][scrivener][capi]") {
+    ImportFixture f;
+    const auto detail = [](const fs::path& p) {
+        const JsonDoc env = envelope(scrivi_import_manuscript(p.c_str(), ""));
+        CHECK_FALSE(env.getBool("ok"));
+        return env.getSubDoc("error").getString("detail");
+    };
+    fs::create_directories(f.base / "Empty.scriv");
+    CHECK(detail(f.base / "Empty.scriv") == "notScrivener");
+    Scriv old;
+    old.version = "3.0";
+    CHECK(detail(writeScriv(f, "Future", old)) == "notScrivener");
+    const fs::path bad = f.base / "Bad.scriv";
+    fs::create_directories(bad);
+    std::ofstream(bad / "Bad.scrivx") << "<ScrivenerProject Version=\"2.0\"><Binder></Binder></ScrivenerProject>";
+    CHECK(detail(bad) == "notScrivener");   // no Draft
+    std::ofstream(bad / "Bad.scrivx", std::ios::trunc) << "<ScrivenerProject";
+    CHECK(detail(bad) == "notScrivener");   // not XML
+    CHECK(detail(f.file("notes.zip", "PK\x03\x04 not a zip")) == "notScrivener");
+
+    // A document past the cap is refused, never read (a sparse file: nothing is written).
+    Scriv big;
+    big.binder = item("Text", "A1", "Big");
+    const fs::path project = writeScriv(f, "Big", big);
+    fs::create_directories(project / "Files/Data/A1");
+    { std::ofstream(project / "Files/Data/A1/content.rtf"); }
+    fs::resize_file(project / "Files/Data/A1/content.rtf", (64u << 20) + 1);
+    CHECK(detail(project) == "tooLarge");
+}
+
+TEST_CASE("Manuscript import (Scrivener): an ID that is not a UUID or a number is never made into a path",
+          "[manuscript-import][scrivener][capi]") {
+    ImportFixture f;
+    std::ofstream(f.base / "secret.rtf") << rtf("Secret.\\par ");   // Escape.scriv/Files/Docs/../../../secret.rtf
+    Scriv s;
+    s.version = "1.5";   // Files/Docs/<ID>.rtf
+    s.files = {{"Files/Docs/1.rtf", rtf("Another.\\par ")}};   // Files/Docs must exist for the path to resolve
+    s.binder = R"(<BinderItem ID="../../../secret" Type="Text"><Title>Escape</Title><MetaData><IncludeInCompile>Yes</IncludeInCompile></MetaData></BinderItem>)";
+    const JsonDoc r = ok(scrivi_import_manuscript(writeScriv(f, "Escape", s).c_str(), ""));
+    const auto e = scenes(r);
+    REQUIRE(e.size() == 1);
+    CHECK(e[0].title == "Escape");
+    CHECK(e[0].text.empty());
+}
+
+namespace {
+
+// The every-case fixture, as both layouts must read it.
+void checkEveryCase(const JsonDoc& r) {
+    INFO(r.dump());
+    const auto e = scenes(r);
+    REQUIRE(e.size() == 10);   // the first chapter is the Draft's own (untitled): no caret head
+    CHECK((e[0].chapterTitle == "" && e[0].title == "Before Anything" && e[0].text == "A note before the first part."));
+    CHECK((e[1].chapterTitle == "The Arrival" && e[1].title == "Dock"));
+    CHECK(e[1].text == "The ship came in *late* and **nobody** waited.  Café, naïve, “quotes” - and 5 \\* 3 = 15.");
+    auto dockParsed = parseJson(e[1].seed);
+    REQUIRE(dockParsed.ok());
+    const JsonDoc dock = std::move(dockParsed.value());
+    CHECK(dock.getString("outline") == "They Arrive");
+    REQUIRE(dock.arraySize("tags") == 2);
+    CHECK((dock.arrayItem("tags", 0).dump() == R"("harbour")" && dock.arrayItem("tags", 1).dump() == R"("night")"));
+    CHECK(dock.getString("status") == "draft");
+    CHECK((e[2].title == "Customs" && e[3].title == "Stamp" && e[4].title == "Delay" && e[4].chapter == e[1].chapter));
+    CHECK((e[5].chapterTitle == "The Market" && e[5].title == "Stalls"));
+    CHECK(e[5].text == "Bread, then fish.\n\n•\t“Apples”\n\n•\t“Pears”");
+    CHECK((e[6].chapterTitle == "Empty Chapter" && e[6].text.empty()));
+    CHECK((e[7].chapterTitle == "The Return" && e[7].title == "Voyage"));
+    CHECK((e[8].title == "Left Out" && e[8].chapter == e[7].chapter));
+    CHECK((e[9].chapterTitle == "" && e[9].title == "After Everything" && e[9].text == "The end."));
+    CHECK(r.getInt64("chapterCount") == 6);
+    CHECK(note(r, "parts").getInt64("count") == 2);
+    CHECK(note(r, "status").getString("example") == "“To Do” on Customs");
+    CHECK(note(r, "label").getInt64("count") == 2);
+    CHECK(note(r, "customMetadata").getString("example") == "Before Anything");
+    CHECK(note(r, "documentNotes").getString("example") == "Dock");
+    CHECK(note(r, "comment").getString("example") == "Stalls");
+    CHECK(note(r, "footnote").getString("example") == "Stalls");
+    CHECK(note(r, "picture").getString("example") == "Voyage");
+    CHECK(note(r, "docxTable").getString("example") == "Voyage");
+    CHECK(note(r, "documentLink").getString("example") == "Voyage");
+    // Only the underlined "sea": Dock's italic and bold are in Palatino-Italic and -Bold, which is not formatting.
+    CHECK(note(r, "formatting").getInt64("count") == 1);
+    CHECK(note(r, "formatting").getString("example") == "The sea was underlined (underline “sea”).");
+    CHECK(note(r, "notCompiled").getString("example") == "Left Out");
+    CHECK(note(r, "outsideDraft").getInt64("count") == 3);
+}
+
+} // namespace
+
+TEST_CASE("Manuscript import (Scrivener): the every-case fixture, Scrivener 3 and its Scrivener 2 export (Q1, Q7a)",
+          "[manuscript-import][scrivener][capi]") {
+    const JsonDoc v3 = ok(scrivi_import_manuscript(fixture("sp220-every-case.scriv").c_str(), ""));
+    checkEveryCase(v3);
+    const JsonDoc v2 = ok(scrivi_import_manuscript(fixture("sp220-every-case-v2.scriv").c_str(), ""));
+    checkEveryCase(v2);
+    CHECK(v2.getSubDoc("range").dump() == v3.getSubDoc("range").dump());   // the same project, either layout
+    // A trailing `/`, as a folder picker may give it.
+    CHECK(ok(scrivi_import_manuscript((fixture("sp220-every-case.scriv").string() + "/").c_str(), "")).getSubDoc("range").dump() ==
+          v3.getSubDoc("range").dump());
+}
+
+TEST_CASE("Manuscript import (Scrivener): a zipped backup reads as its folder (Q6)", "[manuscript-import][scrivener][capi]") {
+    ImportFixture f;
+    const fs::path zip = f.base / "sp220-every-case.zip";
+    mz_zip_archive z{};
+    REQUIRE(mz_zip_writer_init_file(&z, zip.c_str(), 0));
+    const fs::path project = fixture("sp220-every-case.scriv");
+    for (const auto& entry : fs::recursive_directory_iterator(project)) {
+        if (!entry.is_regular_file()) continue;
+        const std::string name = "sp220-every-case.scriv/" + fs::relative(entry.path(), project).generic_string();
+        REQUIRE(mz_zip_writer_add_file(&z, name.c_str(), entry.path().c_str(), nullptr, 0, MZ_DEFAULT_COMPRESSION));
+    }
+    const std::string junk = "x";
+    REQUIRE(mz_zip_writer_add_mem(&z, "__MACOSX/sp220-every-case.scriv/._sp220-every-case.scrivx", junk.data(), junk.size(), 0));
+    REQUIRE(mz_zip_writer_finalize_archive(&z));
+    mz_zip_writer_end(&z);
+    const JsonDoc r = ok(scrivi_import_manuscript(zip.c_str(), ""));
+    checkEveryCase(r);
+    CHECK(r.getSubDoc("range").dump() ==
+          ok(scrivi_import_manuscript(project.c_str(), "")).getSubDoc("range").dump());
+}
+
+namespace {
+
+// Every scene sidecar's title → its outline, tags and status, as written.
+std::map<std::string, std::string> sidecars(const fs::path& root) {
+    std::map<std::string, std::string> out;
+    for (const auto& e : fs::recursive_directory_iterator(root / "manuscript")) {
+        const std::string name = e.path().filename().string();
+        if (!name.ends_with(".meta.json") || name == "chapter.meta.json" || name == "manuscript.meta.json") continue;
+        std::ifstream in(e.path());
+        auto parsed = parseJson(std::string(std::istreambuf_iterator<char>(in), {}));
+        if (!parsed.ok()) continue;
+        const JsonDoc& meta = parsed.value();
+        if (meta.getString("schema") != "scrivi.scene.v1") continue;
+        std::string tags;
+        for (std::size_t i = 0; i < meta.arraySize("tags"); ++i) tags += (tags.empty() ? "" : ",") + meta.arrayItem("tags", i).dump();
+        out[meta.getString("title")] = meta.getString("outline") + "|" + tags + "|" + meta.getString("status");
+    }
+    return out;
+}
+
+} // namespace
+
+TEST_CASE("Manuscript import (Scrivener): a new project — titles, chapters and each scene's seed (Q4)",
+          "[manuscript-import][scrivener][capi]") {
+    ImportFixture f;
+    const fs::path root = f.base / "Voyage.scrivi";
+    const JsonDoc r = f.newProject(fixture("sp220-every-case.scriv"), root);
+    CHECK(r.getString("title") == "sp220-every-case");   // the folder's name
+    const std::string md = ImportFixture::markdownOf(root);
+    INFO(md);
+    CHECK(md.starts_with("# sp220-every-case\n\nby T\n\n# Chapter 1\n\nA note before the first part.\n\n# The Arrival\n\nThe ship came in"));
+    CHECK(md.ends_with("# Chapter 6\n\nThe end.\n"));
+    const auto meta = sidecars(root);
+    CHECK(meta.at("Before Anything") == "||draft");   // the project's first scene takes the first document's title
+    CHECK(meta.at("Dock") == R"(They Arrive|"harbour","night"|draft)");
+    CHECK(meta.at("Customs") == "||draft");
+    CHECK(meta.contains("Left Out"));
+    ok(scrivi_open_project(root.c_str(), f.appSupport.c_str(), kId));
+}
+
+TEST_CASE("Manuscript import (Scrivener): into a project at the caret — seeds kept, cut back as one step",
+          "[manuscript-import][scrivener][capi]") {
+    ImportFixture f;
+    const fs::path root = f.base / "Host.scrivi";
+    const JsonDoc created = ok(scrivi_create_project(root.c_str(), f.appSupport.c_str(), "Host", "host", kId, kPersona, "T"));
+    const JsonDoc first = created.getSubDoc("firstScene");
+    const std::string pid = created.getString("projectID"), scene = first.getString("sceneID");
+    ok(scrivi_save_scene(pid.c_str(), root.c_str(), f.appSupport.c_str(), scene.c_str(),
+                         first.getString("metadataPath").c_str(), first.getString("contentPath").c_str(), "Hello.", 0, 0,
+                         0.0, kId, kPersona, "T"));
+    const std::string before = ImportFixture::markdownOf(root);
+    const JsonDoc r = ok(scrivi_import_manuscript(fixture("sp220-every-case.scriv").c_str(), ""));
+    const JsonDoc pasted = ok(scrivi_range_paste(root.c_str(), r.getSubDoc("range").dump().c_str(), scene.c_str(), 6, "Hello.",
+                                                 kId, kPersona, "T"));
+    const auto meta = sidecars(root);
+    CHECK(meta.at("Dock") == R"(They Arrive|"harbour","night"|draft)");
+    CHECK(meta.contains("After Everything"));
+    CHECK(ImportFixture::markdownOf(root).find("# The Arrival\n\nThe ship came in *late*") != std::string::npos);
+    ok(scrivi_range_cut(root.c_str(), pasted.getSubDoc("range").dump().c_str(), kId, kPersona, "T"));
+    CHECK(ImportFixture::markdownOf(root) == before);
+}
+
+TEST_CASE("Manuscript import (Scrivener): truncated and mangled project files and RTF never crash",
+          "[manuscript-import][scrivener][capi]") {
+    ImportFixture f;
+    const auto slurp = [](const fs::path& p) {
+        std::ifstream in(p, std::ios::binary);
+        return std::string(std::istreambuf_iterator<char>(in), {});
+    };
+    const fs::path src = fixture("sp220-every-case.scriv");
+    const std::string scrivx = slurp(src / "sp220-every-case.scrivx");
+    std::string voyage;
+    for (const auto& e : fs::directory_iterator(src / "Files/Data")) {
+        if (e.path().filename().string().starts_with("78B5697F")) voyage = slurp(e.path() / "content.rtf");
+    }
+    REQUIRE(voyage.size() > 1000);
+    const fs::path work = f.base / "Work.scriv";
+    fs::copy(src, work, fs::copy_options::recursive);
+    fs::path voyagePath;
+    for (const auto& e : fs::directory_iterator(work / "Files/Data")) {
+        if (e.path().filename().string().starts_with("78B5697F")) voyagePath = e.path() / "content.rtf";
+    }
+    const auto run = [&] { (void)envelope(scrivi_import_manuscript(work.c_str(), "")); };   // ok or refused, never a crash
+    for (std::size_t cut = 0; cut < scrivx.size(); cut += 211) {
+        std::ofstream(work / "sp220-every-case.scrivx", std::ios::trunc | std::ios::binary) << scrivx.substr(0, cut);
+        run();
+    }
+    std::ofstream(work / "sp220-every-case.scrivx", std::ios::trunc | std::ios::binary) << scrivx;
+    for (std::size_t cut = 0; cut < voyage.size(); cut += 4099) {
+        std::ofstream(voyagePath, std::ios::trunc | std::ios::binary) << voyage.substr(0, cut);
+        run();
+    }
+    for (std::size_t at = 0; at < 20000 && at < voyage.size(); at += 37) {
+        std::string bad = voyage;
+        bad[at] = static_cast<char>(bad[at] ^ 0x5A);
+        std::ofstream(voyagePath, std::ios::trunc | std::ios::binary) << bad;
+        run();
+    }
+    std::ofstream(voyagePath, std::ios::trunc | std::ios::binary) << "{\\rtf1 " + std::string(5000, '{') + "deep" + std::string(5000, '}') + "}";
+    run();
 }

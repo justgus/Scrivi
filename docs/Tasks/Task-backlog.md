@@ -1,5 +1,11 @@
 # Task Backlog
 
+*Last Updated: 2026-11-17 (**T-0683 → active** with [SP-220]'s activation.)*
+
+*Last Updated: 2026-11-17 (**T-0684 filed** (user, 2026-11-17: *"Q3a and Q7a as recommended, yes file the name Task"*).)*
+
+*Last Updated: 2026-11-17 (**T-0683 filed** with [SP-220] (🔵 Planning), [EP-054] S7.)*
+
 *Last Updated: 2026-11-15 (**T-0682 → active** with [SP-219]'s activation.)*
 
 *Last Updated: 2026-11-15 (**T-0682 filed** with [SP-219] (🔵 Planning), [EP-054] S6b.)*
@@ -112,6 +118,7 @@ status changes on its own layer.
 | T-0669 | `[Apple]` EP-054: export a whole-manuscript and a one-chapter `.docx` on the iPad (Export Manuscript… ▸ Word Document) and open them in Pages or Word there — [SP-208] AC5/AC7's iPad half | EP-054 | 🔵 Backlog — waits for the iPad |
 | T-0680 | `[Apple]` EP-054: Import ▸ Manuscript… **Into This Project** on the iPad, at the caret, one undo step | EP-054 | 🔵 Backlog — waits for EP-055 S2/S3 (the iPad's structured paste and undo) |
 | T-0681 | `[Apple]` iPad Landing: **Import…** in place of Import Archive…, asking Manuscript… / Timeline… / Archive… | ⚠️ None yet | 🔵 Backlog |
+| T-0684 | `[Cross]` The app's name: "Scrivi" is alarmingly close to "Scrivener" | ⚠️ None yet | 🔵 Backlog |
 
 > ✅ **T-0477 – T-0479 LEFT this file 2026-08-31 when SP-124 was ACTIVATED**, per the standing rule that
 > active Tasks never sit in the backlog. ✅ **They are now VERIFIED (2026-09-10) and ARCHIVED** →
@@ -152,6 +159,19 @@ has no structured paste or structural undo (`ManuscriptUITextView.swift:12`, EP-
 the iPad asks New Project / Into This Project as the Mac does (`ProjectArchiveFlow.swift`, `importManuscript(_:into:)`), and Into
 This Project pastes the Range at the caret as one undo step. Until then the iPad says why the project closes
 (`presentImportManuscript`, SP-218).
+
+---
+
+## 🔵 T-0684 — `[Cross]` The app's name is too close to Scrivener's
+
+**Epic:** ⚠️ None yet · **Status:** 🔵 Backlog · **Sprint:** Not Assigned · **Date Requested:** 2026-11-17 (user, planning
+[SP-220]: *"the name for my app is alarmingly similar to Scrivener.  We should address that at some point"*; filed (user, 2026-11-17: *"Q3a and Q7a as recommended, yes file the name Task"*))
+
+**What:** Decide whether Scrivi keeps its name. Scrivener (Literature & Latte) is the best-known app in the same category, and
+SP-220 now imports its projects, so the two names will sit side by side in menus ("Import ▸ Scrivener Project…"). Questions for
+its planning: whether to rename, before or after the alpha spreads; the name's reach (bundle IDs, the `.scrivi` / `.scrivworld`
+extensions, `scrivi_*` ABI, schema IDs `scrivi.*.v1`, repo and docs) — the internal identifiers need not follow a display
+rename.
 
 ---
 

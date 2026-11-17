@@ -42,7 +42,8 @@ struct RangeEntry {
     std::string text;           // the covered text, exactly as stored in the file
     // ✅ [SP-191] Q3b (user, 2026-10-21): what an undo needs to bring a REMOVED scene or chapter back exactly. Filled by the
     // core when it removes one (a cut, a relabel that empties a chapter); empty in a Range the editor builds. A paste that
-    // keeps the entry's ID (the manuscript no longer has it) writes these back; a fresh ID ignores them.
+    // keeps the entry's ID (the manuscript no longer has it) writes these back; a fresh ID ignores them — except SP-220: an
+    // entry with NO sceneID (an import's) gives the new scene its sceneMeta's outline, tags and status (a seed).
     std::string sceneMeta;      // the scene's whole sidecar (`scrivi.scene.v1`, serialized), as it was on disk
     std::string chapterMeta;    // on the entry that OPENS a chapter: that chapter's sidecar (serialized), as it was
 

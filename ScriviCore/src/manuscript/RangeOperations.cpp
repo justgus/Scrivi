@@ -610,6 +610,7 @@ Result<RangeOperationResult> RangeOperations::paste(const Range& range, const Sc
         SceneLocation location;
         std::string   text;
         std::optional<schemas::SceneMetaData> restored;     // Q3b: the removed scene's own sidecar, brought back
+        std::optional<schemas::SceneMetaData> seed;         // SP-220 Q4: an import's outline, tags and status
     };
     std::vector<NewChapter> newChapters;
     std::vector<NewScene>   created;
@@ -689,11 +690,19 @@ Result<RangeOperationResult> RangeOperations::paste(const Range& range, const Sc
             loc.status = meta.value().status;
             restored   = std::move(meta.value());
         }
+        // ✅ SP-220 Q4: an entry with NO ID (an import's) may carry a seed — the new scene takes its outline, tags and status.
+        std::optional<schemas::SceneMetaData> seed;
+        if (e.sceneID.value.empty() && !e.sceneMeta.empty()) {
+            auto meta = schemas::parseSceneMeta(e.sceneMeta);
+            if (!meta.ok()) { return R::failure(meta.error()); }
+            loc.status = meta.value().status;
+            seed       = std::move(meta.value());
+        }
         loc.metadataPath        = runDir + "/" + slug + ".meta.json";
         loc.contentPath         = runDir + "/" + slug + ".md";
         loc.chapterMetadataPath = runChapterMeta;
         if (runIsNew) { newChapters.back().sceneFiles.push_back(slug + ".meta.json"); }
-        created.push_back({std::move(loc), e.text, std::move(restored)});
+        created.push_back({std::move(loc), e.text, std::move(restored), std::move(seed)});
         prevSceneKey = key.value();
     }
     // At a scene's start the caret scene takes the last entry — and opens the last chapter when that entry does.
@@ -787,6 +796,11 @@ Result<RangeOperationResult> RangeOperations::paste(const Range& range, const Sc
             } else {
                 meta = newSceneMeta(s.location.sceneID, s.location.title, s.location.slug,
                                     fileNameOf(s.location.contentPath), s.text, author, now);
+                if (s.seed) {
+                    meta.outline = s.seed->outline;
+                    meta.tags    = s.seed->tags;
+                    meta.status  = s.seed->status;
+                }
             }
             return fs.atomicWriteTextFile(util::join(root_, s.location.metadataPath), schemas::serializeSceneMeta(meta));
         });

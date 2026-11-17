@@ -10,12 +10,6 @@
 
 namespace scrivi::manuscript {
 
-namespace {
-
-Error notText() {
-    return Error{ErrorCode::invalidArgument, "the file is not text", {}, "notText"};
-}
-
 void appendUtf8(std::string& out, std::uint32_t cp) {
     if (cp < 0x80) { out += static_cast<char>(cp); }
     else if (cp < 0x800) { out += static_cast<char>(0xC0 | (cp >> 6)); out += static_cast<char>(0x80 | (cp & 0x3F)); }
@@ -30,6 +24,8 @@ void appendUtf8(std::string& out, std::uint32_t cp) {
         out += static_cast<char>(0x80 | (cp & 0x3F));
     }
 }
+
+namespace {
 
 bool validUtf8(std::string_view s) {
     for (std::size_t i = 0; i < s.size();) {
@@ -64,6 +60,8 @@ std::string fromUtf16(std::string_view b, bool bigEndian) {
     return out;
 }
 
+} // namespace
+
 std::string fromWindows1252(std::string_view b) {
     // 0x80–0x9F; the five unassigned bytes keep their C1 code points.
     static constexpr std::uint16_t k[32] = {
@@ -76,6 +74,12 @@ std::string fromWindows1252(std::string_view b) {
         appendUtf8(out, c >= 0x80 && c < 0xA0 ? k[c - 0x80] : c);
     }
     return out;
+}
+
+namespace {
+
+Error notText() {
+    return Error{ErrorCode::invalidArgument, "the file is not text", {}, "notText"};
 }
 
 // Q4: the bytes as UTF-8 with "\n" line endings.

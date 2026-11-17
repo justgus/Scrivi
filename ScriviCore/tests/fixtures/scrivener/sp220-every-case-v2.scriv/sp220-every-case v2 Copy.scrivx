@@ -1,0 +1,313 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ScrivenerProject Identifier="4FF0BE8E-287D-4134-B9A6-FEDECF5DAE9E" Version="1.5" Creator="SCRMAC-3.5.2-17486" Device="Flitwick-5" Author="" Modified="2026-11-17 16:10:32 -0500" ModID="02466CDB-9B32-4242-8D4D-E7EF10E68842">
+    <Binder>
+        <BinderItem UUID="6D658CB9-511D-43A8-923A-6A58CA44908F" ID="0" Type="DraftFolder" Created="2026-11-17 15:31:45 -0500" Modified="2026-11-17 15:31:45 -0500">
+            <Title>Draft</Title>
+            <MetaData>
+                <IncludeInCompile>Yes</IncludeInCompile>
+            </MetaData>
+            <CorkboardAndOutliner>
+                <SelectedSubdocumentIDs>3</SelectedSubdocumentIDs>
+            </CorkboardAndOutliner>
+            <Children>
+                <BinderItem UUID="BDAA1C09-6189-422B-9685-B42A1BEBD672" ID="3" Type="Text" Created="2026-11-17 15:31:45 -0500" Modified="2026-11-17 16:03:40 -0500">
+                    <Title>Before Anything</Title>
+                    <MetaData>
+                        <LabelID>0</LabelID>
+                        <StatusID>2</StatusID>
+                        <IncludeInCompile>Yes</IncludeInCompile>
+                        <NotesTextSelection>1,0</NotesTextSelection>
+                        <CustomMetaData>
+                            <MetaDataItem>
+                                <FieldID>todo</FieldID>
+                                <Value>(one that dose;t map to a scribe status).</Value>
+                            </MetaDataItem>
+                        </CustomMetaData>
+                    </MetaData>
+                    <TextSettings>
+                        <TextSelection>31,0</TextSelection>
+                    </TextSettings>
+                </BinderItem>
+                <BinderItem UUID="43087A82-1D2B-42C8-AED1-4B6E80EAE045" ID="4" Type="Folder" Created="2026-11-17 15:33:47 -0500" Modified="2026-11-17 15:48:45 -0500">
+                    <Title>Part One</Title>
+                    <MetaData>
+                        <IncludeInCompile>Yes</IncludeInCompile>
+                    </MetaData>
+                    <TextSettings>
+                        <TextSelection>0,0</TextSelection>
+                    </TextSettings>
+                    <CorkboardAndOutliner>
+                        <SelectedSubdocumentIDs>5</SelectedSubdocumentIDs>
+                    </CorkboardAndOutliner>
+                    <Children>
+                        <BinderItem UUID="E0BEB83C-66E4-42A1-8085-F474CEB0E8E5" ID="5" Type="Folder" Created="2026-11-17 15:34:45 -0500" Modified="2026-11-17 15:47:46 -0500">
+                            <Title>The Arrival</Title>
+                            <MetaData>
+                                <IncludeInCompile>Yes</IncludeInCompile>
+                            </MetaData>
+                            <TextSettings>
+                                <TextSelection>0,0</TextSelection>
+                            </TextSettings>
+                            <Children>
+                                <BinderItem UUID="85399FB6-8240-484E-9798-828304A80F25" ID="6" Type="Text" Created="2026-11-17 15:35:11 -0500" Modified="2026-11-17 16:03:50 -0500">
+                                    <Title>Dock</Title>
+                                    <MetaData>
+                                        <LabelID>0</LabelID>
+                                        <StatusID>2</StatusID>
+                                        <IncludeInCompile>Yes</IncludeInCompile>
+                                        <NotesTextSelection>15,0</NotesTextSelection>
+                                    </MetaData>
+                                    <TextSettings>
+                                        <TextSelection>26,6</TextSelection>
+                                    </TextSettings>
+                                    <Keywords>
+                                        <KeywordID>0</KeywordID>
+                                        <KeywordID>1</KeywordID>
+                                    </Keywords>
+                                    <References>
+                                        <Reference BinderID="15">Voyage</Reference>
+                                    </References>
+                                </BinderItem>
+                                <BinderItem UUID="7EDF6497-6EB3-4CF2-A1D5-A080F554B693" ID="7" Type="Text" Created="2026-11-17 15:36:55 -0500" Modified="2026-11-17 16:04:16 -0500">
+                                    <Title>Customs</Title>
+                                    <MetaData>
+                                        <StatusID>0</StatusID>
+                                        <IncludeInCompile>Yes</IncludeInCompile>
+                                    </MetaData>
+                                    <TextSettings>
+                                        <TextSelection>29,0</TextSelection>
+                                    </TextSettings>
+                                    <Children>
+                                        <BinderItem UUID="887FA7AE-1605-4A45-9690-D28AED2C6067" ID="8" Type="Text" Created="2026-11-17 15:37:21 -0500" Modified="2026-11-17 15:37:44 -0500">
+                                            <Title>Stamp</Title>
+                                            <MetaData>
+                                                <IncludeInCompile>Yes</IncludeInCompile>
+                                            </MetaData>
+                                            <TextSettings>
+                                                <TextSelection>24,0</TextSelection>
+                                            </TextSettings>
+                                        </BinderItem>
+                                        <BinderItem UUID="1FA47009-C324-4015-AA66-492F305888FA" ID="9" Type="Text" Created="2026-11-17 15:37:51 -0500" Modified="2026-11-17 15:38:11 -0500">
+                                            <Title>Delay</Title>
+                                            <MetaData>
+                                                <IncludeInCompile>Yes</IncludeInCompile>
+                                            </MetaData>
+                                            <TextSettings>
+                                                <TextSelection>22,0</TextSelection>
+                                            </TextSettings>
+                                        </BinderItem>
+                                    </Children>
+                                </BinderItem>
+                            </Children>
+                        </BinderItem>
+                        <BinderItem UUID="4214014E-3DA2-498C-B0AC-0A06E1128971" ID="10" Type="Folder" Created="2026-11-17 15:38:28 -0500" Modified="2026-11-17 15:38:38 -0500">
+                            <Title>The Market</Title>
+                            <MetaData>
+                                <IncludeInCompile>Yes</IncludeInCompile>
+                            </MetaData>
+                            <TextSettings>
+                                <TextSelection>0,0</TextSelection>
+                            </TextSettings>
+                            <Children>
+                                <BinderItem UUID="D497CFEC-5920-4E05-82D6-00802BD8046F" ID="11" Type="Text" Created="2026-11-17 15:38:52 -0500" Modified="2026-11-17 16:05:57 -0500">
+                                    <Title>Stalls</Title>
+                                    <MetaData>
+                                        <IncludeInCompile>Yes</IncludeInCompile>
+                                    </MetaData>
+                                    <TextSettings>
+                                        <TextSelection>0,5</TextSelection>
+                                    </TextSettings>
+                                </BinderItem>
+                            </Children>
+                        </BinderItem>
+                    </Children>
+                </BinderItem>
+                <BinderItem UUID="1A74F6C2-79FC-412D-A093-97351A46131B" ID="12" Type="Folder" Created="2026-11-17 15:41:07 -0500" Modified="2026-11-17 15:41:12 -0500">
+                    <Title>Part Two</Title>
+                    <MetaData>
+                        <IncludeInCompile>Yes</IncludeInCompile>
+                    </MetaData>
+                    <TextSettings>
+                        <TextSelection>0,0</TextSelection>
+                    </TextSettings>
+                    <Children>
+                        <BinderItem UUID="CDF343D7-5B52-4479-AC9B-93852E31C981" ID="13" Type="Folder" Created="2026-11-17 15:41:35 -0500" Modified="2026-11-17 15:41:45 -0500">
+                            <Title>Empty Chapter</Title>
+                            <MetaData>
+                                <IncludeInCompile>Yes</IncludeInCompile>
+                            </MetaData>
+                            <TextSettings>
+                                <TextSelection>0,0</TextSelection>
+                            </TextSettings>
+                        </BinderItem>
+                        <BinderItem UUID="FE4588E3-EFF6-4E68-9E8B-038A13004DA7" ID="14" Type="Folder" Created="2026-11-17 15:41:55 -0500" Modified="2026-11-17 15:42:03 -0500">
+                            <Title>The Return</Title>
+                            <MetaData>
+                                <IncludeInCompile>Yes</IncludeInCompile>
+                            </MetaData>
+                            <TextSettings>
+                                <TextSelection>0,0</TextSelection>
+                            </TextSettings>
+                            <Children>
+                                <BinderItem UUID="78B5697F-7846-4B81-B923-32306C3A1350" ID="15" Type="Text" Created="2026-11-17 15:42:11 -0500" Modified="2026-11-17 16:10:32 -0500">
+                                    <Title>Voyage</Title>
+                                    <MetaData>
+                                        <IncludeInCompile>Yes</IncludeInCompile>
+                                    </MetaData>
+                                    <TextSettings>
+                                        <TextSelection>44,0</TextSelection>
+                                    </TextSettings>
+                                </BinderItem>
+                                <BinderItem UUID="1464BCAE-0E00-48AC-B542-558EBE1BD4ED" ID="16" Type="Text" Created="2026-11-17 15:43:25 -0500" Modified="2026-11-17 15:52:54 -0500">
+                                    <Title>Left Out</Title>
+                                    <TextSettings>
+                                        <TextSelection>21,0</TextSelection>
+                                    </TextSettings>
+                                </BinderItem>
+                            </Children>
+                        </BinderItem>
+                    </Children>
+                </BinderItem>
+                <BinderItem UUID="4F078B6F-828E-4B7A-9057-4641BE833CD0" ID="17" Type="Text" Created="2026-11-17 15:44:05 -0500" Modified="2026-11-17 15:44:21 -0500">
+                    <Title>After Everything</Title>
+                    <MetaData>
+                        <IncludeInCompile>Yes</IncludeInCompile>
+                    </MetaData>
+                    <TextSettings>
+                        <TextSelection>10,0</TextSelection>
+                    </TextSettings>
+                </BinderItem>
+            </Children>
+        </BinderItem>
+        <BinderItem UUID="93A47CDA-43E8-4AB0-96E5-96B2C4EE9528" ID="1" Type="ResearchFolder" Created="2026-11-17 15:31:45 -0500" Modified="2026-11-17 15:31:45 -0500">
+            <Title>Research</Title>
+            <MetaData>
+                <IncludeInCompile>Yes</IncludeInCompile>
+            </MetaData>
+            <Children>
+                <BinderItem UUID="213A27C9-1D85-4A5B-878F-2AA14C3AFA9C" ID="18" Type="Text" Created="2026-11-15 15:11:54 -0500" Modified="2026-11-15 15:13:25 -0500">
+                    <Title>lang-arabian-200</Title>
+                    <MetaData>
+                        <IncludeInCompile>Yes</IncludeInCompile>
+                    </MetaData>
+                    <TextSettings>
+                        <TextSelection>0,0</TextSelection>
+                    </TextSettings>
+                </BinderItem>
+            </Children>
+        </BinderItem>
+        <BinderItem UUID="2B40E228-21C9-4916-8AE5-8C4A23D020F7" ID="2" Type="TrashFolder" Created="2026-11-17 15:31:45 -0500" Modified="2026-11-17 15:31:45 -0500">
+            <Title>Trash</Title>
+            <MetaData>
+                <IncludeInCompile>Yes</IncludeInCompile>
+            </MetaData>
+            <Children>
+                <BinderItem UUID="F7E699ED-B75F-4CDF-BDB2-01B21C25EA61" ID="19" Type="Text" Created="2026-11-17 15:32:40 -0500" Modified="2026-11-17 15:32:40 -0500">
+                    <Title></Title>
+                    <MetaData>
+                        <IncludeInCompile>Yes</IncludeInCompile>
+                    </MetaData>
+                    <TextSettings>
+                        <TextSelection>0,0</TextSelection>
+                    </TextSettings>
+                </BinderItem>
+                <BinderItem UUID="42D64C9E-A911-465E-835C-00E89ABF2B25" ID="20" Type="Text" Created="2026-11-15 15:20:37 -0500" Modified="2026-11-15 15:34:43 -0500">
+                    <Title>sample-test-project</Title>
+                    <MetaData>
+                        <IncludeInCompile>Yes</IncludeInCompile>
+                    </MetaData>
+                    <TextSettings>
+                        <TextSelection>0,0</TextSelection>
+                    </TextSettings>
+                </BinderItem>
+            </Children>
+        </BinderItem>
+    </Binder>
+    <Collections>
+        <Collection Type="Binder" ID="4B6AC14C-35B3-4796-9BB2-1D0DD9ADD440" Color="0.091141 0.091141 0.091141">
+            <Title>Binder</Title>
+        </Collection>
+        <Collection Type="RecentSearch" ID="37DDB2D9-0711-4F15-B53F-B3DFDD33600E" Color="0.190666 0.172706 0.216531">
+            <Title>Search Results</Title>
+        </Collection>
+    </Collections>
+    <Keywords>
+        <Keyword ID="0">
+            <Title>harbour</Title>
+            <Color>0.943039 0.654989 0.986895</Color>
+        </Keyword>
+        <Keyword ID="1">
+            <Title>night</Title>
+            <Color>0.752901 0.659771 0.986605</Color>
+        </Keyword>
+    </Keywords>
+    <LabelSettings>
+        <Title>Label</Title>
+        <DefaultLabelID>-1</DefaultLabelID>
+        <Labels>
+            <Label ID="-1">No Label</Label>
+            <Label ID="0" Color="0.993495 0.701227 0.732594">Red</Label>
+            <Label ID="1" Color="0.995418 0.790968 0.65239">Orange</Label>
+            <Label ID="2" Color="0.99772 0.892753 0.652574">Yellow</Label>
+            <Label ID="3" Color="0.715848 0.948734 0.697698">Green</Label>
+            <Label ID="4" Color="0.702312 0.888297 0.97426">Blue</Label>
+            <Label ID="5" Color="0.957564 0.766768 0.999625">Purple</Label>
+        </Labels>
+    </LabelSettings>
+    <StatusSettings>
+        <Title>Status</Title>
+        <DefaultStatusID>-1</DefaultStatusID>
+        <StatusItems>
+            <Status ID="-1">No Status</Status>
+            <Status ID="0">To Do</Status>
+            <Status ID="1">In Progress</Status>
+            <Status ID="2">First Draft</Status>
+            <Status ID="3">Revised Draft</Status>
+            <Status ID="4">Final Draft</Status>
+            <Status ID="5">Done</Status>
+        </StatusItems>
+    </StatusSettings>
+    <CustomMetaDataSettings>
+        <MetaDataField ID="todo" Wraps="No">To Do</MetaDataField>
+    </CustomMetaDataSettings>
+    <ProjectProperties>
+        <ProjectTitle>sp220-every-case</ProjectTitle>
+        <AbbreviatedTitle>sp220-every-case</AbbreviatedTitle>
+        <FullName></FullName>
+        <LastName></LastName>
+        <FirstName></FirstName>
+    </ProjectProperties>
+    <ProjectTargets Notify="No">
+        <DraftTarget Type="Words" CountIncludedOnly="Yes" CurrentCompileGroupOnly="No" Deadline="2026-11-17 15:31:45 -0500" IgnoreDeadline="Yes">0</DraftTarget>
+        <SessionTarget Type="Words" CountDraftOnly="Yes" AllowNegatives="Yes" NextResetDate="2026-11-18 00:00:00 -0500" ResetType="Midnight" DeterminedFromDeadline="No" WritingDays="" CanWriteOnDeadlineDate="No">0</SessionTarget>
+        <PreviousSession Words="55" Characters="328" Date="2026-11-17 15:31:45 -0500"/>
+    </ProjectTargets>
+    <PrintSettings PaperSize="612.0,792.0" LeftMargin="72.0" RightMargin="72.0" TopMargin="90.0" BottomMargin="90.0" PaperType="na-letter" Orientation="Portrait" HorizontalPagination="Clip" VerticalPagination="Auto" ScaleFactor="1.0" HorizontallyCentered="Yes" VerticallyCentered="Yes" Collates="Yes" PagesAcross="1" PagesDown="1"/>
+    <UserProjectData>
+        <Scrivener3>
+            <SectionTypes>
+                <TypeDefinitions>
+                    <Type ID="E49B70D8-6484-449C-B1D6-31A8F1971E47">Heading</Type>
+                    <Type ID="64A47BD6-B13C-44A4-A6A2-063FDF7696B9">Sub-Heading</Type>
+                    <Type ID="164BFB95-CDCE-4E3C-B4AA-54F5BBF4C1F6">Section</Type>
+                </TypeDefinitions>
+                <LevelTypes>
+                    <Folders>
+                        <Type>E49B70D8-6484-449C-B1D6-31A8F1971E47</Type>
+                    </Folders>
+                    <Containers>
+                        <Type>164BFB95-CDCE-4E3C-B4AA-54F5BBF4C1F6</Type>
+                    </Containers>
+                    <Files>
+                        <Type>164BFB95-CDCE-4E3C-B4AA-54F5BBF4C1F6</Type>
+                    </Files>
+                </LevelTypes>
+            </SectionTypes>
+            <CustomMetaDataSettings>
+                <MetaDataField ID="todo" Type="Text" Wraps="No" Align="Left">
+                    <Title>To Do</Title>
+                </MetaDataField>
+            </CustomMetaDataSettings>
+        </Scrivener3>
+    </UserProjectData>
+</ScrivenerProject>

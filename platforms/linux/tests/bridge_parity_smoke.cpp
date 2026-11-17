@@ -442,6 +442,29 @@ int main(int argc, char* argv[])
         const QVariantMap again = bridge.importManuscript(importFile, made, appSupport);
         check(bridge.lastCallFailed() && again.value(QStringLiteral("errorDetail")).toString() == QStringLiteral("exists"),
               "importManuscript: never over a folder already there");
+
+        // EP-054 S7 (SP-220): a Scrivener project — a folder — through the same call; the scene's seed crosses intact.
+        const QString scriv = QDir(out).filePath(QStringLiteral("Bridge.scriv"));
+        QDir().mkpath(scriv + QStringLiteral("/Files/Data/A1"));
+        const auto put = [](const QString& path, const QByteArray& bytes) {
+            QFile f(path);   // boundary-ok: the smoke's own Scrivener project, outside any package
+            return f.open(QIODevice::WriteOnly) && f.write(bytes) == bytes.size();
+        };
+        check(put(scriv + QStringLiteral("/Bridge.scrivx"),
+                  R"(<ScrivenerProject Version="2.0"><Binder><BinderItem UUID="D0" Type="DraftFolder"><Children>)"
+                  R"(<BinderItem UUID="C1" Type="Folder"><Title>One</Title><Children><BinderItem UUID="A1" Type="Text">)"
+                  R"(<Title>Opening</Title><MetaData><IncludeInCompile>Yes</IncludeInCompile></MetaData></BinderItem>)"
+                  R"(</Children></BinderItem></Children></BinderItem></Binder></ScrivenerProject>)")
+                  && put(scriv + QStringLiteral("/Files/Data/A1/content.rtf"), R"({\rtf1\ansi It {\i began}.\par })")
+                  && put(scriv + QStringLiteral("/Files/Data/A1/synopsis.txt"), "The start."),
+              "importManuscript: the Scrivener project is written");
+        const QVariantMap scr = bridge.importManuscript(scriv);
+        const QVariantList scrScenes = scr.value(QStringLiteral("range")).toMap().value(QStringLiteral("scenes")).toList();
+        check(!bridge.lastCallFailed() && scrScenes.size() == 2   // the caret's head, then the chapter it opens
+                  && scrScenes.value(1).toMap().value(QStringLiteral("sceneTitle")).toString() == QStringLiteral("Opening")
+                  && scrScenes.value(1).toMap().value(QStringLiteral("text")).toString() == QStringLiteral("It *began*.")
+                  && scrScenes.value(1).toMap().value(QStringLiteral("sceneMeta")).toString().contains(QStringLiteral("The start.")),
+              "importManuscript: a .scriv folder reads as its binder, with the scene's seed");
     }
 
     std::fprintf(stderr, "bridge_parity_smoke: %d checks, %d failures\n", checks, failures);

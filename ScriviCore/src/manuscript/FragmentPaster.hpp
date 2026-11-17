@@ -53,6 +53,7 @@ struct PasteFragmentRequest {
     Fragment      fragment;
     SceneID       caretSceneID;    // the scene the caret sits in
     std::size_t   caretByteOffset = 0;  // scene-local UTF-8 byte offset of the caret
+    bool          firstPieceNamesTarget = false;  // SP-220: a new project's import — piece 0's title and seed go to the target
 };
 
 struct PasteFragmentResult {

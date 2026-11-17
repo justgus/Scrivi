@@ -504,9 +504,9 @@ int main(int argc, char** argv)
         if (a->text() == QStringLiteral("Import")) { importMenu = a->menu(); }
         if (a->text() == QStringLiteral("Export")) { exportMenu = a->menu(); }
     }
-    check(importMenu != nullptr && texts(importMenu) == QStringList{QStringLiteral("Manuscript…"), QStringLiteral("Timeline…"),
-                                                                    QStringLiteral("Archive…")},
-          QStringLiteral("§6 Import ▸ Manuscript…, Timeline…, Archive…"));
+    check(importMenu != nullptr && texts(importMenu) == QStringList{QStringLiteral("Manuscript…"), QStringLiteral("Scrivener Project…"),
+                                                                    QStringLiteral("Timeline…"), QStringLiteral("Archive…")},
+          QStringLiteral("§6 Import ▸ Manuscript…, Scrivener Project…, Timeline…, Archive…"));
     check(exportMenu != nullptr && texts(exportMenu) == QStringList{QStringLiteral("Manuscript"), QStringLiteral("Current Chapter"),
                                                                     QStringLiteral("Timeline…"), QStringLiteral("Archive…")},
           QStringLiteral("§6 Export ▸ Manuscript, Current Chapter, Timeline…, Archive…"));
@@ -565,10 +565,11 @@ int main(int argc, char** argv)
                   .arg(startItems.size()).arg(projectItems.size()));
         const QStringList q3{QStringLiteral("&File/New Project…"), QStringLiteral("&File/Open Project…"),
                              QStringLiteral("&File/Import/Manuscript…"),   // SP-218: it makes a project
+                             QStringLiteral("&File/Import/Scrivener Project…"),   // SP-220: so does this
                              QStringLiteral("&File/Import/Archive…"), QStringLiteral("&File/Quit"),
                              QStringLiteral("&Edit/Settings…"), QStringLiteral("&Help/About Scrivi"),
                              QStringLiteral("&Help/Show Log Folder")};
-        check(startLive == q3, QStringLiteral("§7 only New, Open, Import ▸ Manuscript…, Archive…, Quit, Settings…, About, Show Log Folder are "
+        check(startLive == q3, QStringLiteral("§7 only New, Open, Import ▸ Manuscript…, Scrivener Project…, Archive…, Quit, Settings…, About, Show Log Folder are "
                                               "live on the start window (%1)").arg(startLive.join(QStringLiteral(", "))));
         QMenu* startEdit = landing.menuBar()->actions().value(1)->menu();
         Q_EMIT startEdit->aboutToShow();

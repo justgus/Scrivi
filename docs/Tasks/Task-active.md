@@ -1,5 +1,7 @@
 # Active Tasks
 
+*Last Updated: 2026-11-17 (**T-0683 → active** with [SP-220]'s activation (EP-054 S7).)*
+
 *Last Updated: 2026-11-15 (**T-0682 → 🟠** → `Task-unverified.md` ([SP-219] built; the live passes are the user's).)*
 
 *Last Updated: 2026-11-15 (**T-0682 → active** with [SP-219]'s activation (EP-054 S6b).)*
@@ -97,3 +99,21 @@
 *Last Updated: 2026-10-31 (**T-0636, T-0637, T-0638 → 🟠 Implemented - Not Verified** → `Task-unverified.md`.)*
 
 *Last Updated: 2026-10-31 (**T-0636, T-0637, T-0638 filed → active** with SP-199's activation (EP-055 S2).)*
+
+---
+
+## 🟡 T-0683 — `[Cross]` EP-054 S7: import a Scrivener project
+
+**Epic:** [EP-054] (AC6, AC7, AC8) · **Status:** 🟡 Active · **Sprint:** [SP-220] (🟡 Active) →
+[`../Sprints/Sprint-SP-220.md`](../Sprints/Sprint-SP-220.md) · **Date Requested:** 2026-11-17 (user: *"plan S7 Scrivener import"*)
+
+**What:** `scrivi_import_manuscript` reads a Scrivener `.scriv` project (or its zipped backup) into the same Range and notes as
+S6a, its chapters and scenes from the binder and each document's RTF through a new RTF reader; File ▸ Import ▸ Scrivener
+Project… on the Mac, iPad and Linux. Rulings and ACs: the Sprint.
+
+**Where:** `ScriviCore/src/manuscript/ManuscriptRtf.cpp` (+ `.hpp`, the RTF reader), `ManuscriptScrivener.cpp` (+ `.hpp`, the binder
+walk, the folder and zip openers), `ManuscriptDocx` (`Segment` / `inlineMarkdown` shared), `ManuscriptImport` (`appendUtf8` /
+`fromWindows1252` shared), the seed in `RangeOperations.cpp` and `FragmentPaster.cpp` (`firstPieceNamesTarget`),
+`scrivi_import_manuscript` (`scrivi_c_api.cpp`, `scrivi.h`); Apple `presentImportManuscript(_:scrivener:)`, `scrivenerTypes`,
+`ArchivePicker.scrivener`, `tellNotes` (`Scrivi/App/ProjectArchiveFlow.swift`); Linux `importManuscript(_, scrivener)`, the menu
+item, `importNotes` (`platforms/linux/src/ScriviWindow.cpp`).

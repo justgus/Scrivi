@@ -70,6 +70,8 @@ target_sources(ScriviCore
         src/manuscript/ManuscriptExport.cpp
         src/manuscript/ManuscriptDocx.cpp
         src/manuscript/ManuscriptImport.cpp
+        src/manuscript/ManuscriptRtf.cpp
+        src/manuscript/ManuscriptScrivener.cpp
         src/manuscript/ProjectIndex.cpp
         src/manuscript/ChapterIndex.cpp
         src/manuscript/SceneIndex.cpp

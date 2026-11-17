@@ -13,9 +13,19 @@
 
 #include "manuscript/ManuscriptImport.hpp"
 
+#include <string>
 #include <string_view>
+#include <vector>
 
 namespace scrivi::manuscript {
+
+// A run of text with the emphasis Scrivi keeps (shared with the RTF reader, SP-220).
+struct Segment {
+    std::string text;
+    bool bold = false, italic = false;
+};
+// Runs → one Markdown paragraph, the text kept literal: only what Scrivi would read as markup is escaped.
+[[nodiscard]] std::string inlineMarkdown(const std::vector<Segment>& runs);
 
 // A zip, by its first bytes (the caller then reads it as .docx).
 [[nodiscard]] bool looksLikeZip(std::string_view bytes);
