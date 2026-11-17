@@ -76,12 +76,13 @@ This Project on the iPad ([T-0680]); inline object references ([EP-032]).
 - [x] AC1 — `scrivi_import_manuscript` reads a `.docx` per Q7 and Q1–Q4 into the same `scrivi.range.v1` and report as S6a, writes
       nothing without `newProject`, and refuses per Q2; pugixml pinned and PRIVATE
 - [x] AC2 — Round trip: each S4 fixture exported to `.docx` and imported gives the same Markdown export as the original
-- [ ] AC3 — Boundary tests through `scrivi_*`: every Q7 case, Q1–Q4, the Q5 fixtures, every refusal, and mangled files under the
-      sanitizers with no crash; macOS and Linux ctest green — ✅ macOS; ⏳ Linux ctest, the Word and Pages fixtures (Q5)
-- [ ] AC4 — `.docx` offered by File ▸ Import ▸ Manuscript… on the Mac, iPad and Linux — ✅ built; ⏳ the Linux build is unchecked
-      (scrivi-vm unreachable)
+- [x] AC3 — Boundary tests through `scrivi_*`: every Q7 case, Q1–Q4, the Q5 fixtures, every refusal, and mangled files under the
+      sanitizers with no crash; macOS and Linux ctest green — ✅ macOS; ✅ Linux ctest (scrivi-vm 871/871); ⛔ the Word and Pages
+      fixtures DROPPED (user, 2026-11-17); textutil and every-case fixtures kept
+- [x] AC4 — `.docx` offered by File ▸ Import ▸ Manuscript… on the Mac, iPad and Linux — ✅ built on all three (Linux: scrivi-vm,
+      2026-11-17)
 - [ ] AC5 — Interop tests and the Linux bridge smoke green; stub parity, ABI guard and boundary checks green; CI green
-- [ ] AC6 — **Live passes (user)** on the Mac, iPad and Linux: plan step 5
+- [x] AC6 — **Live passes (user)** on the Mac, iPad and Linux: plan step 5
 
 ## Progress log
 
@@ -109,3 +110,12 @@ This Project on the iPad ([T-0680]); inline object references ([EP-032]).
   running). ⚠️ **Q5's Word and Pages files not made:** scripting Word was refused by the permission system — the user to make
   them. The textutil file has no styles at all (headings are larger bold text): it imports as one chapter, with a formatting
   note, as Q3 rules. Files copied to `~/ScriviLinux/projects/imports`: `sp219-textutil.docx`, `sp219-every-case.docx`.
+- **2026-11-17 — after the push (`7997a9a`):** ✅ **live passes (user) on the Mac, iPad and Linux** (user, 2026-11-17: *"I ran all
+  the Mac, iPad, and Linux Live Pass tests and they all passed."*). scrivi-vm (pulled and built by the user) ctest **871/871**;
+  Linux smokes **42/42** harness smokes on scrivi-vm, ⚠️ but `accessibility_smoke`'s I-0346 timing check is FLAKY there (2 of 6
+  runs: a split 237 µs and 131 µs against a full build of ~1.1–1.2 ms; the bound is a tenth). Not SP-219 code. CI: Apple ✅,
+  ScriviCore ✅, Linux App ✅. ⚠️ scrivi-vm's clock was 26 h slow: chrony was replaced by systemd-timesyncd on 2026-11-11 (dpkg log); set
+  by hand.
+- **2026-11-17 — rulings (user):** *"Drop the Word/Pages fixtures, loosen to a quarter"*. Q5's Word and Pages fixtures dropped
+  (AC3). `accessibility_smoke`'s I-0346 bound loosened from a tenth to a quarter of a full build
+  (`platforms/linux/tests/accessibility_smoke.cpp`): the fault it guards rebuilt about half a build.

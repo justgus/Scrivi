@@ -272,7 +272,9 @@ int main(int argc, char** argv)
         const qint64 structural = structuralNs / 1000000;
         const ManuscriptFind::PresentedText fresh = ManuscriptFind::PresentedText::build(m.doc, &m.presenter);
         check(after == fresh.pageText(0, fresh.pageLength()), QStringLiteral("I-0346: after a split the page is a fresh build's"));
-        check(structuralNs * 10 < firstNs, QStringLiteral("I-0346: a split costs under a tenth of a full build (%1 µs vs %2 µs)")
+        // A quarter, not a tenth: a full build is ~1.1 ms on the VM now, so a tenth sat inside the timer's noise; the I-0346
+        // fault rebuilt every scene after the split (~half a build), still well over a quarter.
+        check(structuralNs * 4 < firstNs, QStringLiteral("I-0346: a split costs under a quarter of a full build (%1 µs vs %2 µs)")
                                               .arg(structuralNs / 1000).arg(firstNs / 1000));
         std::printf("measure: a split mid-book, then the page: %lld ms (a full build: %lld ms)\n", structural, first);
     }
