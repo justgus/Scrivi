@@ -1,5 +1,7 @@
 # Unverified Tasks
 
+*Last Updated: 2026-11-17 (**T-0682 → ✅ Verified** (user, 2026-11-17: *"I ran all the Mac, iPad, and Linux Live Pass tests and they all passed."*) → `Verified/Task-verified-0682.md`.)*
+
 *Last Updated: 2026-11-15 (**T-0682 → 🟠 Implemented - Not Verified** ([SP-219] built); the live passes are the user's.)*
 
 *Last Updated: 2026-11-15 (**T-0679 → ✅ Verified** (user, 2026-11-15: *"pushed and rebuilt on the VM. Ran Linux steps 1-5. all passed."*, the last of the Mac, iPad and Linux passes) → `Verified/Task-verified-0679.md`.)*
@@ -89,21 +91,6 @@ Tasks that are **implemented and awaiting user verification** before being archi
 ⚠️ This file must not disagree with [`Task-active.md`](Task-active.md) or
 [`Task-backlog.md`](Task-backlog.md). A Task implemented but unverified belongs **here** — not left
 in the backlog carrying a 🟠 status.
-
----
-
-## 🟠 T-0682 — `[Cross]` EP-054 S6b: import a manuscript from a `.docx`
-
-**Epic:** [EP-054] (AC6, AC7, AC8) · **Status:** 🟠 Implemented - Not Verified (2026-11-15) · **Sprint:** [SP-219] (🟡 Active) →
-[`../Sprints/Sprint-SP-219.md`](../Sprints/Sprint-SP-219.md) · **Date Requested:** 2026-11-15 (user: *"close SP-218 then plan S6b."*)
-
-**What:** `scrivi_import_manuscript` reads a Word document (Word, Pages, Google Docs, Scrivi's own export) into the same Range and
-notes as S6a, by way of Markdown; File ▸ Import ▸ Manuscript… offers `.docx` on the Mac, iPad and Linux. Rulings and ACs: the Sprint.
-
-**Where:** `ScriviCore/src/manuscript/ManuscriptDocx.cpp` (+ `.hpp`), `scrivi_import_manuscript` (`scrivi_c_api.cpp`, `scrivi.h`),
-`ManuscriptImport.cpp` (`reportMarkup`); Apple `manuscriptTypes` and `tellNotes` (`Scrivi/App/ProjectArchiveFlow.swift`); Linux
-`importManuscript` filter and `importNotes` (`platforms/linux/src/ScriviWindow.cpp`). Evidence: 11 `[docx]` cases; ctest 866/866;
-interop 351/351. ⏳ Linux ctest; the live passes (SP-219 AC6).
 
 ---
 

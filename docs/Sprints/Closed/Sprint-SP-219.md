@@ -1,16 +1,16 @@
 ---
 sprint: SP-219
 epic: EP-054
-status: Active
+status: Closed
 platform: Cross
 created: 2026-11-15
 ---
 
 # SP-219 — `[ScriviCore]` + `[Apple]` + `[Linux]` [EP-054] **S6b**: `.docx` import
 
-**Status:** 🟡 **ACTIVE** 2026-11-15 (user, 2026-11-15: *"Make the test files.  Put them in /Users/justgus/ScriviLinux/projects/imports.  Q1-Q5 as recommended, activate and implement SP-219"*) · planned 2026-11-15 (user: *"close SP-218 then plan S6b."*); ✅ Q1–Q5 ruled as recommended.
-**Carries:** [T-0682] → [`../Tasks/Task-active.md`](../Tasks/Task-active.md).
-**Epic:** [EP-054] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md).
+**Status:** ✅ **CLOSED** 2026-11-17 (user, 2026-11-17: *"yes, close SP-219."*) · activated 2026-11-15 (user, 2026-11-15: *"Make the test files.  Put them in /Users/justgus/ScriviLinux/projects/imports.  Q1-Q5 as recommended, activate and implement SP-219"*) · planned 2026-11-15 (user: *"close SP-218 then plan S6b."*); ✅ Q1–Q5 ruled as recommended.
+**Carries:** [T-0682] → [`../../Tasks/Verified/Task-verified-0682.md`](../../Tasks/Verified/Task-verified-0682.md).
+**Epic:** [EP-054] → [`../../Epics/Epic-active.md`](../../Epics/Epic-active.md).
 **Builds on:** [SP-218] (S6a: `scrivi_import_manuscript`, the Markdown reader, the surfaces, the notes), [SP-208] (S4: the `.docx`
 export this must read back), [SP-205] (miniz, the zip reader).
 **Already ruled** in [SP-218] (user, 2026-11-14: *"Q1-Q8 as recommended."*): **Q6** pugixml, pinned by FetchContent and compiled into
@@ -81,7 +81,7 @@ This Project on the iPad ([T-0680]); inline object references ([EP-032]).
       fixtures DROPPED (user, 2026-11-17); textutil and every-case fixtures kept
 - [x] AC4 — `.docx` offered by File ▸ Import ▸ Manuscript… on the Mac, iPad and Linux — ✅ built on all three (Linux: scrivi-vm,
       2026-11-17)
-- [ ] AC5 — Interop tests and the Linux bridge smoke green; stub parity, ABI guard and boundary checks green; CI green
+- [x] AC5 — Interop tests and the Linux bridge smoke green; stub parity, ABI guard and boundary checks green; CI green
 - [x] AC6 — **Live passes (user)** on the Mac, iPad and Linux: plan step 5
 
 ## Progress log
@@ -119,3 +119,5 @@ This Project on the iPad ([T-0680]); inline object references ([EP-032]).
 - **2026-11-17 — rulings (user):** *"Drop the Word/Pages fixtures, loosen to a quarter"*. Q5's Word and Pages fixtures dropped
   (AC3). `accessibility_smoke`'s I-0346 bound loosened from a tenth to a quarter of a full build
   (`platforms/linux/tests/accessibility_smoke.cpp`): the fault it guards rebuilt about half a build.
+- **2026-11-17 — ✅ CLOSED** (user, 2026-11-17: *"yes, close SP-219."*). All six ACs met. The quarter bound passed 8/8 on scrivi-vm; it rides the next push.
+  [T-0682] ✅ Verified → `Tasks/Verified/Task-verified-0682.md`.

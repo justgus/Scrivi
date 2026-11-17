@@ -776,11 +776,15 @@ document**, not from memory.*
   `/etc/systemd/resolved.conf.d/scrivi-public-dns.conf`: `[Resolve]` / `DNS=1.1.1.1 8.8.8.8`, then
   `sudo systemctl restart systemd-resolved`. The shares are unaffected: `Flitwick-5.local` resolves through mDNS
   (`mdns4_minimal` in `/etc/nsswitch.conf`), never DNS.
-- ⚠️ **The clock fell ~16 h behind across suspends, and chrony did not correct it.** chrony IS the time service (do NOT
-  install `systemd-timesyncd` — on Ubuntu it conflicts with chrony and removes it). Ubuntu's `chrony.conf` has
-  `makestep 1 3`: it steps only in the first three updates after boot, so after a resume it slews — days for hours of
-  drift. ✅ `/etc/chrony/conf.d/scrivi-step-after-suspend.conf`: `makestep 1 -1` (step whenever more than 1 s off), then
-  `sudo systemctl restart chrony`. Check: `chronyc tracking | grep "System time"` near 0. `sudo chronyc makestep` steps
-  at once; it does nothing while chrony has no reachable source.
+- ✅ **The clock: `systemd-timesyncd`** (the user replaced chrony with it on 2026-11-11; chrony had not corrected the drift).
+  Why the VM drifts where a laptop does not: it runs on Apple's Virtualization framework, so while the Mac sleeps or UTM
+  pauses it, Linux is FROZEN, not suspended — its clock (`arch_sys_counter`) stops and it gets no resume event. Only the next
+  NTP poll catches it. ✅ `/etc/systemd/timesyncd.conf.d/scrivi-poll.conf`: `[Time]` / `PollIntervalMaxSec=64` (default max
+  34 min), then `sudo systemctl restart systemd-timesyncd` — a reopened VM is right within about a minute (2026-11-17).
+  Check: `timedatectl timesync-status` (Poll interval max 1min 4s, Offset in ms).
+  ⚠️ 2026-11-17: found 26 h slow with timesyncd running but NOT answering (`timesync-status` timed out; off D-Bus; last log
+  2026-11-13). A restart fixed it, and a clock set back 1 h was corrected within 30 s. Cause not found — if `timesync-status`
+  times out again, investigate before restarting.
+*2026-11-17 — §9.4 clock: timesyncd, the 64 s poll cap, why the VM drifts, the 11-17 hang.*
 
 *2026-11-11 — §9.4 added: DNS (the Mac's forwarder SERVFAIL) and the clock (chrony's step rule) on `scrivi-vm`.*
