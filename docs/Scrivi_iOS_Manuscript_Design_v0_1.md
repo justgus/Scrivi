@@ -1,7 +1,8 @@
 # Scrivi — The Manuscript on iOS — Design v0.1
 
 **Status:** ✅ **Q1 RULED (c)** (user, 2026-10-30), and no undo on iOS in S1 — written 2026-10-30 for [SP-198] / [T-0632] ([EP-055] AC1).
-Implemented in S1: `ManuscriptEditing.swift` (A, B, C1, C2) and `ManuscriptUITextView.swift` (D).
+Implemented in S1: `ManuscriptEditing.swift` (A, B, C1, C2) and `ManuscriptUITextView.swift` (D). ✅ S3a ([SP-222]): **C3**,
+`ManuscriptStructure.swift` — undo/redo, structural edits, the cross-scene clipboard (§4a).
 **Scope:** the manuscript editor's HOST — what `ManuscriptTextView.swift` and its companions do, which parts iOS can share,
 and which it must re-implement. The rest of the app's surfaces are audited before EP-055 S3.
 **Standing rulings it works under:** [EP-055] Q8 / [SP-198] R3: size classes and the system's defaults only, nothing
@@ -62,6 +63,24 @@ would write different bytes for the same keystrokes** — exactly what [EP-049] 
 - **Smart quotes:** the Mac forces them off ([I-0283]: they corrupted escapes). iOS sets `smartQuotesType = .no` for the
   same reason. Smart dashes are measured on the simulator, not assumed.
 
+## 4a. C3 — undo/redo, structural edits, the cross-scene clipboard (S3a, [SP-222], 2026-11-18)
+
+✅ Q2 (user, 2026-11-18): **moved** out of the Mac `Coordinator` into `ManuscriptStructure` (`Scrivi/Views/ManuscriptStructure.swift`),
+as C1 and C2 were: the history's apply path (text steps, structural inverses, [I-0319]'s earlier-session question, [I-0302]'s
+barrier, the branch question), `runStructuralEdit` and every edit on it (split, chapter split, merge, chapter merge, paste), and
+the cross-scene copy / cut / paste with the structured clipboard. The run render's storage half is shared too
+(`ManuscriptSceneSync.runFits` / `spliceRun`). ⚠️ **A change to any of these goes into the shared file, never into one host.**
+
+Each host is a `ManuscriptStructureHost`: the caret, the scroll, the render, alerts and the pasteboard. On iOS:
+- **Undo** (Q3): the view's `undoManager` runs the history, so ⌘Z / ⇧⌘Z, the Edit menu, the keyboard's undo key, the
+  three-finger swipe and shake all reach it; what UITextView registers there is never used.
+- **The cue** (SP-191 Q5): the view holds its input (`inputHeld`). ⛔ Not `isEditable = false`: on iOS that resigns first
+  responder and the keyboard goes.
+- **Structural edits** (Q3): the Mac's keys as key commands with priority over the system's ⌘⌫; the text's edit menu at the
+  caret; the iPad menu bar's Scene and Chapter menus.
+- **Redo at a branch** (Q4): an action sheet — a popover at the caret on the iPad, a sheet on the iPhone. The branch marks
+  drawn in the text wait for S3b.
+
 ## 5. Q1 — the shape
 
 | Option | What | Verdict |
@@ -119,6 +138,8 @@ window behaves like a phone.
 - **Swipes count only when they start on the manuscript.** Over the Timeline they took its drag-to-scroll. ⚠️ At compact
   width this means no swipe from the Navigator page; tapping a scene goes to the Manuscript.
 - The start edge zone is wider (44 pt), and a swipe can be slower or longer. Swipes often needed a second try.
+
+*Last Updated: 2026-11-18 (§4a: C3 shared in S3a, [SP-222].)*
 
 *Last Updated: 2026-10-31 (§8 revised after the iPad live pass.)*
 

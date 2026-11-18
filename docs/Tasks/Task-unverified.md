@@ -1,5 +1,9 @@
 # Unverified Tasks
 
+*Last Updated: 2026-11-18 (**T-0685, T-0680 → 🟠 Implemented - Not Verified** ([SP-222] built); the live passes are the user's.)*
+
+*Last Updated: 2026-11-18 (**T-0681 → ✅ Verified** (user, 2026-11-18: *"Mac, iPad and Linux live passes all passed, The Import... button on the mac looks the same as the other buttons.  close SP-221"*) → `Verified/Task-verified-0681.md`.)*
+
 *Last Updated: 2026-11-18 (**T-0681 → 🟠 Implemented - Not Verified** ([SP-221] built); the live passes are the user's.)*
 
 *Last Updated: 2026-11-17 (**T-0682 → ✅ Verified** (user, 2026-11-17: *"I ran all the Mac, iPad, and Linux Live Pass tests and they all passed."*) → `Verified/Task-verified-0682.md`.)*
@@ -96,16 +100,27 @@ in the backlog carrying a 🟠 status.
 
 ---
 
-## 🟠 T-0681 — `[Apple]` iPad Landing: one Import… button
+## 🟠 T-0685 — `[Apple]` EP-055 S3a: undo/redo, structural edits and cross-scene cut/copy/paste on iOS
 
-**Epic:** [EP-054] (AC8; moved 2026-11-17 (user, 2026-11-17: *"yes, move T-0681 into EP-054 and plan it"*)) · **Status:** 🟠 Implemented - Not Verified · **Sprint:** [SP-221] (🟡 Active) →
-[`../Sprints/Sprint-SP-221.md`](../Sprints/Sprint-SP-221.md) · **Date Requested:** 2026-11-15 (user, [SP-218]'s iPad
-live pass: the iPad is used through its larger surfaces more than its menus; *"a nice to have"*)
+**Epic:** [EP-055] (AC5, first half) · **Status:** 🟠 Implemented - Not Verified · **Sprint:** [SP-222] (🟡 Active) →
+[`../Sprints/Sprint-SP-222.md`](../Sprints/Sprint-SP-222.md) · **Date Requested:** 2026-11-18 (user: *"…proceed with EP-055."*)
 
-**What:** replace the Landing's **Import Archive…** (`LandingView.swift:38`) with **Import…**, a menu of **Manuscript…**,
-**Scrivener Project…** and **Archive…** — Timeline… left out ([SP-221] Q2); on the Mac, iPad and Linux (Q1).
-**Where:** `Scrivi/Views/LandingView.swift` (`Menu("Import…")`); `platforms/linux/qml/Landing.qml` (a `Menu` on the button),
-`ShellController::importNewManuscript` (`platforms/linux/src/ScriviWindow.hpp`).
+**What:** on iOS, undo and redo through Scrivi's history; New Scene / Chapter, Split and Merge as one range call and one undo step;
+cut, copy and paste across scenes — by moving the Mac `Coordinator`'s undo apply path, `runStructuralEdit` and the cross-scene
+clipboard into shared code that both hosts call. Rulings and ACs: the Sprint.
+
+---
+
+## 🟠 T-0680 — `[Apple]` EP-054: Import Manuscript into the open project on the iPad
+
+**Epic:** [EP-054] (S6a, [SP-218] Q2) · **Status:** 🟠 Implemented - Not Verified · **Sprint:** [SP-222] (🟡 Active, Q5) → [`../Sprints/Sprint-SP-222.md`](../Sprints/Sprint-SP-222.md) · **Date Requested:** 2026-11-15 (from
+[SP-218]'s iPad live pass; user: *"option 1"*)
+
+**What:** SP-218 Q2 (c) ruled New Project / Into This Project on every platform; the iPad got New Project only, because its editor
+has no structured paste or structural undo (`ManuscriptUITextView.swift:12`, EP-055 S2/S3). When it has them: with a project open,
+the iPad asks New Project / Into This Project as the Mac does (`ProjectArchiveFlow.swift`, `importManuscript(_:into:)`), and Into
+This Project pastes the Range at the caret as one undo step. Until then the iPad says why the project closes
+(`presentImportManuscript`, SP-218).
 
 ---
 

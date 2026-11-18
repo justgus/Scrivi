@@ -70,6 +70,7 @@
 		C082_BF /* ManuscriptCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = C082 /* ManuscriptCommands.swift */; };
 		C083_BF /* ManuscriptFind.swift in Sources */ = {isa = PBXBuildFile; fileRef = C083 /* ManuscriptFind.swift */; };
 		C090_BF /* ManuscriptEditing.swift in Sources */ = {isa = PBXBuildFile; fileRef = C090 /* ManuscriptEditing.swift */; };
+		C094_BF /* ManuscriptStructure.swift in Sources */ = {isa = PBXBuildFile; fileRef = C094 /* ManuscriptStructure.swift */; };
 		C091_BF /* ManuscriptUITextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C091 /* ManuscriptUITextView.swift */; };
 		C092_BF /* ProjectToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = C092 /* ProjectToolbar.swift */; };
 		C093_BF /* PanelSwipes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C093 /* PanelSwipes.swift */; };
@@ -141,6 +142,7 @@
 		D082_BF /* ManuscriptCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = C082 /* ManuscriptCommands.swift */; };
 		D083_BF /* ManuscriptFind.swift in Sources */ = {isa = PBXBuildFile; fileRef = C083 /* ManuscriptFind.swift */; };
 		D090_BF /* ManuscriptEditing.swift in Sources */ = {isa = PBXBuildFile; fileRef = C090 /* ManuscriptEditing.swift */; };
+		D094_BF /* ManuscriptStructure.swift in Sources */ = {isa = PBXBuildFile; fileRef = C094 /* ManuscriptStructure.swift */; };
 		D091_BF /* ManuscriptUITextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C091 /* ManuscriptUITextView.swift */; };
 		D092_BF /* ProjectToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = C092 /* ProjectToolbar.swift */; };
 		D093_BF /* PanelSwipes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C093 /* PanelSwipes.swift */; };
@@ -211,6 +213,7 @@
 		E082_BF /* ManuscriptCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = C082 /* ManuscriptCommands.swift */; };
 		E083_BF /* ManuscriptFind.swift in Sources */ = {isa = PBXBuildFile; fileRef = C083 /* ManuscriptFind.swift */; };
 		E090_BF /* ManuscriptEditing.swift in Sources */ = {isa = PBXBuildFile; fileRef = C090 /* ManuscriptEditing.swift */; };
+		E094_BF /* ManuscriptStructure.swift in Sources */ = {isa = PBXBuildFile; fileRef = C094 /* ManuscriptStructure.swift */; };
 		E091_BF /* ManuscriptUITextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C091 /* ManuscriptUITextView.swift */; };
 		E092_BF /* ProjectToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = C092 /* ProjectToolbar.swift */; };
 		E093_BF /* PanelSwipes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C093 /* PanelSwipes.swift */; };
@@ -311,6 +314,7 @@
 		C082 /* ManuscriptCommands.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptCommands.swift; path = Scrivi/Views/ManuscriptCommands.swift; sourceTree = SOURCE_ROOT; };
 		C083 /* ManuscriptFind.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptFind.swift; path = Scrivi/Views/ManuscriptFind.swift; sourceTree = SOURCE_ROOT; };
 		C090 /* ManuscriptEditing.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptEditing.swift; path = Scrivi/Views/ManuscriptEditing.swift; sourceTree = SOURCE_ROOT; };
+		C094 /* ManuscriptStructure.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptStructure.swift; path = Scrivi/Views/ManuscriptStructure.swift; sourceTree = SOURCE_ROOT; };
 		C091 /* ManuscriptUITextView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptUITextView.swift; path = Scrivi/Views/ManuscriptUITextView.swift; sourceTree = SOURCE_ROOT; };
 		C092 /* ProjectToolbar.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ProjectToolbar.swift; path = Scrivi/Views/ProjectToolbar.swift; sourceTree = SOURCE_ROOT; };
 		C093 /* PanelSwipes.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = PanelSwipes.swift; path = Scrivi/Views/PanelSwipes.swift; sourceTree = SOURCE_ROOT; };
@@ -423,6 +427,7 @@
 				C006 /* ViewportSceneLoader.swift */,
 				C007 /* ManuscriptTextView.swift */,
 				C090 /* ManuscriptEditing.swift */,
+				C094 /* ManuscriptStructure.swift */,
 				C092 /* ProjectToolbar.swift */,
 				C093 /* PanelSwipes.swift */,
 				C091 /* ManuscriptUITextView.swift */,
@@ -747,6 +752,7 @@
 			files = (
 				C091_BF /* ManuscriptUITextView.swift in Sources */,
 				C090_BF /* ManuscriptEditing.swift in Sources */,
+				C094_BF /* ManuscriptStructure.swift in Sources */,
 				C092_BF /* ProjectToolbar.swift in Sources */,
 				C093_BF /* PanelSwipes.swift in Sources */,
 				C010_BF /* ScriviEngine.swift in Sources */,
@@ -824,6 +830,7 @@
 			files = (
 				D091_BF /* ManuscriptUITextView.swift in Sources */,
 				D090_BF /* ManuscriptEditing.swift in Sources */,
+				D094_BF /* ManuscriptStructure.swift in Sources */,
 				D092_BF /* ProjectToolbar.swift in Sources */,
 				D093_BF /* PanelSwipes.swift in Sources */,
 				D010_BF /* ScriviEngine.swift in Sources */,
@@ -901,6 +908,7 @@
 			files = (
 				E091_BF /* ManuscriptUITextView.swift in Sources */,
 				E090_BF /* ManuscriptEditing.swift in Sources */,
+				E094_BF /* ManuscriptStructure.swift in Sources */,
 				E092_BF /* ProjectToolbar.swift in Sources */,
 				E093_BF /* PanelSwipes.swift in Sources */,
 				E010_BF /* ScriviEngine.swift in Sources */,

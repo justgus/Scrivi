@@ -1,5 +1,9 @@
 # Active Sprints
 
+*Last Updated: 2026-11-18 (**SP-222 → 🟡 ACTIVE** (user, 2026-11-18: *"Q1-Q5 as recommended, activate and implement SP-222"*))*
+
+*Last Updated: 2026-11-18 (**SP-221 → ✅ CLOSED** (user, 2026-11-18: *"Mac, iPad and Linux live passes all passed, The Import... button on the mac looks the same as the other buttons.  close SP-221"*) → `Closed/Sprint-SP-221.md`. No Sprint is active.)*
+
 *Last Updated: 2026-11-18 (**SP-221 → 🟡 ACTIVE** (user, 2026-11-18: *"Q1-Q3 as recommended, activate and implement SP-221"*))*
 
 *Last Updated: 2026-11-17 (**SP-220 → ✅ CLOSED** (user, 2026-11-17: *"Linux steps 2 and 3 passed, close SP-220"*) → `Closed/Sprint-SP-220.md`. No Sprint is active.)*
@@ -146,6 +150,6 @@
 
 ---
 
-## SP-221 — `[Apple]` + `[Linux]` [EP-054] AC8: the Landing's Import…
+## SP-222 — `[Apple]` [EP-055] S3a: undo/redo, structural edits and cross-scene cut/copy/paste on iOS
 
-🟡 **ACTIVE 2026-11-18** → [`Sprint-SP-221.md`](Sprint-SP-221.md) · carries [T-0681] · ✅ Q1–Q3 ruled
+🟡 **ACTIVE 2026-11-18** → [`Sprint-SP-222.md`](Sprint-SP-222.md) · carries [T-0685], [T-0680] · ✅ Q1–Q5 ruled

@@ -575,6 +575,21 @@ struct ScriviApp: App {
             .disabled(env.activeSession == nil)
         }
 
+        // ✅ EP-055 S3a (SP-222 Q3): the Mac's Scene and Chapter edits. The keys are the manuscript's own (its key commands
+        // take them ahead of the system's ⌘⌫), so the chord is shown in the title, as on the Mac.
+        CommandMenu("Scene") {
+            Button("New Scene  (⌘↩)") { env.activeSession?.createSceneAction?() }
+                .disabled(env.activeSession?.createSceneAction == nil)
+            Button("Merge Scene with Previous  (⌘⌫)") { env.activeSession?.mergeSceneAction?() }
+                .disabled(env.activeSession?.mergeSceneAction == nil)
+        }
+        CommandMenu("Chapter") {
+            Button("New Chapter  (⇧⌘↩)") { env.activeSession?.createChapterAction?() }
+                .disabled(env.activeSession?.createChapterAction == nil)
+            Button("Merge Chapter with Previous  (⇧⌘⌫)") { env.activeSession?.mergeChapterAction?() }
+                .disabled(env.activeSession?.mergeChapterAction == nil)
+        }
+
         CommandMenu("Project") {
             Button("Project Settings…") {
                 env.activeSession?.showProjectSettings = true

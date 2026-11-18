@@ -1,5 +1,13 @@
 # Task Backlog
 
+*Last Updated: 2026-11-18 (**T-0685, T-0680 → active** with [SP-222]'s activation → `Task-active.md`.)*
+
+*Last Updated: 2026-11-18 (**T-0685 filed** — EP-055 S3a, carried by [SP-222] (🔵 Planning) (user, 2026-11-18: *"…proceed with EP-055."*).)*
+
+*Last Updated: 2026-11-18 (**T-0667 tabled** until the AO3 account arrives, ~2026-12-01 (user, 2026-11-18: *"I've submitted my request for an AO3 account.  It should be handles around Dec 1st.  So, we need to table that until then"*).)*
+
+*Last Updated: 2026-11-18 (**T-0669 → ✅ Verified** (user, 2026-11-18: *"T-0669 is already done.  I did it yesterday.  Tick AC1-AC3 and AC5."*) → `Verified/Task-verified-0669.md`.)*
+
 *Last Updated: 2026-11-18 (**T-0681 → active** with [SP-221]'s activation → `Task-active.md`.)*
 
 *Last Updated: 2026-11-17 (**T-0681 → EP-054** (AC8), with [SP-220] closed; carried by [SP-221] (🔵 Planning) (user, 2026-11-17: *"yes, move T-0681 into EP-054 and plan it"*).)*
@@ -119,8 +127,6 @@ status changes on its own layer.
 | T-0657 | `[Cross]` Navigator: collapsible chapters, the current one open, the writer's choices remembered per device | ⚠️ None yet | 🔵 Backlog |
 | T-0663 | `[Cross]` Properties tab: the project's file facts (folder, path, dates, size) | ⚠️ None yet | 🔵 Backlog — Q1–Q5 ruled |
 | T-0667 | `[Cross]` EP-054: paste a Copy as HTML chapter into AO3 itself once it is back online | EP-054 | 🔵 Backlog — waits for AO3 |
-| T-0669 | `[Apple]` EP-054: export a whole-manuscript and a one-chapter `.docx` on the iPad (Export Manuscript… ▸ Word Document) and open them in Pages or Word there — [SP-208] AC5/AC7's iPad half | EP-054 | 🔵 Backlog — waits for the iPad |
-| T-0680 | `[Apple]` EP-054: Import ▸ Manuscript… **Into This Project** on the iPad, at the caret, one undo step | EP-054 | 🔵 Backlog — waits for EP-055 S2/S3 (the iPad's structured paste and undo) |
 | T-0684 | `[Cross]` The app's name: "Scrivi" is alarmingly close to "Scrivener" | ⚠️ None yet | 🔵 Backlog |
 
 > ✅ **T-0477 – T-0479 LEFT this file 2026-08-31 when SP-124 was ACTIVATED**, per the standing rule that
@@ -152,19 +158,6 @@ status changes on its own layer.
 
 ## Detail
 
-## 🔵 T-0680 — `[Apple]` EP-054: Import Manuscript into the open project on the iPad
-
-**Epic:** [EP-054] (S6a, [SP-218] Q2) · **Status:** 🔵 Backlog · **Sprint:** Not Assigned · **Date Requested:** 2026-11-15 (from
-[SP-218]'s iPad live pass; user: *"option 1"*)
-
-**What:** SP-218 Q2 (c) ruled New Project / Into This Project on every platform; the iPad got New Project only, because its editor
-has no structured paste or structural undo (`ManuscriptUITextView.swift:12`, EP-055 S2/S3). When it has them: with a project open,
-the iPad asks New Project / Into This Project as the Mac does (`ProjectArchiveFlow.swift`, `importManuscript(_:into:)`), and Into
-This Project pastes the Range at the caret as one undo step. Until then the iPad says why the project closes
-(`presentImportManuscript`, SP-218).
-
----
-
 ## 🔵 T-0684 — `[Cross]` The app's name is too close to Scrivener's
 
 **Epic:** ⚠️ None yet · **Status:** 🔵 Backlog · **Sprint:** Not Assigned · **Date Requested:** 2026-11-17 (user, planning
@@ -182,7 +175,7 @@ rename.
 
 ## 🔵 T-0667 — `[Cross]` EP-054: paste a Copy as HTML chapter into AO3 itself
 
-**Epic:** [EP-054] (EP-054 AC4) · **Status:** 🔵 Backlog · **Sprint:** Not Assigned · **Date Requested:** 2026-11-09 (from [SP-207] AC7 at
+**Epic:** [EP-054] (EP-054 AC4) · **Status:** 🔵 Backlog — ⏸ **waits for an AO3 account** (requested 2026-11-18, expected ~2026-12-01; AO3 is back up) · **Sprint:** Not Assigned · **Date Requested:** 2026-11-09 (from [SP-207] AC7 at
 its close; user: *"close SP-207"*, after the AC was proposed to move here)
 
 **What:** the one AC7 step [SP-207] could not run: AO3 was reported offline (a data breach). When it is back, copy a chapter

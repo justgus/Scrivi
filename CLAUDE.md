@@ -79,7 +79,8 @@ Key documents:
   records that store changes, not whole texts. ✅ (a) done: `util/Json.cpp` is compiled `-O2` even in Debug (not MSVC).
 - `docs/Scrivi_iOS_Manuscript_Design_v0_1.md` — the manuscript on iOS (EP-055): ✅ Q1 = (c) — what a keystroke stores
   (`ManuscriptEditRules`) and the model sync (`ManuscriptSceneSync`) are SHARED in `ManuscriptEditing.swift`; the Mac and iOS
-  hosts only apply them. ⚠️ A change to the write path goes THERE, never into one host.
+  hosts only apply them. ⚠️ A change to the write path goes THERE, never into one host. ✅ The same for C3 — undo/redo,
+  structural edits, the cross-scene clipboard — in `ManuscriptStructure.swift` ([SP-222], design §4a).
 - `docs/Scrivi_Authorship_Design_v0_2.md` — ✅ **APPROVED 2026-11-10** (EP-058, Q1–Q9 as recommended): pen names (app menu), ordered authors per project AND per world
   (`identities/*-personas.json`, read at last), "writing as" per identity per project (members), the byline on exports. Supersedes
   the authorship half of `Scrivi_Identity_Authorship_and_Settings_Design_v0_1.md`. ⛔ Never show a host name or "Scrivi" as a pen name.

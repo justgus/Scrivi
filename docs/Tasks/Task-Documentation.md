@@ -820,7 +820,7 @@ archive files reconstructed after the fact from secondary sources.
 | T-0666 | `[Cross]` EP-054 S3: Markdown and HTML export | ✅ **SP-207** | **EP-054** | ✅ Verified 2026-11-09 | [`Verified/Task-verified-0666.md`](Verified/Task-verified-0666.md) |
 | T-0667 | `[Cross]` EP-054: paste a Copy as HTML chapter into AO3 itself once it is back online | — | **EP-054** | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
 | T-0668 | `[Cross]` EP-054 S4: Word `.docx` export | ✅ **SP-208** | **EP-054** | ✅ Verified 2026-11-10 | [`Verified/Task-verified-0668.md`](Verified/Task-verified-0668.md) |
-| T-0669 | `[Apple]` EP-054: the iPad `.docx` pass (from SP-208 AC5/AC7) | — | **EP-054** | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
+| T-0669 | `[Apple]` EP-054: the iPad `.docx` pass (from SP-208 AC5/AC7) | — | **EP-054** | ✅ Verified | [`Verified/Task-verified-0669.md`](Verified/Task-verified-0669.md) |
 | T-0670 | `[ScriviCore]` EP-058 S1: authorship in the core | ✅ **SP-209** | **EP-058** | ✅ Verified 2026-11-11 | [`Verified/Task-verified-0670.md`](Verified/Task-verified-0670.md) |
 | T-0671 | `[Apple]` EP-058 S2: authorship on the Mac and iPad | 🟡 **SP-210** | **EP-058** | ✅ Verified 2026-11-11 | [`Verified/Task-verified-0671.md`](Verified/Task-verified-0671.md) |
 | T-0672 | `[Linux]` EP-058 S3: authorship on Linux | 🟡 **SP-211** | **EP-058** | ✅ Verified 2026-11-11 | [`Verified/Task-verified-0672.md`](Verified/Task-verified-0672.md) |
@@ -829,10 +829,11 @@ archive files reconstructed after the fact from secondary sources.
 | T-0675 | `[Cross]` EP-054 S5b: PDF export | ✅ **SP-214** | **EP-054** | ✅ Verified 2026-11-13 | [`Verified/Task-verified-0675.md`](Verified/Task-verified-0675.md) |
 | T-0676 | `[Cross]` EP-054: File ▸ Import / Export submenus, Export ▸ Chapter…, the iPad's timeline import/export | ✅ **SP-215** | **EP-054** | ✅ Verified 2026-11-13 | [`Verified/Task-verified-0676.md`](Verified/Task-verified-0676.md) |
 | T-0684 | `[Cross]` The app's name is too close to Scrivener's | — | ⚠️ None yet | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
+| T-0685 | `[Apple]` EP-055 S3a: undo/redo, structural edits, cross-scene clipboard on iOS | 🟡 **SP-222** | **EP-055** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
 | T-0683 | `[Cross]` EP-054 S7: Scrivener import | ✅ **SP-220** | **EP-054** | ✅ Verified 2026-11-17 | [`Verified/Task-verified-0683.md`](Verified/Task-verified-0683.md) |
 | T-0682 | `[Cross]` EP-054 S6b: `.docx` import | ✅ **SP-219** | **EP-054** | ✅ Verified 2026-11-17 | [`Verified/Task-verified-0682.md`](Verified/Task-verified-0682.md) |
-| T-0681 | `[Apple]` iPad Landing: one Import… button (Manuscript / Timeline / Archive) | 🟡 **SP-221** | **EP-054** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
-| T-0680 | `[Apple]` EP-054: Import Manuscript into the open project on the iPad | — | **EP-054** | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
+| T-0681 | `[Apple]` iPad Landing: one Import… button (Manuscript / Timeline / Archive) | ✅ **SP-221** | **EP-054** | ✅ Verified | [`Verified/Task-verified-0681.md`](Verified/Task-verified-0681.md) |
+| T-0680 | `[Apple]` EP-054: Import Manuscript into the open project on the iPad | 🟡 **SP-222** | **EP-054** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
 | T-0679 | `[Cross]` EP-054: Markdown and plain-text import | 🟡 **SP-218** | **EP-054** | ✅ Verified 2026-11-15 | [`Verified/Task-verified-0679.md`](Verified/Task-verified-0679.md) |
 | T-0678 | `[Cross]` EP-054: the export formats as submenus | ✅ **SP-215** | **EP-054** | ✅ Verified 2026-11-13 | [`Verified/Task-verified-0678.md`](Verified/Task-verified-0678.md) |
 | T-0677 | `[Linux]` EP-054: the start window gets the project window's menu bar | ✅ **SP-216** | **EP-054** | ✅ Verified | [`Verified/Task-verified-0677.md`](Verified/Task-verified-0677.md) |
@@ -873,6 +874,16 @@ archive files reconstructed after the fact from secondary sources.
 ⚠️ **This index ended at `T-0485 (next available)` until 2026-09-10 — ✅ that was STALE.** ⚠️ **T-0485–T-0498 had all been taken**, and T-0485–T-0490/T-0492–T-0496 are archived as Verified. ⚠️ **Rows for T-0486–T-0497 are NOT reconstructed here** — ✅ **their Sprints' closed records are authoritative** (`feedback_archive_on_close`).
 
 ---
+
+*Last Updated: 2026-11-18 (**T-0685, T-0680 → 🟠** ([SP-222] built).)*
+
+*Last Updated: 2026-11-18 (**T-0685, T-0680 → active** ([SP-222] activated).)*
+
+*Last Updated: 2026-11-18 (**T-0685 filed** ([SP-222], 🔵 Planning).)*
+
+*Last Updated: 2026-11-18 (**T-0669 → ✅ Verified** (user-reported pass) → `Verified/Task-verified-0669.md`.)*
+
+*Last Updated: 2026-11-18 (**T-0681 → ✅ Verified** ([SP-221] closed) → `Verified/Task-verified-0681.md`.)*
 
 *Last Updated: 2026-11-18 (**T-0681 → 🟠** ([SP-221] built).)*
 

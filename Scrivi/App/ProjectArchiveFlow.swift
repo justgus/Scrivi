@@ -418,18 +418,9 @@ extension AppEnvironment {
         guard panel.runModal() == .OK, let url = panel.url else { return }
         Task { await importManuscript(url, into: session) }
         #else
-        // SP-218: say why the open project closes, rather than closing it unasked (Into This Project waits for T-0680).
-        Task { @MainActor in
-            if session != nil {
-                let r = await ask("Import a Manuscript",
-                                  "On the iPad an import becomes a new project, so this project closes first. "
-                                  + "Importing into an open project is not on the iPad yet.",
-                                  ["Continue", "Cancel"])
-                guard r.choice == 0 else { return }
-            }
-            closeActiveProjectForLanding()
-            archivePicker = scrivener ? .scrivener : .manuscript
-        }
+        // [T-0680] (SP-222 Q5): the picker comes up over the open project; what to do with the pick is asked after it, as on
+        // the Mac (`ArchiveFlowHost`).
+        archivePicker = scrivener ? .scrivener : .manuscript
         #endif
     }
 
@@ -444,23 +435,7 @@ extension AppEnvironment {
             let r = await ask("Import “\(stem)”", "As a new project, or into “\(name)” at the caret?",
                               ["New Project…", "Into This Project", "Cancel"])
             if r.choice == 2 { return }
-            if r.choice == 1 {
-                let engine = session.engine
-                do {
-                    let result = try await offMain("Importing manuscript…", show: { session.archiveProgress = $0 }) {
-                        try engine.importManuscript(sourcePath: sourcePath)
-                    }
-                    guard let range = result.range else {
-                        await tell("Nothing to import", "“\(source.lastPathComponent)” holds no text.")
-                        return
-                    }
-                    paste(range)   // the editor's structured paste: its progress, its one undo step
-                    await tellNotes(result, stem)
-                } catch {
-                    await tell("The manuscript could not be imported", message(for: error))
-                }
-                return
-            }
+            if r.choice == 1 { return await importManuscript(source, into: session, paste: paste) }
         }
         // A new project, where the writer names it (as New Project).
         let panel = NSSavePanel()
@@ -482,6 +457,21 @@ extension AppEnvironment {
         await importManuscriptAsProject(sourcePath, stem, at: project)
     }
     #else
+    /// [T-0680] iPad, with a project open: as a new project (this one closes first — one window), or into it at the caret.
+    /// Returns true when the writer chose Into This Project or Cancel; false to go on to the new project's folder.
+    func importManuscriptIntoOpenProject(_ source: URL) async -> Bool {
+        guard let session = activeSession, let paste = session.importRangeAction, let root = session.projectRootPath
+        else { return false }
+        let stem = source.deletingPathExtension().lastPathComponent
+        let name = URL(fileURLWithPath: root).deletingPathExtension().lastPathComponent
+        let r = await ask("Import “\(stem)”", "As a new project, or into “\(name)” at the caret? A new project closes this one.",
+                          ["New Project…", "Into This Project", "Cancel"])
+        if r.choice == 1 { await importManuscript(source, into: session, paste: paste) }
+        if r.choice != 0 { return true }
+        closeActiveProjectForLanding()
+        return false
+    }
+
     /// iPad: the new project goes in the folder the writer picked; the folder's grant is HELD while it is open.
     func importManuscript(_ source: URL, intoFolder folder: URL) async {
         let scoped = source.startAccessingSecurityScopedResource()
@@ -492,6 +482,27 @@ extension AppEnvironment {
                                         at: folder.appendingPathComponent("\(stem).scrivi", isDirectory: true))
     }
     #endif
+
+    /// Into This Project (SP-218 Q2; the iPad's [T-0680]): the core reads the file into a Range off the main thread, and the
+    /// editor's structured paste puts it at the caret — its progress, its one undo step.
+    private func importManuscript(_ source: URL, into session: ProjectSession, paste: (ScriviRange) -> Void) async {
+        let scoped = source.startAccessingSecurityScopedResource()
+        defer { if scoped { source.stopAccessingSecurityScopedResource() } }
+        let engine = session.engine, sourcePath = source.path(percentEncoded: false)
+        do {
+            let result = try await offMain("Importing manuscript…", show: { session.archiveProgress = $0 }) {
+                try engine.importManuscript(sourcePath: sourcePath)
+            }
+            guard let range = result.range else {
+                await tell("Nothing to import", "“\(source.lastPathComponent)” holds no text.")
+                return
+            }
+            paste(range)
+            await tellNotes(result, source.deletingPathExtension().lastPathComponent)
+        } catch {
+            await tell("The manuscript could not be imported", message(for: error))
+        }
+    }
 
     private func importManuscriptAsProject(_ sourcePath: String, _ stem: String, at project: URL) async {
         guard let ref = authorshipRef else { return }
@@ -804,6 +815,8 @@ struct ArchiveFlowHost: ViewModifier {
                 case .manuscript, .scrivener:
                     // As the archive: say why a second picker is coming, then pick the new project's folder.
                     Task { @MainActor in
+                        await Self.untilNothingPresented()
+                        if await env.importManuscriptIntoOpenProject(url) { return }   // [T-0680]
                         await Self.untilNothingPresented()
                         let r = await env.ask("Import “\(url.deletingPathExtension().lastPathComponent)”",
                                               "It becomes a new project. Choose the folder to put it in.",

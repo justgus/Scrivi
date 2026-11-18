@@ -218,6 +218,214 @@ struct IOSManuscriptSaveTests {
 }
 
 
+/// EP-055 S3a (SP-222, T-0685) — undo/redo, structural edits and the cross-scene clipboard on iOS: the SAME `ManuscriptStructure`
+/// the Mac's interop suite pins ("Undo after split / merge"), driven here through the iOS host — the system's undo manager, the
+/// session's actions (the menu bar and the keys call these), cut and paste — on a real project opened by `loadAsync`.
+@Suite("iOS manuscript: undo, structural edits, cross-scene clipboard (EP-055 S3a)")
+@MainActor
+struct IOSManuscriptStructureTests {
+
+    @MainActor final class Harness {
+        let root: URL
+        let env = AppEnvironment()
+        let session: ProjectSession
+        let loader: ViewportSceneLoader
+        let c: ManuscriptTextView.Coordinator
+        let tv = ManuscriptUITextView()
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 600, height: 800))
+
+        /// One chapter holding `bodies`, opened through `loadAsync` (history opened, every scene validated).
+        init(_ bodies: [String]) async throws {
+            root = FileManager.default.temporaryDirectory.appendingPathComponent("scrivi-ios-s3a-\(UUID().uuidString)")
+            try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+            let engine = env.engine, support = env.appSupportRoot, path = root.path(percentEncoded: false)
+            let identity = try engine.ensureLocalIdentity(displayName: "iOS Test", appSupportRoot: support)
+            let ref = AuthorshipRef(identityID: identity.identityID, personaID: identity.defaultPersonaID,
+                                    displayName: identity.displayName)
+            env.authorshipRef = ref
+            let created = try engine.createProject(projectRootPath: path, appSupportRoot: support,
+                                                   title: "iOS S3a", slug: "ios-s3a", authorshipRef: ref)
+            _ = try engine.saveScene(projectID: created.projectID, projectRootPath: path, appSupportRoot: support,
+                                     sceneID: created.firstScene.sceneID, sceneMetadataPath: created.firstScene.metadataPath,
+                                     sceneContentPath: created.firstScene.contentPath, markdown: bodies[0], authorshipRef: ref)
+            let chapterID = try #require(try engine.openProject(projectRootPath: path, appSupportRoot: support,
+                                                                identityID: identity.identityID).scenes.first?.chapterID)
+            var after = created.firstScene.sceneID
+            for body in bodies.dropFirst() {
+                let s = try engine.createScene(projectRootPath: path, appSupportRoot: support, projectID: created.projectID,
+                                               chapterID: chapterID, afterSceneID: after, authorshipRef: ref)
+                _ = try engine.saveScene(projectID: created.projectID, projectRootPath: path, appSupportRoot: support,
+                                         sceneID: s.sceneID, sceneMetadataPath: s.metadataPath, sceneContentPath: s.contentPath,
+                                         markdown: body, authorshipRef: ref)
+                after = s.sceneID
+            }
+            session = ProjectSession(engine: engine, authorshipRef: ref, appSupportRoot: support, identityID: identity.identityID)
+            _ = try await session.loadAsync(at: path) { _, _ in }
+            loader = try #require(session.viewportLoader)
+            let view = ManuscriptTextView(loader: loader, env: env, session: session, navigateToSceneID: .constant(nil),
+                                          showChapterTitles: false, typography: .default)
+            c = view.makeCoordinator()
+            (tv.textLayoutManager?.textContentManager as? NSTextContentStorage)?.delegate = c.sync.presenter
+            tv.textStorage.delegate = c.sync.presenter
+            c.sync.boundaryTable.observe(tv.textStorage)
+            tv.delegate = c
+            tv.pasteboard = UIPasteboard.withUniqueName()   // ⚠️ never the writer's clipboard
+            tv.frame = window.bounds
+            window.addSubview(tv)
+            c.textView = tv
+            tv.structure = c.structure
+            // The session's actions, as `makeUIView` installs them (the menu bar and the keys call these).
+            session.createSceneAction   = { [c] in c.structure.handleCreateScene() }
+            session.createChapterAction = { [c] in c.structure.handleCreateChapter() }
+            session.mergeSceneAction    = { [c] in c.structure.handleMergeScene() }
+            session.mergeChapterAction  = { [c] in c.structure.handleMergeChapter() }
+            // An alert would wait for a tap that never comes: an unexpected one fails the test instead.
+            c.onBarrierNotice = { Issue.record("unexpected barrier notice: \($0)") }
+            c.onRedoFork = { fork in Issue.record("unexpected branch chooser at \(fork.nodeID)"); return nil }
+            c.rebuildStorage(tv)
+            #expect(loader.segments.map(\.text) == bodies)
+        }
+        deinit { try? FileManager.default.removeItem(at: root) }
+
+        var texts: [String] { loader.segments.map(\.text) }
+        func caret(scene i: Int, at offset: Int) {
+            tv.selectedRange = NSRange(location: c.sync.sceneBoundaries(in: tv.textStorage)[i].location + offset, length: 0)
+        }
+        /// [SP-191] Waits until no structural edit is in flight (they run off the main actor).
+        func landed() async throws {
+            for _ in 0..<500 where loader.structuralInFlight { try await Task.sleep(for: .milliseconds(10)) }
+            #expect(!loader.structuralInFlight, "the structural edit landed")
+        }
+        /// The storage shows the scene list: each scene's text in its range.
+        func storageMatches(_ what: String) {
+            let ns = tv.textStorage.string as NSString
+            let shown = c.sync.sceneBoundaries(in: tv.textStorage).map { ns.substring(with: $0) }
+            #expect(shown == texts, "\(what): the view shows the scene list")
+        }
+        /// The scene list is the disk (identity, chapter, text), against a fresh open.
+        func listMatchesDisk(_ what: String) throws {
+            let opened = try env.engine.openProject(projectRootPath: root.path(percentEncoded: false),
+                                                    appSupportRoot: env.appSupportRoot, identityID: session.identityID)
+            let disk = try opened.scenes.map { s in
+                [s.sceneID, s.chapterID, try String(contentsOf: root.appendingPathComponent(s.contentPath), encoding: .utf8)]
+            }
+            #expect(loader.segments.map { [$0.sceneID, $0.chapterID, $0.text] } == disk, "\(what): the scene list is the disk")
+        }
+    }
+
+    @Test("typing, then the SYSTEM's undo and redo (⌘Z, the keyboard's key, the swipe): Scrivi's history runs")
+    func systemUndoRunsHistory() async throws {
+        let h = try await Harness(["Alpha."])
+        #expect(h.tv.undoManager?.canUndo == false, "nothing to undo yet")
+        h.caret(scene: 0, at: 6)
+        h.tv.insertText(" Beta")
+        #expect(h.texts == ["Alpha. Beta"])
+        #expect(h.tv.undoManager?.canUndo == true, "the system's Undo is enabled by the history")
+        h.tv.undoManager?.undo()
+        #expect(h.texts == ["Alpha."], "undone by the history")
+        #expect(h.tv.textStorage.string == "Alpha.")
+        #expect(h.tv.undoManager?.canRedo == true)
+        h.tv.undoManager?.redo()
+        #expect(h.texts == ["Alpha. Beta"], "redone")
+        h.storageMatches("after redo")
+    }
+
+    @Test("split, merge, chapter split and chapter merge each undo and redo in ONE step; the view and the disk follow")
+    func structuralEditsUndoAndRedo() async throws {
+        let h = try await Harness(["Alpha one. Alpha two.", "Beta.", "Gamma."])
+        let start = h.texts
+        let ids = h.loader.segments.map(\.sceneID)
+        func state() -> [[String]] { h.loader.segments.map { [$0.sceneID, $0.chapterID, $0.text] } }
+        // Each op after the first starts a new branch from the same point: redo there asks (Q4) — the newest, here.
+        var asked = 0
+        h.c.onRedoFork = { fork in asked += 1; return fork.children.first(where: \.isPrimary)?.eventID }
+        func roundTrip(_ what: String, _ op: () -> Void) async throws {
+            let before = state()
+            op()
+            try await h.landed()
+            let after = state()
+            #expect(after != before, "\(what) changed the manuscript")
+            h.storageMatches(what)
+            try h.listMatchesDisk(what)
+            h.tv.undoManager?.undo()
+            try await h.landed()
+            #expect(state() == before, "\(what): undone exactly, in ONE step")
+            h.storageMatches("\(what), undone")
+            h.tv.undoManager?.redo()
+            try await h.landed()
+            #expect(state() == after, "\(what): redone exactly")
+            h.tv.undoManager?.undo()
+            try await h.landed()
+            #expect(state() == before)
+        }
+        try await roundTrip("split") { h.caret(scene: 0, at: 11); h.session.createSceneAction?() }
+        try await roundTrip("merge") { h.caret(scene: 1, at: 0); h.session.mergeSceneAction?() }
+        try await roundTrip("chapter split") { h.caret(scene: 0, at: 6); h.session.createChapterAction?() }
+        h.caret(scene: 1, at: 0)
+        h.session.createChapterAction?()
+        try await h.landed()
+        try await roundTrip("chapter merge") { h.caret(scene: 1, at: 0); h.session.mergeChapterAction?() }
+        h.tv.undoManager?.undo()
+        try await h.landed()
+        #expect(h.texts == start)
+        #expect(h.loader.segments.map(\.sceneID) == ids, "every scene kept its identity through all of it")
+        #expect(asked > 0, "redo at a branch asked which (Q4)")
+        try h.listMatchesDisk("the end")
+    }
+
+    @Test("a cut across scenes removes the break; Scrivi's paste puts the scenes back; each undoes in one step")
+    func cutAndPasteAcrossScenes() async throws {
+        let h = try await Harness(["Aaa.", "Bbb.", "Ccc."])
+        let b = h.c.sync.sceneBoundaries(in: h.tv.textStorage)
+        h.tv.selectedRange = NSRange(location: b[0].location + 2, length: b[1].location + 2 - (b[0].location + 2))
+        h.tv.cut(nil)
+        try await h.landed()
+        #expect(h.texts == ["Aab.", "Ccc."], "the head of the first joins the tail of the second: \(h.texts)")
+        #expect(h.tv.pasteboard.string?.isEmpty == false, "other apps get the text")
+        #expect(h.c.structure.hasInternalStructuredRange, "Scrivi's clipboard holds the scenes")
+        h.storageMatches("after the cut")
+        h.caret(scene: 1, at: 4)
+        h.tv.paste(nil)
+        try await h.landed()
+        #expect(h.texts.count == 3, "the cut's break comes back with the paste: \(h.texts)")
+        #expect(h.texts.joined() == "Aab.Ccc.a.Bb", "\(h.texts)")
+        h.storageMatches("after the paste")
+        try h.listMatchesDisk("after the paste")
+        h.tv.undoManager?.undo()
+        try await h.landed()
+        #expect(h.texts == ["Aab.", "Ccc."], "the paste undone in one step")
+        h.tv.undoManager?.undo()
+        try await h.landed()
+        #expect(h.texts == ["Aaa.", "Bbb.", "Ccc."], "the cut undone in one step")
+        h.storageMatches("the end")
+    }
+
+    @Test("⌫ over a selection across scenes is the structural cut, and leaves the clipboard alone")
+    func deleteAcrossScenes() async throws {
+        let h = try await Harness(["One two.", "Three four."])
+        h.tv.pasteboard.string = "kept"
+        let b = h.c.sync.sceneBoundaries(in: h.tv.textStorage)
+        h.tv.selectedRange = NSRange(location: b[0].location + 4, length: b[1].location + 6 - (b[0].location + 4))
+        h.tv.deleteBackward()
+        try await h.landed()
+        #expect(h.texts == ["One four."])
+        #expect(h.tv.pasteboard.string == "kept")
+        #expect(!h.c.structure.hasInternalStructuredRange)
+    }
+
+    @Test("while a structural edit is in flight the view takes no typing (the cue), and takes it again after")
+    func inputHeldInFlight() async throws {
+        let h = try await Harness(["Alpha one. Alpha two."])
+        h.caret(scene: 0, at: 11)
+        h.session.createSceneAction?()
+        #expect(h.tv.inputHeld)
+        h.tv.insertText("X")
+        try await h.landed()
+        #expect(!h.tv.inputHeld)
+        #expect(h.texts == ["Alpha one. ", "Alpha two."], "nothing typed went in mid-flight: \(h.texts)")
+    }
+}
+
 @Suite("iOS panel swipes (SP-199, design §8)")
 struct PanelSwipeTests {
     let w: CGFloat = 1000

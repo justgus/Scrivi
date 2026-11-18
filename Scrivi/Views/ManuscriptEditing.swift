@@ -759,6 +759,49 @@ final class ManuscriptSceneSync {
         return (out, ranges)
     }
 
+    /// Whether ONE run of scenes can be re-rendered in place: `old` is where the run sat in the storage before the scene
+    /// list changed, `new` where it sits in `loader.segments` now (both start at the same index). ⚠️ Not when the storage
+    /// does not match the run's assumptions, or when titles show and the chapter count changed ("Chapter N" titles outside
+    /// the run renumber) — the host then renders everything.
+    func runFits(in storage: NSTextStorage, old: Range<Int>, new: Range<Int>, renderedChapterCount: Int) -> Bool {
+        let segments = loader.segments
+        let oldCount = segments.count - new.count + old.count
+        return !old.isEmpty && !new.isEmpty && old.lowerBound == new.lowerBound
+            && boundaryTable.ranges(in: storage).count == oldCount
+            && old.upperBound <= oldCount && new.upperBound <= segments.count
+            && !(showChapterTitles && Self.chapterCount(segments) != renderedChapterCount)
+    }
+
+    /// Re-renders the run (`runFits` first): its prefixes and bodies, and the prefix of the scene after it (its divider can
+    /// change with the run), and nothing else. The boundary table is spliced, not rescanned.
+    func spliceRun(in storage: NSTextStorage, old: Range<Int>, new: Range<Int>) {
+        let segments = loader.segments
+        let table = boundaryTable.ranges(in: storage)
+        let oldCount = segments.count - new.count + old.count
+        let a = old.lowerBound
+        let replaceStart = a == 0 ? 0 : NSMaxRange(table[a - 1])
+        let replaceEnd = old.upperBound < oldCount ? table[old.upperBound].location : storage.length
+        let attrs = presenter.typography.bodyAttributes
+        let built = NSMutableAttributedString()
+        var runRanges: [NSRange] = []
+        for j in new {
+            built.append(renderedPrefix(j, segments))
+            let body = NSAttributedString(string: segments[j].text, attributes: attrs)
+            runRanges.append(NSRange(location: replaceStart + built.length, length: body.length))
+            built.append(body)
+        }
+        if new.upperBound < segments.count { built.append(renderedPrefix(new.upperBound, segments)) }
+
+        storage.beginEditing()
+        storage.replaceCharacters(in: NSRange(location: replaceStart, length: replaceEnd - replaceStart), with: built)
+        storage.endEditing()
+
+        let delta = built.length - (replaceEnd - replaceStart)
+        var spliced = Array(table[0..<a]) + runRanges
+        for r in table[old.upperBound...] { spliced.append(NSRange(location: r.location + delta, length: r.length)) }
+        boundaryTable.reset(spliced)
+    }
+
     // MARK: An edit, and a caret move
 
     /// The writer changed the text with the caret at `loc`: the scene's text goes to the loader, the history hears the edit,
