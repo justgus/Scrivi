@@ -1,5 +1,9 @@
 # Task Backlog
 
+*Last Updated: 2026-11-18 (**T-0681 → active** with [SP-221]'s activation → `Task-active.md`.)*
+
+*Last Updated: 2026-11-17 (**T-0681 → EP-054** (AC8), with [SP-220] closed; carried by [SP-221] (🔵 Planning) (user, 2026-11-17: *"yes, move T-0681 into EP-054 and plan it"*).)*
+
 *Last Updated: 2026-11-17 (**T-0683 → active** with [SP-220]'s activation.)*
 
 *Last Updated: 2026-11-17 (**T-0684 filed** (user, 2026-11-17: *"Q3a and Q7a as recommended, yes file the name Task"*).)*
@@ -117,7 +121,6 @@ status changes on its own layer.
 | T-0667 | `[Cross]` EP-054: paste a Copy as HTML chapter into AO3 itself once it is back online | EP-054 | 🔵 Backlog — waits for AO3 |
 | T-0669 | `[Apple]` EP-054: export a whole-manuscript and a one-chapter `.docx` on the iPad (Export Manuscript… ▸ Word Document) and open them in Pages or Word there — [SP-208] AC5/AC7's iPad half | EP-054 | 🔵 Backlog — waits for the iPad |
 | T-0680 | `[Apple]` EP-054: Import ▸ Manuscript… **Into This Project** on the iPad, at the caret, one undo step | EP-054 | 🔵 Backlog — waits for EP-055 S2/S3 (the iPad's structured paste and undo) |
-| T-0681 | `[Apple]` iPad Landing: **Import…** in place of Import Archive…, asking Manuscript… / Timeline… / Archive… | ⚠️ None yet | 🔵 Backlog |
 | T-0684 | `[Cross]` The app's name: "Scrivi" is alarmingly close to "Scrivener" | ⚠️ None yet | 🔵 Backlog |
 
 > ✅ **T-0477 – T-0479 LEFT this file 2026-08-31 when SP-124 was ACTIVATED**, per the standing rule that
@@ -174,15 +177,6 @@ extensions, `scrivi_*` ABI, schema IDs `scrivi.*.v1`, repo and docs) — the int
 rename.
 
 ---
-
-## 🔵 T-0681 — `[Apple]` iPad Landing: one Import… button
-
-**Epic:** ⚠️ None yet · **Status:** 🔵 Backlog · **Sprint:** Not Assigned · **Date Requested:** 2026-11-15 (user, [SP-218]'s iPad
-live pass: the iPad is used through its larger surfaces more than its menus; *"a nice to have"*)
-
-**What:** replace the Landing's **Import Archive…** (`LandingView.swift:38`) with **Import…**, which asks **Manuscript…**,
-**Timeline…** or **Archive…**. ⚠️ Timeline import needs an open project ([SP-215]), and the Landing has none — rule whether
-Timeline… is shown greyed or left out.
 
 ---
 

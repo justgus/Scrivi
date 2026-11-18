@@ -35,7 +35,12 @@ struct LandingView: View {
                 }
                 .keyboardShortcut("n", modifiers: .command)
 
-                Button("Import Archive…") { env.presentImportArchive() }   // [SP-206]
+                // SP-221: File ▸ Import's new-project items (Timeline… needs an open project, Q2).
+                Menu("Import…") {
+                    Button("Manuscript…") { env.presentImportManuscript(nil) }
+                    Button("Scrivener Project…") { env.presentImportManuscript(nil, scrivener: true) }
+                    Button("Archive…") { env.presentImportArchive() }   // [SP-206]
+                }
             }
             .buttonStyle(.borderedProminent)
 

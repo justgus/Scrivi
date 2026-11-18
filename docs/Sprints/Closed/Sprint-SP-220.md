@@ -1,16 +1,16 @@
 ---
 sprint: SP-220
 epic: EP-054
-status: Active
+status: Closed
 platform: Cross
 created: 2026-11-17
 ---
 
 # SP-220 — `[ScriviCore]` + `[Apple]` + `[Linux]` [EP-054] **S7**: Scrivener import
 
-**Status:** 🟡 **ACTIVE** 2026-11-17 (user, 2026-11-17: *"activate and implement SP-220"*) · planned 2026-11-17 (user, 2026-11-17: *"plan S7 Scrivener import"*) · ✅ Q1–Q6, Q3a, Q7a ruled as recommended.
-**Carries:** [T-0683] → [`../Tasks/Task-active.md`](../Tasks/Task-active.md).
-**Epic:** [EP-054] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md) (AC6, AC7, AC8; Q5 put Scrivener last as the most complex format).
+**Status:** ✅ **CLOSED** 2026-11-17 (user, 2026-11-17: *"Linux steps 2 and 3 passed, close SP-220"*) · activated 2026-11-17 (user, 2026-11-17: *"activate and implement SP-220"*) · planned 2026-11-17 (user, 2026-11-17: *"plan S7 Scrivener import"*) · ✅ Q1–Q6, Q3a, Q7a ruled as recommended.
+**Carries:** [T-0683] → [`../../Tasks/Verified/Task-verified-0683.md`](../../Tasks/Verified/Task-verified-0683.md).
+**Epic:** [EP-054] → [`../../Epics/Epic-active.md`](../../Epics/Epic-active.md) (AC6, AC7, AC8; Q5 put Scrivener last as the most complex format).
 **Builds on:** [SP-218] (S6a: `scrivi_import_manuscript`, the Markdown reader, the notes, New Project / Into This Project), [SP-219]
 (S6b: pugixml, `.docx` → Markdown → S6a's reader), [SP-205] (miniz), [SP-191] (a Range entry may carry `sceneMeta`).
 **Size:** L — a new text format (RTF) and a structure that comes from a binder, not from headings.
@@ -93,8 +93,8 @@ compile settings; Into This Project on the iPad ([T-0680]); inline object refere
 - [x] AC3 — Boundary tests through `scrivi_*`: every Q1–Q4 case, the Q7 fixtures, every refusal, and mangled input under the
       sanitizers with no crash; macOS and Linux ctest green — ✅ macOS 876/876; ✅ Linux (scrivi-vm) 881/881
 - [x] AC4 — File ▸ Import ▸ Scrivener Project… on the Mac, iPad and Linux (Q6) — ✅ built on all three
-- [ ] AC5 — Interop tests and the Linux bridge smoke green; stub parity, ABI guard and boundary checks green; CI green — ✅ all but CI (after the push)
-- [ ] AC6 — **Live passes (user)** on the Mac, iPad and Linux: plan step 5
+- [x] AC5 — Interop tests and the Linux bridge smoke green; stub parity, ABI guard and boundary checks green; CI green — ✅ CI on `25fef70`
+- [x] AC6 — **Live passes (user)** on the Mac, iPad and Linux: plan step 5
 
 ## Progress log
 
@@ -174,3 +174,13 @@ compile settings; Into This Project on the iPad ([T-0680]); inline object refere
 - **2026-11-17 — Linux (scrivi-vm, a copy of the working tree; the VM back up):** build ✅; ctest **881/881**; smokes
   **43/43** (`bridge_parity_smoke` 80 checks, 2 new: the `.scriv` read through the bridge with its seed; `settings_smoke`'s
   Import lists with Scrivener Project…). CI follows the push. Left: AC6, the live passes.
+- **2026-11-17 — live pass (user):** Mac steps 1–5 ✅, iPad ✅, Linux step 1 ✅ (user: *"Live pass for mac passed all steps.  iPad
+  passed all steps.  Linux passed import manuscript as project.  Import zipped backup failed."*). ⚠️ **Linux step 3 is not a
+  zip:** the backup Scrivener made is a FOLDER, `sp220-every-case 2026-11-17 17-58.scriv` (no `.zip` exists anywhere on the
+  Mac, `mdfind`), so Zipped Backup…'s file dialog opened it as a folder. The Mac's step 5 therefore imported a folder too:
+  **no live pass has read a zip yet** (ctest's zipped-backup case has). A real zip made with `ditto -c -k --keepParent` (what
+  Finder ▸ Compress makes), `imports/sp220-every-case-backup.zip`, reads through the core as the folder does (a probe on
+  `libScriviCore.a`). Linux step 3 to re-run with it; the backup folder imports through Project Folder….
+- **2026-11-17 — ✅ CLOSED** (user, 2026-11-17: *"Linux steps 2 and 3 passed, close SP-220"*). Linux steps 2 (into a project, one Ctrl+Z) and 3 (the zip) ✅ — the last of the Mac, iPad
+  and Linux passes. CI on `25fef70`: Apple ✅, ScriviCore ✅, Linux App ✅. All six ACs met. [T-0683] ✅ Verified →
+  `Tasks/Verified/Task-verified-0683.md`.

@@ -1,5 +1,11 @@
 # Active Epics
 
+*Last Updated: 2026-11-18 (**EP-054 AC8 = [SP-221] → 🟡 Active** (user, 2026-11-18: *"Q1-Q3 as recommended, activate and implement SP-221"*))*
+
+*Last Updated: 2026-11-17 (**EP-054: [T-0681] moved in; AC8 = [SP-221]** created in 🔵 Planning (user, 2026-11-17: *"yes, move T-0681 into EP-054 and plan it"*).)*
+
+*Last Updated: 2026-11-17 (**EP-054: S7 = [SP-220] ✅ CLOSED** (user, 2026-11-17: *"Linux steps 2 and 3 passed, close SP-220"*); every planned Sprint closed — AC6–AC8 to judge.)*
+
 *Last Updated: 2026-11-17 (**EP-054: S7 = [SP-220]** created in 🔵 Planning (user, 2026-11-17: *"plan S7 Scrivener import"*); Q1–Q7 to rule.)*
 
 *Last Updated: 2026-11-17 (**EP-054: S6b = [SP-219] ✅ CLOSED** (user, 2026-11-17: *"yes, close SP-219."*); S7 Scrivener import next.)*
@@ -165,7 +171,7 @@ boundary tests through `scrivi_*` with a round trip whose undo/redo replays iden
 fixtures). **S2 = [SP-206]** then puts File ▸ Export Archive… / Import Archive… on the Mac, Linux and iPad.
 
 **Sprints** (S3–S7 provisional): **S0 = [SP-193]** (✅ Closed 2026-10-25): fix before the alpha ([I-0306], [I-0313], [I-0202]) and one version everywhere ([T-0622]) · **S1 = [SP-205]** archive + worlds (core, [T-0664]) ✅ Closed 2026-11-06 · **S2 = [SP-206]** archive surfaces (Mac, Linux, iPad, [T-0665]) ✅ Closed 2026-11-09 · **S3 = [SP-207]** Markdown + HTML export ([T-0666], [I-0357]) ✅ Closed 2026-11-09; the AO3 paste → [T-0667] ·
-**S4 = [SP-208]** `.docx` export ([T-0668]) ✅ Closed 2026-11-10; the iPad pass → [T-0669] · **AC9 = [SP-212]** the byline ([T-0673]) ✅ Closed 2026-11-12 · **S5 = [SP-213]** ePub ([T-0674]) ✅ Closed 2026-11-12 · **S5b = [SP-214]** PDF ([T-0675]) ✅ Closed 2026-11-13 · **[SP-215]** File ▸ Import / Export, Export ▸ Chapter…, the iPad's timeline ([T-0676]), the formats as submenus ([T-0678]) ✅ Closed 2026-11-13 · **[SP-216]** Linux's start window gets the project window's menu bar ([T-0677]) ✅ Closed 2026-11-13 · **S6a = [SP-218]** Markdown + plain-text import ([T-0679]) ✅ Closed 2026-11-15; Into This Project on the iPad → [T-0680] · **S6b = [SP-219]** `.docx` import ([T-0682]; pugixml and the mapping ruled in [SP-218] Q6–Q7) ✅ Closed 2026-11-17 · **S7 = [SP-220]** Scrivener import ([T-0683]) 🟡 Active. Each with live passes.
+**S4 = [SP-208]** `.docx` export ([T-0668]) ✅ Closed 2026-11-10; the iPad pass → [T-0669] · **AC9 = [SP-212]** the byline ([T-0673]) ✅ Closed 2026-11-12 · **S5 = [SP-213]** ePub ([T-0674]) ✅ Closed 2026-11-12 · **S5b = [SP-214]** PDF ([T-0675]) ✅ Closed 2026-11-13 · **[SP-215]** File ▸ Import / Export, Export ▸ Chapter…, the iPad's timeline ([T-0676]), the formats as submenus ([T-0678]) ✅ Closed 2026-11-13 · **[SP-216]** Linux's start window gets the project window's menu bar ([T-0677]) ✅ Closed 2026-11-13 · **S6a = [SP-218]** Markdown + plain-text import ([T-0679]) ✅ Closed 2026-11-15; Into This Project on the iPad → [T-0680] · **S6b = [SP-219]** `.docx` import ([T-0682]; pugixml and the mapping ruled in [SP-218] Q6–Q7) ✅ Closed 2026-11-17 · **S7 = [SP-220]** Scrivener import ([T-0683]) ✅ Closed 2026-11-17 · **AC8 = [SP-221]** the Landing's Import… ([T-0681], moved in 2026-11-17) 🟡 Active. Each with live passes.
 **Depends on:** ✅ **[EP-058]** (Authorship) S1 for AC9 — met 2026-11-11 ([SP-209]) — added 2026-11-10 (user: *"it must be in place before we can finish
 the current Epic"*). ⚠️ [EP-055] needs S1–S2 on iPad to move projects onto it, unless iCloud Drive does (see
 EP-055 Q2).

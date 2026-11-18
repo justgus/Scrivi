@@ -1,5 +1,7 @@
 # Unverified Tasks
 
+*Last Updated: 2026-11-18 (**T-0681 → 🟠 Implemented - Not Verified** ([SP-221] built); the live passes are the user's.)*
+
 *Last Updated: 2026-11-17 (**T-0682 → ✅ Verified** (user, 2026-11-17: *"I ran all the Mac, iPad, and Linux Live Pass tests and they all passed."*) → `Verified/Task-verified-0682.md`.)*
 
 *Last Updated: 2026-11-15 (**T-0682 → 🟠 Implemented - Not Verified** ([SP-219] built); the live passes are the user's.)*
@@ -91,6 +93,19 @@ Tasks that are **implemented and awaiting user verification** before being archi
 ⚠️ This file must not disagree with [`Task-active.md`](Task-active.md) or
 [`Task-backlog.md`](Task-backlog.md). A Task implemented but unverified belongs **here** — not left
 in the backlog carrying a 🟠 status.
+
+---
+
+## 🟠 T-0681 — `[Apple]` iPad Landing: one Import… button
+
+**Epic:** [EP-054] (AC8; moved 2026-11-17 (user, 2026-11-17: *"yes, move T-0681 into EP-054 and plan it"*)) · **Status:** 🟠 Implemented - Not Verified · **Sprint:** [SP-221] (🟡 Active) →
+[`../Sprints/Sprint-SP-221.md`](../Sprints/Sprint-SP-221.md) · **Date Requested:** 2026-11-15 (user, [SP-218]'s iPad
+live pass: the iPad is used through its larger surfaces more than its menus; *"a nice to have"*)
+
+**What:** replace the Landing's **Import Archive…** (`LandingView.swift:38`) with **Import…**, a menu of **Manuscript…**,
+**Scrivener Project…** and **Archive…** — Timeline… left out ([SP-221] Q2); on the Mac, iPad and Linux (Q1).
+**Where:** `Scrivi/Views/LandingView.swift` (`Menu("Import…")`); `platforms/linux/qml/Landing.qml` (a `Menu` on the button),
+`ShellController::importNewManuscript` (`platforms/linux/src/ScriviWindow.hpp`).
 
 ---
 

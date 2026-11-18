@@ -1,5 +1,9 @@
 # Active Sprints
 
+*Last Updated: 2026-11-18 (**SP-221 → 🟡 ACTIVE** (user, 2026-11-18: *"Q1-Q3 as recommended, activate and implement SP-221"*))*
+
+*Last Updated: 2026-11-17 (**SP-220 → ✅ CLOSED** (user, 2026-11-17: *"Linux steps 2 and 3 passed, close SP-220"*) → `Closed/Sprint-SP-220.md`. No Sprint is active.)*
+
 *Last Updated: 2026-11-17 (**SP-220 → 🟡 ACTIVE** (user, 2026-11-17: *"activate and implement SP-220"*))*
 
 *Last Updated: 2026-11-17 (**SP-219 → ✅ CLOSED** (user, 2026-11-17: *"yes, close SP-219."*) → `Closed/Sprint-SP-219.md`. No Sprint is active.)*
@@ -142,6 +146,6 @@
 
 ---
 
-## SP-220 — `[Cross]` [EP-054] S7: Scrivener import
+## SP-221 — `[Apple]` + `[Linux]` [EP-054] AC8: the Landing's Import…
 
-🟡 **ACTIVE 2026-11-17** → [`Sprint-SP-220.md`](Sprint-SP-220.md) · carries [T-0683] · ✅ Q1–Q6, Q3a, Q7a ruled
+🟡 **ACTIVE 2026-11-18** → [`Sprint-SP-221.md`](Sprint-SP-221.md) · carries [T-0681] · ✅ Q1–Q3 ruled

@@ -289,11 +289,19 @@ Item {
                         }
                     }
                     Button {
-                        text: qsTr("Import Archive")   // [SP-206] EP-054 S2
+                        // [SP-221] File ▸ Import's new-project items; Timeline… needs an open project (Q2).
+                        id: importButton
+                        text: qsTr("Import…")
                         enabled: !window.opening
                         onClicked: {
                             window.landingError = ""
-                            shell.importArchive("")
+                            importMenu.popup(importButton, 0, importButton.height)
+                        }
+                        Menu {
+                            id: importMenu
+                            MenuItem { text: qsTr("Manuscript…"); onTriggered: shell.importNewManuscript(false) }
+                            MenuItem { text: qsTr("Scrivener Project…"); onTriggered: shell.importNewManuscript(true) }
+                            MenuItem { text: qsTr("Archive…"); onTriggered: shell.importArchive("") }   // [SP-206] EP-054 S2
                         }
                     }
                     Button {

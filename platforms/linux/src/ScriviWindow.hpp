@@ -79,6 +79,8 @@ public:
     // file; with a project open, New Project… or Into This Project (`into`'s structured paste, one undo step); then what was
     // kept only as text (Q8). A new project opens through Landing's own open flow, as an imported archive does.
     void importManuscript(EditorShell* into, bool scrivener = false);   // SP-220: a Scrivener project instead
+    // [SP-221] Landing's Import… ▸ Manuscript… / Scrivener Project…: a new project, as with none open.
+    Q_INVOKABLE void importNewManuscript(bool scrivener) { importManuscript(nullptr, scrivener); }
 
 signals:
     void newProjectRequested();

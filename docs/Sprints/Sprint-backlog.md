@@ -1,5 +1,9 @@
 # Sprint Backlog
 
+*Last Updated: 2026-11-18 (**SP-221 removed** — activated 2026-11-18.)*
+
+*Last Updated: 2026-11-17 (**SP-221 created in 🔵 Planning** — EP-054 AC8, the Landing's Import… (user, 2026-11-17: *"yes, move T-0681 into EP-054 and plan it"*); Q1–Q3 to rule.)*
+
 *Last Updated: 2026-11-17 (**SP-220 removed** — activated 2026-11-17.)*
 
 *Last Updated: 2026-11-17 (**SP-220 created in 🔵 Planning** — EP-054 S7, Scrivener import (user, 2026-11-17: *"plan S7 Scrivener import"*); Q1–Q7 to rule.)*
