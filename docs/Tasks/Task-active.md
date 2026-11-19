@@ -1,5 +1,9 @@
 # Active Tasks
 
+*Last Updated: 2026-11-19 (**T-0688 → 🟠** ([SP-225] built) → `Task-unverified.md`.)*
+
+*Last Updated: 2026-11-19 (**T-0688 → active** ([SP-225] activated, user, 2026-11-19: *"Q1-Q3 as recommended, activate and implement SP-225"*).)*
+
 *Last Updated: 2026-11-19 (**T-0687 → 🟠** → `Task-unverified.md` ([SP-224] built; the live passes are the user's).)*
 
 *Last Updated: 2026-11-19 (**T-0687 → active** with [SP-224]'s activation (EP-055 S4).)*

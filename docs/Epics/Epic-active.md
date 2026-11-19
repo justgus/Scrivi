@@ -1,5 +1,11 @@
 # Active Epics
 
+*Last Updated: 2026-11-19 (**EP-055: S5 = [SP-225] ✅ CLOSED** (user, 2026-11-19: *"all steps pass, close SP-225.  In addition the hover worked for both the pointer and the pencil."*); AC6 continues in S6.)*
+
+*Last Updated: 2026-11-19 (**EP-055: S5 = [SP-225] → 🟡 Active** (user, 2026-11-19: *"Q1-Q3 as recommended, activate and implement SP-225"*); built.)*
+
+*Last Updated: 2026-11-19 (**EP-055: S5 = [SP-225]** created in 🔵 Planning (user, 2026-11-19: *"plan SP-225"*); Q1–Q3 to rule.)*
+
 *Last Updated: 2026-11-19 (**EP-055: S4 = [SP-224] ✅ CLOSED** (user, 2026-11-19: *"all steps pass, close SP-224"*); **AC7 ✅ met**.)*
 
 *Last Updated: 2026-11-19 (**EP-055: S4 = [SP-224] → 🟡 Active** (user, 2026-11-19: *"Q1-Q3 as recommended, … activate and implement SP-224"*); built.)*
@@ -287,7 +293,7 @@ Q10). A tabbed main window holding several projects may be considered later, not
 
 **Provisional Sprints:** **S1 = [SP-198]** the audit, the shared presenter, the `UITextView` host and the iOS test target
 (AC1–AC4) · S2 structural edits, undo/redo, Find (AC5) · **S4 = [SP-224]** ✅ Closed 2026-11-19 AC7: bookmarks for projects and worlds on iOS, restored at relaunch
-(`ProjectBookmarkStore.swift:70` / `WorldBookmarkStore.swift:98` return nothing on iOS today) · **S5** AC6: world Create, Add
+(`ProjectBookmarkStore.swift:70` / `WorldBookmarkStore.swift:98` return nothing on iOS today) · **S5 = [SP-225]** ✅ Closed 2026-11-19 AC6: world Create, Add
 Existing and Relink, the timeline's touch gestures and pointer / Pencil hover · **S6** AC6: [T-0657] and what S5's iPad pass finds · **S7** AC8: compact-width layout (the worlds
 sheet) and the iPhone and Duo passes · **S8** AC9: TestFlight (iOS and Mac). Each with live passes; AC10 completes on the real Duo.
 **Depends on:** [EP-054] S1–S2 (the archive) for moving projects onto an iPad, unless Q2's iCloud Drive route is enough

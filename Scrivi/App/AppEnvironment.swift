@@ -531,23 +531,20 @@ import UniformTypeIdentifiers
     // package. Listing worlds is itself safe without access — the bindings live
     // inside the .scrivi package — so this can enumerate before activating.
     private func activateWorlds(for session: ProjectSession) {
-        #if os(macOS)
+        // [SP-225] On iOS too: since [SP-224] the store resolves there, and a world outside the project's folder is unreadable without it.
         guard let root = session.projectRootPath else { return }
         guard let worlds = try? session.engine.listWorlds(projectRootPath: root).worlds else { return }
         WorldBookmarkStore.activateAll(worldIDs: worlds.map(\.worldID))
-        #endif
     }
 
     /// `activateWorlds`, its core read off the main actor ([I-0334]). `WorldBookmarkStore` is lock-guarded.
     private static func activateWorldsOffMain(for session: ProjectSession) async {
-        #if os(macOS)
         guard let root = session.projectRootPath else { return }
         let engine = session.engine
         await Task.detached(priority: .userInitiated) {
             guard let worlds = try? engine.listWorlds(projectRootPath: root).worlds else { return }
             WorldBookmarkStore.activateAll(worldIDs: worlds.map(\.worldID))
         }.value
-        #endif
     }
 
     /// Re-acquires world access for **every open project**, then refreshes their

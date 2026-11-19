@@ -1,5 +1,9 @@
 # Sprint Backlog
 
+*Last Updated: 2026-11-19 (**SP-225 removed** — activated 2026-11-19.)*
+
+*Last Updated: 2026-11-19 (**SP-225 created in 🔵 Planning** — EP-055 S5 (user, 2026-11-19: *"plan SP-225"*); Q1–Q3 to rule.)*
+
 *Last Updated: 2026-11-19 (**SP-224 removed** — activated 2026-11-19.)*
 
 *Last Updated: 2026-11-19 (**SP-224 created in 🔵 Planning** — EP-055 S4 (user, 2026-11-19: *"go, plan SP-224"*); Q1–Q3 to rule.)*

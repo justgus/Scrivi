@@ -746,4 +746,43 @@ struct IOSBookmarkTests {
         WorldBookmarkStore.forget(worldID: id)
         #expect(!WorldBookmarkStore.hasBookmark(worldID: id))
     }
+    @Test("[SP-225] a world created inside a picked folder binds, records its bookmark, and relinks")
+    @MainActor func worldCreatedInFolder() throws {
+        let folder = try tempFolder()
+        let support = folder.appendingPathComponent("support", isDirectory: true)
+        let root = folder.appendingPathComponent("p.scrivi", isDirectory: true)
+        try FileManager.default.createDirectory(at: support, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let env = AppEnvironment()
+        let identity = try env.engine.ensureLocalIdentity(displayName: "iOS Test", appSupportRoot: support.path)
+        let ref = AuthorshipRef(identityID: identity.identityID, personaID: identity.defaultPersonaID,
+                                displayName: identity.displayName)
+        let rootPath = root.path(percentEncoded: false)
+        _ = try env.engine.createProject(projectRootPath: rootPath, appSupportRoot: support.path,
+                                         title: "iOS Worlds", slug: "ios-worlds", authorshipRef: ref)
+
+        // What `WorldsView.handlePicked` does for Create: the package inside the picked folder.
+        let package = folder.appendingPathComponent("Eskandar.scrivworld", isDirectory: true)
+        let created = try env.engine.createWorld(projectRootPath: rootPath, packagePath: package.path(percentEncoded: false),
+                                                 displayName: "Eskandar")
+        defer { WorldBookmarkStore.forget(worldID: created.worldID) }
+        WorldBookmarkStore.record(worldID: created.worldID, url: package)
+        #expect(WorldBookmarkStore.hasBookmark(worldID: created.worldID))
+        #expect(FileManager.default.fileExists(atPath: package.appendingPathComponent("world.json").path(percentEncoded: false)))
+        let listed = try env.engine.listWorlds(projectRootPath: rootPath).worlds
+        #expect(listed.map(\.worldID) == [created.worldID])
+        #expect(listed.first?.status == "available")
+
+        // Relink: the package moved; the same worldID is accepted at the new path and its bookmark replaced.
+        let moved = folder.appendingPathComponent("moved/Eskandar.scrivworld", isDirectory: true)
+        try FileManager.default.createDirectory(at: moved.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try FileManager.default.moveItem(at: package, to: moved)
+        _ = try env.engine.relinkWorld(projectRootPath: rootPath, worldID: created.worldID,
+                                       newPackagePath: moved.path(percentEncoded: false))
+        WorldBookmarkStore.forget(worldID: created.worldID)
+        WorldBookmarkStore.record(worldID: created.worldID, url: moved)
+        #expect(WorldBookmarkStore.hasBookmark(worldID: created.worldID))
+        #expect(try env.engine.listWorlds(projectRootPath: rootPath).worlds.first?.status == "available")
+    }
 }

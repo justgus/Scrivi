@@ -1,5 +1,11 @@
 # Active Sprints
 
+*Last Updated: 2026-11-19 (**SP-225 → ✅ CLOSED** (user, 2026-11-19: *"all steps pass, close SP-225.  In addition the hover worked for both the pointer and the pencil."*) → `Closed/Sprint-SP-225.md`; T-0688 ✅ Verified. No Sprint is active.)*
+
+*Last Updated: 2026-11-19 (**SP-225 built** — AC1–AC5 built, AC6 tests and builds green (CI on the push); T-0688 → 🟠. ⏳ AC7 live passes.)*
+
+*Last Updated: 2026-11-19 (**SP-225 → 🟡 ACTIVE** (user, 2026-11-19: *"Q1-Q3 as recommended, activate and implement SP-225"*) → [`Sprint-SP-225.md`](Sprint-SP-225.md))*
+
 *Last Updated: 2026-11-19 (**SP-224 → ✅ CLOSED** (user, 2026-11-19: *"all steps pass, close SP-224"*) → `Closed/Sprint-SP-224.md`; T-0687, I-0364, I-0365 ✅ Verified. No Sprint is active.)*
 
 *Last Updated: 2026-11-19 (**SP-224 built** — AC1–AC3 met; AC4 awaits CI; T-0687 → 🟠.)*

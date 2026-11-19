@@ -1,5 +1,9 @@
 # Task Backlog
 
+*Last Updated: 2026-11-19 (**T-0688 → active** with [SP-225]'s activation → `Task-active.md`; built the same day → `Task-unverified.md`.)*
+
+*Last Updated: 2026-11-19 (**T-0688 filed** — EP-055 S5, carried by [SP-225] (🔵 Planning) (user, 2026-11-19: *"plan SP-225"*).)*
+
 *Last Updated: 2026-11-19 (**T-0687 → active** with [SP-224]'s activation → `Task-active.md`.)*
 
 *Last Updated: 2026-11-19 (**T-0687 filed** — EP-055 S4, carried by [SP-224] (🔵 Planning) (user, 2026-11-19: *"go, plan SP-224"*).)*

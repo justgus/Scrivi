@@ -1083,7 +1083,7 @@ struct TimelineStripView: View {
                                 radius: aggregateDotRadius,
                                 selectedSceneID: loader?.viewportSceneID,
                                 isPopoverOpen: openAggregateID == cluster.centerItemID,
-                                onHover: {
+                                onOpen: {
                                     if ScriviDiag.timingEnabled {
                                         NSLog("[SCRIVI-TL] hover aggregate id=%@ x=%.1f members=%d open=%@",
                                               cluster.centerItemID as NSString,
@@ -1117,6 +1117,16 @@ struct TimelineStripView: View {
                                     }
                                 },
                                 popoverContent: {
+                                    #if os(iOS)
+                                    AggregateMembersList(rows: cluster.members.map { item in
+                                        guard case .scene(let dot) = item else {
+                                            return .init(id: item.id, label: memberLabel(item))
+                                        }
+                                        return .init(id: item.id, label: memberLabel(item),
+                                                     isSelected: dot.sceneID == loader?.viewportSceneID,
+                                                     onSelect: { selectMember(item); openAggregateID = nil })
+                                    })
+                                    #else
                                     AggregateMembersPopover(
                                         members: cluster.members,
                                         selectedSceneID: loader?.viewportSceneID,
@@ -1135,6 +1145,7 @@ struct TimelineStripView: View {
                                         },
                                         hoveredTitle: hoveredMemberTitle
                                     )
+                                    #endif
                                 },
                                 onPopoverDismiss: {
                                     openAggregateID = nil
@@ -1222,7 +1233,7 @@ struct TimelineStripView: View {
                                     // I-0210 — same single-slot handoff as the main row above:
                                     // dismiss the open popover before presenting the next, or
                                     // SwiftUI swallows the second presentation.
-                                    onHover: {
+                                    onOpen: {
                                         if openImportedAggregateID != nil,
                                            openImportedAggregateID != aggKey {
                                             openImportedAggregateID = nil
@@ -2341,7 +2352,7 @@ private struct AggregateDotView<Popover: View>: View {
     let radius: CGFloat
     let selectedSceneID: String?
     let isPopoverOpen: Bool
-    let onHover: () -> Void
+    let onOpen: () -> Void
     @ViewBuilder let popoverContent: () -> Popover
     let onPopoverDismiss: () -> Void
 
@@ -2356,7 +2367,13 @@ private struct AggregateDotView<Popover: View>: View {
     /// `TimelineStripView` derives its slice pitch from this; if the two ever drift,
     /// adjacent aggregates overlap one another's hit areas and popovers silently stop
     /// opening for some dots (the alternating failure the user reported 2026-09-14).
-    static func hitFrame(radius: CGFloat) -> CGFloat { radius * 2 + 12 + 8 }
+    static func hitFrame(radius: CGFloat) -> CGFloat {
+        #if os(iOS)
+        max(kMinTouchTarget, radius * 2 + 12 + 8)   // [SP-225]
+        #else
+        radius * 2 + 12 + 8
+        #endif
+    }
 
     private var selectedIndex: Int? {
         guard let sid = selectedSceneID else { return nil }
@@ -2386,13 +2403,14 @@ private struct AggregateDotView<Popover: View>: View {
         .contentShape(Circle())
         .onHover { hovered in
             isHovered = hovered
-            if hovered { onHover() }
+            if hovered { onOpen() }
         }
+        .onTapGesture { onOpen() }   // [SP-225] Q2: touch never hovers; a tap opens it everywhere
         .popover(isPresented: Binding(get: { isPopoverOpen },
                                       set: { if !$0 { onPopoverDismiss() } })) {
             popoverContent()
         }
-        .help("\(count) scenes here — hover to open")
+        .help("\(count) scenes here — hover or click to open")
     }
 
     @ViewBuilder
@@ -2453,6 +2471,36 @@ private struct AggregateDotView<Popover: View>: View {
 // stored properties.
 private let kAggregatePopoverMaxRingMembers = 12
 private let kAggregatePopoverMaxGridHeight: CGFloat = 260
+/// [SP-225] Apple's minimum touch target. A scene dot's own hit circle is 19pt, which a finger mostly misses.
+private let kMinTouchTarget: CGFloat = 44
+
+#if os(iOS)
+/// [SP-225] An aggregate's members on iOS: a finger cannot hit the ring's 7pt dots, and touch has no hover to name them, so
+/// they are listed by name (the user: *"tap an aggregate dot to show and select the listed scenes"*). A row without an action
+/// (a historical or imported event) is read-only, as on the Mac.
+private struct AggregateMembersList: View {
+    struct Row: Identifiable {
+        let id: String
+        let label: String
+        var isSelected = false
+        var onSelect: (() -> Void)? = nil
+    }
+    let rows: [Row]
+
+    var body: some View {
+        List(rows) { row in
+            if let onSelect = row.onSelect {
+                Button(row.label, action: onSelect)
+                    .fontWeight(row.isSelected ? .semibold : .regular)
+            } else {
+                Text(row.label).foregroundStyle(.secondary)
+            }
+        }
+        .listStyle(.plain)
+        .frame(width: 300, height: min(CGFloat(rows.count) * kMinTouchTarget + 16, 360))
+    }
+}
+#endif
 
 private struct AggregateMembersPopover<Member: View>: View {
 
@@ -2624,7 +2672,7 @@ private struct ImportedAggregateDotView: View {
     let radius: CGFloat
     let dotRadius: CGFloat
     let isPopoverOpen: Bool
-    let onHover: () -> Void
+    let onOpen: () -> Void
     let onPopoverDismiss: () -> Void
 
     @State private var isHovered = false
@@ -2638,7 +2686,13 @@ private struct ImportedAggregateDotView: View {
     /// `buildImportedRowClusters` must space aggregates by at least this, or adjacent
     /// dots occlude one another's hit areas and popovers stop opening for some of them.
     /// Mirrors `AggregateDotView.hitFrame` but with this view's OWN ring (+8, not +12).
-    static func hitFrame(radius: CGFloat) -> CGFloat { radius * 2 + 8 + 8 }
+    static func hitFrame(radius: CGFloat) -> CGFloat {
+        #if os(iOS)
+        max(kMinTouchTarget, radius * 2 + 8 + 8)   // [SP-225]
+        #else
+        radius * 2 + 8 + 8
+        #endif
+    }
 
     var body: some View {
         let ringDiameter = radius * 2 + 8
@@ -2659,13 +2713,14 @@ private struct ImportedAggregateDotView: View {
         .contentShape(Circle())
         .onHover { hovered in
             isHovered = hovered
-            if hovered { onHover() }
+            if hovered { onOpen() }
         }
+        .onTapGesture { onOpen() }   // [SP-225] Q2: touch never hovers; a tap opens it everywhere
         .popover(isPresented: Binding(get: { isPopoverOpen },
                                       set: { if !$0 { onPopoverDismiss() } })) {
             popover
         }
-        .help("\(count) events here — hover to open")
+        .help("\(count) events here — hover or click to open")
     }
 
     // I-0208 defect (2), imported row — THE RING MUST BE BOUNDED.
@@ -2674,7 +2729,10 @@ private struct ImportedAggregateDotView: View {
     // produced a 6,600pt panel that exceeded the screen and could only be dismissed by
     // resigning app focus. An imported timeline can carry just as many co-located events,
     // so the same bound applies here.
-    private var popover: some View {
+    @ViewBuilder private var popover: some View {
+        #if os(iOS)
+        AggregateMembersList(rows: members.map { .init(id: $0.id, label: label($0)) })
+        #else
         VStack(spacing: 8) {
             if count <= kAggregatePopoverMaxRingMembers {
                 AnyView(ringPopover)
@@ -2684,6 +2742,7 @@ private struct ImportedAggregateDotView: View {
             captionLine
         }
         .padding(12)
+        #endif
     }
 
     /// I-0212 — always-present caption. Reserving the row stops the popover resizing
@@ -2845,7 +2904,10 @@ private struct SceneDotView: View {
             }
         }
         .frame(width: radius * 2 + 12, height: radius * 2 + 12)
-        .contentShape(Circle().size(CGSize(width: radius * 2 + 12, height: radius * 2 + 12)))
+        #if os(iOS)
+        .frame(width: kMinTouchTarget, height: kMinTouchTarget)   // [SP-225] a finger missed the 19pt circle
+        #endif
+        .contentShape(Circle())
         // iOS 18.1+ honours the arrow edge: `.top` forced the picker BELOW the dot, into the strip at the bottom of the
         // screen, clipping it to one row of buttons (SP-199 live pass). `nil` lets iOS open it where it fits.
         .popover(isPresented: $showPicker, arrowEdge: Self.pickerArrowEdge) {

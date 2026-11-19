@@ -40,6 +40,12 @@ struct WorldsView: View {
     @State private var pendingRemoval: WorldEntry?
     /// EP-058 S2 (SP-210): the world whose authors are being edited.
     @State private var authorsFor: WorldEntry?
+    #if !os(macOS)
+    /// [SP-225] What the open Files picker is for. Kept apart from `showPicker`, which the importer clears before it reports.
+    private enum WorldPick { case createIn(name: String), addExisting, relink(WorldEntry) }
+    @State private var pick: WorldPick?
+    @State private var showPicker = false
+    #endif
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -120,6 +126,14 @@ struct WorldsView: View {
         .padding(16)
         .frame(width: 460)
         .task { load() }
+        #if !os(macOS)
+        // [SP-225] Create picks a folder (Q1, as New Project does); Add Existing and Relink pick the package.
+        .fileImporter(isPresented: $showPicker,
+                      allowedContentTypes: { if case .createIn = pick { return [.folder] } else { return [scriviWorldType] } }(),
+                      allowsMultipleSelection: false) { result in
+            handlePicked(result)
+        }
+        #endif
         // §4.4: naming the consequence concretely is the whole job here. A generic
         // "Are you sure?" leaves the writer to guess whether the package dies too.
         .sheet(item: $authorsFor) { world in
@@ -243,15 +257,7 @@ struct WorldsView: View {
         let name = newWorldName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty else { return }
 
-        // ⚠️ APPKIT ONLY. `NSSavePanel`/`NSOpenPanel` do not exist on iOS or
-        // visionOS, and this file had NO platform conditionals at all — it was
-        // written macOS-first, so the iOS/visionOS targets could not compile it.
-        //
-        // ⚠️ The non-macOS branch below REFUSES HONESTLY rather than doing
-        // nothing: a button that silently no-ops is worse than one that says it
-        // is not built yet. The iOS surface needs `fileImporter`/`fileExporter`
-        // (SwiftUI, sandbox-friendly), which is a real piece of work, not a
-        // shim — see the note in each branch.
+        // `NSSavePanel` is AppKit; iOS picks a folder in Files and the world is created inside it ([SP-225] Q1).
         #if os(macOS)
         // The writer chooses where the package lives — a world is a real, movable,
         // shareable package on disk, not hidden project-internal state (Doc 3 §4.1).
@@ -264,7 +270,14 @@ struct WorldsView: View {
         panel.allowedContentTypes = [scriviWorldType]
         panel.canCreateDirectories = true
         guard panel.runModal() == .OK, let url = panel.url else { return }
+        createWorld(at: url, name: name)
+        #else
+        pick = .createIn(name: name)
+        showPicker = true
+        #endif
+    }
 
+    private func createWorld(at url: URL, name: String) {
         isCreating = true
         defer { isCreating = false }
         do {
@@ -288,12 +301,6 @@ struct WorldsView: View {
         } catch {
             actionError = error.localizedDescription
         }
-        #else
-        // ⚠️ NOT IMPLEMENTED, and said so. Creating a world needs a
-        // writer-chosen location; on iOS that is `fileExporter` plus a
-        // security-scoped grant, not an NSSavePanel.
-        actionError = "Creating a world is not available on this platform yet."
-        #endif
     }
 
     /// Drops this project's reference. The package on disk is untouched, which is
@@ -343,7 +350,14 @@ struct WorldsView: View {
         panel.treatsFilePackagesAsDirectories = false
         panel.allowsMultipleSelection = false
         guard panel.runModal() == .OK, let url = panel.url else { return }
+        relinkWorld(world, to: url)
+        #else
+        pick = .relink(world)
+        showPicker = true
+        #endif
+    }
 
+    private func relinkWorld(_ world: WorldEntry, to url: URL) {
         do {
             _ = try engine.relinkWorld(
                 projectRootPath: projectRootPath,
@@ -351,7 +365,9 @@ struct WorldsView: View {
                 newPackagePath: url.path(percentEncoded: false)
             )
             // The relinked package is a freshly-picked path, so it carries a NEW
-            // grant — record it or the repair would last only this session.
+            // grant — record it or the repair would last only this session. The old
+            // held scope goes first, or `activate` keeps reporting the old path as held.
+            WorldBookmarkStore.forget(worldID: world.worldID)
             WorldBookmarkStore.record(worldID: world.worldID, url: url)
             actionError = nil
             // ⚠️ I-0130: refresh the WHOLE app, not just this sheet. `load()` only
@@ -362,11 +378,6 @@ struct WorldsView: View {
         } catch {
             actionError = error.localizedDescription
         }
-        #else
-        // ⚠️ NOT IMPLEMENTED, and said so rather than no-opping.
-        // Needs `fileImporter` + a security-scoped grant on iOS.
-        actionError = "Relinking a world is not available on this platform yet."
-        #endif
     }
 
     private func bindExistingWorld() {
@@ -382,7 +393,14 @@ struct WorldsView: View {
         panel.treatsFilePackagesAsDirectories = false
         panel.allowsMultipleSelection = false
         guard panel.runModal() == .OK, let url = panel.url else { return }
+        bindExistingWorld(at: url)
+        #else
+        pick = .addExisting
+        showPicker = true
+        #endif
+    }
 
+    private func bindExistingWorld(at url: URL) {
         do {
             // ScriviCore verifies the package's worldID; a same-named package with a
             // different identity is refused rather than substituted (AC8).
@@ -402,10 +420,30 @@ struct WorldsView: View {
         } catch {
             actionError = error.localizedDescription
         }
-        #else
-        // ⚠️ NOT IMPLEMENTED, and said so rather than no-opping.
-        // Needs `fileImporter` + a security-scoped grant on iOS.
-        actionError = "Adding an existing world is not available on this platform yet."
-        #endif
     }
+
+    #if !os(macOS)
+    /// [SP-225] The picked URL is readable only inside its scope. Each action records the world's bookmark, and
+    /// `onWorldsChanged` activates it, before the picker's own scope is released here.
+    private func handlePicked(_ result: Result<[URL], Error>) {
+        guard let action = pick else { return }
+        pick = nil
+        switch result {
+        case .failure(let error):
+            actionError = error.localizedDescription
+        case .success(let urls):
+            guard let picked = urls.first else { return }
+            let scoped = picked.startAccessingSecurityScopedResource()
+            defer { if scoped { picked.stopAccessingSecurityScopedResource() } }
+            switch action {
+            case .createIn(let name):
+                createWorld(at: picked.appendingPathComponent("\(name).scrivworld", isDirectory: true), name: name)
+            case .addExisting:
+                bindExistingWorld(at: picked)
+            case .relink(let world):
+                relinkWorld(world, to: picked)
+            }
+        }
+    }
+    #endif
 }
