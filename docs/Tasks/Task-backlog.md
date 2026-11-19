@@ -1,5 +1,9 @@
 # Task Backlog
 
+*Last Updated: 2026-11-18 (**T-0686 → active** with [SP-223]'s activation → `Task-active.md`.)*
+
+*Last Updated: 2026-11-18 (**T-0686 filed** — EP-055 S3b, carried by [SP-223] (🔵 Planning) (user, 2026-11-18: *"plan S3b for EP-055"*).)*
+
 *Last Updated: 2026-11-18 (**T-0685, T-0680 → active** with [SP-222]'s activation → `Task-active.md`.)*
 
 *Last Updated: 2026-11-18 (**T-0685 filed** — EP-055 S3a, carried by [SP-222] (🔵 Planning) (user, 2026-11-18: *"…proceed with EP-055."*).)*

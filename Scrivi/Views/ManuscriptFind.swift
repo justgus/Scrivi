@@ -189,4 +189,127 @@ final class ManuscriptFinderClient: NSObject, NSTextFinderClient, @unchecked Sen
 
     func didReplaceCharacters() { batch = nil }
 }
+#else
+import UIKit
+
+// EP-055 S3b ([SP-223], T-0686) — FIND AND REPLACE ON iOS, OVER WHAT THE WRITER SEES.
+//
+// ✅ Q1 (ruled 2026-11-18): the system's find bar (`UIFindInteraction`) over the PRESENTED text, as the Mac's [SP-164] Q1 —
+// escapes, emphasis markers and heading prefixes are not there to match, chapter titles and dividers are skipped (the chunks
+// of the shared `PresentedText`). A match is reported as the text view's own range of STORAGE, so the view's own highlighting,
+// scrolling and ordering do the rest. ⛔ Not UITextView's built-in find: it searches storage, markers and all.
+
+/// The searchable object behind the manuscript's find bar.
+@MainActor
+final class ManuscriptTextSearcher: NSObject, @preconcurrency UITextSearching {
+    typealias DocumentIdentifier = AnyHashable?
+    private weak var textView: ManuscriptUITextView?
+    /// Replace All, as ONE undoable step — the shared `ManuscriptStructure.replaceAll` ([SP-164] Q2, [I-0333]). Storage
+    /// ranges and UNescaped text. nil (a view with no project): applied one by one through the typing path.
+    var replaceAllHandler: (([(NSRange, String)]) -> Bool)?
+
+    init(textView: ManuscriptUITextView) { self.textView = textView }
+
+    var selectedTextRange: UITextRange? { textView?.selectedTextRange }
+
+    func compare(_ foundRange: UITextRange, toRange: UITextRange, document: AnyHashable??) -> ComparisonResult {
+        textView?.compare(foundRange.start, to: toRange.start) ?? .orderedSame
+    }
+
+    func performTextSearch(queryString: String, options: UITextSearchOptions, resultAggregator: UITextSearchAggregator<AnyHashable?>) {
+        guard let tv = textView else { return resultAggregator.finishedSearching() }
+        let text = tv.presentedMap.snapshot()
+        let compare = options.stringCompareOptions, method = options.wordMatchMethod
+        // The search runs off the main actor (main is for UI only); the results are reported back on it.
+        Task { @MainActor [weak tv] in
+            let found = await Task.detached(priority: .userInitiated) {
+                Self.matches(of: queryString, in: text, compare: compare, method: method)
+            }.value
+            if let tv {
+                for r in found {
+                    if let range = tv.textRange(storage: r) { resultAggregator.foundRange(range, searchString: queryString, document: nil) }
+                }
+            }
+            resultAggregator.finishedSearching()
+        }
+    }
+
+    /// Every PRESENTED match of `query`, as storage ranges — never across a scene break or inside a chapter title.
+    nonisolated static func matches(of query: String, in text: PresentedText, compare: String.CompareOptions,
+                                    method: UITextSearchOptions.WordMatchMethod) -> [NSRange] {
+        guard !query.isEmpty else { return [] }
+        var out: [NSRange] = []
+        for c in text.chunks {
+            let chunk = text.substring(c) as NSString
+            var from = 0
+            while from < chunk.length {
+                let m = chunk.range(of: query, options: compare, range: NSRange(location: from, length: chunk.length - from))
+                guard m.location != NSNotFound, m.length > 0 else { break }
+                from = m.location + m.length
+                if method != .contains {
+                    func isWord(_ i: Int) -> Bool {
+                        guard i >= 0, i < chunk.length else { return false }
+                        return CharacterSet.alphanumerics.contains(UnicodeScalar(chunk.character(at: i)) ?? " ")
+                    }
+                    if isWord(m.location - 1) { continue }
+                    if method == .fullWord, isWord(NSMaxRange(m)) { continue }
+                }
+                out.append(text.storageRange(NSRange(location: c.location + m.location, length: m.length)))
+            }
+        }
+        return out
+    }
+
+    func decorate(foundTextRange: UITextRange, document: AnyHashable??, usingStyle style: UITextSearchFoundTextStyle) {
+        textView?.decorate(foundTextRange: foundTextRange, document: document, usingStyle: style)
+    }
+
+    func clearAllDecoratedFoundText() { textView?.clearAllDecoratedFoundText() }
+
+    func scrollRangeToVisible(_ range: UITextRange, inDocument document: AnyHashable??) {
+        textView?.scrollRangeToVisible(range, inDocument: document)
+    }
+
+    // MARK: Replace
+
+    var supportsTextReplacement: Bool { !(textView?.inputHeld ?? true) }
+
+    func shouldReplace(foundTextRange: UITextRange, document: AnyHashable??, withText: String) -> Bool {
+        supportsTextReplacement
+    }
+
+    /// One replacement: the typing path, as the Mac's `replaceFound` — escaped, through the rules, one history event.
+    func replace(foundTextRange: UITextRange, document: AnyHashable??, withText replacementText: String) {
+        guard let tv = textView, let r = tv.storageRange(foundTextRange) else { return }
+        tv.selectedRange = r
+        tv.insertText(replacementText)
+    }
+
+    func replaceAll(queryString: String, options: UITextSearchOptions, withText replacementText: String) {
+        guard let tv = textView else { return }
+        let edits = Self.matches(of: queryString, in: tv.presentedMap.snapshot(), compare: options.stringCompareOptions,
+                                 method: options.wordMatchMethod)
+            .sorted { $0.location > $1.location }
+            .map { ($0, replacementText) }
+        guard !edits.isEmpty else { return }
+        if replaceAllHandler?(edits) == true { return }
+        for (r, t) in edits {
+            tv.selectedRange = r
+            tv.insertText(t)
+        }
+    }
+}
+
+extension ManuscriptUITextView {
+    /// Storage offsets ⇄ the view's own text ranges.
+    func textRange(storage r: NSRange) -> UITextRange? {
+        guard let a = position(from: beginningOfDocument, offset: r.location),
+              let b = position(from: a, offset: r.length) else { return nil }
+        return textRange(from: a, to: b)
+    }
+    func storageRange(_ range: UITextRange) -> NSRange? {
+        let a = offset(from: beginningOfDocument, to: range.start), b = offset(from: beginningOfDocument, to: range.end)
+        return a >= 0 && b >= a ? NSRange(location: a, length: b - a) : nil
+    }
+}
 #endif

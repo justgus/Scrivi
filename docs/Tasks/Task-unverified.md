@@ -1,5 +1,9 @@
 # Unverified Tasks
 
+*Last Updated: 2026-11-18 (**T-0686 → 🟠 Implemented - Not Verified** ([SP-223] built); the live passes are the user's.)*
+
+*Last Updated: 2026-11-18 (**T-0685, T-0680 → ✅ Verified** (user, 2026-11-18: *"iPad, and Mac live passes all passed.  On the iPhone the software keyboard does not have the shortcuts, but I was able to verify all the functionality using the context menu for cut copy paste, new Scene, and new Chapter and three fingered swipe for undo/redo/branch selection.  close SP-222"*) → `Verified/Task-verified-0685.md`, `Task-verified-0680.md`.)*
+
 *Last Updated: 2026-11-18 (**T-0685, T-0680 → 🟠 Implemented - Not Verified** ([SP-222] built); the live passes are the user's.)*
 
 *Last Updated: 2026-11-18 (**T-0681 → ✅ Verified** (user, 2026-11-18: *"Mac, iPad and Linux live passes all passed, The Import... button on the mac looks the same as the other buttons.  close SP-221"*) → `Verified/Task-verified-0681.md`.)*
@@ -100,27 +104,17 @@ in the backlog carrying a 🟠 status.
 
 ---
 
-## 🟠 T-0685 — `[Apple]` EP-055 S3a: undo/redo, structural edits and cross-scene cut/copy/paste on iOS
+## 🟠 T-0686 — `[Apple]` EP-055 S3b: Find and Replace, Go To, branch marks, copy buffers and Format on iOS
 
-**Epic:** [EP-055] (AC5, first half) · **Status:** 🟠 Implemented - Not Verified · **Sprint:** [SP-222] (🟡 Active) →
-[`../Sprints/Sprint-SP-222.md`](../Sprints/Sprint-SP-222.md) · **Date Requested:** 2026-11-18 (user: *"…proceed with EP-055."*)
+**Epic:** [EP-055] (AC5, second half) · **Status:** 🟠 Implemented - Not Verified · **Sprint:** [SP-223] (🟡 Active) →
+[`../Sprints/Sprint-SP-223.md`](../Sprints/Sprint-SP-223.md) · **Date Requested:** 2026-11-18 (user: *"plan S3b for EP-055"*)
 
-**What:** on iOS, undo and redo through Scrivi's history; New Scene / Chapter, Split and Merge as one range call and one undo step;
-cut, copy and paste across scenes — by moving the Mac `Coordinator`'s undo apply path, `runStructuralEdit` and the cross-scene
-clipboard into shared code that both hosts call. Rulings and ACs: the Sprint.
+**What:** on iOS, Find and Replace over the presented text (`UIFindInteraction`), Go To on the iPad menu bar, the branch-point
+marks, the nine copy buffers and the Format commands — moving the Mac host's `applyFormat`, buffer operations and Replace All,
+and `ManuscriptPresentedMap`'s view-free part, into shared code that both hosts call. Rulings and ACs: the Sprint.
 
----
-
-## 🟠 T-0680 — `[Apple]` EP-054: Import Manuscript into the open project on the iPad
-
-**Epic:** [EP-054] (S6a, [SP-218] Q2) · **Status:** 🟠 Implemented - Not Verified · **Sprint:** [SP-222] (🟡 Active, Q5) → [`../Sprints/Sprint-SP-222.md`](../Sprints/Sprint-SP-222.md) · **Date Requested:** 2026-11-15 (from
-[SP-218]'s iPad live pass; user: *"option 1"*)
-
-**What:** SP-218 Q2 (c) ruled New Project / Into This Project on every platform; the iPad got New Project only, because its editor
-has no structured paste or structural undo (`ManuscriptUITextView.swift:12`, EP-055 S2/S3). When it has them: with a project open,
-the iPad asks New Project / Into This Project as the Mac does (`ProjectArchiveFlow.swift`, `importManuscript(_:into:)`), and Into
-This Project pastes the Range at the caret as one undo step. Until then the iPad says why the project closes
-(`presentImportManuscript`, SP-218).
+**Where:** `ManuscriptStructure.swift` (`replaceAll`, `copyIntoBuffer` / `cutIntoBuffer` / `pasteFromBuffer`), `ManuscriptCommands.swift` (`formatStep`),
+`ManuscriptFind.swift` (`ManuscriptTextSearcher`), `ManuscriptPresentedMap.swift`, `ManuscriptUITextView.swift`, `ScriviApp.swift` (iPad menus).
 
 ---
 

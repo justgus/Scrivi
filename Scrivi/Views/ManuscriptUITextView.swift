@@ -11,7 +11,8 @@ import UIKit
 // ⛔ Nothing device- or keyboard-specific ([SP-198] R3): the system's own keyboard handling and layout.
 // ✅ EP-055 S3a (SP-222): undo/redo, structural edits and the cross-scene clipboard are `ManuscriptStructure`, shared with the
 // Mac; this host gives it the view (`ManuscriptStructureHost`, below).
-// ⚠️ Not here yet (EP-055 S3b): buffers, Find, Format, the branch-point marks.
+// ✅ EP-055 S3b (SP-223): Find over the presented text, the copy buffers, Format and the branch-point marks — the decisions
+// shared with the Mac (`ManuscriptStructure`, `formatStep`, `PresentedText`), this host only applies them.
 
 struct ManuscriptTextView: UIViewRepresentable {
 
@@ -63,6 +64,12 @@ struct ManuscriptTextView: UIViewRepresentable {
         session.mergeSceneAction    = { [weak c] in c?.structure.handleMergeScene() }
         session.mergeChapterAction  = { [weak c] in c?.structure.handleMergeChapter() }
         session.importRangeAction   = { [weak c] range in _ = c?.structure.pasteStructuredRange(range) }
+        // ✅ EP-055 S3b: Format, the copy buffers and Replace All — the Mac's, shared.
+        session.formatAction = { [weak textView] format in textView?.applyFormat(format) }
+        session.bufferService?.loadSelectionHandler = { [weak c] id in c?.structure.copyIntoBuffer(id) }
+        session.bufferService?.cutIntoBufferHandler = { [weak c] id in c?.structure.cutIntoBuffer(id) }
+        session.bufferService?.pasteFromBufferHandler = { [weak c] id in c?.structure.pasteFromBuffer(id) }
+        textView.searcher.replaceAllHandler = { [weak c] edits in c?.structure.replaceAll(edits) ?? false }
         return textView
     }
 
@@ -75,7 +82,9 @@ struct ManuscriptTextView: UIViewRepresentable {
         if typographyChanged { sync.presenter.typography = typography; tv.typingAttributes = typography.bodyAttributes }
         if markupHints != sync.presenter.hintsEnabled {
             sync.presenter.setHints(markupHints, selection: tv.selectedRange, in: tv.textStorage)
+            coordinator.scheduleBranchMarks()   // [SP-192] the mark shows only with the hints
         }
+        session.historyCapture?.onReport = { [weak coordinator] in coordinator?.scheduleBranchMarks() }
         let segIDs = loader.segments.map(\.id)
         let fingerprint = coordinator.chapterHeadingFingerprint()
         if segIDs != coordinator.lastSegmentIDs || showChapterTitles != coordinator.lastShowChapterTitles
@@ -234,6 +243,13 @@ struct ManuscriptTextView: UIViewRepresentable {
             caretDiag(line)
             lastDiagCaret = loc
             guard !sync.isRebuilding else { return }
+            // ✅ [SP-163] Q1: the caret LEFT an empty pending pair — remove it (nothing was recorded, nothing to undo).
+            if let tv = textView as? ManuscriptUITextView {
+                if tv.leavePendingPairIfMoved() || tv.snapSelectionOutOfStopRun() { return }   // the re-set selection comes back here
+                tv.lastSelection = tv.selectedRange
+                // ✅ The Mac's reveal (EP-046 AC4): the markers of the span the caret is at, and its line's heading prefix, show.
+                sync.presenter.reveal(for: tv.selectedRange, in: tv.textStorage)
+            }
             // ✅ [I-0313]: at a line's start typing would take the divider's attributes — typed text is always body text.
             textView.typingAttributes = sync.presenter.typography.bodyAttributes
             sync.selectionChanged(in: textView.textStorage, caret: textView.selectedRange.location)
@@ -246,27 +262,74 @@ struct ManuscriptTextView: UIViewRepresentable {
             return tv.shouldChange(range, to: text)
         }
 
-        /// ✅ Q3 (SP-222): the structural edits in the text's own edit menu, where the caret allows them.
+        /// ✅ Q3 (SP-222): the structural edits in the text's own edit menu, where the caret allows them. ✅ SP-223 Q2 / Q4: a
+        /// Format submenu and a Buffers submenu, so the iPhone reaches them without a keyboard. ⛔ No Go To here (Q5).
         func textView(_ textView: UITextView, editMenuForTextIn range: NSRange,
                       suggestedActions: [UIMenuElement]) -> UIMenu? {
-            guard range.length == 0, !structure.caretInHeading(range.location) else { return nil }
-            var items: [UIMenuElement] = [
-                UIAction(title: "New Scene") { [weak self] _ in self?.structure.handleCreateScene() },
-                UIAction(title: "New Chapter") { [weak self] _ in self?.structure.handleCreateChapter() },
-            ]
-            if structure.canMergeScene {
-                items.append(UIAction(title: "Merge Scene with Previous") { [weak self] _ in self?.structure.handleMergeScene() })
+            var groups: [UIMenuElement] = []
+            if range.length == 0, !structure.caretInHeading(range.location) {
+                var items: [UIMenuElement] = [
+                    UIAction(title: "New Scene") { [weak self] _ in self?.structure.handleCreateScene() },
+                    UIAction(title: "New Chapter") { [weak self] _ in self?.structure.handleCreateChapter() },
+                ]
+                if structure.canMergeScene {
+                    items.append(UIAction(title: "Merge Scene with Previous") { [weak self] _ in self?.structure.handleMergeScene() })
+                }
+                if structure.canMergeChapter {
+                    items.append(UIAction(title: "Merge Chapter with Previous") { [weak self] _ in self?.structure.handleMergeChapter() })
+                }
+                groups.append(UIMenu(options: .displayInline, children: items))
             }
-            if structure.canMergeChapter {
-                items.append(UIAction(title: "Merge Chapter with Previous") { [weak self] _ in self?.structure.handleMergeChapter() })
+            // ⛔ SP-223 live pass: iOS's own Format (Bold / Italic) stood in the menu ahead of Scrivi's — ours takes its place.
+            var suggested = suggestedActions
+            let systemFormat: Set<UIMenu.Identifier> = [.format, .textStyle]
+            if let i = suggested.firstIndex(where: { ($0 as? UIMenu).map { systemFormat.contains($0.identifier) } ?? false }) {
+                suggested[i] = formatMenu()
+            } else {
+                groups.append(formatMenu())
             }
-            return UIMenu(children: suggestedActions + [UIMenu(options: .displayInline, children: items)])
+            if let buffers = buffersMenu(hasSelection: range.length > 0) { groups.append(buffers) }
+            return UIMenu(children: suggested + groups)
+        }
+
+        private func formatMenu() -> UIMenu {
+            func item(_ title: String, _ format: ManuscriptFormat) -> UIAction {
+                UIAction(title: title) { [weak self] _ in self?.textView?.applyFormat(format) }
+            }
+            return UIMenu(title: "Format", children: [
+                UIMenu(options: .displayInline, children: [item("Bold", .bold), item("Italic", .italic)]),
+                UIMenu(options: .displayInline, children: [item("Heading 1", .heading(1)), item("Heading 2", .heading(2)),
+                                                           item("Heading 3", .heading(3)), item("Body", .body)]),
+                UIMenu(options: .displayInline, children: [item("Bulleted List", .bulletList), item("Numbered List", .numberedList)]),
+            ])
+        }
+
+        /// ✅ Q2: each slot labelled by the start of what it holds; Paste lists only the slots that hold something.
+        private func buffersMenu(hasSelection: Bool) -> UIMenu? {
+            guard let service = parent.session.bufferService else { return nil }
+            func slots(_ title: String, onlyFull: Bool, _ act: @escaping @MainActor (String) -> Void) -> UIMenu? {
+                let actions: [UIMenuElement] = BufferService.slotIDs.compactMap { id in
+                    let held = service.text(inSlot: id) ?? ""
+                    if onlyFull, held.isEmpty { return nil }
+                    let preview = MarkdownEscapes.map(held).presented.split(whereSeparator: \.isNewline).first.map { String($0.prefix(24)) } ?? ""
+                    return UIAction(title: preview.isEmpty ? "Buffer \(id)" : "\(id) — \(preview)") { _ in act(id) }
+                }
+                return actions.isEmpty ? nil : UIMenu(title: title, children: actions)
+            }
+            var menus: [UIMenu] = []
+            if hasSelection {
+                if let m = slots("Copy to Buffer", onlyFull: false, { [weak self] in self?.structure.copyIntoBuffer($0) }) { menus.append(m) }
+                if let m = slots("Cut to Buffer", onlyFull: false, { [weak self] in self?.structure.cutIntoBuffer($0) }) { menus.append(m) }
+            }
+            if let m = slots("Paste from Buffer", onlyFull: true, { [weak self] in self?.structure.pasteFromBuffer($0) }) { menus.append(m) }
+            return menus.isEmpty ? nil : UIMenu(title: "Buffers", children: menus)
         }
 
         // MARK: Scrolling — the viewport scene (Navigator highlight) and the scroll fraction (I-0058)
 
         func scrollViewDidScroll(_ scrollView: UIScrollView) {
             guard let tv = scrollView as? ManuscriptUITextView, !sync.isRebuilding else { return }
+            if !branchMarks.isEmpty || parent.session.historyCapture?.redoForkNow != nil { scheduleBranchMarks() }   // [SP-192]
             let scrollable = max(0, scrollView.contentSize.height - scrollView.bounds.height)
             parent.loader.updateScrollFraction(scrollable > 0 ? Double(scrollView.contentOffset.y / scrollable) : 0)
             // The centre of the visible area, so the scene only changes once a boundary has clearly passed the middle.
@@ -286,6 +349,89 @@ struct ManuscriptTextView: UIViewRepresentable {
                       loader.segments.indices.contains(segIdx) else { return }
                 loader.setViewportScene(loader.segments[segIdx].sceneID)
             }
+        }
+
+        // MARK: The branch-point marks ([SP-192] on the Mac; EP-055 S3b Q3)
+
+        /// With Show Markup Hints on, a mark in the LEFT MARGIN on each laid-out line where a branch of the current branch point
+        /// parts — where Redo will ask. Drawn over the text, never in it; a tap opens the chooser.
+        private(set) var branchMarks: [UIButton] = []
+        private var branchMarksScheduled = false
+        private static let branchMarkLabel = "Redo will ask which branch"
+
+        /// After the turn: a report can arrive before the step it reports has been applied to the text.
+        func scheduleBranchMarks() {
+            guard !branchMarksScheduled else { return }
+            branchMarksScheduled = true
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.branchMarksScheduled = false
+                self.refreshBranchMarks()
+            }
+        }
+
+        func refreshBranchMarks() {
+            guard let tv = textView else { return }
+            var frames: [CGRect] = []
+            if sync.presenter.hintsEnabled, let fork = parent.session.historyCapture?.redoForkNow {
+                frames = branchMarkFrames(for: fork, in: tv)
+            }
+            while branchMarks.count > frames.count { branchMarks.removeLast().removeFromSuperview() }
+            while branchMarks.count < frames.count {
+                let mark = UIButton(type: .system)
+                mark.setImage(UIImage(systemName: "arrow.triangle.branch"), for: .normal)
+                mark.tintColor = .secondaryLabel   // follows light and dark
+                mark.accessibilityLabel = Self.branchMarkLabel
+                mark.addAction(UIAction { [weak self, weak mark] _ in
+                    guard let self, let mark, let fork = self.parent.session.historyCapture?.redoFork() else { return }
+                    self.chooseBranch(fork, at: mark.frame) { [weak self] child in self?.structure.redoBranch(child, of: fork) }
+                }, for: .touchUpInside)
+                tv.addSubview(mark)
+                branchMarks.append(mark)
+            }
+            for (mark, frame) in zip(branchMarks, frames) { mark.frame = frame }
+        }
+
+        /// Where `fork`'s branches part, one margin frame per distinct line — laid-out lines only (as the Mac).
+        func branchMarkFrames(for fork: HistoryForkAhead, in tv: ManuscriptUITextView) -> [CGRect] {
+            let segments = parent.loader.segments
+            let bounds = sync.sceneBoundaries(in: tv.textStorage)
+            var lines: [CGRect] = []
+            for child in fork.children {
+                guard let sceneID = child.sceneID, let i = segments.firstIndex(where: { $0.sceneID == sceneID }),
+                      i < bounds.count else { continue }
+                let at = bounds[i].location + ManuscriptStructure.charOffset(forByteOffset: child.changeOffsetUtf8 ?? 0, in: segments[i].text)
+                // At the very END of the text there is no character, so no line: the line of the one before.
+                guard let line = tv.lineRect(at: at) ?? (at > 0 ? tv.lineRect(at: at - 1) : nil),
+                      !lines.contains(where: { abs($0.midY - line.midY) < 1 }) else { continue }
+                lines.append(line)
+            }
+            return lines.map { line in
+                let side = min(line.height, 18)
+                return CGRect(x: max(0, tv.textContainerInset.left - side - 1), y: line.midY - side / 2, width: side, height: side)
+            }
+        }
+
+        /// ✅ Q4 (SP-222): the system's choice — a popover at `anchor` (the caret by default) on the iPad, a sheet on the iPhone.
+        func chooseBranch(_ fork: HistoryForkAhead, at anchor: CGRect?, _ choose: @escaping @MainActor (String) -> Void) {
+            if let hook = onRedoFork {
+                if let child = hook(fork) { choose(child) }
+                return
+            }
+            guard let tv = textView, !fork.children.isEmpty else { return }
+            let sheet = UIAlertController(title: "Redo which change?", message: nil, preferredStyle: .actionSheet)
+            for child in fork.children {
+                let preview = child.preview.isEmpty ? "(no preview)" : child.preview
+                let when = HistoryTimestamp.friendly(child.timestamp).map { " — \($0)" } ?? ""
+                sheet.addAction(UIAlertAction(title: preview + when, style: .default) { _ in choose(child.eventID) })
+            }
+            sheet.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+            if let pop = sheet.popoverPresentationController {
+                pop.sourceView = tv
+                if let anchor { pop.sourceRect = anchor }
+                else if let at = tv.selectedTextRange?.start { pop.sourceRect = tv.caretRect(for: at) }
+            }
+            present(sheet)
         }
     }
 }
@@ -333,7 +479,7 @@ extension ManuscriptTextView.Coordinator: ManuscriptStructureHost {
         if let offset { textView?.setContentOffset(offset, animated: false) }
     }
 
-    func structureLanded() {}
+    func structureLanded() { scheduleBranchMarks() }   // [SP-192] the text moved after the report
 
     func structureConfirmEarlierSessionUndo(_ timestamp: String, _ answer: @escaping @MainActor (Bool) -> Void) {
         if let hook = onEarlierSessionUndo { return answer(hook(timestamp)) }
@@ -352,25 +498,8 @@ extension ManuscriptTextView.Coordinator: ManuscriptStructureHost {
         present(alert)
     }
 
-    /// ✅ Q4 (SP-222): the system's choice — a popover at the caret on the iPad, a sheet on the iPhone.
     func structureChooseBranch(_ fork: HistoryForkAhead, _ choose: @escaping @MainActor (String) -> Void) {
-        if let hook = onRedoFork {
-            if let child = hook(fork) { choose(child) }
-            return
-        }
-        guard let tv = textView, !fork.children.isEmpty else { return }
-        let sheet = UIAlertController(title: "Redo which change?", message: nil, preferredStyle: .actionSheet)
-        for child in fork.children {
-            let preview = child.preview.isEmpty ? "(no preview)" : child.preview
-            let when = HistoryTimestamp.friendly(child.timestamp).map { " — \($0)" } ?? ""
-            sheet.addAction(UIAlertAction(title: preview + when, style: .default) { _ in choose(child.eventID) })
-        }
-        sheet.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-        if let pop = sheet.popoverPresentationController {
-            pop.sourceView = tv
-            if let at = tv.selectedTextRange?.start { pop.sourceRect = tv.caretRect(for: at) }
-        }
-        present(sheet)
+        chooseBranch(fork, at: nil, choose)
     }
 
     func structureCloseBranchChooser() {
@@ -392,8 +521,10 @@ extension ManuscriptTextView.Coordinator: ManuscriptStructureHost {
         return pb.changeCount
     }
 
+    func structureInsertOwnSource(_ source: String) { textView?.insertOwnSource(source) }
+
     /// From the topmost controller showing this view.
-    private func present(_ controller: UIViewController) {
+    func present(_ controller: UIViewController) {
         var top = textView?.window?.rootViewController
         while let next = top?.presentedViewController { top = next }
         top?.present(controller, animated: true)
@@ -407,7 +538,10 @@ final class ManuscriptUITextView: UITextView {
     /// ⚠️ Measured 2026-10-30: made through `UITextView(usingTextLayoutManager:)`, this subclass's stored properties were
     /// never initialised — they read as nil. A designated init initialises them; a text view made with no container is
     /// TextKit 2 (the "iOS manuscript" tests assert it).
-    init() { super.init(frame: .zero, textContainer: nil) }
+    init() {
+        super.init(frame: .zero, textContainer: nil)
+        isFindInteractionEnabled = true   // ⌘F, Edit ▸ Find, the edit menu's Find — searching through `searcher`
+    }
     required init?(coder: NSCoder) { fatalError("ManuscriptUITextView is not loaded from a nib") }
 
     /// ✅ EP-046 E2-S1 — the view's presenter, found through TextKit 2's own delegate slot (as the Mac's is), so a view
@@ -434,6 +568,124 @@ final class ManuscriptUITextView: UITextView {
     }
     /// True while a structural edit is in flight (SP-191 Q5's cue): the view takes no input.
     var inputHeld = false
+
+    // MARK: Find (EP-055 S3b Q1)
+
+    /// The presented ⇄ storage map, shared with the Mac — built at the first Find, then patched on every edit.
+    private(set) lazy var presentedMap = PresentedMap(textView: self)
+    private(set) lazy var searcher = ManuscriptTextSearcher(textView: self)
+
+    /// ✅ UITextView's own find bar, but searching `searcher` — ⛔ its default session searches storage, markers and all.
+    override func findInteraction(_ interaction: UIFindInteraction, sessionFor view: UIView) -> UIFindSession? {
+        UITextSearchingFindSession(searchableObject: searcher)
+    }
+
+    /// The search string becomes what the writer SEES selected (no markers, no escapes).
+    override func useSelectionForFind(_ sender: Any?) {
+        guard selectedRange.length > 0 else { return }
+        let text = presentedMap.snapshot()
+        findInteraction?.searchText = text.substring(text.presentedRange(selectedRange))
+    }
+
+    override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
+        switch action {
+        // ✅ Q4: ⌘B / ⌘I (and the keyboard's B / I) are Scrivi's Format commands; there is no underline in Markdown.
+        case #selector(toggleBoldface(_:)), #selector(toggleItalics(_:)): return !inputHeld
+        case #selector(toggleUnderline(_:)): return false
+        default: return super.canPerformAction(action, withSender: sender)
+        }
+    }
+
+    // MARK: Format (EP-055 S3b Q4)
+
+    override func toggleBoldface(_ sender: Any?) { applyFormat(.bold) }
+    override func toggleItalics(_ sender: Any?) { applyFormat(.italic) }
+
+    /// What the Format menu calls — the shared decision (`formatStep`), applied here. ✅ ONE edit per command.
+    func applyFormat(_ format: ManuscriptFormat) {
+        guard !inputHeld, let presenter else { return }
+        switch presenter.formatStep(format, in: textStorage, selection: selectedRange) {
+        case let .edit(edit): store(edit.replacement, over: edit.range, selecting: edit.selection, balanced: true)
+        case .refuse: UINotificationFeedbackGenerator().notificationOccurred(.error)
+        case .removePending: removePendingPair()
+        case let .insertPending(loc, markers): insertPendingPair(at: loc, markers: markers)
+        }
+    }
+
+    /// True while the view itself places the caret inside a pending pair.
+    private var keepingPending = false
+
+    /// Insert the PENDING pair ([SP-163] Q1) — storage only, never `textViewDidChange`: history, autosave and the scene text
+    /// never see it (see `ManuscriptPresenter.PendingPair`).
+    private func insertPendingPair(at loc: Int, markers: String) {
+        guard let presenter else { return }
+        presenter.insertingPending = true
+        textStorage.replaceCharacters(in: NSRange(location: loc, length: 0),
+                                      with: NSAttributedString(string: markers + markers, attributes: bodyAttributes))
+        presenter.insertingPending = false
+        presenter.pending = .init(range: NSRange(location: loc, length: markers.utf16.count * 2), markerLength: markers.utf16.count)
+        presentedMap.noteChange(in: presenter.pending!.range)     // the pair is now hidden on the page at rest
+        keepingPending = true
+        selectedRange = NSRange(location: loc + markers.utf16.count, length: 0)
+        keepingPending = false
+    }
+
+    /// Take the pending pair out again — storage only, nothing recorded.
+    func removePendingPair() {
+        guard let presenter, let p = presenter.pending else { return }
+        presenter.pending = nil
+        let text = textStorage.string as NSString
+        guard NSMaxRange(p.range) <= text.length,
+              text.substring(with: p.range) == String(repeating: "*", count: p.range.length) else { return }
+        presenter.insertingPending = true
+        textStorage.replaceCharacters(in: p.range, with: "")
+        presenter.insertingPending = false
+    }
+
+    /// The caret LEFT an empty pending pair: remove it and keep the caret on the same text. True when it did.
+    func leavePendingPairIfMoved() -> Bool {
+        guard !keepingPending, let p = presenter?.pending, selectedRange != NSRange(location: p.caret, length: 0) else { return false }
+        let sel = selectedRange
+        removePendingPair()
+        let shift = sel.location >= NSMaxRange(p.range) ? p.range.length : (sel.location > p.range.location ? sel.location - p.range.location : 0)
+        selectedRange = NSRange(location: sel.location - shift, length: sel.length)
+        return true
+    }
+
+    /// The selection before the latest change: which way the caret was going, for the snap.
+    var lastSelection = NSRange(location: 0, length: 0)
+
+    /// ✅ The Mac's `setSelectedRanges` rule (EP-045 R3 = (c), EP-046 AC5): the caret never rests inside a stop run — a hidden
+    /// marker, escape or heading prefix — so one arrow press passes one visible character, and a selection's ends never split
+    /// a run. ⛔ SP-223 live pass: without it ← / → stepped through the hidden `**`. True when it moved the selection.
+    func snapSelectionOutOfStopRun() -> Bool {
+        guard markedTextRange == nil, let presenter else { return false }
+        let r = selectedRange, runAt = ManuscriptEditRules.runLookup(presenter, textStorage)
+        let target = r.length == 0
+            ? MarkdownEscapes.snapCaret(r.location, from: lastSelection.location, length: textStorage.length, runAt: runAt)
+                .map { NSRange(location: $0, length: 0) }
+            : MarkdownEscapes.snapSelection(r, previousEnd: NSMaxRange(lastSelection), in: textStorage.string as NSString, runAt: runAt)
+        guard let target, target != r else { return false }
+        selectedRange = target
+        return true
+    }
+
+    // MARK: Lines (the branch marks)
+
+    /// The laid-out line holding storage offset `index`, in view coordinates — nil outside the viewport (as the Mac).
+    func lineRect(at index: Int) -> CGRect? {
+        guard let lm = textLayoutManager, let content = lm.textContentManager,
+              let viewport = lm.textViewportLayoutController.viewportRange,
+              let loc = content.location(content.documentRange.location, offsetBy: index) else { return nil }
+        let inViewport = viewport.contains(loc) || loc.compare(viewport.endLocation) == .orderedSame
+        guard inViewport, let fragment = lm.textLayoutFragment(for: loc) else { return nil }
+        let frame = fragment.layoutFragmentFrame
+        let within = content.offset(from: fragment.rangeInElement.location, to: loc)
+        let line = fragment.textLineFragments.first { NSLocationInRange(within, $0.characterRange) } ?? fragment.textLineFragments.last
+        let bounds = line?.typographicBounds ?? CGRect(x: 0, y: 0, width: frame.width, height: frame.height)
+        return CGRect(x: frame.minX + bounds.minX + textContainerInset.left, y: frame.minY + bounds.minY + textContainerInset.top,
+                      width: bounds.width, height: bounds.height)
+    }
 
     // ✅ [SP-198] Q-undo (ruled 2026-10-30): Scrivi's history owns undo, as on the Mac (`allowsUndo = false`). ✅ SP-222 Q3:
     // every undo the system offers — ⌘Z / ⇧⌘Z, the Edit menu, the keyboard's undo key, three-finger swipe, shake — reaches
@@ -465,8 +717,26 @@ final class ManuscriptUITextView: UITextView {
             key("\r", [.command, .shift], "New Chapter", #selector(newChapter)),
             key(UIKeyCommand.inputDelete, .command, "Merge Scene with Previous", #selector(mergeScene)),
             key(UIKeyCommand.inputDelete, [.command, .shift], "Merge Chapter with Previous", #selector(mergeChapter)),
-        ]
+            // ⛔ SP-223 live pass: iPadOS's Find menu binds no ⌘E — the Mac's Use Selection for Find, as the view's own key.
+            key("e", .command, "Use Selection for Find", #selector(useSelectionForFind(_:))),
+        ] + bufferKeys
     }
+    /// ✅ SP-223 Q2: the Mac's buffer chords — ⌘N copy, ⌃⌘N paste, ⌥N cut (N = 1–9). Untitled: kept out of the shortcut list.
+    private var bufferKeys: [UIKeyCommand] {
+        BufferService.slotIDs.flatMap { id -> [UIKeyCommand] in
+            let chords: [(UIKeyModifierFlags, Selector)] = [(.command, #selector(copyToBuffer(_:))),
+                                                            ([.control, .command], #selector(pasteFromBuffer(_:))),
+                                                            (.alternate, #selector(cutToBuffer(_:)))]
+            return chords.map { flags, action in
+                let k = UIKeyCommand(input: id, modifierFlags: flags, action: action)
+                k.wantsPriorityOverSystemBehavior = true
+                return k
+            }
+        }
+    }
+    @objc private func copyToBuffer(_ k: UIKeyCommand) { if let id = k.input { structure?.copyIntoBuffer(id) } }
+    @objc private func pasteFromBuffer(_ k: UIKeyCommand) { if !inputHeld, let id = k.input { structure?.pasteFromBuffer(id) } }
+    @objc private func cutToBuffer(_ k: UIKeyCommand) { if !inputHeld, let id = k.input { structure?.cutIntoBuffer(id) } }
     @objc private func newScene() { structure?.handleCreateScene() }
     @objc private func newChapter() { structure?.handleCreateChapter() }
     @objc private func mergeScene() { structure?.handleMergeScene() }
@@ -551,6 +821,20 @@ final class ManuscriptUITextView: UITextView {
             }
             return
         }
+        // ✅ [SP-163] Q1: whitespace typed into an EMPTY pending pair cannot start a span (`** x**` is not emphasis): it goes
+        // BEFORE the pair, which stays pending with the caret inside it.
+        if let p = presenter?.pending, selectedRange == NSRange(location: p.caret, length: 0),
+           !text.isEmpty, text.allSatisfy({ $0 == " " || $0 == "\t" }) {
+            let markers = String(repeating: "*", count: p.markerLength)
+            removePendingPair()
+            keepingPending = true
+            selectedRange = NSRange(location: p.range.location, length: 0)
+            keepingPending = false
+            let source = MarkdownEscapes.escape(text)
+            if shouldChange(selectedRange, to: source) { super.insertText(source) }
+            insertPendingPair(at: selectedRange.location, markers: markers)
+            return
+        }
         let source = MarkdownEscapes.escape(text)
         guard shouldChange(selectedRange, to: source) else { return }
         super.insertText(source)
@@ -566,6 +850,12 @@ final class ManuscriptUITextView: UITextView {
             return
         }
         let loc = selectedRange.location
+        // ✅ [SP-163] Q1: ⌫ inside an empty pending pair takes the pair away.
+        if let p = presenter?.pending, loc == p.caret {
+            removePendingPair()
+            selectedRange = NSRange(location: p.range.location, length: 0)
+            return
+        }
         switch ManuscriptEditRules.deleteBackwardEdit(at: loc, in: textStorage, presenter: presenter) {
         case .system:
             // The character ⌫ removes: the composed sequence before the caret.
@@ -620,15 +910,20 @@ final class ManuscriptUITextView: UITextView {
         history?.beginPasteOrCut(kind: "paste")
         defer { history?.flush(trigger: "paste", kind: "paste") }
         if let own = ownCopy, own.changeCount == pasteboard.changeCount {
-            pastingOwnCopy = true
-            defer { pastingOwnCopy = false }
-            store(own.source, over: selectedRange,
-                  selecting: NSRange(location: selectedRange.location + own.source.utf16.count, length: 0))
+            insertOwnSource(own.source)
         } else {
             let source = MarkdownEscapes.escape(text)
             store(source, over: selectedRange,
                   selecting: NSRange(location: selectedRange.location + source.utf16.count, length: 0))
         }
+    }
+
+    /// Scrivi's OWN copy (⌘V of it, a copy buffer) in its STORED form over the selection — it keeps its own formatting where
+    /// it lands ([I-0289]).
+    func insertOwnSource(_ source: String) {
+        pastingOwnCopy = true
+        defer { pastingOwnCopy = false }
+        store(source, over: selectedRange, selecting: NSRange(location: selectedRange.location + source.utf16.count, length: 0))
     }
 
     /// A selection that holds a divider spans scenes — with no project (`structure` nil) there is no structural cut.

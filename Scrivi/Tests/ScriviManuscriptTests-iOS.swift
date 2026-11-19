@@ -232,7 +232,7 @@ struct IOSManuscriptStructureTests {
         let loader: ViewportSceneLoader
         let c: ManuscriptTextView.Coordinator
         let tv = ManuscriptUITextView()
-        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 600, height: 800))
+        let window: UIWindow
 
         /// One chapter holding `bodies`, opened through `loadAsync` (history opened, every scene validated).
         init(_ bodies: [String]) async throws {
@@ -270,6 +270,11 @@ struct IOSManuscriptStructureTests {
             c.sync.boundaryTable.observe(tv.textStorage)
             tv.delegate = c
             tv.pasteboard = UIPasteboard.withUniqueName()   // ⚠️ never the writer's clipboard
+            // The test host's own scene (⛔ `UIWindow(frame:)` is deprecated since iOS 26).
+            let scene = try #require(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
+            window = UIWindow(windowScene: scene)
+            window.frame = CGRect(x: 0, y: 0, width: 600, height: 800)
+            tv.textContainerInset = UIEdgeInsets(top: 24, left: 20, bottom: 24, right: 20)   // as `makeUIView`
             tv.frame = window.bounds
             window.addSubview(tv)
             c.textView = tv
@@ -279,6 +284,7 @@ struct IOSManuscriptStructureTests {
             session.createChapterAction = { [c] in c.structure.handleCreateChapter() }
             session.mergeSceneAction    = { [c] in c.structure.handleMergeScene() }
             session.mergeChapterAction  = { [c] in c.structure.handleMergeChapter() }
+            tv.searcher.replaceAllHandler = { [c] edits in c.structure.replaceAll(edits) }   // as `makeUIView` (SP-223)
             // An alert would wait for a tap that never comes: an unexpected one fails the test instead.
             c.onBarrierNotice = { Issue.record("unexpected barrier notice: \($0)") }
             c.onRedoFork = { fork in Issue.record("unexpected branch chooser at \(fork.nodeID)"); return nil }
@@ -423,6 +429,186 @@ struct IOSManuscriptStructureTests {
         try await h.landed()
         #expect(!h.tv.inputHeld)
         #expect(h.texts == ["Alpha one. ", "Alpha two."], "nothing typed went in mid-flight: \(h.texts)")
+    }
+
+    // MARK: — EP-055 S3b (SP-223, T-0686)
+
+    func range(_ h: Harness, scene i: Int, of needle: String) -> NSRange {
+        let b = h.c.sync.sceneBoundaries(in: h.tv.textStorage)[i]
+        let r = (h.tv.textStorage.string as NSString).range(of: needle, options: [], range: b)
+        #expect(r.location != NSNotFound, "\(needle) in scene \(i)")
+        return r
+    }
+
+    @Test("Find searches what the writer SEES: markers are not found, a match maps to its storage, never across a break")
+    func findOverPresentedText() async throws {
+        let h = try await Harness(["Some **bold** text.", "More bold here."])
+        let text = h.tv.presentedMap.snapshot()
+        let found = ManuscriptTextSearcher.matches(of: "bold", in: text, compare: [.caseInsensitive], method: .contains)
+        let ns = h.tv.textStorage.string as NSString
+        #expect(found.map { ns.substring(with: $0) } == ["bold", "bold"])
+        #expect(found.first == range(h, scene: 0, of: "bold"), "the match is the storage under the bold text, no markers")
+        #expect(ManuscriptTextSearcher.matches(of: "**", in: text, compare: [], method: .contains).isEmpty, "markers are hidden")
+        #expect(ManuscriptTextSearcher.matches(of: "text.More", in: text, compare: [], method: .contains).isEmpty,
+                "never across a scene break")
+        #expect(ManuscriptTextSearcher.matches(of: "ol", in: text, compare: [], method: .fullWord).isEmpty, "whole words only")
+
+        // ⌘E (SP-223 live pass: it did nothing): the selection, as presented, becomes the search text.
+        h.tv.selectedRange = NSRange(location: range(h, scene: 0, of: "bold").location - 2, length: 8)   // `**bold**`
+        let keys = h.tv.keyCommands ?? []
+        #expect(keys.contains { $0.input == "e" && $0.modifierFlags == .command && $0.action == #selector(UIResponder.useSelectionForFind(_:)) },
+                "⌘E is the view's own key")
+        h.tv.useSelectionForFind(nil)
+        #expect(h.tv.findInteraction?.searchText == "bold")
+    }
+
+    @Test("Replace replaces one match as typing; Replace All is ONE undo step across scenes, kept balanced")
+    func replaceAndReplaceAll() async throws {
+        let h = try await Harness(["Some **bold** text.", "More bold here."])
+        let start = h.texts
+        let some = try #require(h.tv.textRange(storage: range(h, scene: 0, of: "Some")))
+        h.tv.searcher.replace(foundTextRange: some, document: nil, withText: "Any")
+        #expect(h.texts == ["Any **bold** text.", "More bold here."])
+        h.tv.undoManager?.undo()
+        #expect(h.texts == start, "one replacement, one undo")
+
+        h.tv.searcher.replaceAll(queryString: "bold", options: UITextSearchOptions(), withText: "bright*")
+        try await h.landed()
+        #expect(h.texts == ["Some **bright\\*** text.", "More bright\\* here."], "escaped, inside the span: \(h.texts)")
+        h.storageMatches("after Replace All")
+        try h.listMatchesDisk("after Replace All")
+        h.tv.undoManager?.undo()
+        try await h.landed()
+        #expect(h.texts == start, "Replace All undone in ONE step")
+        h.storageMatches("Replace All undone")
+    }
+
+    @Test("Format: Bold on a selection, ⌘I in a word — each one history event; between words a pending pair, never stored empty")
+    func formatCommands() async throws {
+        let h = try await Harness(["Some text here."])
+        let start = h.texts
+        h.tv.selectedRange = range(h, scene: 0, of: "text")
+        h.session.formatAction = { [tv = h.tv] f in tv.applyFormat(f) }   // as `makeUIView`
+        h.session.formatAction?(.bold)
+        #expect(h.texts == ["Some **text** here."])
+        h.tv.undoManager?.undo()
+        #expect(h.texts == start, "one undo step")
+
+        h.tv.selectedRange = NSRange(location: range(h, scene: 0, of: "here").location + 2, length: 0)
+        h.tv.toggleItalics(nil)   // ⌘I, the keyboard's I
+        #expect(h.texts == ["Some text *here*."])
+        h.tv.undoManager?.undo()
+        #expect(h.texts == start)
+
+        // After the full stop: no word — a pending pair, in the view only.
+        h.caret(scene: 0, at: 15)
+        h.tv.applyFormat(.bold)
+        #expect(h.tv.textStorage.string == "Some text here.****")
+        #expect(h.texts == start, "an empty pair is never stored")
+        h.tv.insertText("X")
+        #expect(h.texts == ["Some text here.**X**"], "typing into it makes it a real span")
+        h.tv.undoManager?.undo()
+        #expect(h.texts == start)
+        h.caret(scene: 0, at: 15)
+        h.tv.applyFormat(.bold)
+        h.tv.applyFormat(.bold)
+        #expect(h.tv.textStorage.string == "Some text here.", "the same command again takes the pair away")
+        h.tv.applyFormat(.italic)
+        h.tv.deleteBackward()
+        #expect(h.tv.textStorage.string == "Some text here.", "⌫ takes an empty pair away")
+        h.tv.applyFormat(.italic)
+        h.caret(scene: 0, at: 0)
+        #expect(h.tv.textStorage.string == "Some text here.", "leaving it takes it away")
+        #expect(h.texts == start)
+    }
+
+    @Test("SP-223 live pass: one arrow step passes one visible letter (never into a hidden marker); the pending pair is drawn")
+    func caretSnapAndPendingDrawn() async throws {
+        let h = try await Harness(["A **bold** word."])
+        let b = range(h, scene: 0, of: "bold").location        // just after the opener
+        h.tv.selectedRange = NSRange(location: b - 3, length: 0)  // after "A"
+        h.tv.selectedRange = NSRange(location: b - 2, length: 0)  // → proposes the spot before the hidden `**`
+        #expect(h.tv.selectedRange.location == b, "→ lands in the bold word (⛔ was three presses)")
+        #expect(try drawnColor(h, at: b - 2) == UIColor.manuscriptHint, "the caret at the span's start shows its markers")
+        h.tv.selectedRange = NSRange(location: b - 1, length: 0)  // ← proposes the middle of the `**`
+        #expect(h.tv.selectedRange.location == b - 3, "← passes the space before it")
+        #expect(try drawnColor(h, at: b - 2) == UIColor.clear, "and away from it they hide again")
+
+        // ⌘B after the full stop: the pair is drawn as hints, not hidden.
+        let end = (h.tv.textStorage.string as NSString).length
+        h.tv.selectedRange = NSRange(location: end, length: 0)
+        _ = try drawnColor(h, at: end - 1)   // the line is laid out already, as on screen
+        h.tv.applyFormat(.bold)
+        #expect(try drawnColor(h, at: end) == UIColor.manuscriptHint, "the pending pair shows, dimmed")
+    }
+
+    /// The colour the text view DRAWS storage unit `i` in — the presented paragraph, not the storage.
+    func drawnColor(_ h: Harness, at i: Int) throws -> UIColor? {
+        let lm = try #require(h.tv.textLayoutManager), cm = try #require(lm.textContentManager)
+        lm.ensureLayout(for: cm.documentRange)
+        let at = try #require(cm.location(cm.documentRange.location, offsetBy: i))
+        let paragraph = try #require(lm.textLayoutFragment(for: at)?.textElement as? NSTextParagraph)
+        let local = cm.offset(from: try #require(paragraph.elementRange?.location), to: at)
+        return paragraph.attributedString.attribute(.foregroundColor, at: local, effectiveRange: nil) as? UIColor
+    }
+
+    @Test("SP-223 live pass: the edit menu's Format is Scrivi's (headings and lists too), in place of the system's Bold / Italic")
+    func editMenuFormatIsScrivis() async throws {
+        let h = try await Harness(["Some text."])
+        let system = UIMenu(title: "Format", identifier: .format, children: [UIAction(title: "Bold") { _ in }])
+        let menu = try #require(h.c.textView(h.tv, editMenuForTextIn: NSRange(location: 0, length: 4),
+                                             suggestedActions: [UIAction(title: "Copy") { _ in }, system]))
+        let formats = menu.children.compactMap { $0 as? UIMenu }.filter { $0.title == "Format" }
+        #expect(formats.count == 1)
+        let titles = formats.first?.children.flatMap { ($0 as? UIMenu)?.children ?? [$0] }.map(\.title) ?? []
+        #expect(titles.contains("Heading 1") && titles.contains("Numbered List"))
+    }
+
+    @Test("the copy buffers: copy then paste, cut — the shared code, each change one history event")
+    func copyBuffers() async throws {
+        let h = try await Harness(["Some **text** here.", "Other."])
+        let start = h.texts
+        let service = try #require(h.session.bufferService)
+        h.tv.selectedRange = NSRange(location: range(h, scene: 0, of: "text").location - 2, length: 6)
+        h.c.structure.copyIntoBuffer("1")
+        #expect(service.text(inSlot: "1") == "**text**", "the balanced source")
+        #expect(h.texts == start, "a copy changes nothing")
+        h.caret(scene: 1, at: 6)
+        h.c.structure.pasteFromBuffer("1")
+        #expect(h.texts == ["Some **text** here.", "Other.**text**"])
+        h.tv.undoManager?.undo()
+        #expect(h.texts == start, "the paste undone in one step")
+
+        h.tv.selectedRange = range(h, scene: 0, of: "here")
+        h.c.structure.cutIntoBuffer("2")
+        #expect(service.text(inSlot: "2") == "here")
+        #expect(h.texts == ["Some **text** .", "Other."])
+        h.tv.undoManager?.undo()
+        #expect(h.texts == start, "the cut undone in one step")
+        #expect(service.text(inSlot: "2") == "here", "the slot keeps it")
+    }
+
+    @Test("a branch point shows a mark in the margin on its line; a tap asks which branch, and redoes it")
+    func branchMarks() async throws {
+        let h = try await Harness(["Alpha."])
+        h.caret(scene: 0, at: 6)
+        h.tv.insertText(" Beta.")
+        h.tv.undoManager?.undo()
+        h.caret(scene: 0, at: 6)
+        h.tv.insertText(" Gamma.")
+        h.tv.undoManager?.undo()
+        #expect(h.session.historyCapture?.redoForkNow != nil, "two branches part here")
+        h.tv.layoutIfNeeded()
+        h.tv.textLayoutManager?.textViewportLayoutController.layoutViewport()
+        h.c.refreshBranchMarks()
+        let mark = try #require(h.c.branchMarks.first)
+        #expect(h.c.branchMarks.count == 1, "one line, one mark")
+        #expect(mark.frame.maxX <= h.tv.textContainerInset.left, "in the margin, not over the text")
+        var asked = 0
+        h.c.onRedoFork = { fork in asked += 1; return fork.children.first(where: { !$0.isPrimary })?.eventID }
+        mark.sendActions(for: .touchUpInside)
+        #expect(asked == 1)
+        #expect(h.texts == ["Alpha. Beta\\."], "the other branch was redone (a typed full stop is stored escaped): \(h.texts)")
     }
 }
 

@@ -1,16 +1,17 @@
 ---
 sprint: SP-222
 epic: EP-055
-status: Active
+status: Closed
+closed: 2026-11-18
 platform: Apple
 created: 2026-11-18
 ---
 
 # SP-222 — `[Apple]` [EP-055] S3a: undo/redo, structural edits and cross-scene cut/copy/paste on iOS
 
-**Status:** 🟡 **ACTIVE** 2026-11-18 (user, 2026-11-18: *"Q1-Q5 as recommended, activate and implement SP-222"*) · ✅ Q1–Q5 ruled as recommended.
-**Carries:** [T-0685] (new) → [`../Tasks/Task-backlog.md`](../Tasks/Task-backlog.md); [T-0680] (EP-054 AC8, Q5).
-**Epic:** [EP-055] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md) — AC5, its first half (Q1).
+**Status:** ✅ **CLOSED** 2026-11-18 (user, 2026-11-18: *"iPad, and Mac live passes all passed.  On the iPhone the software keyboard does not have the shortcuts, but I was able to verify all the functionality using the context menu for cut copy paste, new Scene, and new Chapter and three fingered swipe for undo/redo/branch selection.  close SP-222"*). Activated 2026-11-18 (user: *"Q1-Q5 as recommended, activate and implement SP-222"*) · ✅ Q1–Q5 ruled as recommended.
+**Carries:** [T-0685] (new) → [`../../Tasks/Verified/Task-verified-0685.md`](../../Tasks/Verified/Task-verified-0685.md); [T-0680] (EP-054 AC8, Q5).
+**Epic:** [EP-055] → [`../../Epics/Epic-active.md`](../../Epics/Epic-active.md) — AC5, its first half (Q1).
 **Builds on:** [SP-198] (the `UITextView` host, the shared write path C1 and model sync C2 — `ManuscriptEditing.swift`), [SP-199]
 (panels, gestures, toolbar); on the Mac, [SP-191] / [SP-196] (structural edits: one range call, the delta applied in memory) and
 the history apply path (T-0205).
@@ -77,8 +78,8 @@ timeline (AC6).
 - [x] AC4 — Redo at a branch asks which (Q4)
 - [x] AC5 — The surfaces per Q3 on the iPad and iPhone
 - [x] AC6 — (Q5) Into This Project on the iPad ([T-0680])
-- [ ] AC7 — iOS tests for AC1–AC4 on the simulator; Mac interop green; macOS and iOS builds; CI green
-- [ ] AC8 — **Live passes (user):** iPad, iPhone, and the Mac re-checked
+- [x] AC7 — iOS tests for AC1–AC4 on the simulator; Mac interop green; macOS and iOS builds; CI green — ✅ Scrivi Apple CI green on `58ee2c6` (run 44374086880; Core and Linux CI not triggered: no files in their paths)
+- [x] AC8 — **Live passes (user):** iPad, iPhone, and the Mac re-checked — ✅ 2026-11-18 (the iPhone through the edit menu and the three-finger swipe; its software keyboard has no shortcut keys, as Q3/Q8 expect)
 
 ## Progress log
 
@@ -104,3 +105,4 @@ timeline (AC6).
     the system's undo/redo runs the history; split / merge / chapter split / chapter merge each undo and redo in one step with
     the view and the disk following, and redo at a branch asks; a cross-scene cut then paste, each undone in one step; ⌫
     across scenes leaves the clipboard; input held in flight). ⏳ CI after the push. ⚠️ No mutation run on the new iOS tests.
+- **2026-11-18** — ✅ AC7 (CI green), AC8 (live passes) (user, 2026-11-18: *"iPad, and Mac live passes all passed.  On the iPhone the software keyboard does not have the shortcuts, but I was able to verify all the functionality using the context menu for cut copy paste, new Scene, and new Chapter and three fingered swipe for undo/redo/branch selection.  close SP-222"*); [T-0685], [T-0680] → ✅ Verified, archived. **Closed.**

@@ -44,6 +44,8 @@ protocol ManuscriptStructureHost: AnyObject {
     var structurePasteboardChangeCount: Int { get }
     /// Other apps get `presented`; returns the pasteboard's change count after the write.
     func structureWritePasteboard(_ presented: String) -> Int
+    /// Insert `source` (STORED form, Scrivi's own copy: it keeps its own formatting) over the selection, as a typed edit.
+    func structureInsertOwnSource(_ source: String)
 }
 
 @MainActor
@@ -851,5 +853,154 @@ final class ManuscriptStructure {
                                      rangeJSON: (try? r.range.toJSON()) ?? "")
         }, caret: { r in r.range.scenes.last.map { ($0.sceneID, $0.start + $0.length) } })
         return true
+    }
+
+    // MARK: — The copy buffers (EP-019, T-0214; moved from the Mac host, EP-055 S3b [SP-223])
+
+    /// ⌘N: copy the selection into slot N. Copy-only — NO text changes, so no history event (Trade T3). Across scenes a
+    /// STRUCTURED slot (flat text + a Range, ✅ [SP-191] built from the scene list) so ⌃⌘N rebuilds the breaks.
+    /// ✅ [I-0289]: a slot holds the BALANCED source, as ⌘C keeps for Scrivi's own paste.
+    func copyIntoBuffer(_ bufferID: String) {
+        guard let host, let storage = host.structureStorage else { return }
+        let sel = host.structureSelection
+        guard sel.length > 0 else { return }
+        if selectionCrossesBoundary(sel), let copied = copiedRange(sel), let json = try? copied.range.toJSON() {
+            session.bufferService?.load(copied.source, intoSlot: bufferID, rangeJSON: json)
+            return
+        }
+        session.bufferService?.load(presenter.balancedCopy(in: storage, sel).source, intoSlot: bufferID)
+    }
+
+    /// ⌥N: cut the selection into slot N — a `cut` history event tagged with the slot (Trade T3). The slot is loaded FIRST,
+    /// so it holds the text even if the delete is later undone. ✅ [SP-188] Across scenes: the structural cut, its Range into
+    /// the slot when it lands (Q4).
+    func cutIntoBuffer(_ bufferID: String) {
+        guard let host, let storage = host.structureStorage else { return }
+        let sel = host.structureSelection
+        guard sel.length > 0 else { return }
+        if cutAcrossScenes(sel, keeping: .buffer(bufferID)) { return }
+        guard session.bufferService?.load(presenter.balancedCopy(in: storage, sel).source, intoSlot: bufferID) == true else { return }
+        session.historyCapture?.beginCutIntoBuffer(bufferID: bufferID)
+        host.structureDeleteSelection(sel)
+        session.historyCapture?.flush(trigger: "cut", kind: "cut")
+    }
+
+    /// ⌃⌘N: paste slot N at the caret, replacing any selection — one `paste` history event; the system pasteboard is
+    /// untouched. A structured slot rebuilds its scenes, as ⌘V of a cross-scene copy; an empty slot is a silent no-op.
+    func pasteFromBuffer(_ bufferID: String) {
+        guard let host else { return }
+        if let range = session.bufferService?.range(inSlot: bufferID) {
+            _ = pasteStructuredRange(range)
+            return
+        }
+        guard let text = session.bufferService?.text(inSlot: bufferID), !text.isEmpty else { return }
+        session.historyCapture?.beginPasteOrCut(kind: "paste")
+        host.structureInsertOwnSource(text)
+        session.historyCapture?.flush(trigger: "paste", kind: "paste")
+    }
+
+    // MARK: — Replace All (moved from the Mac host, EP-055 S3b [SP-223])
+
+    /// ✅ [SP-164] Q2: Replace All is ONE undoable step, even across scenes — recorded as ONE grouped edit (as [I-0270]'s
+    /// cross-scene delete is). `edits` are storage ranges and UNescaped replacement text.
+    /// ✅ [I-0333] (SP-201, Linux's shape, `EditorShell.cpp`): it froze the window 6 s on dumas (41,300 matches), one core
+    /// call and one storage edit per match on the main thread. Now: the matches are snapped and grouped by scene here; each
+    /// scene's new text is computed OFF the main actor; the scenes go in back to front in slices of ~50 ms with the count in
+    /// the progress row. The editor takes no input meanwhile and an undo waits its turn (the structural edits' busy state).
+    /// False when there is no history to record it in (a view with no project): the host applies the edits itself.
+    func replaceAll(_ edits: [(NSRange, String)]) -> Bool {
+        guard let host, let storage = host.structureStorage, let capture = session.historyCapture else { return false }
+        guard !edits.isEmpty else { return true }
+        let loader = self.loader, presenter = self.presenter
+        guard loader.beginLocalEdit("Replacing…") else { host.structureRefuse(); return true }
+        let t0 = Date()
+        host.structureSetEditable(false)
+        let bounds = sceneBoundaries
+        let ns = storage.string as NSString
+        let runAt = ManuscriptEditRules.runLookup(presenter, storage)   // once: nothing changes the storage in this pass
+        var byScene: [Int: [(NSRange, String)]] = [:]
+        for (r, typed) in edits {
+            var range = r
+            if range.length > 0, let pair = MarkdownEscapes.snapSelection(range, in: ns, runAt: runAt) { range = pair }
+            guard let i = segmentIndex(for: range.location), bounds.indices.contains(i),
+                  loader.segments.indices.contains(i), NSMaxRange(range) <= NSMaxRange(bounds[i]) else { continue }
+            byScene[i, default: []].append((NSRange(location: range.location - bounds[i].location, length: range.length),
+                                            MarkdownEscapes.escape(typed)))
+        }
+        // Back to front, so each scene's storage range is still where the boundaries say when it is replaced.
+        let jobs = byScene.keys.sorted(by: >).map { i in (index: i, before: ns.substring(with: bounds[i]), edits: byScene[i]!) }
+        let selection = host.structureSelection
+        capture.flush(trigger: "replace")
+        let tSnapped = Date()
+        Task { @MainActor [weak self] in
+            let after = await Task.detached(priority: .userInitiated) { jobs.map { Self.replaced($0.before, $0.edits) } }.value
+            let tComputed = Date()
+            guard let self, let host = self.host, let storage = host.structureStorage else { return loader.endLocalEdit() }
+            let total = edits.count
+            var k = 0, replaced = 0
+            var grouped: [HistoryCapture.GroupedSceneEdit] = []
+            var touched: [Int] = []
+            while k < jobs.count {
+                let slice = Date()
+                capture.withApplying {
+                    // One storage edit per slice: what reacts to an edit (the presenter, the AX map) runs once for it.
+                    storage.beginEditing()
+                    defer { storage.endEditing() }
+                    while k < jobs.count, Date().timeIntervalSince(slice) < 0.05 {
+                        let job = jobs[k], text = after[k]
+                        k += 1
+                        replaced += job.edits.count
+                        let bounds = self.sceneBoundaries
+                        guard text != job.before, bounds.indices.contains(job.index),
+                              loader.segments.indices.contains(job.index) else { continue }
+                        storage.replaceCharacters(in: bounds[job.index],
+                                                  with: NSAttributedString(string: text, attributes: presenter.typography.bodyAttributes))
+                        let seg = loader.segments[job.index]
+                        loader.updateText(text, at: job.index)
+                        loader.updateLiveTitle(ManuscriptPresenter.presentedFirstLine(of: text), forSceneID: seg.sceneID)
+                        grouped.append(.init(sceneID: seg.sceneID, textBefore: job.before, textAfter: text, caret: 0))
+                        touched.append(job.index)
+                    }
+                }
+                loader.localEditProgress("Replacing \(replaced.formatted()) of \(total.formatted())…")
+                if k < jobs.count { await Task.yield(); try? await Task.sleep(for: .milliseconds(1)) }
+            }
+            let tApplied = Date()
+            capture.recordGroupedEdit(grouped.reversed(), kind: "replace")
+            let tRecorded = Date()
+            host.structurePlaceCaret(min(selection.location, storage.length), reveal: false)
+            host.structureSetEditable(true)
+            // ✅ EP-052 ([SP-195]): the touched scenes — ONLY those holding a match — are queued, written off the main
+            // thread, as the busy state ends (saves are held while it lasts).
+            let env = self.sync.env
+            let ref = self.session.authorshipRef
+            loader.endLocalEdit {
+                if let ref { loader.saveScenesOffMain(touched, engine: env.engine, ref: ref) }
+            }
+            self.session.timelineModel?.updateDotTitles(liveTitles: loader.liveTitles, allScenes: loader.allScenes)
+            NSLog(String(format: "[SCRIVI-FIND] replaceAll %d edits / %d scenes: snap=%.0f ms  compute=%.0f ms (off main)  apply=%.0f ms  history=%.0f ms",
+                         total, jobs.count, tSnapped.timeIntervalSince(t0) * 1000, tComputed.timeIntervalSince(tSnapped) * 1000,
+                         tApplied.timeIntervalSince(tComputed) * 1000, tRecorded.timeIntervalSince(tApplied) * 1000))
+            self.runDeferredSteps()
+        }
+        return true
+    }
+
+    /// One scene's text with `edits` (back to front, scene-relative, stored form) made, each kept balanced. Off the main
+    /// actor: the core reads, nothing here touches the view.
+    nonisolated static func replaced(_ scene: String, _ edits: [(NSRange, String)]) -> String {
+        let text = NSMutableString(string: scene)
+        for (r, t) in edits {
+            let w = ScriviEngine.markdownEditWindow(text, around: r)
+            let local = NSRange(location: r.location - w.location, length: r.length)
+            if let e = try? ScriviEngine.markdownBalancedEditInScene(scene: text.substring(with: w), range: local, replacement: t,
+                                                                     keepsOwnFormatting: false) {
+                text.replaceCharacters(in: NSRange(location: w.location + e.range.location, length: e.range.length),
+                                       with: e.replacement)
+            } else {
+                text.replaceCharacters(in: r, with: t)
+            }
+        }
+        return text as String
     }
 }

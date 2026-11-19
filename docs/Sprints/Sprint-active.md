@@ -1,5 +1,11 @@
 # Active Sprints
 
+*Last Updated: 2026-11-18 (**SP-223 built** — AC1–AC5 met; T-0686 → 🟠.)*
+
+*Last Updated: 2026-11-18 (**SP-223 → 🟡 ACTIVE** (user, 2026-11-18: *"activate and implement SP-223"*))*
+
+*Last Updated: 2026-11-18 (**SP-222 → ✅ CLOSED** (user, 2026-11-18: *"iPad, and Mac live passes all passed.  On the iPhone the software keyboard does not have the shortcuts, but I was able to verify all the functionality using the context menu for cut copy paste, new Scene, and new Chapter and three fingered swipe for undo/redo/branch selection.  close SP-222"*) → `Closed/Sprint-SP-222.md`. No Sprint is active.)*
+
 *Last Updated: 2026-11-18 (**SP-222 → 🟡 ACTIVE** (user, 2026-11-18: *"Q1-Q5 as recommended, activate and implement SP-222"*))*
 
 *Last Updated: 2026-11-18 (**SP-221 → ✅ CLOSED** (user, 2026-11-18: *"Mac, iPad and Linux live passes all passed, The Import... button on the mac looks the same as the other buttons.  close SP-221"*) → `Closed/Sprint-SP-221.md`. No Sprint is active.)*
@@ -150,6 +156,6 @@
 
 ---
 
-## SP-222 — `[Apple]` [EP-055] S3a: undo/redo, structural edits and cross-scene cut/copy/paste on iOS
+## SP-223 — `[Apple]` [EP-055] S3b: Find and Replace, Go To, branch marks, copy buffers and Format on iOS
 
-🟡 **ACTIVE 2026-11-18** → [`Sprint-SP-222.md`](Sprint-SP-222.md) · carries [T-0685], [T-0680] · ✅ Q1–Q5 ruled
+🟡 **ACTIVE 2026-11-18** → [`Sprint-SP-223.md`](Sprint-SP-223.md) · carries [T-0686] · ✅ Q1–Q6 ruled (Q5 amended)

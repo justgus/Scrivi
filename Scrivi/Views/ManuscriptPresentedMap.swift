@@ -1,5 +1,11 @@
+import Foundation
 #if os(macOS)
 import AppKit
+typealias PresentedMapTextView = NSTextView
+#else
+import UIKit
+typealias PresentedMapTextView = UITextView
+#endif
 
 // EP-050 S1 ([SP-171], T-0599) — THE ONE PRESENTED ⇄ STORAGE MAP.
 //
@@ -373,7 +379,7 @@ final class PresentedText: @unchecked Sendable {
 /// The LIVE map of a manuscript text view: built at the first request, then PATCHED on every character edit.
 @MainActor
 final class PresentedMap {
-    private weak var textView: NSTextView?
+    private weak var textView: PresentedMapTextView?
     private(set) var layout: PresentedLayout?
     nonisolated(unsafe) private var observer: NSObjectProtocol?
     /// Whole builds since creation — a test proves an edit PATCHES (this does not grow).
@@ -406,11 +412,13 @@ final class PresentedMap {
         return items
     }
 
-    init(textView: NSTextView) { self.textView = textView }
+    init(textView: PresentedMapTextView) { self.textView = textView }
 
     deinit { if let observer { NotificationCenter.default.removeObserver(observer) } }
 
-    private var presenter: ManuscriptPresenter? { textView?.textContentStorage?.delegate as? ManuscriptPresenter }
+    private var presenter: ManuscriptPresenter? {
+        (textView?.textLayoutManager?.textContentManager as? NSTextContentStorage)?.delegate as? ManuscriptPresenter
+    }
 
     /// The current map, building it if needed.
     func current() -> PresentedLayout? {
@@ -480,4 +488,3 @@ final class PresentedMap {
         version += 1
     }
 }
-#endif

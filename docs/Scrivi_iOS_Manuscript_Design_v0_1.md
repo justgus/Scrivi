@@ -81,6 +81,26 @@ Each host is a `ManuscriptStructureHost`: the caret, the scroll, the render, ale
 - **Redo at a branch** (Q4): an action sheet — a popover at the caret on the iPad, a sheet on the iPhone. The branch marks
   drawn in the text wait for S3b.
 
+## 4b. C4 — Find, Format, the copy buffers, branch marks (S3b, [SP-223], 2026-11-18)
+
+The same rule: the decision is shared, the host applies it.
+- **Find** (Q1): UITextView's own find bar (`isFindInteractionEnabled`), but its session searches `ManuscriptTextSearcher`
+  (`ManuscriptFind.swift`) over the shared `PresentedText` — the Mac's map, now built for both (`ManuscriptPresentedMap.swift`).
+  A match is the view's own range of STORAGE. ⛔ UITextView's default session searches storage, markers and all.
+- **Replace All**: `ManuscriptStructure.replaceAll` (moved from the Mac) — one undo step, computed off the main actor ([I-0333]).
+- **Format** (Q4): `ManuscriptPresenter.formatStep` decides (an edit, a refusal, or the pending pair); the Mac and iOS views apply
+  it. iOS gains the pending pair (typing into it, whitespace before it, ⌫ and leaving it). UIKit's ⌘B / ⌘I go to it.
+- **Copy buffers** (Q2): `ManuscriptStructure.copyIntoBuffer` / `cutIntoBuffer` / `pasteFromBuffer` (moved from the Mac); on
+  iOS the Mac's chords as key commands, the iPad's Edit menu, and a Buffers submenu in the edit menu.
+- **Branch marks** (Q3): drawn by each host (the Mac's in AppKit, iOS's as `UIButton`s in the margin); a tap opens the chooser.
+- **Go To** (Q5): the iPad menu bar's Scene, Chapter and Project menus, as the Mac; the toolbar's Go To stays on every platform.
+- **The caret and the hints** (SP-223 live pass): the Mac's caret snap (`MarkdownEscapes.snapCaret` / `snapSelection` over
+  `ManuscriptEditRules.runLookup`) and `ManuscriptPresenter.reveal`, called from `textViewDidChangeSelection`. ⛔ Missing since S1:
+  ← / → stepped through the hidden `**`, and no marker was ever shown at the caret.
+- **The iPad menu bar** (SP-223 live pass, user: *"make the iPad menus look like the … mac menus"*): the Mac's menus and order.
+  ⚠️ iPadOS builds Edit ▸ Find, Format and View only when the scene asks for `TextEditingCommands`, `TextFormattingCommands` and
+  `SidebarCommands`; without them ⌘F had no item and the `.textFormatting` / `.sidebar` groups had no menu.
+
 ## 5. Q1 — the shape
 
 | Option | What | Verdict |

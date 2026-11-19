@@ -208,10 +208,15 @@ struct ScriviApp: App {
                 .modifier(AppEventsModifier(env: env))
                 .sheet(isPresented: $showAbout) { AboutView() }
         }
-        // iPad hardware-keyboard menu bar. Deconflicted against iOS's auto-synthesized menus
-        // (no ⌘, no second "View" menu, ⇧⌘ view-toggle shortcuts) — see iosCommands. The
-        // in-view nav-bar ••• menu remains the primary surface and the only one on iPhone.
-        .commands { iosCommands }
+        // iPad hardware-keyboard menu bar: the Mac's menus (see iosCommands). The in-view nav-bar ••• menu remains the
+        // primary surface and the only one on iPhone. ✅ SP-223 live pass: the three built-in sets make iPadOS show Edit ▸
+        // Find, Format and View.
+        .commands {
+            TextEditingCommands()
+            TextFormattingCommands()
+            SidebarCommands()
+            iosCommands
+        }
         #endif
     }
 
@@ -535,12 +540,12 @@ struct ScriviApp: App {
     // iPadOS surfaces a menu bar when a hardware keyboard is attached. Without an explicit
     // .commands block iPad shows only the generic system menus (empty File, no app actions).
     //
-    // Deconflicted against the iOS-synthesized menu bar (the earlier version collided — see the
-    // note at the .commands call site):
-    //   • No ⌘, on Project Settings — iOS reserves ⌘, for the system "Settings…" item.
-    //   • No CommandMenu("View") — iOS already synthesizes a "View" menu; adding our own
-    //     duplicated it. The view toggles live in the Project menu instead.
-    //   • View toggles use ⇧⌘I / ⇧⌘T (the macOS app uses ⌥⌘I / ⌥⌘T, which collided on iOS).
+    // ✅ SP-223 live pass (user, 2026-11-18: *"make the iPad menus look like the … mac menus"*): the Mac's menus, in the Mac's
+    // order, with the Mac's shortcuts. ⚠️ iPadOS builds Edit ▸ Find, Format and View only for an app that asks for SwiftUI's
+    // `TextEditingCommands`, `TextFormattingCommands` and `SidebarCommands` (the call site) — without them ⌘F had no item, the
+    // Format group had no menu to go in, and View was not shown.
+    //   • No ⌘, on Project Settings — iOS reserves ⌘, for the Settings… item; ⌥⌘, as on the Mac.
+    //   • No Show Buffers (no buffers palette on iOS yet — SP-223 Q2) and no Show Log Folder (no Finder).
     // Actions target the single active session.
     @CommandsBuilder
     private var iosCommands: some Commands {
@@ -575,6 +580,34 @@ struct ScriviApp: App {
             .disabled(env.activeSession == nil)
         }
 
+        CommandMenu("Project") {
+            Button("Purge Stale History Branches…") {
+                env.activeSession?.showStaleBranches = true
+            }
+            .disabled(env.activeSession == nil)
+
+            // ✅ SP-223 Q5: as the Mac ([T-0574]: ⇧⌘0 / ⇧⌘1).
+            Divider()
+            Button("Go to Manuscript Start") { env.activeSession?.manuscriptStartAction?() }
+                .keyboardShortcut("0", modifiers: [.command, .shift])
+                .disabled(env.activeSession?.manuscriptStartAction == nil)
+            Button("Go to Manuscript End") { env.activeSession?.manuscriptEndAction?() }
+                .keyboardShortcut("1", modifiers: [.command, .shift])
+                .disabled(env.activeSession?.manuscriptEndAction == nil)
+
+            Divider()
+            Button("Project Settings…") {
+                env.activeSession?.showProjectSettings = true
+            }
+            .keyboardShortcut(",", modifiers: [.command, .option])
+            .disabled(env.activeSession == nil)
+        }
+
+        CommandMenu("Worlds") {
+            Button("Manage Worlds…") { env.activeSession?.showWorlds = true }
+                .disabled(env.activeSession == nil)
+        }
+
         // ✅ EP-055 S3a (SP-222 Q3): the Mac's Scene and Chapter edits. The keys are the manuscript's own (its key commands
         // take them ahead of the system's ⌘⌫), so the chord is shown in the title, as on the Mac.
         CommandMenu("Scene") {
@@ -582,48 +615,108 @@ struct ScriviApp: App {
                 .disabled(env.activeSession?.createSceneAction == nil)
             Button("Merge Scene with Previous  (⌘⌫)") { env.activeSession?.mergeSceneAction?() }
                 .disabled(env.activeSession?.mergeSceneAction == nil)
+            // ✅ SP-223 Q5: the Mac's Go To items in the Mac's places; the toolbar's Go To stays.
+            Divider()
+            Button("Go to Scene Start") { env.activeSession?.sceneStartAction?() }
+                .disabled(env.activeSession?.sceneStartAction == nil)
+            Button("Go to Scene End") { env.activeSession?.sceneEndAction?() }
+                .disabled(env.activeSession?.sceneEndAction == nil)
         }
         CommandMenu("Chapter") {
             Button("New Chapter  (⇧⌘↩)") { env.activeSession?.createChapterAction?() }
                 .disabled(env.activeSession?.createChapterAction == nil)
             Button("Merge Chapter with Previous  (⇧⌘⌫)") { env.activeSession?.mergeChapterAction?() }
                 .disabled(env.activeSession?.mergeChapterAction == nil)
-        }
-
-        CommandMenu("Project") {
-            Button("Project Settings…") {
-                env.activeSession?.showProjectSettings = true
-            }
-            .disabled(env.activeSession == nil)
-            Button("Purge Stale History Branches…") {
-                env.activeSession?.showStaleBranches = true
-            }
-            .disabled(env.activeSession == nil)
-
             Divider()
-
-            if let session = env.activeSession {
-                // SP-199 live pass: as a Toggle, ⌘-shortcut showed a panel but did not hide it again. A Button flips the live
-                // value, so it cannot depend on the menu having re-read the session (the suspected cause, not yet proven).
-                Button("Show or Hide Scene Inspector") { session.inspectorVisible.toggle() }
-                    .keyboardShortcut("i", modifiers: [.command, .shift])
-                Button("Show or Hide Timeline") { session.timelineVisible.toggle() }
-                    .keyboardShortcut("t", modifiers: [.command, .shift])
-                Toggle("Show World Warnings", isOn: Bindable(session).worldWarningVisible)
-            } else {
-                Toggle("Show Scene Inspector", isOn: .constant(false))
-                    .keyboardShortcut("i", modifiers: [.command, .shift])
-                    .disabled(true)
-                Toggle("Show Timeline", isOn: .constant(false))
-                    .keyboardShortcut("t", modifiers: [.command, .shift])
-                    .disabled(true)
-                Toggle("Show World Warnings", isOn: .constant(false))
-                    .disabled(true)
-            }
+            Button("Go to Chapter Start") { env.activeSession?.chapterStartAction?() }
+                .disabled(env.activeSession?.chapterStartAction == nil)
+            Button("Go to Chapter End") { env.activeSession?.chapterEndAction?() }
+                .disabled(env.activeSession?.chapterEndAction == nil)
         }
+
+        iosEditAndFormatCommands   // ⚠️ its own builder: a `CommandsBuilder` takes at most ten entries
 
         CommandGroup(replacing: .appInfo) {
             Button("About Scrivi") { showAbout = true }
+        }
+        CommandGroup(after: .appInfo) {
+            Button("User Manual") { }
+                .disabled(true)
+        }
+    }
+
+    @CommandsBuilder
+    private var iosEditAndFormatCommands: some Commands {
+        // ✅ EP-055 S3b (SP-223 Q4): the Mac's Format menu and shortcuts, in the system Format menu's place.
+        CommandGroup(replacing: .textFormatting) {
+            let format = env.activeSession?.formatAction
+            Button("Bold") { format?(.bold) }.keyboardShortcut("b", modifiers: .command)
+                .disabled(format == nil)
+            Button("Italic") { format?(.italic) }.keyboardShortcut("i", modifiers: .command)
+                .disabled(format == nil)
+            Divider()
+            Button("Heading 1") { format?(.heading(1)) }.keyboardShortcut("1", modifiers: [.command, .option])
+                .disabled(format == nil)
+            Button("Heading 2") { format?(.heading(2)) }.keyboardShortcut("2", modifiers: [.command, .option])
+                .disabled(format == nil)
+            Button("Heading 3") { format?(.heading(3)) }.keyboardShortcut("3", modifiers: [.command, .option])
+                .disabled(format == nil)
+            Button("Body") { format?(.body) }.keyboardShortcut("0", modifiers: [.command, .option])
+                .disabled(format == nil)
+            Divider()
+            Button("Bulleted List") { format?(.bulletList) }.keyboardShortcut("l", modifiers: [.command, .option])
+                .disabled(format == nil)
+            Button("Numbered List") { format?(.numberedList) }.keyboardShortcut("n", modifiers: [.command, .option])
+                .disabled(format == nil)
+        }
+
+        // ✅ The Mac's View items, after the sidebar's. SP-199 live pass: as a Toggle, the inspector and timeline shortcuts
+        // showed a panel but did not hide it again; a Button flips the live value (the suspected cause, not yet proven).
+        CommandGroup(after: .sidebar) {
+            let session = env.activeSession
+            Button("Show or Hide Scene Inspector") { session?.inspectorVisible.toggle() }
+                .keyboardShortcut("i", modifiers: [.command, .option])
+                .disabled(session == nil)
+            Button("Show or Hide Timeline") { session?.timelineVisible.toggle() }
+                .keyboardShortcut("t", modifiers: [.command, .option])
+                .disabled(session == nil)
+            if let session {
+                Toggle("Show World Warnings", isOn: Bindable(session).worldWarningVisible)
+            } else {
+                Toggle("Show World Warnings", isOn: .constant(false)).disabled(true)
+            }
+            Divider()
+            // ✅ EP-047 S4 ([T-0589], P11): ⇧⌘H, per project. ⛔ It was not on iOS at all, so the branch marks could not be shown.
+            if let prefs = session?.projectPreferences {
+                Toggle("Show Markup Hints", isOn: Bindable(prefs).markupHints)
+                    .keyboardShortcut("h", modifiers: [.command, .shift])
+            } else {
+                Toggle("Show Markup Hints", isOn: .constant(true))
+                    .keyboardShortcut("h", modifiers: [.command, .shift])
+                    .disabled(true)
+            }
+        }
+
+        // ✅ SP-223 Q2: the copy buffers in Edit, as on the Mac. The chords are the manuscript's own key commands (as the
+        // Mac's keyDown owns them), so each submenu names its chord instead of taking it.
+        CommandGroup(after: .pasteboard) {
+            let buffers = env.activeSession?.bufferService
+            Divider()
+            Menu("Copy To Buffer") {
+                Text("⌘1–9 — copy the selection")
+                ForEach(BufferService.slotIDs, id: \.self) { id in Button("Buffer \(id)") { buffers?.loadSelectionHandler?(id) } }
+            }
+            .disabled(buffers == nil)
+            Menu("Paste From Buffer") {
+                Text("⌃⌘1–9 — paste at the cursor")
+                ForEach(BufferService.slotIDs, id: \.self) { id in Button("Buffer \(id)") { buffers?.pasteFromBufferHandler?(id) } }
+            }
+            .disabled(buffers == nil)
+            Menu("Cut To Buffer") {
+                Text("⌥1–9 — cut the selection")
+                ForEach(BufferService.slotIDs, id: \.self) { id in Button("Buffer \(id)") { buffers?.cutIntoBufferHandler?(id) } }
+            }
+            .disabled(buffers == nil)
         }
     }
 }

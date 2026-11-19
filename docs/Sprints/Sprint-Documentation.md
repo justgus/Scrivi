@@ -490,7 +490,8 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-219** | `[Cross]` **[EP-054] S6b** — `.docx` import (T-0682) | EP-054 | 2026-11-15 | 2026-11-17 | ✅ **CLOSED** → [`Closed/Sprint-SP-219.md`](Closed/Sprint-SP-219.md) |
 | **SP-220** | `[Cross]` **[EP-054] S7** — Scrivener import (T-0683) | EP-054 | 2026-11-17 | 2026-11-17 | ✅ **CLOSED** → [`Closed/Sprint-SP-220.md`](Closed/Sprint-SP-220.md) |
 | **SP-221** | `[Apple]` + `[Linux]` **[EP-054] AC8** — the Landing's Import… (T-0681) | EP-054 | 2026-11-17 | 2026-11-18 | ✅ **CLOSED** → [`Closed/Sprint-SP-221.md`](Closed/Sprint-SP-221.md) |
-| **SP-222** | `[Apple]` **[EP-055] S3a** — undo/redo, structural edits, cross-scene clipboard on iOS (T-0685) | EP-055 | 2026-11-18 | — | 🟡 **ACTIVE** 2026-11-18 → [`Sprint-SP-222.md`](Sprint-SP-222.md) |
+| **SP-222** | `[Apple]` **[EP-055] S3a** — undo/redo, structural edits, cross-scene clipboard on iOS (T-0685) | EP-055 | 2026-11-18 | 2026-11-18 | ✅ **CLOSED** → [`Closed/Sprint-SP-222.md`](Closed/Sprint-SP-222.md) |
+| **SP-223** | `[Apple]` **[EP-055] S3b** — Find and Replace, Go To, branch marks, copy buffers, Format on iOS (T-0686) | EP-055 | 2026-11-18 | — | 🟡 **ACTIVE** 2026-11-18 → [`Sprint-SP-223.md`](Sprint-SP-223.md) |
 | **SP-160** | `[Linux]` **[EP-049] S1** — Linux writes Apple's manuscript format: escaping, paste/copy, pair deletion, Return/⌫, shared corpus (T-0586); + I-0276 | EP-049 | 2026-10-04 | 2026-10-04 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-160.md) |
 
 ## Statistics
@@ -530,6 +531,12 @@ by status, read the table.**
 > on neither time. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-11-18 (**SP-223 → 🟡 ACTIVE** (user, 2026-11-18: *"activate and implement SP-223"*))*
+
+*Last Updated: 2026-11-18 (**SP-223 created in 🔵 Planning** (user, 2026-11-18: *"plan S3b for EP-055"*), issued via `next-id.py`; Q1–Q6 to rule.)*
+
+*Last Updated: 2026-11-18 (**SP-222 → ✅ CLOSED** (user, 2026-11-18: *"iPad, and Mac live passes all passed.  On the iPhone the software keyboard does not have the shortcuts, but I was able to verify all the functionality using the context menu for cut copy paste, new Scene, and new Chapter and three fingered swipe for undo/redo/branch selection.  close SP-222"*) → `Closed/Sprint-SP-222.md`.)*
 
 *Last Updated: 2026-11-18 (**SP-222 → 🟡 ACTIVE** (user, 2026-11-18: *"Q1-Q5 as recommended, activate and implement SP-222"*))*
 

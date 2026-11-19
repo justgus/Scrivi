@@ -94,4 +94,31 @@ extension ManuscriptPresenter {
             return texts
         }
     }
+
+    /// What a Format command does here — decided once for both hosts (EP-055 S3b, [SP-223]); each host applies it.
+    enum FormatStep {
+        /// ONE edit — one history event.
+        case edit(CommandEdit)
+        case refuse
+        /// ✅ [SP-163] Q1: the same command on a pending pair takes it away again.
+        case removePending
+        /// ✅ [SP-163] Q1: BETWEEN words → a pending pair, the caret between its hints.
+        case insertPending(at: Int, markers: String)
+    }
+
+    func formatStep(_ format: ManuscriptFormat, in ts: NSAttributedString, selection sel: NSRange) -> FormatStep {
+        switch format {
+        case .bold, .italic:
+            let bit = format == .bold ? MarkdownBlocks.bold : MarkdownBlocks.italic
+            if sel.length > 0 { return emphasisEdit(in: ts, selection: sel, bit: bit).map(FormatStep.edit) ?? .refuse }
+            if let p = pending, sel.location == p.caret { return .removePending }
+            // ✅ Q1: IN a word → format the word, the caret stays where it was.
+            if let word = wordRange(in: ts, at: sel.location) {
+                return emphasisEdit(in: ts, selection: word, bit: bit, caret: sel.location).map(FormatStep.edit) ?? .refuse
+            }
+            return .insertPending(at: sel.location, markers: format == .bold ? "**" : "*")
+        case .heading, .body, .bulletList, .numberedList:
+            return paragraphEdit(in: ts, selection: sel, format: format).map(FormatStep.edit) ?? .refuse
+        }
+    }
 }

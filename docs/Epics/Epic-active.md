@@ -1,5 +1,13 @@
 # Active Epics
 
+*Last Updated: 2026-11-18 (**EP-055: S3b = [SP-223] → 🟡 Active** (user, 2026-11-18: *"activate and implement SP-223"*))*
+
+*Last Updated: 2026-11-18 (**EP-055: S3b = [SP-223]** created in 🔵 Planning (user, 2026-11-18: *"plan S3b for EP-055"*); Q1–Q6 to rule.)*
+
+*Last Updated: 2026-11-18 (**EP-054 AC8 ✅ met** (user, 2026-11-18: *"We tested the import/export surfaces on the iPhone already.  YOu can mark that AC as met."*); only AC4 (AO3, [T-0667]) remains.)*
+
+*Last Updated: 2026-11-18 (**EP-055: S3a = [SP-222] ✅ CLOSED** (user, 2026-11-18: *"iPad, and Mac live passes all passed.  On the iPhone the software keyboard does not have the shortcuts, but I was able to verify all the functionality using the context menu for cut copy paste, new Scene, and new Chapter and three fingered swipe for undo/redo/branch selection.  close SP-222"*); EP-054's [T-0680] ✅ Verified with it.)*
+
 *Last Updated: 2026-11-18 (**EP-055: S3a = [SP-222] → 🟡 Active** (user, 2026-11-18: *"Q1-Q5 as recommended, activate and implement SP-222"*))*
 
 *Last Updated: 2026-11-18 (**EP-055: S3a = [SP-222]** created in 🔵 Planning (user, 2026-11-18: *"…proceed with EP-055."*); Q1–Q5 to rule. EP-054's AO3 check ([T-0667]) tabled until ~2026-12-01.)*
@@ -152,7 +160,7 @@ and `scrivi_import_from_inbox`. A scene's text is Markdown (`.md`), so Markdown 
 - [x] AC6 — Import from Markdown / text, `.docx` and Scrivener, with chapters and scenes mapped and nothing dropped
       silently (what can't be mapped is reported) — ✅ **met 2026-11-18** ([SP-218], [SP-219], [SP-220])
 - [x] AC7 — Every format boundary-tested through `scrivi_*`, with round-trip fixtures — ✅ **met 2026-11-18** (every Sprint's boundary tests and fixtures, [SP-205]–[SP-220])
-- [ ] AC8 — The surfaces on Mac, iPad/iPhone and Linux, each live-passed on its platform
+- [x] AC8 — The surfaces on Mac, iPad/iPhone and Linux, each live-passed on its platform — ✅ **met 2026-11-18** (each Sprint's live passes, [SP-215]–[SP-222]; user, 2026-11-18: *"We tested the import/export surfaces on the iPhone already.  YOu can mark that AC as met."*)
 - [x] AC9 — ➕ *(2026-11-10, user)* Every export carries the byline — the project's ordered authors — on its title page and in
       its metadata ([EP-058] design Q6); ✅ **unblocked** — [EP-058] S1 ([SP-209]) closed 2026-11-11; EP-054 cannot complete without it — ✅ **met 2026-11-12** ([SP-212]: Markdown, HTML, `.docx`; the same bytes on the Mac and Linux)
 
@@ -181,7 +189,7 @@ boundary tests through `scrivi_*` with a round trip whose undo/redo replays iden
 fixtures). **S2 = [SP-206]** then puts File ▸ Export Archive… / Import Archive… on the Mac, Linux and iPad.
 
 **Sprints** (S3–S7 provisional): **S0 = [SP-193]** (✅ Closed 2026-10-25): fix before the alpha ([I-0306], [I-0313], [I-0202]) and one version everywhere ([T-0622]) · **S1 = [SP-205]** archive + worlds (core, [T-0664]) ✅ Closed 2026-11-06 · **S2 = [SP-206]** archive surfaces (Mac, Linux, iPad, [T-0665]) ✅ Closed 2026-11-09 · **S3 = [SP-207]** Markdown + HTML export ([T-0666], [I-0357]) ✅ Closed 2026-11-09; the AO3 paste → [T-0667] ·
-**S4 = [SP-208]** `.docx` export ([T-0668]) ✅ Closed 2026-11-10; the iPad pass → [T-0669] · **AC9 = [SP-212]** the byline ([T-0673]) ✅ Closed 2026-11-12 · **S5 = [SP-213]** ePub ([T-0674]) ✅ Closed 2026-11-12 · **S5b = [SP-214]** PDF ([T-0675]) ✅ Closed 2026-11-13 · **[SP-215]** File ▸ Import / Export, Export ▸ Chapter…, the iPad's timeline ([T-0676]), the formats as submenus ([T-0678]) ✅ Closed 2026-11-13 · **[SP-216]** Linux's start window gets the project window's menu bar ([T-0677]) ✅ Closed 2026-11-13 · **S6a = [SP-218]** Markdown + plain-text import ([T-0679]) ✅ Closed 2026-11-15; Into This Project on the iPad → [T-0680] · **S6b = [SP-219]** `.docx` import ([T-0682]; pugixml and the mapping ruled in [SP-218] Q6–Q7) ✅ Closed 2026-11-17 · **S7 = [SP-220]** Scrivener import ([T-0683]) ✅ Closed 2026-11-17 · **AC8 = [SP-221]** the Landing's Import… ([T-0681], moved in 2026-11-17) ✅ Closed 2026-11-18. Each with live passes.
+**S4 = [SP-208]** `.docx` export ([T-0668]) ✅ Closed 2026-11-10; the iPad pass → [T-0669] · **AC9 = [SP-212]** the byline ([T-0673]) ✅ Closed 2026-11-12 · **S5 = [SP-213]** ePub ([T-0674]) ✅ Closed 2026-11-12 · **S5b = [SP-214]** PDF ([T-0675]) ✅ Closed 2026-11-13 · **[SP-215]** File ▸ Import / Export, Export ▸ Chapter…, the iPad's timeline ([T-0676]), the formats as submenus ([T-0678]) ✅ Closed 2026-11-13 · **[SP-216]** Linux's start window gets the project window's menu bar ([T-0677]) ✅ Closed 2026-11-13 · **S6a = [SP-218]** Markdown + plain-text import ([T-0679]) ✅ Closed 2026-11-15; Into This Project on the iPad → [T-0680] ✅ Verified 2026-11-18 (in [SP-222], Q5) · **S6b = [SP-219]** `.docx` import ([T-0682]; pugixml and the mapping ruled in [SP-218] Q6–Q7) ✅ Closed 2026-11-17 · **S7 = [SP-220]** Scrivener import ([T-0683]) ✅ Closed 2026-11-17 · **AC8 = [SP-221]** the Landing's Import… ([T-0681], moved in 2026-11-17) ✅ Closed 2026-11-18. Each with live passes.
 **Depends on:** ✅ **[EP-058]** (Authorship) S1 for AC9 — met 2026-11-11 ([SP-209]) — added 2026-11-10 (user: *"it must be in place before we can finish
 the current Epic"*). ⚠️ [EP-055] needs S1–S2 on iPad to move projects onto it, unless iCloud Drive does (see
 EP-055 Q2).
@@ -190,7 +198,7 @@ EP-055 Q2).
 
 ## EP-055: `[Apple]` **iPad and iPhone** — the manuscript first, then the full app on iPad and a phone surface
 
-**Status:** 🟡 **ACTIVE** 2026-10-29 — S1 = [SP-198] ✅ closed 2026-11-03; S2 = [SP-199] ✅ closed 2026-11-03 (panels by size class, gestures, toolbar); **S3a = [SP-222]** (undo/redo, structural edits, cross-scene clipboard — AC5's first half, [T-0685]) 🟡 Active 2026-11-18. Created 2026-10-24 as a Draft; activated 2026-10-29 (user:
+**Status:** 🟡 **ACTIVE** 2026-10-29 — S1 = [SP-198] ✅ closed 2026-11-03; S2 = [SP-199] ✅ closed 2026-11-03 (panels by size class, gestures, toolbar); **S3a = [SP-222]** (undo/redo, structural edits, cross-scene clipboard — AC5's first half, [T-0685]) ✅ Closed 2026-11-18; **S3b = [SP-223]** (Find and Replace, Go To, branch marks, copy buffers, Format — AC5's second half, [T-0686]) 🟡 Active 2026-11-18. Created 2026-10-24 as a Draft; activated 2026-10-29 (user:
 *"Activate EP-055"*), with the manuscript ruled first (user, 2026-10-29: *"In the iOS version, we should focus on the
 Manuscript View first."*).
 **Codebase:** `[Apple]` (`Scrivi/`, the `ScriviApp-iOS` target). The core is shared and already cross-builds for iOS.
