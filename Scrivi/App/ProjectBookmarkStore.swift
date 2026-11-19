@@ -18,16 +18,25 @@ import os
 enum ProjectBookmarkStore {
 
     private static let key = "scrivi.projectBookmarks.v1"
+
+    // [SP-224] `.withSecurityScope` exists on macOS only; iOS records a `.minimalBookmark` and resolves with no options (Apple,
+    // "Providing access to directories").
+    #if os(macOS)
+    static let recordOptions: URL.BookmarkCreationOptions = .withSecurityScope
+    static let resolveOptions: URL.BookmarkResolutionOptions = .withSecurityScope
+    #else
+    static let recordOptions: URL.BookmarkCreationOptions = .minimalBookmark
+    static let resolveOptions: URL.BookmarkResolutionOptions = []
+    #endif
     private static let log = Logger(subsystem: "com.caposoft.scrivi", category: "Bookmarks")
 
     // Records (or refreshes) the bookmark for a project the user just opened.
     // `url` is the directory the user picked; `projectID` is the opened project's id.
     static func record(projectID: String, url: URL) {
         guard !projectID.isEmpty else { return }
-        #if os(macOS)
         do {
             let data = try url.bookmarkData(
-                options: .withSecurityScope,
+                options: recordOptions,
                 includingResourceValuesForKeys: nil,
                 relativeTo: nil
             )
@@ -38,7 +47,6 @@ enum ProjectBookmarkStore {
         } catch {
             log.error("failed to record bookmark for \(projectID, privacy: .public): \(String(describing: error), privacy: .public)")
         }
-        #endif
     }
 
     // Resolves a projectID to its path, re-acquiring security-scoped access.
@@ -47,12 +55,11 @@ enum ProjectBookmarkStore {
     // url.stopAccessingSecurityScopedResource() when done with the project.
     static func resolve(projectID: String) -> (url: URL, didStartAccess: Bool)? {
         guard !projectID.isEmpty, let data = bookmarks()[projectID] else { return nil }
-        #if os(macOS)
         var isStale = false
         do {
             let url = try URL(
                 resolvingBookmarkData: data,
-                options: .withSecurityScope,
+                options: resolveOptions,
                 relativeTo: nil,
                 bookmarkDataIsStale: &isStale
             )
@@ -67,9 +74,6 @@ enum ProjectBookmarkStore {
             log.error("failed to resolve bookmark for \(projectID, privacy: .public): \(String(describing: error), privacy: .public)")
             return nil
         }
-        #else
-        return nil
-        #endif
     }
 
     static func hasBookmark(projectID: String) -> Bool {

@@ -1,5 +1,9 @@
 # Task Backlog
 
+*Last Updated: 2026-11-19 (**T-0687 → active** with [SP-224]'s activation → `Task-active.md`.)*
+
+*Last Updated: 2026-11-19 (**T-0687 filed** — EP-055 S4, carried by [SP-224] (🔵 Planning) (user, 2026-11-19: *"go, plan SP-224"*).)*
+
 *Last Updated: 2026-11-18 (**T-0686 → active** with [SP-223]'s activation → `Task-active.md`.)*
 
 *Last Updated: 2026-11-18 (**T-0686 filed** — EP-055 S3b, carried by [SP-223] (🔵 Planning) (user, 2026-11-18: *"plan S3b for EP-055"*).)*
@@ -892,3 +896,4 @@ writer needs to see which package is open.
 
 **Scope:** Apple (Mac and iOS) and Linux, the same shape (Linux adopts Apple's). The path is selectable for copying, like the
 scene timestamps, and read-only.
+

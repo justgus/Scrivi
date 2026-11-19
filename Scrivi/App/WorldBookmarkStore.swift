@@ -35,10 +35,9 @@ enum WorldBookmarkStore {
     // the bookmark captures.
     static func record(worldID: String, url: URL) {
         guard !worldID.isEmpty else { return }
-        #if os(macOS)
         do {
             let data = try url.bookmarkData(
-                options: .withSecurityScope,
+                options: ProjectBookmarkStore.recordOptions,
                 includingResourceValuesForKeys: nil,
                 relativeTo: nil
             )
@@ -51,7 +50,6 @@ enum WorldBookmarkStore {
         } catch {
             log.error("failed to record world bookmark for \(worldID, privacy: .public): \(String(describing: error), privacy: .public)")
         }
-        #endif
     }
 
     // Re-acquires access to a single world. Returns true when this process holds
@@ -59,7 +57,6 @@ enum WorldBookmarkStore {
     @discardableResult
     static func activate(worldID: String) -> Bool {
         guard !worldID.isEmpty else { return false }
-        #if os(macOS)
         lock.lock()
         if active[worldID] != nil {
             lock.unlock()
@@ -74,7 +71,7 @@ enum WorldBookmarkStore {
         do {
             let url = try URL(
                 resolvingBookmarkData: data,
-                options: .withSecurityScope,
+                options: ProjectBookmarkStore.resolveOptions,
                 relativeTo: nil,
                 bookmarkDataIsStale: &isStale
             )
@@ -95,9 +92,6 @@ enum WorldBookmarkStore {
             log.error("failed to resolve world bookmark for \(worldID, privacy: .public): \(String(describing: error), privacy: .public)")
             return false
         }
-        #else
-        return false
-        #endif
     }
 
     // Re-acquires access to every world this project binds. Called BEFORE the

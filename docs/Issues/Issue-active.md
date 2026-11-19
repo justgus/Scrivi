@@ -1,5 +1,9 @@
 # Active Issues
 
+*Last Updated: 2026-11-19 — **I-0364, I-0365 → ✅ Verified** (user, 2026-11-19: *"all steps pass, close SP-224"*) and archived → `Verified/Issue-verified-0361-0370.md` with [SP-224]'s close.*
+
+*Last Updated: 2026-11-19 — **I-0364, I-0365 filed → 🟠 Resolved - Not Verified** (found in [SP-224]'s iPad and iPhone Duo live pass, user 2026-11-19).*
+
 *Last Updated: 2026-11-15 — **I-0362, I-0363 archived** → `Verified/Issue-verified-0361-0370.md` with [SP-218]'s close (user, 2026-11-15: *"close SP-218 then plan S6b."*).*
 
 *Last Updated: 2026-11-15 — **I-0363 → ✅ Verified** (user, 2026-11-15: *"pushed and rebuilt on the VM. Ran Linux steps 1-5. all passed."*).*

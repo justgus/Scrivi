@@ -1,5 +1,11 @@
 # Active Sprints
 
+*Last Updated: 2026-11-19 (**SP-224 → ✅ CLOSED** (user, 2026-11-19: *"all steps pass, close SP-224"*) → `Closed/Sprint-SP-224.md`; T-0687, I-0364, I-0365 ✅ Verified. No Sprint is active.)*
+
+*Last Updated: 2026-11-19 (**SP-224 built** — AC1–AC3 met; AC4 awaits CI; T-0687 → 🟠.)*
+
+*Last Updated: 2026-11-19 (**SP-224 → 🟡 ACTIVE** (user, 2026-11-19: *"Q1-Q3 as recommended, … activate and implement SP-224"*))*
+
 *Last Updated: 2026-11-19 (**SP-223 → ✅ CLOSED** (user, 2026-11-19: *"yes, close SP-223 and verify T-0686"*); T-0686 ✅ Verified)*
 
 *Last Updated: 2026-11-18 (**SP-223 built** — AC1–AC5 met; T-0686 → 🟠.)*

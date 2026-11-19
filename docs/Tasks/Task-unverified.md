@@ -1,5 +1,9 @@
 # Unverified Tasks
 
+*Last Updated: 2026-11-19 (**T-0687 → ✅ Verified** (user, 2026-11-19: *"all steps pass, close SP-224"*) → `Verified/Task-verified-0687.md`)*
+
+*Last Updated: 2026-11-19 (**T-0687 → 🟠 Implemented - Not Verified** ([SP-224] built); the live passes are the user's.)*
+
 *Last Updated: 2026-11-19 (**T-0686 → ✅ Verified** (user, 2026-11-19: *"yes, close SP-223 and verify T-0686"*) → `Verified/Task-verified-0686.md`)*
 
 *Last Updated: 2026-11-18 (**T-0686 → 🟠 Implemented - Not Verified** ([SP-223] built); the live passes are the user's.)*

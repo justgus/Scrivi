@@ -1,5 +1,13 @@
 # Active Epics
 
+*Last Updated: 2026-11-19 (**EP-055: S4 = [SP-224] ✅ CLOSED** (user, 2026-11-19: *"all steps pass, close SP-224"*); **AC7 ✅ met**.)*
+
+*Last Updated: 2026-11-19 (**EP-055: S4 = [SP-224] → 🟡 Active** (user, 2026-11-19: *"Q1-Q3 as recommended, … activate and implement SP-224"*); built.)*
+
+*Last Updated: 2026-11-19 (**EP-055: S4 = [SP-224]** created in 🔵 Planning (user, 2026-11-19: *"go, plan SP-224"*); AC6 gains pointer and Pencil hover, and world Create / Add Existing (user).)*
+
+*Last Updated: 2026-11-19 (**EP-055: AC6–AC9 planned** — Q1, Q2, Q9–Q11 ruled (user, 2026-11-19); iPad multi-window out of scope; [T-0657] into AC6; the Mac on TestFlight (AC9).)*
+
 *Last Updated: 2026-11-19 (**EP-055: S3b = [SP-223] ✅ CLOSED** (user, 2026-11-19: *"yes, close SP-223 and verify T-0686"*); **AC5 ✅ met** (S3a + S3b))*
 
 *Last Updated: 2026-11-18 (**EP-055: S3b = [SP-223] → 🟡 Active** (user, 2026-11-18: *"activate and implement SP-223"*))*
@@ -200,7 +208,7 @@ EP-055 Q2).
 
 ## EP-055: `[Apple]` **iPad and iPhone** — the manuscript first, then the full app on iPad and a phone surface
 
-**Status:** 🟡 **ACTIVE** 2026-10-29 — S1 = [SP-198] ✅ closed 2026-11-03; S2 = [SP-199] ✅ closed 2026-11-03 (panels by size class, gestures, toolbar); **S3a = [SP-222]** (undo/redo, structural edits, cross-scene clipboard — AC5's first half, [T-0685]) ✅ Closed 2026-11-18; **S3b = [SP-223]** (Find and Replace, Go To, branch marks, copy buffers, Format — AC5's second half, [T-0686]) ✅ Closed 2026-11-19. Created 2026-10-24 as a Draft; activated 2026-10-29 (user:
+**Status:** 🟡 **ACTIVE** 2026-10-29 — S1 = [SP-198] ✅ closed 2026-11-03; S2 = [SP-199] ✅ closed 2026-11-03 (panels by size class, gestures, toolbar); **S3a = [SP-222]** (undo/redo, structural edits, cross-scene clipboard — AC5's first half, [T-0685]) ✅ Closed 2026-11-18; **S3b = [SP-223]** (Find and Replace, Go To, branch marks, copy buffers, Format — AC5's second half, [T-0686]) ✅ Closed 2026-11-19; **S4 = [SP-224]** (projects and worlds survive a relaunch; open from the Files app — AC7, [T-0687]) ✅ Closed 2026-11-19. Created 2026-10-24 as a Draft; activated 2026-10-29 (user:
 *"Activate EP-055"*), with the manuscript ruled first (user, 2026-10-29: *"In the iOS version, we should focus on the
 Manuscript View first."*).
 **Codebase:** `[Apple]` (`Scrivi/`, the `ScriviApp-iOS` target). The core is shared and already cross-builds for iOS.
@@ -235,7 +243,9 @@ surface, all delivered by **TestFlight**.
 **Scope:** the manuscript editor on UIKit (TextKit 2) sharing the presenter and Markdown model, with the system's default
 keyboard and layout behaviour (Q8); an iOS test target; then navigator, inspector card stack, timeline, worlds and detail sheets; undo/redo
 with the session question, the branch chooser and mark; buffers and keyboard shortcuts; Find; project settings; file
-access (Files, iCloud Drive, external drives on iPad); iPad multi-window; a phone layout; TestFlight delivery.
+access (Files, iCloud Drive, external drives on iPad); a phone layout; TestFlight delivery.
+⛔ **Out of scope: iPad multi-window** (user, 2026-11-19: *"I'm not willing to even consider multi-window support on the iPad"*;
+Q10). A tabbed main window holding several projects may be considered later, not now.
 
 **Acceptance Criteria:**
 - [x] AC1 — ✅ [SP-198] (closed 2026-11-03) — A gap audit of the manuscript editor's host: every behaviour in `ManuscriptTextView.swift`, AppKit-bound or
@@ -247,26 +257,38 @@ access (Files, iCloud Drive, external drives on iPad); iPad multi-window; a phon
 - [x] AC4 — ✅ [SP-198] (closed 2026-11-03) — An iOS test target, run on the simulator, covering the manuscript's behaviour
 - [x] AC5 — Structural edits, undo/redo and Find in the manuscript on iOS — ✅ **met 2026-11-19** ([SP-222], [SP-223]; incl. **Find and
       Replace**, and **Go to Scene / Chapter / Manuscript Begin and End**, user, 2026-11-01)
-- [ ] AC6 — Navigator, inspector, timeline, worlds and detail sheets on iPad
-- [ ] AC7 — Projects opened from, and kept on, the places the testers use (Q2), surviving app relaunch
-- [ ] AC8 — The phone surface, per Q1's feature set
-- [ ] AC9 — TestFlight builds for iPad/iPhone (and the Mac, per the delivery ruling), installable by external testers
+- [ ] AC6 — Navigator, inspector, timeline, worlds and detail sheets on iPad: incl. creating, adding and relinking a world (all three
+      refused on iOS today, `WorldsView.swift:295,368,408`; confirmed by the user 2026-11-19), the timeline's touch
+      gestures (tap a dot to select its scene, tap an aggregate dot to list and select its scenes, drag a dot to a new
+      position; the Mac does these by hover and drag, `TimelineStripView.swift:1064–1131`) **and the Mac's hover where the iPad has it**
+      (a trackpad or mouse pointer, Apple Pencil hover; user, 2026-11-19), and the Navigator's collapsible chapters
+      ([T-0657], Q11)
+- [x] AC7 — ✅ **met 2026-11-19** ([SP-224]) — Projects opened from, and kept on, the places the testers use (Q2), surviving app relaunch;
+      opened from the Files app too ([I-0364])
+- [ ] AC8 — The phone surface, per Q1: the whole app at compact width, the worlds sheet reformatted for it
+- [ ] AC9 — TestFlight builds for iPad/iPhone **and the Mac** (Q9), installable by external testers
 - [ ] AC10 — Live passes on a real iPad, a real iPhone and the Duo (simulator until the device arrives, Q6)
 
 **Questions:**
 
 | # | Question | Ruling / Recommendation |
 | - | -------- | ----------------------- |
-| **Q1** | **The phone's feature set**, and the Duo's layouts. | ✅ **Partly ruled:** the manuscript first on every device (user, 2026-10-29); the Duo by size class only, nothing special (Q8). Recommendation for the rest: write, navigate, undo, Find and the inspector on the phone; the timeline and world management iPad-only at first; the unfolded Duo laid out by size class. |
-| **Q2** | **Where projects live on iPad/iPhone,** and how they get there from a Mac. | **Files / iCloud Drive** (a project folder opened through the document picker, kept by a security-scoped bookmark as the Mac does), plus the [EP-054] archive. CloudKit sync stays future. |
+| **Q1** | **The phone's feature set**, and the Duo's layouts. | ✅ **RULED (user, 2026-11-19): the whole app on the phone;** only screen space differs. The Inspector (Worlds tab included) is already a pushed page at compact width; the worlds sheet exists and needs reformatting for compact width; the Timeline already shows there with Import, Export, show/hide, zoom and pan. The Duo by size class only (Q8). ⛔ *The earlier recommendation (timeline and world management iPad-only) was wrong and never checked against the app.* |
+| **Q2** | **Where projects live on iPad/iPhone,** and how they get there from a Mac. | ✅ **RULED (user, 2026-11-19): as recommended.** **Files / iCloud Drive** (a project folder opened through the document picker, kept by a bookmark), external drives on iPad, plus the [EP-054] archive. CloudKit sync stays future. |
 | **Q3** | **The editor:** port the AppKit editor to UIKit, or first extract a platform-neutral editing core? | **Share the presentation layer** (TextKit 2 is common to both); a new `UITextView` host. What else moves out of the Mac `Coordinator` is [SP-198]'s audit ([T-0632]) to rule. |
 | **Q4** | **One Epic or two?** | **One Epic now**; split after AC1 if the editor proves to be an Epic of its own. |
 | **Q5** | **TestFlight prerequisites.** | ✅ **RULED (user, 2026-10-24): *"yes, I am all setup for testflight."*** Builds are Debug (pre-release). |
 | **Q6** | **Test devices.** | ✅ **RULED (user, 2026-10-29):** a real iPad and iPhone now; *"Duo simulator only for now"*, a real Duo in about two weeks. |
 | **Q8** | **Device- and keyboard-specific handling** (the Duo's fold, keyboard avoidance). | ✅ **RULED (user, 2026-10-30): no special handling for the Duo or for keyboards.** *"stay using only the size classes and don't do anything special for iPhone Duo until I identify a need … don't do anything special with regard to keyboards on either the iPhone or iPad as well. The default layout will be sufficient … iOS also detects when a hardware keyboard is in place and acts accordingly."* Layout by size class only; toolbar buttons at their default placement. |
+| **Q9** | **The Mac on TestFlight?** | ✅ **RULED (user, 2026-11-19): yes**, as TestFlight supports macOS apps; the Mac app is already sandboxed (`Scrivi.entitlements`). |
+| **Q10** | **iPad multi-window.** | ✅ **RULED (user, 2026-11-19): out of scope** — removed from the Epic. A tabbed main window with several projects: maybe later, not now. |
+| **Q11** | **[T-0657] (collapsible Navigator chapters)** — in AC6? | ✅ **RULED (user, 2026-11-19): yes.** The first Navigator show on iPad blocks ~3.5 s on dumas ([SP-199]). |
 | **Q7** | **The iOS deployment target.** | ✅ **RULED (user, 2026-10-29): 27.1**, set by the user. |
 
 **Provisional Sprints:** **S1 = [SP-198]** the audit, the shared presenter, the `UITextView` host and the iOS test target
-(AC1–AC4) · S2 structural edits, undo/redo, Find (AC5) · then AC6–AC9 as the audit orders them. Each with live passes.
+(AC1–AC4) · S2 structural edits, undo/redo, Find (AC5) · **S4 = [SP-224]** ✅ Closed 2026-11-19 AC7: bookmarks for projects and worlds on iOS, restored at relaunch
+(`ProjectBookmarkStore.swift:70` / `WorldBookmarkStore.swift:98` return nothing on iOS today) · **S5** AC6: world Create, Add
+Existing and Relink, the timeline's touch gestures and pointer / Pencil hover · **S6** AC6: [T-0657] and what S5's iPad pass finds · **S7** AC8: compact-width layout (the worlds
+sheet) and the iPhone and Duo passes · **S8** AC9: TestFlight (iOS and Mac). Each with live passes; AC10 completes on the real Duo.
 **Depends on:** [EP-054] S1–S2 (the archive) for moving projects onto an iPad, unless Q2's iCloud Drive route is enough
 (not needed for S1: the iOS Landing view already opens a project through `.fileImporter`, `LandingView.swift:84`).

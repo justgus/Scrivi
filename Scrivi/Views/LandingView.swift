@@ -14,33 +14,39 @@ struct LandingView: View {
     }
     #endif
 
+    @ViewBuilder private var actionButtons: some View {
+        Button("Open Project…") {
+            #if os(macOS)
+            env.presentOpenProjectPanel()
+            #else
+            showOpenImporter = true
+            #endif
+        }
+        .keyboardShortcut("o", modifiers: .command)
+
+        Button("New Project…") {
+            showNewProjectSheet = true
+        }
+        .keyboardShortcut("n", modifiers: .command)
+
+        // SP-221: File ▸ Import's new-project items (Timeline… needs an open project, Q2).
+        Menu("Import…") {
+            Button("Manuscript…") { env.presentImportManuscript(nil) }
+            Button("Scrivener Project…") { env.presentImportManuscript(nil, scrivener: true) }
+            Button("Archive…") { env.presentImportArchive() }   // [SP-206]
+        }
+    }
+
     var body: some View {
         VStack(spacing: 24) {
             Text("Scrivi")
                 .font(.largeTitle)
                 .fontWeight(.bold)
 
-            HStack(spacing: 16) {
-                Button("Open Project…") {
-                    #if os(macOS)
-                    env.presentOpenProjectPanel()
-                    #else
-                    showOpenImporter = true
-                    #endif
-                }
-                .keyboardShortcut("o", modifiers: .command)
-
-                Button("New Project…") {
-                    showNewProjectSheet = true
-                }
-                .keyboardShortcut("n", modifiers: .command)
-
-                // SP-221: File ▸ Import's new-project items (Timeline… needs an open project, Q2).
-                Menu("Import…") {
-                    Button("Manuscript…") { env.presentImportManuscript(nil) }
-                    Button("Scrivener Project…") { env.presentImportManuscript(nil, scrivener: true) }
-                    Button("Archive…") { env.presentImportArchive() }   // [SP-206]
-                }
+            // [SP-224] Side by side where they fit; stacked at a narrow compact width (the folded iPhone Duo clipped the row).
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 16) { actionButtons }
+                VStack(spacing: 12) { actionButtons }
             }
             .buttonStyle(.borderedProminent)
 
@@ -87,7 +93,9 @@ struct LandingView: View {
                     .padding(.horizontal)
             }
         }
-        .frame(minWidth: 400, minHeight: 300)
+        #if os(macOS)
+        .frame(minWidth: 400, minHeight: 300)   // the Welcome window's size; on iOS it pushed the row off a compact screen
+        #endif
         .padding(40)
         #if os(iOS)
         // SP-210 Q1: the app's Settings (pen names), where a writer starts.

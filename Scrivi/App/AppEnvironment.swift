@@ -354,16 +354,54 @@ import UniformTypeIdentifiers
 
         let saved = OpenSessionManifest.load()
         guard !saved.isEmpty else { return }
-        for projectID in saved {
+        #if os(macOS)
+        let toRestore = saved
+        #else
+        // [SP-224] One window shows one project, and a project tapped in Files wins over the last session.
+        guard launchURL == nil else { return }
+        let toRestore = Array(saved.prefix(1))
+        #endif
+        for projectID in toRestore {
             // Only attempt projects we can still resolve; a failed one is silently skipped
             // (its window simply won't reappear). ensureOpenAndShow opens each window.
             if ProjectBookmarkStore.hasBookmark(projectID: projectID) {
-                await ensureOpenAndShow(projectID: projectID)
+                let restored = await ensureOpenAndShow(projectID: projectID)
+                #if !os(macOS)
+                // A Files tap that arrived DURING this load is opening its own project: this one must not stay registered
+                // behind it (or take the screen when it finishes last) — unless it is that very project.
+                if let launchURL, let restored, !Self.url(launchURL, names: restored) {
+                    closeProject(projectID: projectID)
+                }
+                #endif
             }
         }
         // Rewrite the manifest to the set that actually came back.
         persistOpenManifest()
     }
+
+    #if !os(macOS)
+    /// [SP-224] The URL (a Files tap, a `scrivi://` link) that launched or reached the app. Set by `.onOpenURL` before anything
+    /// awaits, so the session restore can give way to it.
+    var launchURL: URL?
+
+    /// A false "different" would close the tapped project: compare without a trailing slash or the /private symlink.
+    nonisolated static func samePackage(_ url: URL, _ path: String) -> Bool {
+        func canonical(_ u: URL) -> String {
+            var p = u.standardizedFileURL.resolvingSymlinksInPath().path(percentEncoded: false)
+            while p.count > 1, p.hasSuffix("/") { p.removeLast() }
+            return p
+        }
+        return canonical(url) == canonical(URL(filePath: path))
+    }
+
+    private static func url(_ url: URL, names session: ProjectSession) -> Bool {
+        if url.isFileURL {
+            guard let root = session.projectRootPath else { return false }
+            return samePackage(url, root)
+        }
+        return ScriviDeepLink(url: url)?.projectID == session.openProjectResult?.projectID
+    }
+    #endif
 
     /// True when this process is hosting a test bundle (I-0150).
     ///
@@ -630,6 +668,12 @@ import UniformTypeIdentifiers
     //   • not open → resolve the path from ProjectBookmarkStore, load, register, open a
     //     window (also the restore-on-launch path for R4 / T-0195).
     // Returns the live session, or nil if it can't be resolved/loaded.
+    #if os(macOS)
+    static let cannotReopenMessage = "This project could not be reopened. Open it once from the Welcome window."
+    #else
+    static let cannotReopenMessage = "This project could not be reopened. Open it again from Files."   // [SP-224] Q3
+    #endif
+
     @discardableResult
     func ensureOpenAndShow(projectID: String) async -> ProjectSession? {
         if let existing = openProjects.session(for: projectID) {
@@ -639,7 +683,7 @@ import UniformTypeIdentifiers
         guard let resolved = ProjectBookmarkStore.resolve(projectID: projectID) else {
             projectError = ScriviError(
                 code: -1,
-                message: "This project could not be reopened. Open it once from the Welcome window.")
+                message: Self.cannotReopenMessage)
             return nil
         }
         let session = await loadProject(at: resolved.url.path(percentEncoded: false))
@@ -747,11 +791,14 @@ import UniformTypeIdentifiers
             if !result.projectID.isEmpty { closeProject(projectID: result.projectID) }
             projectError = ScriviError(code: -1, message: "Repair required: \(issue.title)")
             if scoped { url.stopAccessingSecurityScopedResource() }
-        } else if let projectID = session?.openProjectResult?.projectID {
+        } else if let session, let projectID = session.openProjectResult?.projectID {
             requestOpenWindow(for: projectID)   // no-op on iOS; editor shows via activeSession
-            // NOTE: scope is intentionally not released here on success — the session reads the
-            // package for the duration it is open. Released when the project closes (a future
-            // iOS-close path); acceptable for the current single-project iOS model.
+            // The session reads the package while it is open; closing it releases the scope ([SP-224] Q2).
+            // An already-open project (R3) keeps the scope it holds; this second one is released now.
+            if scoped {
+                if session.deepLinkAccessURL == nil { session.deepLinkAccessURL = url }
+                else { url.stopAccessingSecurityScopedResource() }
+            }
         } else if scoped {
             url.stopAccessingSecurityScopedResource()
         }
@@ -841,6 +888,12 @@ import UniformTypeIdentifiers
             return
         }
 
+        #if !os(macOS)
+        // [SP-224] A project tapped in Files: one window, so the open project closes first (as the iPad's Import does);
+        // the picked-URL path starts the URL's scope and records its bookmark.
+        closeActiveProjectForLanding()
+        await openProjectFromPickedURL(url)
+        #else
         let session = await loadProject(at: path, bookmarkURL: url)
         if let result = session?.openProjectResult, result.mode == "repairRequired",
            let issue = result.repairIssues.first {
@@ -852,6 +905,7 @@ import UniformTypeIdentifiers
         } else if let projectID = session?.openProjectResult?.projectID {
             requestOpenWindow(for: projectID)
         }
+        #endif
     }
 
     // Handles a scrivi://open?project=…&item=… deep link (URL scheme or Spotlight

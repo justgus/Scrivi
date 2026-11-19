@@ -745,6 +745,7 @@ private struct AppEventsModifier: ViewModifier {
             // keep the per-view path for non-macOS platforms only.
             #if !os(macOS)
             .onOpenURL { url in
+                env.launchURL = url   // [SP-224] before the Task: the session restore checks it
                 Task { await env.handleDeepLink(url) }
             }
             #endif

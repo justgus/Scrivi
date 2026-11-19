@@ -492,6 +492,7 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-221** | `[Apple]` + `[Linux]` **[EP-054] AC8** — the Landing's Import… (T-0681) | EP-054 | 2026-11-17 | 2026-11-18 | ✅ **CLOSED** → [`Closed/Sprint-SP-221.md`](Closed/Sprint-SP-221.md) |
 | **SP-222** | `[Apple]` **[EP-055] S3a** — undo/redo, structural edits, cross-scene clipboard on iOS (T-0685) | EP-055 | 2026-11-18 | 2026-11-18 | ✅ **CLOSED** → [`Closed/Sprint-SP-222.md`](Closed/Sprint-SP-222.md) |
 | **SP-223** | `[Apple]` **[EP-055] S3b** — Find and Replace, Go To, branch marks, copy buffers, Format on iOS (T-0686) | EP-055 | 2026-11-18 | 2026-11-19 | ✅ **CLOSED** → [`Closed/Sprint-SP-223.md`](Closed/Sprint-SP-223.md) |
+| **SP-224** | `[Apple]` **[EP-055] S4** — projects and worlds survive a relaunch on iPad and iPhone (T-0687) | EP-055 | 2026-11-19 | 2026-11-19 | ✅ **CLOSED** → [`Closed/Sprint-SP-224.md`](Closed/Sprint-SP-224.md) |
 | **SP-160** | `[Linux]` **[EP-049] S1** — Linux writes Apple's manuscript format: escaping, paste/copy, pair deletion, Return/⌫, shared corpus (T-0586); + I-0276 | EP-049 | 2026-10-04 | 2026-10-04 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-160.md) |
 
 ## Statistics
@@ -531,6 +532,12 @@ by status, read the table.**
 > on neither time. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-11-19 (**SP-224 → ✅ CLOSED** (user, 2026-11-19: *"all steps pass, close SP-224"*))*
+
+*Last Updated: 2026-11-19 (**SP-224 → 🟡 ACTIVE** (user, 2026-11-19: *"Q1-Q3 as recommended, … activate and implement SP-224"*))*
+
+*Last Updated: 2026-11-19 (**SP-224 created in 🔵 Planning** (user, 2026-11-19: *"go, plan SP-224"*), issued via `next-id.py`; Q1–Q3 to rule.)*
 
 *Last Updated: 2026-11-19 (**SP-223 → ✅ CLOSED** (user, 2026-11-19: *"yes, close SP-223 and verify T-0686"*))*
 

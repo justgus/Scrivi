@@ -695,3 +695,55 @@ struct NavigateTargetTests {
         #expect(t(.manuscript, .end, 12) == 40)
     }
 }
+
+@Suite("Bookmarks survive a relaunch on iOS (SP-224)")
+struct IOSBookmarkTests {
+    private func tempFolder() throws -> URL {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("sp224-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        return url
+    }
+
+    @Test("a project's bookmark records and resolves to the same folder")
+    func projectRoundTrip() throws {
+        let folder = try tempFolder()
+        let id = "sp224-test-\(UUID().uuidString)"
+        defer {
+            // The store has no forget; drop this test's entry so the simulator's defaults keep only real projects.
+            let key = "scrivi.projectBookmarks.v1"
+            var map = UserDefaults.standard.dictionary(forKey: key) ?? [:]
+            map[id] = nil
+            UserDefaults.standard.set(map, forKey: key)
+            try? FileManager.default.removeItem(at: folder)
+        }
+        ProjectBookmarkStore.record(projectID: id, url: folder)
+        #expect(ProjectBookmarkStore.hasBookmark(projectID: id))
+        let resolved = try #require(ProjectBookmarkStore.resolve(projectID: id))
+        defer { if resolved.didStartAccess { resolved.url.stopAccessingSecurityScopedResource() } }
+        #expect(resolved.url.standardizedFileURL.resolvingSymlinksInPath().path
+                == folder.standardizedFileURL.resolvingSymlinksInPath().path)
+    }
+
+    @Test("a Files URL names the restored project despite a trailing slash or the /private symlink")
+    func filesURLMatchesRestoredProject() throws {
+        let folder = try tempFolder().appendingPathComponent("p.scrivi", isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder.deletingLastPathComponent()) }
+        let plain = folder.path(percentEncoded: false)          // ends in "/"
+        let resolved = folder.resolvingSymlinksInPath().path(percentEncoded: false)
+        #expect(AppEnvironment.samePackage(folder, String(plain.dropLast())))
+        #expect(AppEnvironment.samePackage(URL(filePath: resolved), plain))
+        #expect(!AppEnvironment.samePackage(folder, folder.deletingLastPathComponent().appendingPathComponent("q.scrivi").path(percentEncoded: false)))
+    }
+
+    @Test("a world's bookmark is recorded, and forgotten")
+    func worldRecorded() throws {
+        let folder = try tempFolder()
+        let id = "sp224-world-\(UUID().uuidString)"
+        defer { try? FileManager.default.removeItem(at: folder) }
+        WorldBookmarkStore.record(worldID: id, url: folder)
+        #expect(WorldBookmarkStore.hasBookmark(worldID: id))
+        WorldBookmarkStore.forget(worldID: id)
+        #expect(!WorldBookmarkStore.hasBookmark(worldID: id))
+    }
+}
