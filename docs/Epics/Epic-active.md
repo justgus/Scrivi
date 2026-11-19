@@ -1,5 +1,7 @@
 # Active Epics
 
+*Last Updated: 2026-11-19 (**EP-055: S3b = [SP-223] ✅ CLOSED** (user, 2026-11-19: *"yes, close SP-223 and verify T-0686"*); **AC5 ✅ met** (S3a + S3b))*
+
 *Last Updated: 2026-11-18 (**EP-055: S3b = [SP-223] → 🟡 Active** (user, 2026-11-18: *"activate and implement SP-223"*))*
 
 *Last Updated: 2026-11-18 (**EP-055: S3b = [SP-223]** created in 🔵 Planning (user, 2026-11-18: *"plan S3b for EP-055"*); Q1–Q6 to rule.)*
@@ -198,7 +200,7 @@ EP-055 Q2).
 
 ## EP-055: `[Apple]` **iPad and iPhone** — the manuscript first, then the full app on iPad and a phone surface
 
-**Status:** 🟡 **ACTIVE** 2026-10-29 — S1 = [SP-198] ✅ closed 2026-11-03; S2 = [SP-199] ✅ closed 2026-11-03 (panels by size class, gestures, toolbar); **S3a = [SP-222]** (undo/redo, structural edits, cross-scene clipboard — AC5's first half, [T-0685]) ✅ Closed 2026-11-18; **S3b = [SP-223]** (Find and Replace, Go To, branch marks, copy buffers, Format — AC5's second half, [T-0686]) 🟡 Active 2026-11-18. Created 2026-10-24 as a Draft; activated 2026-10-29 (user:
+**Status:** 🟡 **ACTIVE** 2026-10-29 — S1 = [SP-198] ✅ closed 2026-11-03; S2 = [SP-199] ✅ closed 2026-11-03 (panels by size class, gestures, toolbar); **S3a = [SP-222]** (undo/redo, structural edits, cross-scene clipboard — AC5's first half, [T-0685]) ✅ Closed 2026-11-18; **S3b = [SP-223]** (Find and Replace, Go To, branch marks, copy buffers, Format — AC5's second half, [T-0686]) ✅ Closed 2026-11-19. Created 2026-10-24 as a Draft; activated 2026-10-29 (user:
 *"Activate EP-055"*), with the manuscript ruled first (user, 2026-10-29: *"In the iOS version, we should focus on the
 Manuscript View first."*).
 **Codebase:** `[Apple]` (`Scrivi/`, the `ScriviApp-iOS` target). The core is shared and already cross-builds for iOS.
@@ -243,8 +245,8 @@ access (Files, iCloud Drive, external drives on iPad); iPad multi-window; a phon
 - [x] AC3 — ✅ [SP-198] (closed 2026-11-03) — The manuscript works with the on-screen keyboard and a hardware keyboard on iPad, iPhone and the Duo, using the
       system's default behaviour and layout (Q8): nothing device- or keyboard-specific
 - [x] AC4 — ✅ [SP-198] (closed 2026-11-03) — An iOS test target, run on the simulator, covering the manuscript's behaviour
-- [ ] AC5 — Structural edits, undo/redo and Find in the manuscript on iOS — ⚠️ not yet on iOS (user, 2026-11-01): **Find and
-      Replace**, and **Go to Scene / Chapter / Manuscript Begin and End**
+- [x] AC5 — Structural edits, undo/redo and Find in the manuscript on iOS — ✅ **met 2026-11-19** ([SP-222], [SP-223]; incl. **Find and
+      Replace**, and **Go to Scene / Chapter / Manuscript Begin and End**, user, 2026-11-01)
 - [ ] AC6 — Navigator, inspector, timeline, worlds and detail sheets on iPad
 - [ ] AC7 — Projects opened from, and kept on, the places the testers use (Q2), surviving app relaunch
 - [ ] AC8 — The phone surface, per Q1's feature set

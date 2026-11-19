@@ -1,5 +1,7 @@
 # Unverified Tasks
 
+*Last Updated: 2026-11-19 (**T-0686 → ✅ Verified** (user, 2026-11-19: *"yes, close SP-223 and verify T-0686"*) → `Verified/Task-verified-0686.md`)*
+
 *Last Updated: 2026-11-18 (**T-0686 → 🟠 Implemented - Not Verified** ([SP-223] built); the live passes are the user's.)*
 
 *Last Updated: 2026-11-18 (**T-0685, T-0680 → ✅ Verified** (user, 2026-11-18: *"iPad, and Mac live passes all passed.  On the iPhone the software keyboard does not have the shortcuts, but I was able to verify all the functionality using the context menu for cut copy paste, new Scene, and new Chapter and three fingered swipe for undo/redo/branch selection.  close SP-222"*) → `Verified/Task-verified-0685.md`, `Task-verified-0680.md`.)*
@@ -101,20 +103,6 @@ Tasks that are **implemented and awaiting user verification** before being archi
 ⚠️ This file must not disagree with [`Task-active.md`](Task-active.md) or
 [`Task-backlog.md`](Task-backlog.md). A Task implemented but unverified belongs **here** — not left
 in the backlog carrying a 🟠 status.
-
----
-
-## 🟠 T-0686 — `[Apple]` EP-055 S3b: Find and Replace, Go To, branch marks, copy buffers and Format on iOS
-
-**Epic:** [EP-055] (AC5, second half) · **Status:** 🟠 Implemented - Not Verified · **Sprint:** [SP-223] (🟡 Active) →
-[`../Sprints/Sprint-SP-223.md`](../Sprints/Sprint-SP-223.md) · **Date Requested:** 2026-11-18 (user: *"plan S3b for EP-055"*)
-
-**What:** on iOS, Find and Replace over the presented text (`UIFindInteraction`), Go To on the iPad menu bar, the branch-point
-marks, the nine copy buffers and the Format commands — moving the Mac host's `applyFormat`, buffer operations and Replace All,
-and `ManuscriptPresentedMap`'s view-free part, into shared code that both hosts call. Rulings and ACs: the Sprint.
-
-**Where:** `ManuscriptStructure.swift` (`replaceAll`, `copyIntoBuffer` / `cutIntoBuffer` / `pasteFromBuffer`), `ManuscriptCommands.swift` (`formatStep`),
-`ManuscriptFind.swift` (`ManuscriptTextSearcher`), `ManuscriptPresentedMap.swift`, `ManuscriptUITextView.swift`, `ScriviApp.swift` (iPad menus).
 
 ---
 

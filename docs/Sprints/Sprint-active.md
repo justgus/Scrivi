@@ -1,5 +1,7 @@
 # Active Sprints
 
+*Last Updated: 2026-11-19 (**SP-223 → ✅ CLOSED** (user, 2026-11-19: *"yes, close SP-223 and verify T-0686"*); T-0686 ✅ Verified)*
+
 *Last Updated: 2026-11-18 (**SP-223 built** — AC1–AC5 met; T-0686 → 🟠.)*
 
 *Last Updated: 2026-11-18 (**SP-223 → 🟡 ACTIVE** (user, 2026-11-18: *"activate and implement SP-223"*))*
@@ -154,8 +156,3 @@
 
 ---
 
----
-
-## SP-223 — `[Apple]` [EP-055] S3b: Find and Replace, Go To, branch marks, copy buffers and Format on iOS
-
-🟡 **ACTIVE 2026-11-18** → [`Sprint-SP-223.md`](Sprint-SP-223.md) · carries [T-0686] · ✅ Q1–Q6 ruled (Q5 amended)

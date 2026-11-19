@@ -1,16 +1,17 @@
 ---
 sprint: SP-223
 epic: EP-055
-status: Active
+status: Closed
+closed: 2026-11-19
 platform: Apple
 created: 2026-11-18
 ---
 
 # SP-223 — `[Apple]` [EP-055] S3b: Find and Replace, Go To, branch marks, copy buffers and Format on iOS
 
-**Status:** 🟡 **ACTIVE** 2026-11-18 (user, 2026-11-18: *"activate and implement SP-223"*) · planned 2026-11-18 (user: *"plan S3b for EP-055"*) · ✅ Q1–Q6 ruled 2026-11-18 (Q5 amended).
-**Carries:** [T-0686] (new) → [`../Tasks/Task-backlog.md`](../Tasks/Task-backlog.md).
-**Epic:** [EP-055] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md) — AC5, its second half ([SP-222] Q1). With this Sprint
+**Status:** ✅ **CLOSED** 2026-11-19 (user, 2026-11-19: *"yes, close SP-223 and verify T-0686"*). Activated 2026-11-18 (user: *"activate and implement SP-223"*) · planned 2026-11-18 (user: *"plan S3b for EP-055"*) · ✅ Q1–Q6 ruled 2026-11-18 (Q5 amended).
+**Carries:** [T-0686] ✅ Verified 2026-11-19 → [`../../Tasks/Verified/Task-verified-0686.md`](../../Tasks/Verified/Task-verified-0686.md).
+**Epic:** [EP-055] → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md) — AC5, its second half ([SP-222] Q1). With this Sprint
 AC5 is met.
 **Builds on:** [SP-222] (`ManuscriptStructure.swift`: the history, the structured clipboard, the fork chooser on iOS); on the Mac,
 [SP-164] (Find over the presented text), [SP-171] (`ManuscriptPresentedMap`), [SP-163] / [SP-174] (Format, computed by ScriviCore),
@@ -81,8 +82,8 @@ key equivalent for Go to Scene / Chapter (still open on the Mac, `ScriviApp.swif
 - [x] AC3 — Branch-point marks on iOS; a tap opens the chooser (Q3)
 - [x] AC4 — The nine copy buffers on iOS: copy to, cut to, paste from — the Mac's bytes and history, across scenes too (Q2)
 - [x] AC5 — The Format commands on iOS, ⌘B / ⌘I included (Q4)
-- [ ] AC6 — iOS tests for AC1–AC5 on the simulator; Mac interop green; macOS and iOS builds; CI green
-- [ ] AC7 — **Live passes (user):** iPad, iPhone, and the Mac re-checked
+- [x] AC6 — iOS tests for AC1–AC5 on the simulator; Mac interop green; macOS and iOS builds; CI green (2026-11-19)
+- [x] AC7 — **Live passes (user):** iPad, iPhone, and the Mac re-checked (2026-11-18)
 
 ## Progress log
 
@@ -137,3 +138,10 @@ key equivalent for Go to Scene / Chapter (still open on the Mac, `ScriviApp.swif
     text when called directly; the view had no ⌘E key). ✅ Fixed: ⌘E is the text view's own key command. ✅ iOS 31 passed, 0 failed
     (the Find test now checks the key and the search text; it failed before the fix). ⏳ AC7: ⌘E re-checked on the iPad.
 
+- **2026-11-18 — ⌘E re-check (user, iPad):** *"if I select some text and then type Cmd-E and then Cmd-F, then the find bar
+  appears and the selected text in the find bar."* ✅ ⌘E passes. ⌘F alone opens the bar with the current search word and ignores
+  the selection — the Mac's NSTextFinder order (⌘E loads, ⌘F shows). The iPad's find bar is modal, so ⌘E with the bar open does
+  not apply. ✅ User ruling: *"I have no preference either way. Keep it the way it is."* AC7 is met; AC6 waits on CI after the push.
+- **2026-11-19 — CI (`56813e4` "SP-223 complete"):** ✅ Scrivi Apple CI run 44455318718 succeeded — the boundary, TextKit 2,
+  layout-convergence and engine stub-parity guards all clean. Linux App CI did not run: no Linux, ScriviCore or CMake files
+  changed. AC6 is met.
