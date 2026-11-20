@@ -276,6 +276,10 @@ public:
     // ✅ `setVisible(false)` on a COLLAPSIBLE splitter pane does exactly that.
     void setNavigatorVisible(bool visible);
     bool isNavigatorVisible() const;
+    // [SP-226] (T-0657) Q6: View ▸ Expand All Chapters / Collapse All Chapters (the current chapter stays open).
+    void expandAllChapters();
+    void collapseAllChapters();
+    QStringList expandedChapterIDs() const { return expandedChapters_.values(); }   // tests
 
     // --- EP-025 Timeline Panel (SP-079, T-0323) ---------------------------
     //
@@ -516,6 +520,7 @@ private:
         // EP-058 S3 ([SP-211]): the open's writing-as author and the question it asks ("none" | "nameAuthor" | "chooseAuthor").
         QVariantMap                writingAs;
         QString                    authorPrompt;
+        QStringList                expandedChapterIDs;   // [SP-226]
     };
 
     // T-0500: stop the delayed reveal and hide the strip. ⚠️ Must run on EVERY
@@ -552,6 +557,11 @@ private:
     void setQueueCounted(bool counted);   // the queue as ONE piece of background work, for a close or quit
     // (Re)populate the navigator tree from the current SceneDocument segments.
     void rebuildNavigator();
+    // [SP-226] (T-0657): the Navigator's chapters — open are the writer's own (`expandedChapters_`) and the current one.
+    void applyChapterExpansion();
+    void onChapterExpanded(const QModelIndex& index);
+    void onChapterCollapsed(const QModelIndex& index);
+    void writeExpandedChapters();   // Q2: on every change, on a worker; one at a time, the latest last
 
     // --- EP-025 Timeline (SP-079, T-0322/T-0324) --------------------------
     // ✅ SP-173 / I-0285: ONE core call (`scrivi_load_timeline`) instead of ~2 per scene; see TimelineData.
@@ -817,6 +827,12 @@ private:
     bool                    editInFlight_ = false;
     // `applyLoadedProject` is placing the caret — not a writer's move, never reported (see there).
     bool                    applyingLoad_ = false;
+    // [SP-226] (T-0657): the chapters the writer opened herself, on this device, and the chapter the Navigator follows.
+    QSet<QString>           expandedChapters_;
+    QString                 navCurrentChapterID_;
+    bool                    applyingChapterExpansion_ = false;   // our own expand()/collapse() are not her choice
+    bool                    expandedWriteInFlight_ = false;
+    bool                    expandedWritePending_  = false;
     // [I-0270] A multi-scene edit in progress: each scene's text before it and where its part began (UTF-16, scene-local).
     struct GroupPart { QString sceneID; QString before; int caret = 0; };
     bool                    grouping_ = false;

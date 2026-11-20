@@ -11,6 +11,15 @@ namespace scrivi::manuscript {
 SceneWriter::SceneWriter(CoreServices& services)
     : services_(services) {}
 
+// SP-226: a save rewrites the last writing surface only, so it starts from what is stored (the Navigator's expanded
+// chapters live in the same file). An unreadable file starts empty, as every save did before.
+static WorkspaceState storedOrEmpty(const workspace::WorkspaceStateService& wsService, const SaveSceneRequest& request)
+{
+    auto r = wsService.load(request.appSupportRoot, request.projectID);
+    if (r.ok() && r.value().has_value()) { return *r.value(); }
+    return {};
+}
+
 Result<SaveSceneResult> SceneWriter::save(const SaveSceneRequest& request)
 {
     auto& fs  = *services_.fileSystem;
@@ -28,7 +37,7 @@ Result<SaveSceneResult> SceneWriter::save(const SaveSceneRequest& request)
     {
         // Content unchanged: still update workspace state
         workspace::WorkspaceStateService wsService{services_};
-        WorkspaceState ws;
+        WorkspaceState ws = storedOrEmpty(wsService, request);
         ws.projectID.value      = request.projectID.value;
         ws.deviceID             = "device-local";
         ws.identityID           = request.author.identityID;
@@ -91,7 +100,7 @@ Result<SaveSceneResult> SceneWriter::save(const SaveSceneRequest& request)
 
     // 7. Update workspace state
     workspace::WorkspaceStateService wsService{services_};
-    WorkspaceState ws;
+    WorkspaceState ws = storedOrEmpty(wsService, request);
     ws.projectID.value    = request.projectID.value;
     ws.deviceID           = "device-local";
     ws.identityID         = request.author.identityID;

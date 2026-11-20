@@ -44,6 +44,7 @@
 #include "manuscript/FragmentExtractor.hpp"
 #include "manuscript/FragmentPaster.hpp"
 #include "manuscript/RangeOperations.hpp"
+#include "workspace/WorkspaceStateService.hpp"
 #include "util/AtomicWrite.hpp"
 #include "util/PathUtils.hpp"
 #include "util/ReadThroughCache.hpp"
@@ -1074,6 +1075,10 @@ const char* scrivi_open_project(
     doc.setString("mode", "ready");
     doc.setSubDoc("activeScene", std::move(scene));
     doc.setSubDoc("restored", std::move(restored));
+    // SP-226 (T-0657): the Navigator chapters the writer opened on this device. ⚠️ OMITTED when there are none.
+    if (v.workspaceState.has_value()) {
+        for (const auto& id : v.workspaceState->expandedChapterIDs) { doc.appendStringToArray("expandedChapterIDs", id.value); }
+    }
     for (auto& s : v.scenes) {
         scrivi::util::JsonDoc entry;
         entry.setString("sceneID",              s.sceneID.value);
@@ -1570,6 +1575,40 @@ const char* scrivi_open_scene_for_bulk_load(
     // measurement — 61 atomic workspace writes per 61-scene load.
     return openSceneImpl(projectRootPath, appSupportRoot, projectID, sceneID,
                          /*recordAsWritingSurface=*/false);
+}
+
+// SP-226 (T-0657): the Navigator's expanded chapters, per device. Under the project's write lock so it cannot interleave
+// with open_scene's read-modify-write of the same file.
+const char* scrivi_set_expanded_chapters(
+    const char* projectRootPath,
+    const char* appSupportRoot,
+    const char* projectID,
+    const char* chapterIDsJSON)
+{
+    SCRIVI_PROJECT_WRITE(projectRootPath);
+    return guarded([&]() -> const char* {
+        SCRIVI_REQUIRE_PATH(appSupportRoot, "appSupportRoot");
+        if (!projectID || projectID[0] == '\0') {
+            return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "projectID is required"));
+        }
+        auto ids = scrivi::util::parseJson(S(chapterIDsJSON));
+        if (!ids.ok() || ids.value().isObject()) {
+            return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument,
+                                      "chapterIDsJSON must be a JSON array of chapter IDs"));
+        }
+        auto services = abiServices();
+        scrivi::workspace::WorkspaceStateService wsService{services};
+        auto loaded = wsService.load(S(appSupportRoot), scrivi::ProjectID{S(projectID)});
+        scrivi::WorkspaceState ws;
+        if (loaded.ok() && loaded.value().has_value()) { ws = *loaded.value(); }
+        ws.projectID = scrivi::ProjectID{S(projectID)};
+        ws.expandedChapterIDs.clear();
+        for (auto& id : ids.value().rootStringArray()) { ws.expandedChapterIDs.push_back(scrivi::ChapterID{std::move(id)}); }
+        if (auto r = wsService.save(S(appSupportRoot), ws); !r.ok()) { return heap(errorEnvelope(r.error())); }
+        scrivi::util::JsonDoc doc;
+        doc.setInt("count", static_cast<int>(ws.expandedChapterIDs.size()));
+        return heap(okEnvelope(std::move(doc)));
+    });
 }
 
 // SP-173 / I-0285 (AC3, fix 3; user: "3 in this sprint") — the TEXT of many scenes in ONE call, read IN PARALLEL.

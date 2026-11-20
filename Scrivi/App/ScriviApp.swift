@@ -469,6 +469,12 @@ struct ScriviApp: App {
                     Toggle("Show Markup Hints", isOn: Bindable(prefs).markupHints)
                         .keyboardShortcut("h", modifiers: [.command, .shift])
                 }
+                // [SP-226] Q6: the Navigator's chapters; Collapse All keeps the current one open.
+                Divider()
+                Button("Expand All Chapters") { session.viewportLoader?.expandAllChapters() }
+                    .disabled(session.viewportLoader == nil)
+                Button("Collapse All Chapters") { session.viewportLoader?.collapseAllChapters() }
+                    .disabled(session.viewportLoader == nil)
             } else {
                 Toggle("Show Scene Inspector", isOn: .constant(false))
                     .keyboardShortcut("i", modifiers: [.command, .option])
@@ -485,6 +491,9 @@ struct ScriviApp: App {
                 Toggle("Show Markup Hints", isOn: .constant(true))
                     .keyboardShortcut("h", modifiers: [.command, .shift])
                     .disabled(true)
+                Divider()
+                Button("Expand All Chapters") {}.disabled(true)
+                Button("Collapse All Chapters") {}.disabled(true)
             }
         }
 
@@ -695,6 +704,12 @@ struct ScriviApp: App {
                     .keyboardShortcut("h", modifiers: [.command, .shift])
                     .disabled(true)
             }
+            // [SP-226] Q6: the Navigator's chapters; Collapse All keeps the current one open.
+            Divider()
+            Button("Expand All Chapters") { session?.viewportLoader?.expandAllChapters() }
+                .disabled(session?.viewportLoader == nil)
+            Button("Collapse All Chapters") { session?.viewportLoader?.collapseAllChapters() }
+                .disabled(session?.viewportLoader == nil)
         }
 
         // ✅ SP-223 Q2: the copy buffers in Edit, as on the Mac. The chords are the manuscript's own key commands (as the

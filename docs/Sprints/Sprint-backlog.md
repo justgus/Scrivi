@@ -1,5 +1,9 @@
 # Sprint Backlog
 
+*Last Updated: 2026-11-19 (**SP-226 removed** — activated 2026-11-19.)*
+
+*Last Updated: 2026-11-19 (**SP-226 created in 🔵 Planning** — EP-055 S6 (user, 2026-11-19: *"plan SP-226"*); Q1–Q6 to rule.)*
+
 *Last Updated: 2026-11-19 (**SP-225 removed** — activated 2026-11-19.)*
 
 *Last Updated: 2026-11-19 (**SP-225 created in 🔵 Planning** — EP-055 S5 (user, 2026-11-19: *"plan SP-225"*); Q1–Q3 to rule.)*
@@ -95,6 +99,9 @@
 *Last Updated: 2026-11-05 (**SP-204 removed** — activated 2026-11-05.)*
 
 Sprints listed here are in 🔵 Planning status — defined and ready to activate, but not yet started.
+
+| Sprint | Title | Epic | Doc |
+| ------ | ----- | ---- | --- |
 
 ---
 

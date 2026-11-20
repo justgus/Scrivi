@@ -191,6 +191,13 @@ public:
                                       const QString& projectID,
                                       const QString& sceneID);
 
+    // [SP-226] (T-0657): the Navigator chapters the writer opened, on this device (replaces the stored set). The open
+    // returns them as "expandedChapterIDs" — omitted when there are none.
+    QVariantMap setExpandedChapters(const QString& projectRootPath,
+                                    const QString& appSupportRoot,
+                                    const QString& projectID,
+                                    const QStringList& chapterIDs);
+
     // Persists one scene's Markdown (SP-062 / T-0239). Fills the author args from
     // the bootstrapped identity, calls scrivi_save_scene, and returns its ok
     // "result": {sceneID, saved, wordCount}. `selectionAnchor`/`selectionFocus` are

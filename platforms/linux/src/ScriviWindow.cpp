@@ -755,6 +755,15 @@ void ScriviWindow::buildMenuBar(QMainWindow* host, ScriviWindow* w, AppEnvironme
     });
     editorOnlyActions.append(showBuffers);
 
+    // [SP-226] (T-0657) Q6: the Navigator's chapters, as on Apple. Collapse All keeps the current chapter open.
+    view->addSeparator();
+    QAction* expandAll = view->addAction(tr("Expand All Chapters"));
+    connect(expandAll, &QAction::triggered, host, [=] { if (ed() != nullptr) { ed()->expandAllChapters(); } });
+    editorOnlyActions.append(expandAll);
+    QAction* collapseAll = view->addAction(tr("Collapse All Chapters"));
+    connect(collapseAll, &QAction::triggered, host, [=] { if (ed() != nullptr) { ed()->collapseAllChapters(); } });
+    editorOnlyActions.append(collapseAll);
+
     // ✅ EP-048 S5a ([SP-182] Q4, EP-047 P11): View ▸ Show Markup Hints, Ctrl+Shift+H (Apple's ⇧⌘H). Per project window, and
     // it travels (`project-settings.json` `markupHints`, absent = ON). ⚠️ A Ctrl+Shift chord: the macOS→VNC path eats them
     // (`project_linux_vnc_input_constraints`), so it is measured on the rig (RDP), with the menu always available.

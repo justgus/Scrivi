@@ -58,6 +58,7 @@ struct WorkspaceState {
     PersonaID          activePersonaID;
     std::optional<LastWritingSurface> lastWritingSurface;
     ISO8601Timestamp   lastOpenedAt;
+    std::vector<ChapterID> expandedChapterIDs;   // SP-226 (T-0657): the Navigator chapters the writer opened, this device
 };
 
 struct ProjectSummary {

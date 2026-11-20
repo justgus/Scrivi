@@ -245,6 +245,20 @@ public final class ScriviEngine: @unchecked Sendable {
         return try decodeC(raw)
     }
 
+    // MARK: — setExpandedChapters
+
+    /// [SP-226] The Navigator chapters the writer opened, on this device. Replaces the stored set; `openProject` returns it.
+    public func setExpandedChapters(projectRootPath: String, appSupportRoot: String, projectID: String,
+                                    chapterIDs: [String]) throws {
+        let json = String(decoding: try JSONEncoder().encode(chapterIDs), as: UTF8.self)
+        let raw = projectRootPath.withCString { prp in
+            appSupportRoot.withCString { asr in
+                projectID.withCString { pid in json.withCString { j in scrivi_set_expanded_chapters(prp, asr, pid, j) } }
+            }
+        }
+        let _: CountOnlyResult = try decodeC(raw)
+    }
+
     // MARK: — saveScene
 
     public func saveScene(
@@ -2053,6 +2067,7 @@ public final class ScriviEngine: @unchecked Sendable {
     public func exportManuscript(projectRootPath: String, format: String, chapterID: String? = nil, wholePage: Bool = true, printPage: Bool = false, destPath: String? = nil, defaultTypeface: String? = nil, language: String? = nil) throws -> ExportManuscriptResult { try unavailable() }
     public func importManuscript(sourcePath: String, newProject: (root: String, appSupportRoot: String, authorshipRef: AuthorshipRef)? = nil) throws -> ImportManuscriptResult { try unavailable() }
     public func openSceneForBulkLoad(projectRootPath: String, appSupportRoot: String, projectID: String, sceneID: String) throws -> OpenSceneResult { try unavailable() }
+    public func setExpandedChapters(projectRootPath: String, appSupportRoot: String, projectID: String, chapterIDs: [String]) throws { let _: CountOnlyResult = try unavailable() }
     public func saveScene(projectID: String, projectRootPath: String, appSupportRoot: String, sceneID: String, sceneMetadataPath: String, sceneContentPath: String, markdown: String, selectionAnchor: Int = 0, selectionFocus: Int = 0, scroll: Double = 0, authorshipRef: AuthorshipRef) throws -> SaveSceneResult { try unavailable() }
     public func scanForExternalChanges(projectRootPath: String, appSupportRoot: String, includeGitStatus: Bool = true) throws -> ScanResult { try unavailable() }
     public func applyRepair(issueID: String, projectRootPath: String, appSupportRoot: String, actionKind: String, targetPath: String = "", authorshipRef: AuthorshipRef) throws -> ApplyRepairResult { try unavailable() }
@@ -2424,6 +2439,8 @@ public struct OpenProjectResult: Decodable, Sendable {
     public let authors:      [Author]
     public let writingAs:    Author?
     public let authorPrompt: AuthorPrompt
+    // SP-226: the Navigator chapters the writer opened on this device (the core omits the key when there are none).
+    public let expandedChapterIDs: [String]
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -2437,10 +2454,12 @@ public struct OpenProjectResult: Decodable, Sendable {
         authors      = try c.decodeIfPresent([Author].self, forKey: .authors) ?? []
         writingAs    = try c.decodeIfPresent(Author.self, forKey: .writingAs)
         authorPrompt = try c.decodeIfPresent(AuthorPrompt.self, forKey: .authorPrompt) ?? .none
+        expandedChapterIDs = try c.decodeIfPresent([String].self, forKey: .expandedChapterIDs) ?? []
     }
 
     private enum CodingKeys: String, CodingKey {
         case projectID, projectTitle, mode, activeScene, restored, scenes, repairIssues, authors, writingAs, authorPrompt
+        case expandedChapterIDs
     }
 }
 
@@ -2494,6 +2513,7 @@ public struct PenNames: Codable, Sendable, Equatable {
 }
 
 struct SavedResult: Decodable, Sendable { let saved: Bool }
+struct CountOnlyResult: Decodable, Sendable { let count: Int }
 
 public struct OpenSceneResult: Decodable, Sendable {
     public let scene:    SceneInfo

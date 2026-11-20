@@ -13,6 +13,7 @@
 //   §3 a file the Mac wrote (`false`) is drawn as written; a save of another setting does not pin the key (Q5);
 //   §4 the one boundary builder: a rename and a new chapter with titles off add no title;
 //   §5 the toggle on a dumas-sized manuscript (1,186 scenes, 58 chapters) is a small op — timed.
+//   §6 [SP-226] collapsible chapters: the current one open, the writer's own remembered, Expand / Collapse All.
 // ⚠️ NOT covered (live pass only): how the accent LOOKS on GNOME; Orca itself.
 //
 //   argv[1] = a scratch directory for the projects; $XDG_DATA_HOME drives appSupportRoot; Qt offscreen.
@@ -24,6 +25,7 @@
 #include "ManuscriptFind.hpp"
 #include "ManuscriptPresenter.hpp"
 #include "ManuscriptTypography.hpp"
+#include "NavigatorTree.hpp"
 #include "ProjectPreferences.hpp"
 #include "ProjectSettingsDialog.hpp"
 #include "SceneDocument.hpp"
@@ -51,6 +53,7 @@
 #include <QTextDocument>
 #include <QTextLayout>
 #include <QTimer>
+#include <QTreeView>
 
 #include <algorithm>
 #include <cstdio>
@@ -426,6 +429,54 @@ int main(int argc, char** argv)
         std::printf("§5 toggle on 1,186 scenes / 58 chapters: off %lld ms, on %lld ms\n", off, on);
         check(off < 250 && on < 250, QStringLiteral("§5 the toggle is a small op (off %1 ms, on %2 ms; the watchdog's line is 250 ms)").arg(off).arg(on));
         check(doc.textMatchesDocument(), QStringLiteral("§5 … and every scene's text is its body"));
+    }
+
+    // ── §6 [SP-226] (T-0657) Collapsible chapters: the current one open, hers remembered ───────────────────────────────
+    {
+        auto* tree = wc->editorShell()->findChild<QTreeView*>();
+        check(tree != nullptr, QStringLiteral("§6 the Navigator is a tree"));
+        auto chapterRow = [&](int r) { return tree->model()->index(r, 0); };
+        auto chapterID = [&](int r) { return chapterRow(r).data(navigator::kChapterIDRole).toString(); };
+        auto openRows = [&] {
+            QString o;
+            for (int r = 0; r < tree->model()->rowCount(); ++r) { o += tree->isExpanded(chapterRow(r)) ? '1' : '0'; }
+            return o;
+        };
+        auto stored = [&](const QStringList& want) {
+            QStringList got;
+            for (int i = 0; i < 100; ++i) {
+                got = bridge.openProject(C.dir, appSupport).value(QStringLiteral("expandedChapterIDs")).toStringList();
+                got.sort();
+                if (got == want) { break; }
+                QTest::qWait(20);
+            }
+            return got;
+        };
+        auto placeCaret = [&](const QString& in) {
+            ManuscriptEditor* e = editorOf(wc);
+            QTextCursor c(e->document());
+            c.setPosition(e->document()->find(in).selectionStart() + 2);
+            e->setTextCursor(c);
+            QTest::qWait(400);   // the follow is debounced like the scroll's
+        };
+        placeCaret(QStringLiteral("Alpha one."));
+        check(openRows() == QStringLiteral("100") && wc->editorShell()->expandedChapterIDs().isEmpty(),
+              QStringLiteral("§6 Q1 no stored choice: only the current chapter is open (%1)").arg(openRows()));
+        tree->expand(chapterRow(2));
+        check(openRows() == QStringLiteral("101"), QStringLiteral("§6 she opens chapter 3 (%1)").arg(openRows()));
+        check(stored({chapterID(2)}) == QStringList{chapterID(2)}, QStringLiteral("§6 … and the next open returns it"));
+        placeCaret(QStringLiteral("Beta one."));
+        check(openRows() == QStringLiteral("011"), QStringLiteral("§6 the caret moves to chapter 2: it opens, 1 closes, 3 stays (%1)").arg(openRows()));
+        tree->collapse(chapterRow(1));
+        check(openRows() == QStringLiteral("011") && wc->editorShell()->expandedChapterIDs().contains(chapterID(1)),
+              QStringLiteral("§6 Q5 collapsing the current chapter keeps it open and makes it hers (%1)").arg(openRows()));
+        wc->editorShell()->collapseAllChapters();
+        check(openRows() == QStringLiteral("010") && stored({}).isEmpty(),
+              QStringLiteral("§6 Q6 Collapse All keeps the current chapter, stores none (%1)").arg(openRows()));
+        wc->editorShell()->expandAllChapters();
+        QStringList all{chapterID(0), chapterID(1), chapterID(2)};
+        all.sort();
+        check(openRows() == QStringLiteral("111") && stored(all) == all, QStringLiteral("§6 Expand All (%1)").arg(openRows()));
     }
 
     env.quitApplication();

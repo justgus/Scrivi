@@ -146,6 +146,9 @@ EditorShell::EditorShell(QWidget* parent, AppEnvironment* env)
     navigator_->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(navigator_, &QTreeView::customContextMenuRequested,
             this, &EditorShell::onNavigatorContextMenu);
+    // [SP-226] (T-0657): the writer's own expand / collapse.
+    connect(navigator_, &QTreeView::expanded, this, &EditorShell::onChapterExpanded);
+    connect(navigator_, &QTreeView::collapsed, this, &EditorShell::onChapterCollapsed);
     // Scene drag-reorder (EP-023 / SP-067, T-0260, AC4): NavigatorTree resolves the
     // drop and hands us (scene, targetChapter, afterScene); we do the real move.
     connect(navigator_, &NavigatorTree::sceneDropRequested,
@@ -554,6 +557,7 @@ void EditorShell::load(const QString& projectPath,
             out.projectTitle = opened.value(QStringLiteral("projectTitle")).toString();
             out.writingAs = opened.value(QStringLiteral("writingAs")).toMap();
             out.authorPrompt = opened.value(QStringLiteral("authorPrompt")).toString();
+            out.expandedChapterIDs = opened.value(QStringLiteral("expandedChapterIDs")).toStringList();   // [SP-226]
             out.settings = bridge->getProjectSettings(path);   // [SP-182]: read here, off the GUI thread
             const QVariantList scenes = opened.value(QStringLiteral("scenes")).toList();
             const QVariantMap active  = opened.value(QStringLiteral("activeScene")).toMap();
@@ -776,6 +780,12 @@ void EditorShell::applyLoadedProject(const QString& projectPath,
     // ⚠️ SP-145 / T-0551: these names are now REFERENCES into `session_`, so these
     // four assignments write the session's state. ✅ Deliberately unchanged
     // statements — the extraction moved WHERE the state lives, not what runs.
+    // [SP-226]: the stored set on a project's first load; a structural reload keeps the one this window holds (a write of
+    // it may still be on its way to the disk).
+    if (projectID != previousProjectID) {
+        expandedChapters_ = QSet<QString>(payload.expandedChapterIDs.cbegin(), payload.expandedChapterIDs.cend());
+        navCurrentChapterID_.clear();
+    }
     projectID_      = projectID;
     projectPath_    = projectPath;
     appSupportRoot_ = appSupportRoot;
@@ -1037,6 +1047,10 @@ void EditorShell::onNavigatorContextMenu(const QPoint& pos)
         QAction* rename = menu.addAction(tr("Rename Chapter…"));
         connect(rename, &QAction::triggered, this,
                 [this, chapterID] { renameChapterByID(chapterID); });
+        menu.addSeparator();
+        connect(menu.addAction(tr("Expand All Chapters")), &QAction::triggered, this, &EditorShell::expandAllChapters);
+        connect(menu.addAction(tr("Collapse All Chapters")), &QAction::triggered, this, &EditorShell::collapseAllChapters);
+        menu.addSeparator();
         QAction* del = menu.addAction(tr("Delete Chapter"));
         connect(del, &QAction::triggered, this,
                 [this, chapterID] { deleteChapterByID(chapterID); });
@@ -1620,6 +1634,16 @@ void EditorShell::selectNavigatorScene(const QString& sceneID)
         inspector_->setScene(sceneID);
     }
 
+    // [SP-226]: the Navigator follows the scene's chapter — opened before its row is selected; the one left closes
+    // unless the writer opened it herself.
+    if (const int idx = sceneDoc_.sceneIndexForScene(sceneID); idx >= 0) {
+        const QString chapterID = sceneDoc_.segments().at(idx).chapterID;
+        if (chapterID != navCurrentChapterID_) {
+            navCurrentChapterID_ = chapterID;
+            applyChapterExpansion();
+        }
+    }
+
     // Highlight-only: find the matching child row and select it. No scroll, no caret.
     const Span navigatorSpan("navigator: highlight");
     for (int r = 0; r < navModel_->rowCount(); ++r) {
@@ -2046,12 +2070,102 @@ void EditorShell::rebuildNavigator()
                             & ~Qt::ItemIsDropEnabled);
         chapterItem->appendRow(sceneItem);
     }
-    navigator_->expandAll();
+    // [SP-226] (T-0657): ⛔ no longer `expandAll()` — the writer's chapters and the current one.
+    applyChapterExpansion();
 
     // Keep the timeline strip in sync after any structural change (create / delete /
     // rename / reorder / merge / split all rebuild the navigator). Guarded internally
     // against the mid-load programmatic build (load() calls reloadTimeline once at end).
     reloadTimeline();
+}
+
+void EditorShell::applyChapterExpansion()
+{
+    applyingChapterExpansion_ = true;
+    for (int r = 0; r < navModel_->rowCount(); ++r) {
+        QStandardItem* chapter = navModel_->item(r);
+        const QString chapterID = chapter->data(kChapterIDRole).toString();
+        const bool hers = expandedChapters_.contains(chapterID);
+        const bool current = chapterID == navCurrentChapterID_;
+        navigator_->setExpanded(chapter->index(), hers || current);
+        // Q5: the current chapter is open either way; italic while it is open only because she is in it.
+        QFont font = chapter->font();
+        if (font.italic() != (current && !hers)) {
+            font.setItalic(current && !hers);
+            chapter->setFont(font);
+        }
+        chapter->setToolTip(current ? (hers ? tr("Kept open — collapse to stop keeping it open")
+                                            : tr("Open while you are in it — collapse to keep it open"))
+                                    : QString());
+    }
+    applyingChapterExpansion_ = false;
+}
+
+void EditorShell::onChapterExpanded(const QModelIndex& index)
+{
+    const QString chapterID = index.data(kChapterIDRole).toString();
+    if (applyingChapterExpansion_ || chapterID.isEmpty() || expandedChapters_.contains(chapterID)) { return; }
+    expandedChapters_.insert(chapterID);
+    applyChapterExpansion();
+    writeExpandedChapters();
+}
+
+void EditorShell::onChapterCollapsed(const QModelIndex& index)
+{
+    const QString chapterID = index.data(kChapterIDRole).toString();
+    if (applyingChapterExpansion_ || chapterID.isEmpty()) { return; }
+    // Q5: the current chapter never closes — collapsing it toggles whether she keeps it open after she leaves.
+    if (chapterID == navCurrentChapterID_ && !expandedChapters_.remove(chapterID)) {
+        expandedChapters_.insert(chapterID);
+    } else {
+        expandedChapters_.remove(chapterID);
+    }
+    applyChapterExpansion();
+    writeExpandedChapters();
+}
+
+void EditorShell::expandAllChapters()
+{
+    for (const SceneSegment& seg : sceneDoc_.segments()) { expandedChapters_.insert(seg.chapterID); }
+    applyChapterExpansion();
+    writeExpandedChapters();
+}
+
+void EditorShell::collapseAllChapters()
+{
+    expandedChapters_.clear();
+    applyChapterExpansion();
+    writeExpandedChapters();
+}
+
+void EditorShell::writeExpandedChapters()
+{
+    if (bridge_ == nullptr || projectID_.isEmpty()) { return; }
+    if (expandedWriteInFlight_) { expandedWritePending_ = true; return; }
+    expandedWriteInFlight_ = true;
+    const WorkerBridge::Handle bridgeHandle = WorkerBridge::handleFor(bridge_);   // ✅ [I-0309]: never `bridge_` itself
+    const QString path = projectPath_, support = appSupportRoot_, projectID = projectID_;
+    QStringList ids = expandedChapters_.values();
+    ids.sort();
+    const auto landed = [this] {
+        expandedWriteInFlight_ = false;
+        if (expandedWritePending_) {
+            expandedWritePending_ = false;
+            writeExpandedChapters();
+        }
+    };
+    AsyncCall::run<bool>(
+        this,
+        [bridgeHandle, path, support, projectID, ids]() -> bool {
+            WorkerBridge bridge(bridgeHandle);
+            (void)bridge->setExpandedChapters(path, support, projectID, ids);
+            return !bridge->lastCallFailed();
+        },
+        [landed](bool ok) {
+            if (!ok) { DiagnosticLog::note(QStringLiteral("navigator: the open chapters were not stored")); }
+            landed();
+        },
+        [landed] { landed(); }, 0);   // behind the write queue: giving up would not stop it
 }
 
 void EditorShell::moveCaretToSegment(int index)

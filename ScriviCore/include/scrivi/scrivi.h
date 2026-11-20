@@ -196,6 +196,17 @@ const char* scrivi_open_scene_for_bulk_load(
     const char* projectID,
     const char* sceneID);
 
+/* SP-226 (T-0657) -- the Navigator chapters the writer has opened, on THIS device (app support's workspace-state.json,
+ * beside the last writing surface). chapterIDsJSON: a JSON array, e.g. ["chapter_a","chapter_b"]; it REPLACES the stored
+ * set ([] clears it). scrivi_open_project returns the set as "expandedChapterIDs" -- OMITTED when empty. The chapter the
+ * writer is in is the platform's to keep open; it is stored only if she opened it herself.
+ * Result: {"count"}. */
+const char* scrivi_set_expanded_chapters(
+    const char* projectRootPath,
+    const char* appSupportRoot,
+    const char* projectID,
+    const char* chapterIDsJSON);
+
 /* SP-173 / I-0285 (fix 3) -- the TEXT of many scenes in one call, read in PARALLEL inside the core (the cost of reading a
  * manuscript over a network share is per-file latency; the project lock serialises the platforms' own calls).
  * sceneIDsJson: a JSON array of scene IDs, e.g. ["scene_a","scene_b"]. Read-only.

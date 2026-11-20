@@ -494,6 +494,7 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-223** | `[Apple]` **[EP-055] S3b** — Find and Replace, Go To, branch marks, copy buffers, Format on iOS (T-0686) | EP-055 | 2026-11-18 | 2026-11-19 | ✅ **CLOSED** → [`Closed/Sprint-SP-223.md`](Closed/Sprint-SP-223.md) |
 | **SP-224** | `[Apple]` **[EP-055] S4** — projects and worlds survive a relaunch on iPad and iPhone (T-0687) | EP-055 | 2026-11-19 | 2026-11-19 | ✅ **CLOSED** → [`Closed/Sprint-SP-224.md`](Closed/Sprint-SP-224.md) |
 | **SP-225** | `[Apple]` **[EP-055] S5** — worlds and the timeline's dots on iPad and iPhone (T-0688) | EP-055 | 2026-11-19 | 2026-11-19 | ✅ **CLOSED** → [`Closed/Sprint-SP-225.md`](Closed/Sprint-SP-225.md) |
+| **SP-226** | `[Cross]` **[EP-055] S6** — collapsible chapters in the Navigator (T-0657) | EP-055 | 2026-11-19 | — | 🟡 **ACTIVE** → [`Sprint-SP-226.md`](Sprint-SP-226.md) |
 | **SP-160** | `[Linux]` **[EP-049] S1** — Linux writes Apple's manuscript format: escaping, paste/copy, pair deletion, Return/⌫, shared corpus (T-0586); + I-0276 | EP-049 | 2026-10-04 | 2026-10-04 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-160.md) |
 
 ## Statistics
@@ -533,6 +534,12 @@ by status, read the table.**
 > on neither time. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-11-19 (**SP-226 built**; ⏳ AC7 live passes.)*
+
+*Last Updated: 2026-11-19 (**SP-226 → 🟡 ACTIVE** (user, 2026-11-19: *"Q1-Q6 as recommended.  Activate SP-226 now."*); Q1–Q6 as recommended.)*
+
+*Last Updated: 2026-11-19 (**SP-226 created in 🔵 Planning** (user, 2026-11-19: *"plan SP-226"*), issued via `next-id.py`; Q1–Q6 to rule.)*
 
 *Last Updated: 2026-11-19 (**SP-225 → ✅ CLOSED** (user, 2026-11-19: *"all steps pass, close SP-225.  In addition the hover worked for both the pointer and the pencil."*))*
 

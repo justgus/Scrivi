@@ -397,6 +397,24 @@ TEST_CASE("WorkspaceStateJson round-trips without last writing surface", "[schem
     REQUIRE(result.value().hasLastWritingSurface == false);
 }
 
+TEST_CASE("[SP-226] WorkspaceStateJson round-trips expandedChapterIDs; absent reads as none", "[schemas]") {
+    WorkspaceStateData d;
+    d.projectID.value    = "proj-001";
+    d.deviceID           = "device-001";
+    d.identityID         = "identity-001";
+    d.expandedChapterIDs = {"chapter_a", "chapter_b"};
+    auto result = parseWorkspaceState(serializeWorkspaceState(d));
+    REQUIRE(result.ok());
+    REQUIRE(result.value().expandedChapterIDs == std::vector<std::string>{"chapter_a", "chapter_b"});
+
+    d.expandedChapterIDs.clear();
+    const auto json = serializeWorkspaceState(d);
+    REQUIRE(json.find("expandedChapterIDs") == std::string::npos);
+    auto none = parseWorkspaceState(json);
+    REQUIRE(none.ok());
+    REQUIRE(none.value().expandedChapterIDs.empty());
+}
+
 TEST_CASE("WorkspaceStateJson rejects corrupt JSON", "[schemas]") {
     REQUIRE_FALSE(parseWorkspaceState("{bad}").ok());
 }

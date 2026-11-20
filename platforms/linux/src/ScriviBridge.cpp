@@ -362,6 +362,20 @@ QVariantMap ScriviBridge::openSceneForBulkLoad(const QString& projectRootPath,
     return parseEnvelope(envelope.toQString());
 }
 
+QVariantMap ScriviBridge::setExpandedChapters(const QString& projectRootPath,
+                                              const QString& appSupportRoot,
+                                              const QString& projectID,
+                                              const QStringList& chapterIDs)
+{
+    const QByteArray json = QJsonDocument(QJsonArray::fromStringList(chapterIDs)).toJson(QJsonDocument::Compact);
+    const ScriviString envelope(
+        scrivi_set_expanded_chapters(projectRootPath.toUtf8().constData(),
+                                     appSupportRoot.toUtf8().constData(),
+                                     projectID.toUtf8().constData(),
+                                     json.constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
 QVariantMap ScriviBridge::saveScene(const QString& projectID,
                                     const QString& projectRootPath,
                                     const QString& appSupportRoot,

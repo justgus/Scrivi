@@ -117,6 +117,53 @@ struct SceneSegment: Identifiable {
 
     func takeFocus() { takeFocusHandler?() }
 
+    // MARK: — Navigator chapters ([SP-226], T-0657)
+
+    /// The chapters the writer opened herself, on this device. The viewport's chapter shows open too, without being added.
+    private(set) var expandedChapterIDs: Set<String> = []
+    /// The last write, so the next waits for it and two toggles never land out of order.
+    @ObservationIgnored private var expandedChaptersWrite: Task<Void, Never>?
+
+    /// The chapter of the scene in the viewport — always shown open.
+    var currentChapterID: String? {
+        guard let id = viewportSceneID else { return nil }
+        return allScenes.first { $0.sceneID == id }?.chapterID
+    }
+
+    /// The set the open returned. Not written back.
+    func adoptExpandedChapters(_ ids: [String]) { expandedChapterIDs = Set(ids) }
+
+    func setChapter(_ chapterID: String, expanded: Bool) {
+        if expanded { expandedChapterIDs.insert(chapterID) } else { expandedChapterIDs.remove(chapterID) }
+        writeExpandedChapters()
+    }
+
+    func expandAllChapters() {
+        expandedChapterIDs = Set(allScenes.map(\.chapterID))
+        writeExpandedChapters()
+    }
+
+    /// Q6: the current chapter stays open — it always shows open, so nothing of hers is kept.
+    func collapseAllChapters() {
+        expandedChapterIDs = []
+        writeExpandedChapters()
+    }
+
+    /// Q2: on every change, off the main thread.
+    private func writeExpandedChapters() {
+        let engine = engine, root = projectRootPath, support = appSupportRoot, pid = projectID
+        let ids = expandedChapterIDs.sorted()
+        let previous = expandedChaptersWrite
+        expandedChaptersWrite = Task.detached(priority: .utility) {
+            await previous?.value
+            do {
+                try engine.setExpandedChapters(projectRootPath: root, appSupportRoot: support, projectID: pid, chapterIDs: ids)
+            } catch {
+                NSLog("[SP-226] the Navigator's open chapters were not stored: \(error)")
+            }
+        }
+    }
+
     // ⚠️ **Echo suppression for the navigator↔manuscript cycle (I-0132).**
     //
     // The two views form a loop by design: the manuscript scrolls → `setViewportScene` →

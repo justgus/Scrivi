@@ -6,6 +6,7 @@
 
 #include <optional>
 #include <string>
+#include <vector>
 
 namespace scrivi::schemas {
 
@@ -23,6 +24,8 @@ struct WorkspaceStateData {
     std::size_t cursorAnchor   = 0;
     std::size_t cursorFocus    = 0;
     double      scrollPosition = 0.0;
+
+    std::vector<std::string> expandedChapterIDs;   // SP-226: absent in the file = none
 };
 
 std::string serializeWorkspaceState(const WorkspaceStateData& data);

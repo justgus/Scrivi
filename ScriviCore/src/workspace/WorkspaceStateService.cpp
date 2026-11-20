@@ -53,6 +53,8 @@ Result<std::optional<WorkspaceState>> WorkspaceStateService::load(
         state.lastWritingSurface = lws;
     }
 
+    for (auto& id : d.expandedChapterIDs) { state.expandedChapterIDs.push_back(ChapterID{std::move(id)}); }
+
     return Result<std::optional<WorkspaceState>>::success(std::move(state));
 }
 
@@ -85,6 +87,8 @@ Result<void> WorkspaceStateService::save(
         d.cursorFocus      = lws.selection.focus;
         d.scrollPosition   = lws.scroll.value;
     }
+
+    for (const auto& id : state.expandedChapterIDs) { d.expandedChapterIDs.push_back(id.value); }
 
     auto path = stateFilePath(appSupportRoot, state.projectID);
     return services_.fileSystem->atomicWriteTextFile(path, schemas::serializeWorkspaceState(d));

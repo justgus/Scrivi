@@ -335,6 +335,7 @@ import os
         let path = projectRootPath ?? ""
         authorPrompt = result.authorPrompt
         if let author = result.writingAs { adoptWritingAs(author) } else if result.authorPrompt == .chooseAuthor { authorshipRef = nil }
+        loader.adoptExpandedChapters(result.expandedChapterIDs)   // [SP-226], before the Navigator first draws
         NSLog("[SCRIVI-TIMING] >>> entering: viewportLoader assignment")
         ScriviDiag.measure("viewportLoader = loader (@Observable)") {
             viewportLoader = loader

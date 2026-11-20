@@ -119,6 +119,10 @@ struct SceneNavigatorView: View {
                 // appeared (~1.2–3.6 s on an iPad, measured 2026-11-03).
                 ForEach(flatRows, id: \.rowID) { row in
                     NavigatorRow(row: row, activeSceneID: loader.viewportSceneID,
+                                 disclosure: disclosure(for: row),
+                                 onToggleChapter: { loader.setChapter($0, expanded: $1) },
+                                 onExpandAll: { loader.expandAllChapters() },
+                                 onCollapseAll: { loader.collapseAllChapters() },
                                  onRename: { renameTarget = $0 },
                                  onDeleteScene: { deleteSceneTarget = $0 },
                                  onDeleteChapter: { deleteChapterTarget = $0 })
@@ -238,7 +242,9 @@ struct SceneNavigatorView: View {
             .onChange(of: loader.viewportSceneID) { _, sceneID in
                 pendingReveal = nil
                 guard let sceneID else { return }
-                proxy.scrollTo("scene-\(sceneID)", anchor: nil)
+                // ⚠️ [SP-226]: deferred a turn — a scene in a chapter that was closed gets its row in this same update, and
+                // the list cannot scroll to a row it has not laid out yet.
+                DispatchQueue.main.async { proxy.scrollTo("scene-\(sceneID)", anchor: nil) }
             }
         }
         .listStyle(.inset)
@@ -644,6 +650,24 @@ struct SceneNavigatorView: View {
         let sceneIDs: Set<String>
     }
 
+    // MARK: — Collapsible chapters ([SP-226], T-0657)
+
+    struct ChapterDisclosure {
+        let isOpen: Bool
+        let isHers: Bool      // in her set — it stays open after she leaves it
+        let isCurrent: Bool   // the viewport's: always open (Q5)
+        let isSearching: Bool // Q3: search ignores collapse
+    }
+
+    private func disclosure(for row: FlatRow) -> ChapterDisclosure? {
+        guard case .chapterHeader(let g) = row else { return nil }
+        let isHers = loader.expandedChapterIDs.contains(g.chapterID)
+        let isCurrent = g.chapterID == loader.currentChapterID
+        let isSearching = !searchQuery.isEmpty
+        return ChapterDisclosure(isOpen: isSearching || isHers || isCurrent, isHers: isHers, isCurrent: isCurrent,
+                                 isSearching: isSearching)
+    }
+
     // MARK: — Helpers
 
     private func truncated(_ title: String, limit: Int = 30) -> String {
@@ -712,13 +736,18 @@ struct SceneNavigatorView: View {
     // T-0569 — while searching, a chapter whose TITLE matches keeps all its scenes; otherwise
     // a scene is kept when its displayed title or its body matches, under its chapter header.
     // Titles are matched here (cheap); bodies come from the off-main scan (`bodyMatches`).
+    // [SP-226] — otherwise a closed chapter is its header alone: open are hers and the viewport's (Q3: not while searching).
     private var flatRows: [FlatRow] {
         let query = searchQuery
         let bodyIDs = bodyMatches?.query == query ? bodyMatches?.sceneIDs : nil
+        let expanded = loader.expandedChapterIDs, current = loader.currentChapterID
         var rows: [FlatRow] = []
         for group in chapterGroups {
             let scenes: [SceneEntry]
-            if query.isEmpty || group.chapterTitle.localizedStandardContains(query) {
+            if query.isEmpty, !expanded.contains(group.chapterID), group.chapterID != current {
+                rows.append(.chapterHeader(group))
+                continue
+            } else if query.isEmpty || group.chapterTitle.localizedStandardContains(query) {
                 scenes = group.scenes
             } else {
                 scenes = group.scenes.filter {
@@ -784,6 +813,10 @@ struct SceneNavigatorView: View {
 private struct NavigatorRow: View {
     let row: SceneNavigatorView.FlatRow
     let activeSceneID: String?
+    let disclosure: SceneNavigatorView.ChapterDisclosure?   // headers only
+    let onToggleChapter: (_ chapterID: String, _ expanded: Bool) -> Void
+    let onExpandAll: () -> Void
+    let onCollapseAll: () -> Void
     let onRename: (SceneNavigatorView.RenameTarget) -> Void
     let onDeleteScene: (SceneNavigatorView.SceneEntry) -> Void
     let onDeleteChapter: (SceneNavigatorView.ChapterGroup) -> Void
@@ -791,15 +824,21 @@ private struct NavigatorRow: View {
     var body: some View {
         switch row {
         case .chapterHeader(let group):
-            Text(group.chapterTitle)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.primary)
+            HStack(spacing: 2) {
+                if let disclosure { ChapterChevron(chapterID: group.chapterID, state: disclosure, onToggle: onToggleChapter) }
+                Text(group.chapterTitle)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+            }
                 .padding(.top, 6)
                 .tag("header-\(group.chapterID)")
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
                 .contextMenu {
                     Button("Rename") { onRename(.chapter(group)) }
+                    Divider()
+                    Button("Expand All Chapters") { onExpandAll() }
+                    Button("Collapse All Chapters") { onCollapseAll() }
                     Divider()
                     Button("Delete", role: .destructive) { onDeleteChapter(group) }
                 }
@@ -821,6 +860,42 @@ private struct NavigatorRow: View {
                 // `id` is what `scrollTo` targets; it must match `rowID`, which is also the List's selection identity.
                 .id(row.rowID)
         }
+    }
+}
+
+/// [SP-226] A chapter header's disclosure. On the current chapter it never closes it (Q5): it marks the chapter as hers, so
+/// it stays open after she leaves — shown in the accent colour, and dimmed while it is open only because she is in it.
+private struct ChapterChevron: View {
+    let chapterID: String
+    let state: SceneNavigatorView.ChapterDisclosure
+    let onToggle: (_ chapterID: String, _ expanded: Bool) -> Void
+
+    var body: some View {
+        Button { onToggle(chapterID, !state.isHers) } label: {
+            Image(systemName: state.isOpen ? "chevron.down" : "chevron.right")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(tint)
+                #if os(iOS)
+                .frame(width: 44, height: 44)   // the minimum touch target
+                #else
+                .frame(width: 16, height: 16)
+                #endif
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.borderless)
+        .disabled(state.isSearching)
+        .help(help)
+        .accessibilityLabel(help)
+    }
+
+    private var tint: AnyShapeStyle {
+        guard state.isCurrent else { return AnyShapeStyle(.secondary) }
+        return state.isHers ? AnyShapeStyle(.tint) : AnyShapeStyle(.tertiary)
+    }
+
+    private var help: String {
+        if state.isCurrent { return state.isHers ? "Stop Keeping Chapter Open" : "Keep Chapter Open" }
+        return state.isOpen ? "Collapse Chapter" : "Expand Chapter"
     }
 }
 

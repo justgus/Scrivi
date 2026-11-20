@@ -26,6 +26,8 @@ std::string serializeWorkspaceState(const WorkspaceStateData& d) {
         doc.setSubDoc("lastWritingSurface", std::move(lws));
     }
 
+    for (const auto& id : d.expandedChapterIDs) { doc.appendStringToArray("expandedChapterIDs", id); }
+
     return doc.dump();
 }
 
@@ -56,6 +58,8 @@ Result<WorkspaceStateData> parseWorkspaceState(std::string_view json) {
         data.cursorAnchor = static_cast<std::size_t>(cursor.getInt("anchor"));
         data.cursorFocus  = static_cast<std::size_t>(cursor.getInt("focus"));
     }
+
+    data.expandedChapterIDs = doc.getStringArray("expandedChapterIDs");
 
     return Result<WorkspaceStateData>::success(std::move(data));
 }

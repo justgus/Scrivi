@@ -1,5 +1,9 @@
 # Task Backlog
 
+*Last Updated: 2026-11-19 (**T-0657 → active** with [SP-226]'s activation (user, 2026-11-19: *"Q1-Q6 as recommended.  Activate SP-226 now."*) → `Task-active.md`.)*
+
+*Last Updated: 2026-11-19 (**T-0657 → EP-055** (AC6, Q11 ruled 2026-11-19), carried by [SP-226] (🔵 Planning) (user, 2026-11-19: *"plan SP-226"*).)*
+
 *Last Updated: 2026-11-19 (**T-0688 → active** with [SP-225]'s activation → `Task-active.md`; built the same day → `Task-unverified.md`.)*
 
 *Last Updated: 2026-11-19 (**T-0688 filed** — EP-055 S5, carried by [SP-225] (🔵 Planning) (user, 2026-11-19: *"plan SP-225"*).)*
@@ -136,7 +140,6 @@ status changes on its own layer.
 | **T-0497** | ⚠️ **`[Linux]` World CREATION** — the one Worlds action SP-127 deliberately deferred. ⚠️ **Apple entangles it with `WorldBookmarkStore` (macOS sandbox grants, NO Linux equivalent)**, and ✅ **AC3 asks for added / status read / relinked, not created**. ⚠️ **PRIORITY ARGUMENT CHANGED BY THE T-0496 LIVE PASS (2026-09-01):** ⚠️ **the user hit this as a DEAD END while setting up a test** — `Project ▸ Manage Worlds…` offers **no create affordance**, so ⚠️ **a project with no world cannot proceed on Linux at all**: there is nothing to *add* or *relink*. ✅ **Apple detects the no-world case and PROMPTS the writer to create one** — ⚠️ **the deferral assumed add+relink were enough to be USABLE, and they are not.** ⚠️ **The step-7 test could not be completed on Linux alone; the world (`Alpha Centauri`) had to be created in the APPLE app** — ⚠️ **the sharpest evidence available that this is a gap, not a nicety.** | **EP-035** | 🔵 **Backlog** — ⚠️ **unscheduled, but ⚠️ NOW BLOCKING a Linux-only writer** |
 | T-0621 | `[Cross]` Explore a whole-manuscript history view (a tree, or a branching timeline) | ⚠️ None yet | 🔵 Backlog — exploration |
 | T-0628 | `[Cross]` EP-052: keep a held queue on local disk and push it when the project returns | EP-052 (unscheduled) | 🔵 Backlog |
-| T-0657 | `[Cross]` Navigator: collapsible chapters, the current one open, the writer's choices remembered per device | ⚠️ None yet | 🔵 Backlog |
 | T-0663 | `[Cross]` Properties tab: the project's file facts (folder, path, dates, size) | ⚠️ None yet | 🔵 Backlog — Q1–Q5 ruled |
 | T-0667 | `[Cross]` EP-054: paste a Copy as HTML chapter into AO3 itself once it is back online | EP-054 | 🔵 Backlog — waits for AO3 |
 | T-0684 | `[Cross]` The app's name: "Scrivi" is alarmingly close to "Scrivener" | ⚠️ None yet | 🔵 Backlog |
@@ -832,39 +835,6 @@ reachable again (at its next open, or when the drive returns while the app runs)
 ---
 
 ---
-
-## 🔵 T-0657 — `[Cross]` Navigator: collapsible chapters, the current one open, the writer's choices remembered per device
-
-**Epic:** ⚠️ none yet · **Status:** 🔵 Backlog (proposed enhancement) · **Date Requested:** 2026-11-03 (user, after the
-[SP-199] measurement: *"the Dumas example is a real pain to scroll through the Navigator. Finding any particular scene by
-scrolling is rather difficult and getting from the back of the document to, say, the middle of the manuscript requires many
-many scroll gestures."*)
-
-**Why:** two problems with one cause, a flat list of every scene. (1) Finding a scene in a long book takes many scroll
-gestures. (2) Showing the Navigator is slow: on dumas (1,175 scenes, ~2,350 rows with chapter headers) the iPad's main
-thread blocked 3.6 s on the first show and ~1.2 s on a later one. A simulator profile put ~75% in SwiftUI's List walking
-every row; a bare List of the same rows takes 12 ms, ours ~75 ms ([SP-199] progress log, 2026-11-03). Collapsed chapters cut
-the rows to roughly the chapter count (58 chapter folders in dumas) plus the open chapters' scenes.
-
-**Rulings (user, 2026-11-03):**
-- The **current chapter** (the viewport's) is always expanded, so the writer sees which scene she is in.
-- The writer can **expand and collapse any chapter** to find a scene; she may keep several open (flipping between two
-  scenes).
-- A chapter opened **only because she was in it** closes when she leaves it; one she **opened herself** stays open until
-  she closes it.
-- Her choices are **remembered per device** and restored when the project opens: app-local `workspace-state.json` (Minimum
-  Schema Set §10), owned by the core, read and written through the C ABI. Leaving them all open is her choice.
-- **Expand All and Collapse All** controls are included.
-- Possible later: rules for auto-collapsing chapters (the user's to define).
-
-**Scope:** Apple (Mac and iOS) and Linux, the same shape (Linux adopts Apple's). The core gains the expanded-chapter list in
-`scrivi.workspaceState.v1` and its endpoints; reorder (drag) and search (T-0569, which keeps a matching chapter's scenes)
-must be decided against collapsed chapters before building.
-
-**Measuring (how SP-199 did it):** an iOS test that copies dumas to a temp folder, opens it with `ProjectSession.loadAsync`,
-hosts `SceneNavigatorView` in a `UIHostingController` in a 320 × 1000 `UIWindow` and times `layoutIfNeeded` over a few
-runs; `sample <pid>` on the simulator process during a loop gives the profile. Baseline 2026-11-03: ~75 ms (simulator),
-bare List 12 ms.
 
 ## 🔵 T-0663 — `[Cross]` Properties tab: the project's file facts (folder, path, dates, size)
 

@@ -786,3 +786,46 @@ struct IOSBookmarkTests {
         #expect(try env.engine.listWorlds(projectRootPath: rootPath).worlds.first?.status == "available")
     }
 }
+
+// [SP-226] (T-0657) — the Navigator's open chapters: a toggle is written off the main thread and the next open returns it.
+// (Measured once, AC5, by a temporary probe on dumas-prose in the simulator: first show 65 ms every chapter open → 23 ms.)
+@Suite("Navigator chapters (SP-226)") @MainActor struct NavigatorChapterTests {
+    @Test("a toggle, Expand All and Collapse All each reach the next open")
+    func togglesSurviveReopen() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("scrivi-sp226-\(UUID().uuidString)")
+        let support = FileManager.default.temporaryDirectory.appendingPathComponent("scrivi-sp226-support-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: support, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root); try? FileManager.default.removeItem(at: support) }
+        let env = AppEnvironment()
+        let identity = try env.engine.ensureLocalIdentity(displayName: "iOS Test", appSupportRoot: support.path)
+        let ref = AuthorshipRef(identityID: identity.identityID, personaID: identity.defaultPersonaID,
+                                displayName: identity.displayName)
+        _ = try env.engine.createProject(projectRootPath: root.path, appSupportRoot: support.path,
+                                         title: "Chapters", slug: "chapters", authorshipRef: ref)
+        let session = ProjectSession(engine: env.engine, authorshipRef: ref, appSupportRoot: support.path,
+                                     identityID: identity.identityID)
+        try await session.loadAsync(at: root.path)
+        let loader = try #require(session.viewportLoader)
+        let chapterID = try #require(loader.allScenes.first?.chapterID)
+        #expect(loader.expandedChapterIDs.isEmpty, "Q1: a project with no stored choice")
+
+        /// What the next open returns, once the off-main write has landed.
+        func stored(_ expected: [String]) async throws -> [String] {
+            var ids: [String] = []
+            for _ in 0..<40 {
+                ids = try env.engine.openProject(projectRootPath: root.path, appSupportRoot: support.path,
+                                                 identityID: identity.identityID).expandedChapterIDs
+                if ids == expected { break }
+                try await Task.sleep(nanoseconds: 50_000_000)
+            }
+            return ids
+        }
+        loader.setChapter(chapterID, expanded: true)
+        #expect(try await stored([chapterID]) == [chapterID])
+        loader.collapseAllChapters()
+        #expect(try await stored([]) == [])
+        loader.expandAllChapters()
+        #expect(try await stored([chapterID]) == [chapterID])
+    }
+}
