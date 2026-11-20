@@ -810,7 +810,7 @@ archive files reconstructed after the fact from secondary sources.
 | T-0654 | `[Linux]` Rig pass: The Properties tab's metrics | — | **EP-057** | ✅ Verified 2026-11-02 | [`Task-verified-0654.md`](Verified/Task-verified-0654.md) |
 | T-0655 | `[Linux]` Rig pass: Replace All without holding the window | — | **EP-057** | ✅ Verified 2026-11-02 | [`Task-verified-0655.md`](Verified/Task-verified-0655.md) |
 | T-0656 | `[Linux]` Landing: a warm grey background with a little depth | — | — | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
-| T-0657 | `[Cross]` Navigator: collapsible chapters, the current one open, the writer's choices remembered per device | 🟡 SP-226 | **EP-055** | 🟠 Unverified | [`Task-unverified.md`](Task-unverified.md) |
+| T-0657 | `[Cross]` Navigator: collapsible chapters, the current one open, the writer's choices remembered per device | ✅ SP-226 | **EP-055** | ✅ Verified | [`Verified/Task-verified-0657.md`](Verified/Task-verified-0657.md) |
 | T-0658 | `[Linux]` EP-050 AC6: measure what Orca is given for the manuscript | ✅ **SP-202** | **EP-050** | ✅ Verified 2026-11-04 | [`Verified/Task-verified-0658.md`](Verified/Task-verified-0658.md) |
 | T-0659 | `[Linux]` EP-050 S4: Orca reads the manuscript as the page shows it | ✅ **SP-203** | **EP-050** | ✅ Verified 2026-11-04 | [`Verified/Task-verified-0659.md`](Verified/Task-verified-0659.md) |
 | T-0660 | `[Linux]` Rig pass: Orca reads the manuscript as the page shows it | — | **EP-057** | ✅ Verified 2026-11-04 | [`Verified/Task-verified-0660.md`](Verified/Task-verified-0660.md) |
@@ -878,6 +878,8 @@ archive files reconstructed after the fact from secondary sources.
 ⚠️ **This index ended at `T-0485 (next available)` until 2026-09-10 — ✅ that was STALE.** ⚠️ **T-0485–T-0498 had all been taken**, and T-0485–T-0490/T-0492–T-0496 are archived as Verified. ⚠️ **Rows for T-0486–T-0497 are NOT reconstructed here** — ✅ **their Sprints' closed records are authoritative** (`feedback_archive_on_close`).
 
 ---
+
+*Last Updated: 2026-11-20 (**T-0657 → ✅ Verified** ([SP-226] closed) → `Verified/Task-verified-0657.md`.)*
 
 *Last Updated: 2026-11-19 (**T-0657 → 🟠** ([SP-226] built).)*
 

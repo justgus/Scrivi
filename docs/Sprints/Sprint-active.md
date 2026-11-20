@@ -1,5 +1,9 @@
 # Active Sprints
 
+*Last Updated: 2026-11-20 (**SP-226 → ✅ CLOSED** (user, 2026-11-20: *"Close SP-226"*) → `Closed/Sprint-SP-226.md`; T-0657 ✅ Verified. No Sprint is active.)*
+
+*Last Updated: 2026-11-20 (**SP-226: all ACs met** — live passes on all four platforms and CI green; awaiting close approval.)*
+
 *Last Updated: 2026-11-19 (**SP-226 built** — AC1–AC3, AC5 met; AC6 all green locally, CI on the push; AC4 in the live pass; T-0657 → 🟠. ⏳ AC7 live passes.)*
 
 *Last Updated: 2026-11-19 (**SP-226 → 🟡 ACTIVE** (user, 2026-11-19: *"Q1-Q6 as recommended.  Activate SP-226 now."*); Q1–Q6 as recommended → [`Sprint-SP-226.md`](Sprint-SP-226.md))*

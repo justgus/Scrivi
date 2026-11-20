@@ -1,16 +1,16 @@
 ---
 sprint: SP-226
 epic: EP-055
-status: Active
+status: Closed
 platform: Cross
 created: 2026-11-19
 ---
 
 # SP-226 — `[Cross]` [EP-055] S6: collapsible chapters in the Navigator
 
-**Status:** 🟡 **Active** (user, 2026-11-19: *"Q1-Q6 as recommended.  Activate SP-226 now."*). Q1–Q6 ruled as recommended.
+**Status:** ✅ **CLOSED 2026-11-20** (user, 2026-11-20: *"Close SP-226"*). Q1–Q6 ruled as recommended 2026-11-19; Q4 and Q5 amended in the live pass.
 **Carries:** [T-0657] (rulings of 2026-11-03 in the Task; moved into EP-055 AC6 by Q11, 2026-11-19).
-**Epic:** [EP-055] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md) — the last of AC6. S5's iPad pass ([SP-225]) found nothing,
+**Epic:** [EP-055] → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md) — the last of AC6. S5's iPad pass ([SP-225]) found nothing,
 so S6 is T-0657 alone.
 **Builds on:** T-0569 (the Navigator's search), SP-073 (chapter and scene drag on both platforms), SP-144 / I-0234 (the workspace-state
 write budget), SP-199 (the iOS Navigator measurement).
@@ -95,10 +95,10 @@ Navigator's compact-width layout beyond what the iPhone already does (S7).
       platforms); Q5 — a filled triangle marks a chapter she keeps open, and on every platform the title is italic for the
       chapter she is in and bold for one she keeps open.
 - [x] AC3 — **Linux:** the same shape; a structural edit (which rebuilds the tree) keeps the set
-- [ ] AC4 — The set survives killing and relaunching the app, per device (Q1 for a project with none)
+- [x] AC4 — The set survives killing and relaunching the app, per device (Q1 for a project with none)
 - [x] AC5 — **Measured:** the iOS Navigator's first show on dumas, before and after, by T-0657's method
-- [ ] AC6 — iOS tests, Mac interop, macOS and iOS builds, the Linux build and smokes, the guard scripts, CI green
-- [ ] AC7 — **Live passes (user):** the Mac, iPad, iPhone, Linux (the VM)
+- [x] AC6 — iOS tests, Mac interop, macOS and iOS builds, the Linux build and smokes, the guard scripts, CI green
+- [x] AC7 — **Live passes (user):** the Mac, iPad, iPhone, Linux (the VM)
 
 ## Live-pass steps (AC4, AC7)
 
@@ -172,6 +172,12 @@ Run on the Mac, the iPad, the iPhone and the Linux VM (pull and build on the VM 
   - **Q5 too subtle:** the tinted chevron did not show a change. Now a filled triangle (`arrowtriangle.*.fill`) marks a chapter she keeps open, an outline one does not; titles italic = current, bold = kept, bold italic = both — on Apple and Linux (Linux's branch arrow is the style's, so the font carries it). `chapter_titles_smoke` §6 checks the styles.
   - **Q4 re-ruled:** on iPad the drop opens a gap between headers, and a drop before a closed chapter landed as the PREVIOUS chapter's first scene. A drop just under a closed chapter's header now makes the scene that chapter's last (Apple `performMove`, Linux `NavigatorTree::resolveDrop`); an open chapter's header still gives its first scene.
   - ⏳ Re-run steps 6, 13 and 19.
+- **2026-11-20** — ✅ **Live pass 2 passed; CI green** (user, 2026-11-20: *"I pushed, so you can check the CI.  Also all these steps pass on all platforms."*). The re-run steps pass on the Mac, iPad, iPhone and Linux VM (AC4, AC7); CI on `bbb665a` green — Apple CI and Linux App CI, ScriviCore CI on the previous push (AC6). All ACs met.
+- **2026-11-20** — ✅ **CLOSED** (user, 2026-11-20: *"Close SP-226"*). [T-0657] → `Verified/Task-verified-0657.md`.
+
+*Last Updated: 2026-11-20 (✅ **CLOSED** (user, 2026-11-20: *"Close SP-226"*).)*
+
+*Last Updated: 2026-11-20 (✅ **All ACs met** — live passes and CI green; awaiting close approval.)*
 
 *Last Updated: 2026-11-19 (🔨 **Built**; ⏳ AC7 live passes.)*
 
