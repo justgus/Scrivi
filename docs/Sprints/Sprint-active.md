@@ -1,5 +1,9 @@
 # Active Sprints
 
+*Last Updated: 2026-11-20 (**SP-227 → ✅ CLOSED** (user, 2026-11-20: *"Close SP-227"*) → `Closed/Sprint-SP-227.md`; T-0689 ✅ Verified. No Sprint is active.)*
+
+*Last Updated: 2026-11-20 (**SP-227: all ACs met** — live passes on the iPhone, Duo, Mac and iPad, and CI green; T-0689 ✅ Verified; awaiting close approval.)*
+
 *Last Updated: 2026-11-20 (**SP-227 → 🟡 ACTIVE** (user, 2026-11-20: *"implement SP-227"*) → [`Sprint-SP-227.md`](Sprint-SP-227.md); built — AC1–AC4 met, AC5 green locally (CI on the push); T-0689 → 🟠. ⏳ AC6 live passes.)*
 
 *Last Updated: 2026-11-20 (**SP-226 → ✅ CLOSED** (user, 2026-11-20: *"Close SP-226"*) → `Closed/Sprint-SP-226.md`; T-0657 ✅ Verified. No Sprint is active.)*

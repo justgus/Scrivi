@@ -1,5 +1,9 @@
 # Unverified Tasks
 
+*Last Updated: 2026-11-20 (**T-0689 → ✅ Verified** ([SP-227] closed) → `Verified/Task-verified-0689.md`.)*
+
+*Last Updated: 2026-11-20 (**T-0689 → ✅ Verified** (user, 2026-11-20: *"I also ran all these steps.  They all pass."*); archived when SP-227 closes.)*
+
 *Last Updated: 2026-11-20 (**T-0689 → 🟠 Implemented - Not Verified** ([SP-227] built); the live passes are the user's.)*
 
 *Last Updated: 2026-11-20 (**T-0657 → ✅ Verified** ([SP-226] closed) → `Verified/Task-verified-0657.md`.)*
@@ -119,24 +123,6 @@ Tasks that are **implemented and awaiting user verification** before being archi
 ⚠️ This file must not disagree with [`Task-active.md`](Task-active.md) or
 [`Task-backlog.md`](Task-backlog.md). A Task implemented but unverified belongs **here** — not left
 in the backlog carrying a 🟠 status.
-
----
-
-## 🟠 T-0689 — `[Apple]` EP-055 S7: the whole app at iPhone width
-
-**Epic:** [EP-055] (AC8; AC10's iPhone and Duo passes) · **Status:** 🟠 Implemented - Not Verified · **Sprint:** [SP-227] (🟡 Active) →
-[`../Sprints/Sprint-SP-227.md`](../Sprints/Sprint-SP-227.md) · **Date Requested:** 2026-11-20 (user: *"plan SP-227"*)
-
-**What:** every sheet fits an iPhone in portrait (the worlds sheet re-flowed, the detail sheet and New Project without their Mac
-minimum widths) and the four commands only the iPad's menu bar has today (Import, Show Markup Hints, Purge Stale History Branches,
-About) reachable by touch. Findings, questions and ACs: the Sprint.
-
-**Implemented ([SP-227], 2026-11-20):** the worlds sheet re-flows with `ViewThatFits` — each row (`worldRow`: `worldName` at a
-fixed ideal width, then `worldControls`) and the bottom bar (`worldActions`, `doneButton`); 460 pt is Mac-only and the iOS sheet
-scrolls (`WorldsView.swift`). The detail sheet's and New Project's minimum widths are Mac-only (`EditorView.swift`,
-`ObjectDetailSheet.swift`, `NewProjectSheet.swift`). The toolbar gains Import (`ImportMenuItems`, shared with File ▸ Import), Markup
-Hints in View, Purge Stale History Branches… and About Scrivi (`ProjectToolbar.swift`; `env.showAbout`). iOS test
-`PhoneWidthSheetTests`: ten sheets at 402 pt.
 
 ---
 

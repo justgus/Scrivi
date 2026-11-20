@@ -831,7 +831,7 @@ archive files reconstructed after the fact from secondary sources.
 | T-0676 | `[Cross]` EP-054: File ▸ Import / Export submenus, Export ▸ Chapter…, the iPad's timeline import/export | ✅ **SP-215** | **EP-054** | ✅ Verified 2026-11-13 | [`Verified/Task-verified-0676.md`](Verified/Task-verified-0676.md) |
 | T-0684 | `[Cross]` The app's name is too close to Scrivener's | — | ⚠️ None yet | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
 | T-0685 | `[Apple]` EP-055 S3a: undo/redo, structural edits, cross-scene clipboard on iOS | ✅ SP-222 | **EP-055** | ✅ Verified | [`Verified/Task-verified-0685.md`](Verified/Task-verified-0685.md) |
-| T-0689 | `[Apple]` EP-055 S7: the whole app at iPhone width | 🟡 SP-227 | **EP-055** | 🟠 Unverified | [`Task-unverified.md`](Task-unverified.md) |
+| T-0689 | `[Apple]` EP-055 S7: the whole app at iPhone width | ✅ SP-227 | **EP-055** | ✅ Verified | [`Verified/Task-verified-0689.md`](Verified/Task-verified-0689.md) |
 | T-0688 | `[Apple]` EP-055 S5: worlds and the timeline's dots on iPad and iPhone | ✅ SP-225 | **EP-055** | ✅ Verified | [`Verified/Task-verified-0688.md`](Verified/Task-verified-0688.md) |
 | T-0687 | `[Apple]` EP-055 S4: projects and worlds survive a relaunch on iPad and iPhone | ✅ SP-224 | **EP-055** | ✅ Verified | [`Verified/Task-verified-0687.md`](Verified/Task-verified-0687.md) |
 | T-0686 | `[Apple]` EP-055 S3b: Find and Replace, Go To, branch marks, copy buffers and Format on iOS | ✅ SP-223 | **EP-055** | ✅ Verified | [`Verified/Task-verified-0686.md`](Verified/Task-verified-0686.md) |
@@ -879,6 +879,8 @@ archive files reconstructed after the fact from secondary sources.
 ⚠️ **This index ended at `T-0485 (next available)` until 2026-09-10 — ✅ that was STALE.** ⚠️ **T-0485–T-0498 had all been taken**, and T-0485–T-0490/T-0492–T-0496 are archived as Verified. ⚠️ **Rows for T-0486–T-0497 are NOT reconstructed here** — ✅ **their Sprints' closed records are authoritative** (`feedback_archive_on_close`).
 
 ---
+
+*Last Updated: 2026-11-20 (**T-0689 → ✅ Verified** ([SP-227] closed) → `Verified/Task-verified-0689.md`.)*
 
 *Last Updated: 2026-11-20 (**T-0689 → 🟠** ([SP-227] activated and built).)*
 

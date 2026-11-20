@@ -1,16 +1,17 @@
 ---
 sprint: SP-227
 epic: EP-055
-status: Active
+status: Closed
+closed: 2026-11-20
 platform: Apple
 created: 2026-11-20
 ---
 
 # SP-227 — `[Apple]` [EP-055] S7: the whole app at iPhone width
 
-**Status:** 🟡 **Active** (user, 2026-11-20: *"implement SP-227"*). ✅ Q1–Q4 ruled as recommended (user, 2026-11-20: *"Q1-A4 as recommended.  Tick AC6."*).
+**Status:** ✅ **CLOSED** 2026-11-20 (user, 2026-11-20: *"Close SP-227"*). Activated (user, 2026-11-20: *"implement SP-227"*) · planned 2026-11-20 (user: *"plan SP-227"*). ✅ Q1–Q4 ruled as recommended (user, 2026-11-20: *"Q1-A4 as recommended.  Tick AC6."*).
 **Carries:** [T-0689].
-**Epic:** [EP-055] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md) — **AC8** (the phone surface, per Q1: the whole app at
+**Epic:** [EP-055] → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md) — **AC8** (the phone surface, per Q1: the whole app at
 compact width, the worlds sheet reformatted for it) and the iPhone and Duo half of **AC10**.
 **Builds on:** SP-199 (panels by size class: the Navigator and Inspector as pages, the toolbar in the system's ⋯ at compact width),
 [SP-222] / [SP-223] (the edit menu as the keyboard-less path for edits, Find, Format and buffers), [SP-225] (worlds on iOS).
@@ -73,8 +74,8 @@ touch. Nothing changes on the Mac.
 - [x] AC2 — The object detail sheet and New Project fit an iPhone in portrait
 - [x] AC3 — Import, Show Markup Hints, Purge Stale History Branches and About reachable on the iPhone by touch (Q2)
 - [x] AC4 — The width test (Q3) passes for every sheet the iPhone can show
-- [ ] AC5 — iOS tests, Mac interop, macOS and iOS builds, CI green
-- [ ] AC6 — **Live passes (user, Q4):** the iPhone and the Duo; the Mac and iPad re-checked
+- [x] AC5 — iOS tests, Mac interop, macOS and iOS builds, CI green
+- [x] AC6 — **Live passes (user, Q4):** the iPhone and the Duo; the Mac and iPad re-checked
 
 ## Live-pass steps (AC6)
 
@@ -122,6 +123,12 @@ touch. Nothing changes on the Mac.
     grid (Worlds reports 402.33). `HistoricalEventEditorSheet` is internal now, for the test.
   - **AC5:** iOS **38/38** (2 new); Mac interop **352/352**; macOS and iOS builds ✅, no warnings in the touched files. ⏳ CI on the push.
   - ⏳ **AC6:** the live passes.
+- **2026-11-20** — ✅ **Live passes passed; CI green** (user, 2026-11-20: *"I pushed, so you can check the CI.  I also ran all these steps.  They all pass."*). Steps 1–14 on the iPhone, the Duo (folded and open), the Mac and the iPad (AC6); Apple CI on `880cb4b` green (AC5; Linux and ScriviCore CI did not run, nothing of theirs changed). All ACs met.
+- **2026-11-20** — ✅ **CLOSED** (user, 2026-11-20: *"Close SP-227"*). [T-0689] → `Verified/Task-verified-0689.md`; EP-055 AC8 ✅ met.
+
+*Last Updated: 2026-11-20 (✅ **CLOSED** (user, 2026-11-20: *"Close SP-227"*).)*
+
+*Last Updated: 2026-11-20 (✅ **All ACs met** — live passes and CI green; awaiting close approval.)*
 
 *Last Updated: 2026-11-20 (🔨 **Built**; ⏳ CI and the live passes.)*
 
