@@ -2088,10 +2088,11 @@ void EditorShell::applyChapterExpansion()
         const bool hers = expandedChapters_.contains(chapterID);
         const bool current = chapterID == navCurrentChapterID_;
         navigator_->setExpanded(chapter->index(), hers || current);
-        // Q5: the current chapter is open either way; italic while it is open only because she is in it.
+        // Q5 (user, 2026-11-20): italic = the chapter she is in; bold = one she keeps open; both = bold italic.
         QFont font = chapter->font();
-        if (font.italic() != (current && !hers)) {
-            font.setItalic(current && !hers);
+        if (font.italic() != current || font.bold() != hers) {
+            font.setItalic(current);
+            font.setBold(hers);
             chapter->setFont(font);
         }
         chapter->setToolTip(current ? (hers ? tr("Kept open — collapse to stop keeping it open")

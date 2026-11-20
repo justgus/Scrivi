@@ -500,9 +500,11 @@ struct SceneNavigatorView: View {
                 let prevRow = rows[min(predecessorIdx, rows.count - 1)]
                 switch prevRow {
                 case .chapterHeader(let g):
-                    // Landing right after a chapter header = first scene of that chapter.
+                    // Landing right after an open chapter's header = its first scene; after a closed one's = its last
+                    // ([SP-226], user 2026-11-20: Q4 re-ruled).
                     targetGroup = g
-                    afterSceneID = ""
+                    afterSceneID = disclosure(for: prevRow)?.isOpen == false
+                        ? (g.scenes.last { $0.sceneID != entry.sceneID }?.sceneID ?? "") : ""
                 case .scene(let prevEntry, let prevGroup):
                     targetGroup = prevGroup
                     afterSceneID = prevEntry.sceneID
@@ -826,8 +828,10 @@ private struct NavigatorRow: View {
         case .chapterHeader(let group):
             HStack(spacing: 2) {
                 if let disclosure { ChapterChevron(chapterID: group.chapterID, state: disclosure, onToggle: onToggleChapter) }
+                // [SP-226] (user, 2026-11-20) italic = the chapter she is in; bold = one she keeps open.
                 Text(group.chapterTitle)
-                    .font(.subheadline.weight(.semibold))
+                    .font(.subheadline.weight(disclosure?.isHers == true ? .bold : .regular))
+                    .italic(disclosure?.isCurrent == true)
                     .foregroundStyle(.primary)
             }
                 .padding(.top, 6)
@@ -864,7 +868,7 @@ private struct NavigatorRow: View {
 }
 
 /// [SP-226] A chapter header's disclosure. On the current chapter it never closes it (Q5): it marks the chapter as hers, so
-/// it stays open after she leaves — shown in the accent colour, and dimmed while it is open only because she is in it.
+/// it stays open after she leaves. A filled triangle is a chapter she keeps open; an outline one is not (user, 2026-11-20).
 private struct ChapterChevron: View {
     let chapterID: String
     let state: SceneNavigatorView.ChapterDisclosure
@@ -872,9 +876,9 @@ private struct ChapterChevron: View {
 
     var body: some View {
         Button { onToggle(chapterID, !state.isHers) } label: {
-            Image(systemName: state.isOpen ? "chevron.down" : "chevron.right")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(tint)
+            Image(systemName: "arrowtriangle.\(state.isOpen ? "down" : "right")\(state.isHers ? ".fill" : "")")
+                .font(.caption)
+                .foregroundStyle(.secondary)
                 #if os(iOS)
                 .frame(width: 44, height: 44)   // the minimum touch target
                 #else
@@ -886,11 +890,6 @@ private struct ChapterChevron: View {
         .disabled(state.isSearching)
         .help(help)
         .accessibilityLabel(help)
-    }
-
-    private var tint: AnyShapeStyle {
-        guard state.isCurrent else { return AnyShapeStyle(.secondary) }
-        return state.isHers ? AnyShapeStyle(.tint) : AnyShapeStyle(.tertiary)
     }
 
     private var help: String {

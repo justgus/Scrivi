@@ -91,6 +91,9 @@ Navigator's compact-width layout beyond what the iPhone already does (S7).
 - [x] AC2 — **Apple:** only stored ∪ the current chapter show their scenes; the current chapter is always open, and the list still
       follows the viewport into a closed chapter (it opens); the chevron toggles (Q5); Expand All and Collapse All (Q6); search per Q3;
       drag per Q4
+      ⚠️ Re-ruled 2026-11-20 (live pass): Q4 — a scene dropped under a CLOSED chapter's header becomes its LAST scene (all
+      platforms); Q5 — a filled triangle marks a chapter she keeps open, and on every platform the title is italic for the
+      chapter she is in and bold for one she keeps open.
 - [x] AC3 — **Linux:** the same shape; a structural edit (which rebuilds the tree) keeps the set
 - [ ] AC4 — The set survives killing and relaunching the app, per device (Q1 for a project with none)
 - [x] AC5 — **Measured:** the iOS Navigator's first show on dumas, before and after, by T-0657's method
@@ -111,7 +114,7 @@ Run on the Mac, the iPad, the iPhone and the Linux VM (pull and build on the VM 
 5. The chapter you left closes. The chapter you opened in step 3 stays open.
 
 **C. The current chapter's chevron (Q5)**
-6. Click or tap the chevron on the chapter you are in now. It stays open. On Apple the chevron turns to the accent colour; on Linux the italics go away.
+6. Click or tap the chevron on the chapter you are in now. It stays open, and its title goes from italic to bold italic. On Apple the triangle becomes filled.
 7. Scroll back into the chapter from step 3. The chapter from step 6 stays open after you leave it.
 
 **D. Search (Q3, Apple only)**
@@ -124,7 +127,7 @@ Run on the Mac, the iPad, the iPhone and the Linux VM (pull and build on the VM 
 12. Right-click (Mac, Linux) or long-press (iPad, iPhone) any chapter header. The menu offers Expand All Chapters and Collapse All Chapters.
 
 **F. Dragging (Q4, Mac and Linux)**
-13. Close a chapter with its chevron. Drag a scene onto that closed chapter's header row. The scene becomes that chapter's first scene, and the chapter does not open while you drag.
+13. Close a chapter with its chevron. Drag a scene onto that closed chapter's header row (on iPad, iPhone: into the gap just below it). The scene becomes that chapter's LAST scene, and the chapter does not open.
 
 **G. Kill and relaunch (AC4)**
 14. Collapse two chapters with their chevrons, so a mix of open and closed remains. Note which are open.
@@ -134,7 +137,7 @@ Run on the Mac, the iPad, the iPhone and the Linux VM (pull and build on the VM 
 **H. Per device and Linux only**
 17. On a second device, open the same project. It starts with only the current chapter open: the choices are kept per device.
 18. Linux only: split a scene (a structural edit). The open and closed chapters stay as they were.
-19. Linux only: on a chapter open only because you are in it, the title is in italics, and hovering shows a tooltip saying so.
+19. Every platform: the chapter you are in is italic, a chapter you keep open is bold (filled triangle on Apple), and the chapter you are in and keep open is bold italic.
 
 ## Progress log
 
@@ -165,6 +168,10 @@ Run on the Mac, the iPad, the iPhone and the Linux VM (pull and build on the VM 
     floor was 12 ms in SP-199).
   - **AC6:** iOS **36/36**; Mac interop **352/352**; macOS and iOS builds ✅; the six guard scripts ✅; Linux (Docker, Ubuntu 24.04, non-root): ctest **884/884**, all **44** CI smokes ✅ (`chapter_titles_smoke` §6 included). ⏳ CI on the push.
   - ⏳ **AC7:** the live passes (Mac, iPad, iPhone, Linux VM).
+- **2026-11-20** — 🔁 **Live pass** (user, 2026-11-20: *"I performed the live test on macOS, iPadOS, the iPhone Duo, and the Linux VM.  Aside from the issues described above, all steps passed."*). Two findings, fixed:
+  - **Q5 too subtle:** the tinted chevron did not show a change. Now a filled triangle (`arrowtriangle.*.fill`) marks a chapter she keeps open, an outline one does not; titles italic = current, bold = kept, bold italic = both — on Apple and Linux (Linux's branch arrow is the style's, so the font carries it). `chapter_titles_smoke` §6 checks the styles.
+  - **Q4 re-ruled:** on iPad the drop opens a gap between headers, and a drop before a closed chapter landed as the PREVIOUS chapter's first scene. A drop just under a closed chapter's header now makes the scene that chapter's last (Apple `performMove`, Linux `NavigatorTree::resolveDrop`); an open chapter's header still gives its first scene.
+  - ⏳ Re-run steps 6, 13 and 19.
 
 *Last Updated: 2026-11-19 (🔨 **Built**; ⏳ AC7 live passes.)*
 

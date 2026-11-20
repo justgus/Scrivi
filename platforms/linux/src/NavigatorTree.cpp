@@ -131,11 +131,14 @@ bool NavigatorTree::resolveDrop(const QString& draggedID,
             }
         }
     } else if (!dropChapterID.isEmpty()) {
-        // Dropping on/above a CHAPTER heading → make it that chapter's first scene.
+        // Dropping on/above an OPEN chapter heading → make it that chapter's first scene.
         // (BelowItem on a chapter row is ambiguous — a chapter's first child covers it,
         // so treat any chapter-row drop as "first scene of this chapter".)
+        // [SP-226] A CLOSED chapter's heading → its last scene (user, 2026-11-20, Q4 re-ruled).
         targetChapterID = dropChapterID;
-        afterSceneID.clear();
+        const int scenes = model()->rowCount(dropIndex);
+        afterSceneID = (isExpanded(dropIndex) || scenes == 0)
+            ? QString() : model()->index(scenes - 1, 0, dropIndex).data(kSceneIDRole).toString();
     } else {
         return false;   // neither a scene nor a chapter row
     }

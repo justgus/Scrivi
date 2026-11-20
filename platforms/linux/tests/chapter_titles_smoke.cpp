@@ -42,6 +42,7 @@
 #include <QElapsedTimer>
 #include <QFile>
 #include <QFileInfo>
+#include <QFont>
 #include <QImage>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -442,6 +443,16 @@ int main(int argc, char** argv)
             for (int r = 0; r < tree->model()->rowCount(); ++r) { o += tree->isExpanded(chapterRow(r)) ? '1' : '0'; }
             return o;
         };
+        // [SP-226] italic = the current chapter, bold = hers: "i", "b", "bi" or "-" per chapter.
+        auto styles = [&] {
+            QStringList o;
+            for (int r = 0; r < tree->model()->rowCount(); ++r) {
+                const QFont f = chapterRow(r).data(Qt::FontRole).value<QFont>();
+                const QString s = QString(f.bold() ? "b" : "") + (f.italic() ? "i" : "");
+                o << (s.isEmpty() ? QStringLiteral("-") : s);
+            }
+            return o.join(',');
+        };
         auto stored = [&](const QStringList& want) {
             QStringList got;
             for (int i = 0; i < 100; ++i) {
@@ -462,14 +473,17 @@ int main(int argc, char** argv)
         placeCaret(QStringLiteral("Alpha one."));
         check(openRows() == QStringLiteral("100") && wc->editorShell()->expandedChapterIDs().isEmpty(),
               QStringLiteral("§6 Q1 no stored choice: only the current chapter is open (%1)").arg(openRows()));
+        check(styles() == QStringLiteral("i,-,-"), QStringLiteral("§6 the current chapter is italic (%1)").arg(styles()));
         tree->expand(chapterRow(2));
         check(openRows() == QStringLiteral("101"), QStringLiteral("§6 she opens chapter 3 (%1)").arg(openRows()));
+        check(styles() == QStringLiteral("i,-,b"), QStringLiteral("§6 … and it is bold (%1)").arg(styles()));
         check(stored({chapterID(2)}) == QStringList{chapterID(2)}, QStringLiteral("§6 … and the next open returns it"));
         placeCaret(QStringLiteral("Beta one."));
         check(openRows() == QStringLiteral("011"), QStringLiteral("§6 the caret moves to chapter 2: it opens, 1 closes, 3 stays (%1)").arg(openRows()));
         tree->collapse(chapterRow(1));
         check(openRows() == QStringLiteral("011") && wc->editorShell()->expandedChapterIDs().contains(chapterID(1)),
               QStringLiteral("§6 Q5 collapsing the current chapter keeps it open and makes it hers (%1)").arg(openRows()));
+        check(styles() == QStringLiteral("-,bi,b"), QStringLiteral("§6 … bold italic (%1)").arg(styles()));
         wc->editorShell()->collapseAllChapters();
         check(openRows() == QStringLiteral("010") && stored({}).isEmpty(),
               QStringLiteral("§6 Q6 Collapse All keeps the current chapter, stores none (%1)").arg(openRows()));
