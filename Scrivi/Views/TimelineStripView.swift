@@ -3213,7 +3213,7 @@ struct EpochOffsetDialog: View {
 
 // MARK: — HistoricalEventEditorSheet
 
-private struct HistoricalEventEditorSheet: View {
+struct HistoricalEventEditorSheet: View {   // internal for the SP-227 width test
 
     @Binding var title: String
     @Binding var description: String

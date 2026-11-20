@@ -109,6 +109,12 @@ struct ProjectToolbar: ToolbarContent {
                 Toggle(isOn: Bindable(session).worldWarningVisible) {
                     Label("World Warnings", systemImage: "exclamationmark.triangle")
                 }
+                // SP-227 Q2: the iPhone has no menu bar for ⇧⌘H.
+                if let prefs = session.projectPreferences {
+                    Toggle(isOn: Bindable(prefs).markupHints) {
+                        Label("Markup Hints", systemImage: "textformat")
+                    }
+                }
                 #if os(macOS)
                 // ⚠️ Buffers visibility is APP-GLOBAL: one palette follows the frontmost project.
                 Toggle(isOn: Bindable(env).buffersPaletteVisible) {
@@ -123,6 +129,16 @@ struct ProjectToolbar: ToolbarContent {
 
         // [SP-206] EP-040's declared Export slot; [SP-215] (Point 2) it matches File ▸ Export, plus Copy as HTML. On iOS this is
         // the way to them without a keyboard.
+        // SP-227 Q2: Import beside Export, so the iPhone reaches it without a menu bar.
+        ToolbarItem(placement: placement) {
+            Menu {
+                ImportMenuItems(env: env, session: session)
+            } label: {
+                Label("Import", systemImage: "square.and.arrow.down")
+            }
+            .help("Import")
+        }
+
         ToolbarItem(placement: placement) {
             Menu {
                 ExportMenuItems(env: env, session: session)
@@ -149,6 +165,25 @@ struct ProjectToolbar: ToolbarContent {
             }
         }
         #endif
+
+        // SP-227 Q2: menu-bar-only until now, so out of an iPhone's reach. Last, the first into the ⋯ overflow.
+        ToolbarItem(placement: placement) {
+            Button { session.showStaleBranches = true } label: {
+                Label("Purge Stale History Branches…", systemImage: "arrow.triangle.branch")
+            }
+        }
+
+        ToolbarItem(placement: placement) {
+            Button {
+                #if os(macOS)
+                AboutPanel.show()
+                #else
+                env.showAbout = true
+                #endif
+            } label: {
+                Label("About Scrivi", systemImage: "info.circle")
+            }
+        }
 
         // ⚠️ DECLARED SLOTS — EP-040 AC7 / AC5: Export and the text-size lens; ⛔ not built in this Epic.
     }

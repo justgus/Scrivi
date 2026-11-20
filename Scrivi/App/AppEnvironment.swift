@@ -24,6 +24,8 @@ import UniformTypeIdentifiers
     var penNames = PenNames()
     /// iPad: the app Settings sheet (the Mac has its `Settings` scene).
     var showAppSettings = false
+    /// iOS: the About sheet — the iPad menu bar's and the toolbar's (SP-227 Q2).
+    var showAbout = false
 
     // The single open project's session (single-window until T-0194). nil = no project.
     var activeSession: ProjectSession?

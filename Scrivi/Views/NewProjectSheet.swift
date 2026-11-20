@@ -98,7 +98,9 @@ struct NewProjectSheet: View {
             }
         }
         .padding(24)
-        .frame(minWidth: 420)
+        #if os(macOS)
+        .frame(minWidth: 420)   // SP-227: Mac-only; wider than an iPhone
+        #endif
         .onAppear { if author.isEmpty { author = env.penNames.default } }
         #if !os(macOS)
         // iOS/iPadOS/visionOS: pick the parent folder; the project is created as

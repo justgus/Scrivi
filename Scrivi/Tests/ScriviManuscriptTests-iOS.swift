@@ -829,3 +829,78 @@ struct IOSBookmarkTests {
         #expect(try await stored([chapterID]) == [chapterID])
     }
 }
+
+// [SP-227] (T-0689) Q3 — every sheet an iPhone can show fits its width. An iPhone 18 Pro is 402 pt wide in portrait, and a
+// sheet on a phone is the screen's width: a fixed or minimum width above that runs past the screen's edges.
+@Suite("Sheets fit an iPhone (SP-227)") @MainActor struct PhoneWidthSheetTests {
+    static let phoneWidth: CGFloat = 402
+
+    /// The width a sheet asks for when offered the phone's, hosted in a window so its `.task` loads run first.
+    private func requiredWidth(_ view: some View) async -> CGFloat {
+        let host = UIHostingController(rootView: view)
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: Self.phoneWidth, height: 874))
+        window.rootViewController = host
+        window.makeKeyAndVisible()
+        defer { window.isHidden = true }
+        try? await Task.sleep(nanoseconds: 300_000_000)
+        return host.sizeThatFits(in: CGSize(width: Self.phoneWidth, height: .greatestFiniteMagnitude)).width
+    }
+
+    @Test("the measure sees a too-wide sheet, even inside a scroll view")
+    func measureCatchesOverflow() async {
+        #expect(await requiredWidth(ScrollView { Color.clear.frame(width: 460, height: 10) }) > Self.phoneWidth)
+    }
+
+    @Test("every sheet asks for no more than the phone's width")
+    func sheetsFit() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("scrivi-sp227-\(UUID().uuidString)")
+        let support = FileManager.default.temporaryDirectory.appendingPathComponent("scrivi-sp227-support-\(UUID().uuidString)")
+        let worlds = FileManager.default.temporaryDirectory.appendingPathComponent("scrivi-sp227-worlds-\(UUID().uuidString)")
+        for dir in [root, support, worlds] { try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true) }
+        defer { for dir in [root, support, worlds] { try? FileManager.default.removeItem(at: dir) } }
+        let env = AppEnvironment()
+        let identity = try env.engine.ensureLocalIdentity(displayName: "iOS Test", appSupportRoot: support.path)
+        let ref = AuthorshipRef(identityID: identity.identityID, personaID: identity.defaultPersonaID,
+                                displayName: identity.displayName)
+        _ = try env.engine.createProject(projectRootPath: root.path, appSupportRoot: support.path,
+                                         title: "Widths", slug: "widths", authorshipRef: ref)
+        let session = ProjectSession(engine: env.engine, authorshipRef: ref, appSupportRoot: support.path,
+                                     identityID: identity.identityID)
+        try await session.loadAsync(at: root.path)
+        let prefs = try #require(session.projectPreferences)
+        // The widest world row: one whose package is gone, so it shows its status and Locate….
+        let gone = worlds.appendingPathComponent("A World With a Long Enough Name.scrivworld")
+        _ = try env.engine.createWorld(projectRootPath: root.path, packagePath: gone.path,
+                                       displayName: "A World With a Long Enough Name")
+        try FileManager.default.removeItem(at: gone)
+        let source = try env.engine.createObject(projectRootPath: root.path, objectKind: "source",
+                                                 displayName: "A Source", authorshipRef: ref)
+        let history = ObjectDetailHistory()
+        history.visit(.init(objectID: source.objectID, kind: "source", worldID: "", displayName: "A Source"))
+
+        func inProject(_ view: some View) -> some View { view.environment(env).environment(session) }
+        let sheets: [(String, AnyView)] = [
+            ("Worlds", AnyView(inProject(WorldsView(engine: env.engine, projectRootPath: root.path, onWorldsChanged: {})))),
+            ("Object detail", AnyView(inProject(ObjectDetailSheet(engine: env.engine, projectRootPath: root.path,
+                                                                  authorshipRef: ref, worlds: [], onClose: {},
+                                                                  history: history)))),
+            ("New Project", AnyView(inProject(NewProjectSheet()))),
+            ("Project Settings", AnyView(inProject(ProjectSettingsSheet(prefs: prefs)))),
+            ("Stale branches", AnyView(inProject(StaleBranchesSheet()))),
+            ("World authors", AnyView(inProject(WorldAuthorsSheet(worldName: "A World", worldPath: gone.path,
+                                                                  projectRootPath: root.path)))),
+            ("Scrivi Settings", AnyView(inProject(AppSettingsView()))),
+            ("About", AnyView(inProject(AboutView()))),
+            ("Epoch offset", AnyView(EpochOffsetDialog(sourceName: "A Timeline", sourceEpochLabel: "Year 1",
+                                                       onCommit: { _, _ in }, onCancel: {}))),
+            ("Historical event", AnyView(HistoricalEventEditorSheet(title: .constant("An Event"),
+                                                                    description: .constant(""),
+                                                                    onSave: {}, onCancel: {}))),
+        ]
+        for (name, sheet) in sheets {
+            let width = await requiredWidth(sheet)
+            // Half a point of slack: SwiftUI rounds to the 3× pixel grid (the Worlds sheet reports 402.33).
+            #expect(width <= Self.phoneWidth + 0.5, "\(name) asks for \(width) pt")
+        }
+    }
+}

@@ -649,7 +649,10 @@ private struct ManuscriptEditorView: View {
             // ⚠️ T-0548: this sizes the SHEET, which is presented ABOVE the window and
             // takes part in NO width negotiation — the [I-0245] fix itself, and the
             // shape [SP-137] Q1 ruled intended.
+            // SP-227: Mac-only — on an iPhone the sheet is the screen's width, and 520 ran past it.
+            #if os(macOS)
             .frame(minWidth: 520, idealWidth: 620, minHeight: 520, idealHeight: 680)  // layout-ok: sizes a .sheet, presented above the window; it joins no width negotiation
+            #endif
         }
         // ⚠️ [I-0245] — THIS BLOCKS CLICK-OUTSIDE, AND THE SHEET GIVES ESC BACK ITSELF.
         //

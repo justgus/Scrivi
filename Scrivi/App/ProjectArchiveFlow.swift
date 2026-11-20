@@ -35,15 +35,23 @@ struct ImportExportCommands: View {
             if let session { Task { await env.copyManuscriptAsHTML(session) } }
         }
         .disabled(session == nil)
-        Menu("Import") {
-            // SP-218 Q2: with no project open it makes one.
-            Button("Manuscript…") { env.presentImportManuscript(session) }
-            Button("Scrivener Project…") { env.presentImportManuscript(session, scrivener: true) }   // SP-220 Q6
-            Button("Timeline…") { if let session { env.importTimeline(session) } }
-                .disabled(session == nil)
-            Button("Archive…") { env.presentImportArchive() }
-        }
+        Menu("Import") { ImportMenuItems(env: env, session: session) }
         Menu("Export") { ExportMenuItems(env: env, session: session) }
+    }
+}
+
+/// Import ▸ Manuscript…, Scrivener Project…, Timeline…, Archive… — the File menu's submenu and the toolbar's Import (SP-227 Q2).
+struct ImportMenuItems: View {
+    let env: AppEnvironment
+    let session: ProjectSession?
+
+    var body: some View {
+        // SP-218 Q2: with no project open it makes one.
+        Button("Manuscript…") { env.presentImportManuscript(session) }
+        Button("Scrivener Project…") { env.presentImportManuscript(session, scrivener: true) }   // SP-220 Q6
+        Button("Timeline…") { if let session { env.importTimeline(session) } }
+            .disabled(session == nil)
+        Button("Archive…") { env.presentImportArchive() }
     }
 }
 

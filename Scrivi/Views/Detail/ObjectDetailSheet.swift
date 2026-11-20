@@ -343,7 +343,9 @@ struct ObjectDetailSheet: View {
         .onChange(of: hasChanges) { _, changed in
             if changed { actionStatus = nil }
         }
-        .frame(minWidth: 420, minHeight: 320)
+        #if os(macOS)
+        .frame(minWidth: 420, minHeight: 320)   // SP-227: Mac-only; wider than an iPhone
+        #endif
         // ⚠️ T-0452: closing or navigating away used to DISCARD unsaved edits
         // silently — the third route into this Epic's recurring data loss
         // (I-0155, I-0165b), and the only one the writer triggers herself.

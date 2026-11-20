@@ -161,7 +161,6 @@ struct ScriviApp: App {
     #endif
 
     @State private var env = AppEnvironment()
-    @State private var showAbout = false
 
     init() {
         // ✅ EP-047 S2 (P5): the bundled manuscript typefaces, registered for this process before any view draws.
@@ -206,7 +205,7 @@ struct ScriviApp: App {
                 .environment(env)
                 .task { await launchSetup() }
                 .modifier(AppEventsModifier(env: env))
-                .sheet(isPresented: $showAbout) { AboutView() }
+                .sheet(isPresented: Bindable(env).showAbout) { AboutView() }
         }
         // iPad hardware-keyboard menu bar: the Mac's menus (see iosCommands). The in-view nav-bar ••• menu remains the
         // primary surface and the only one on iPhone. ✅ SP-223 live pass: the three built-in sets make iPadOS show Edit ▸
@@ -646,7 +645,7 @@ struct ScriviApp: App {
         iosEditAndFormatCommands   // ⚠️ its own builder: a `CommandsBuilder` takes at most ten entries
 
         CommandGroup(replacing: .appInfo) {
-            Button("About Scrivi") { showAbout = true }
+            Button("About Scrivi") { env.showAbout = true }
         }
         CommandGroup(after: .appInfo) {
             Button("User Manual") { }

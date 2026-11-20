@@ -1,5 +1,11 @@
 # Active Epics
 
+*Last Updated: 2026-11-20 (**EP-055: S7 = [SP-227] → 🟡 Active and built** (user, 2026-11-20: *"implement SP-227"*); ⏳ its live passes.)*
+
+*Last Updated: 2026-11-20 (**EP-055: AC6 ✅ met** ([SP-225], [SP-226]; user, 2026-11-20: *"Q1-A4 as recommended.  Tick AC6."*); [SP-227] Q1–Q4 ruled as recommended.)*
+
+*Last Updated: 2026-11-20 (**EP-055: S7 = [SP-227]** created in 🔵 Planning (user, 2026-11-20: *"plan SP-227"*); Q1–Q4 to rule.)*
+
 *Last Updated: 2026-11-20 (**EP-055: S6 = [SP-226] ✅ CLOSED** (user, 2026-11-20: *"Close SP-226"*); [T-0657] ✅ Verified.)*
 
 *Last Updated: 2026-11-19 (**EP-055: S6 = [SP-226] built** (user, 2026-11-19: *"implement SP-226"*); ⏳ its live passes.)*
@@ -271,7 +277,7 @@ Q10). A tabbed main window holding several projects may be considered later, not
 - [x] AC4 — ✅ [SP-198] (closed 2026-11-03) — An iOS test target, run on the simulator, covering the manuscript's behaviour
 - [x] AC5 — Structural edits, undo/redo and Find in the manuscript on iOS — ✅ **met 2026-11-19** ([SP-222], [SP-223]; incl. **Find and
       Replace**, and **Go to Scene / Chapter / Manuscript Begin and End**, user, 2026-11-01)
-- [ ] AC6 — Navigator, inspector, timeline, worlds and detail sheets on iPad: incl. creating, adding and relinking a world (all three
+- [x] AC6 — ✅ **met 2026-11-20** ([SP-225], [SP-226]; user, 2026-11-20: *"Q1-A4 as recommended.  Tick AC6."*) — Navigator, inspector, timeline, worlds and detail sheets on iPad: incl. creating, adding and relinking a world (all three
       refused on iOS today, `WorldsView.swift:295,368,408`; confirmed by the user 2026-11-19), the timeline's touch
       gestures (tap a dot to select its scene, tap an aggregate dot to list and select its scenes, drag a dot to a new
       position; the Mac does these by hover and drag, `TimelineStripView.swift:1064–1131`) **and the Mac's hover where the iPad has it**
@@ -302,7 +308,7 @@ Q10). A tabbed main window holding several projects may be considered later, not
 **Provisional Sprints:** **S1 = [SP-198]** the audit, the shared presenter, the `UITextView` host and the iOS test target
 (AC1–AC4) · S2 structural edits, undo/redo, Find (AC5) · **S4 = [SP-224]** ✅ Closed 2026-11-19 AC7: bookmarks for projects and worlds on iOS, restored at relaunch
 (`ProjectBookmarkStore.swift:70` / `WorldBookmarkStore.swift:98` return nothing on iOS today) · **S5 = [SP-225]** ✅ Closed 2026-11-19 AC6: world Create, Add
-Existing and Relink, the timeline's touch gestures and pointer / Pencil hover · **S6 = [SP-226]** ✅ Closed 2026-11-20 AC6: [T-0657] (S5's iPad pass found nothing) · **S7** AC8: compact-width layout (the worlds
+Existing and Relink, the timeline's touch gestures and pointer / Pencil hover · **S6 = [SP-226]** ✅ Closed 2026-11-20 AC6: [T-0657] (S5's iPad pass found nothing) · **S7 = [SP-227]** 🟡 Active AC8: compact-width layout (the worlds
 sheet) and the iPhone and Duo passes · **S8** AC9: TestFlight (iOS and Mac). Each with live passes; AC10 completes on the real Duo.
 **Depends on:** [EP-054] S1–S2 (the archive) for moving projects onto an iPad, unless Q2's iCloud Drive route is enough
 (not needed for S1: the iOS Landing view already opens a project through `.fileImporter`, `LandingView.swift:84`).

@@ -1,5 +1,9 @@
 # Task Backlog
 
+*Last Updated: 2026-11-20 (**T-0689 → active** with [SP-227]'s activation (user, 2026-11-20: *"implement SP-227"*) → `Task-active.md`; built the same day → `Task-unverified.md`.)*
+
+*Last Updated: 2026-11-20 (**T-0689 filed** — EP-055 S7, carried by [SP-227] (🔵 Planning) (user, 2026-11-20: *"plan SP-227"*).)*
+
 *Last Updated: 2026-11-19 (**T-0657 → active** with [SP-226]'s activation (user, 2026-11-19: *"Q1-Q6 as recommended.  Activate SP-226 now."*) → `Task-active.md`.)*
 
 *Last Updated: 2026-11-19 (**T-0657 → EP-055** (AC6, Q11 ruled 2026-11-19), carried by [SP-226] (🔵 Planning) (user, 2026-11-19: *"plan SP-226"*).)*

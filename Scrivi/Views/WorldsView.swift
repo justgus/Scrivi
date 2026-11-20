@@ -47,7 +47,7 @@ struct WorldsView: View {
     @State private var showPicker = false
     #endif
 
-    var body: some View {
+    private var sheet: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Worlds")
                 .font(.title3.weight(.semibold))
@@ -101,30 +101,49 @@ struct WorldsView: View {
 
             // Bind an existing package — a world is shareable, so a project must be
             // able to attach one it did not create.
-            HStack {
-                Button("Add Existing World…", action: bindExistingWorld)
-
-                // ⚠️ I-0123, and the writer's own proposed remedy: *"An option on the
-                // world menu to 'refresh' this links would be a minimal intervention
-                // here and allow the app to relink easily."*
-                //
-                // Re-takes the sandbox grant for every bound world and re-reads their
-                // status, so a drive plugged in after launch is picked up WITHOUT a
-                // relaunch. Foregrounding does this automatically now; this is the
-                // explicit control for when it is needed on demand.
-                Button("Reconnect Worlds") {
-                    onWorldsChanged()
-                    load()
-                }
-                .help("Re-check worlds that were unavailable — use after reconnecting a drive.")
-
-                Spacer()
-                Button("Done") { dismiss() }
-                    .keyboardShortcut(.defaultAction)
+            // SP-227 Q1: one line where it fits; at iPhone width the two actions stack beside Done.
+            ViewThatFits(in: .horizontal) {
+                HStack { worldActions; Spacer(); doneButton }
+                HStack(alignment: .bottom) { VStack(alignment: .leading, spacing: 8) { worldActions }; Spacer(); doneButton }
             }
         }
         .padding(16)
-        .frame(width: 460)
+    }
+
+    @ViewBuilder private var worldActions: some View {
+            Button("Add Existing World…", action: bindExistingWorld)
+
+            // ⚠️ I-0123, and the writer's own proposed remedy: *"An option on the
+            // world menu to 'refresh' this links would be a minimal intervention
+            // here and allow the app to relink easily."*
+            //
+            // Re-takes the sandbox grant for every bound world and re-reads their
+            // status, so a drive plugged in after launch is picked up WITHOUT a
+            // relaunch. Foregrounding does this automatically now; this is the
+            // explicit control for when it is needed on demand.
+            Button("Reconnect Worlds") {
+                onWorldsChanged()
+                load()
+            }
+            .help("Re-check worlds that were unavailable — use after reconnecting a drive.")
+    }
+
+    private var doneButton: some View {
+        Button("Done") { dismiss() }
+            .keyboardShortcut(.defaultAction)
+    }
+
+    private var sized: some View {
+        #if os(macOS)
+        sheet.frame(width: 460)
+        #else
+        // SP-227: the sheet is the screen's width on an iPhone, and taller than the screen in landscape.
+        ScrollView { sheet }
+        #endif
+    }
+
+    var body: some View {
+        sized
         .task { load() }
         #if !os(macOS)
         // [SP-225] Create picks a folder (Q1, as New Project does); Add Existing and Relink pick the package.
@@ -162,13 +181,29 @@ struct WorldsView: View {
         return text
     }
 
-    @ViewBuilder
+    /// SP-227 Q1: one line where it fits; at iPhone width the controls go under the name. The name's ideal width is fixed, so a
+    /// long path (which truncates) never decides the layout.
     private func worldRow(_ world: WorldEntry) -> some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 8) {
+                worldName(world)
+                    .frame(minWidth: 0, idealWidth: 160, maxWidth: .infinity, alignment: .leading)
+                worldControls(world)
+            }
+            VStack(alignment: .leading, spacing: 4) {
+                worldName(world)
+                HStack(spacing: 8) { Spacer(); worldControls(world) }
+            }
+        }
+        .padding(.vertical, 2)
+    }
+
+    private func worldName(_ world: WorldEntry) -> some View {
         let isAvailable: Bool = world.worldStatus == .available
         let symbol: String = isAvailable ? "globe" : "exclamationmark.triangle.fill"
         let tint: Color = isAvailable ? Color.secondary : Color.orange
 
-        HStack(spacing: 8) {
+        return HStack(spacing: 8) {
             Image(systemName: symbol)
                 .foregroundStyle(tint)
 
@@ -181,46 +216,46 @@ struct WorldsView: View {
                     .lineLimit(1)
                     .truncationMode(.middle)
             }
-
-            Spacer(minLength: 4)
-
-            if world.worldStatus != .available {
-                // Says what is actually wrong, and never guesses: a wrong "missing"
-                // would invite restoring from backup when the volume was merely
-                // disconnected (Doc 2 §7.2.1).
-                Text(world.worldStatus.writerDescription)
-                    .font(.caption2)
-                    .foregroundStyle(.orange)
-
-                // Only offered when there is something to fix. Relinking a world
-                // that resolves fine is not a repair, it is a way to bind the
-                // wrong package.
-                Button("Locate…") { relinkWorld(world) }
-                    .font(.caption2)
-                    .buttonStyle(.borderless)
-            } else {
-                Button("Authors…") { authorsFor = world }
-                    .font(.caption2)
-                    .buttonStyle(.borderless)
-                    .help("Who wrote this world")
-            }
-
-            // ⚠️ Removes THIS PROJECT'S REFERENCE ONLY — the package on disk is
-            // never touched (scrivi.h:264). The confirmation says so explicitly,
-            // because "Remove" next to a world a writer just built reads as
-            // "delete my world" unless the copy rules it out.
-            Button(role: .destructive) {
-                pendingRemoval = world
-            } label: {
-                // ✅ Red (user request, 2026-09-30) — ⚠️ `role: .destructive` alone does
-                // NOT tint a BORDERLESS image button on macOS, so it rendered grey.
-                Image(systemName: "minus.circle")
-                    .foregroundStyle(.red)
-            }
-            .buttonStyle(.borderless)
-            .help("Remove this world from the project")
         }
-        .padding(.vertical, 2)
+    }
+
+    @ViewBuilder
+    private func worldControls(_ world: WorldEntry) -> some View {
+        if world.worldStatus != .available {
+            // Says what is actually wrong, and never guesses: a wrong "missing"
+            // would invite restoring from backup when the volume was merely
+            // disconnected (Doc 2 §7.2.1).
+            Text(world.worldStatus.writerDescription)
+                .font(.caption2)
+                .foregroundStyle(.orange)
+
+            // Only offered when there is something to fix. Relinking a world
+            // that resolves fine is not a repair, it is a way to bind the
+            // wrong package.
+            Button("Locate…") { relinkWorld(world) }
+                .font(.caption2)
+                .buttonStyle(.borderless)
+        } else {
+            Button("Authors…") { authorsFor = world }
+                .font(.caption2)
+                .buttonStyle(.borderless)
+                .help("Who wrote this world")
+        }
+
+        // ⚠️ Removes THIS PROJECT'S REFERENCE ONLY — the package on disk is
+        // never touched (scrivi.h:264). The confirmation says so explicitly,
+        // because "Remove" next to a world a writer just built reads as
+        // "delete my world" unless the copy rules it out.
+        Button(role: .destructive) {
+            pendingRemoval = world
+        } label: {
+            // ✅ Red (user request, 2026-09-30) — ⚠️ `role: .destructive` alone does
+            // NOT tint a BORDERLESS image button on macOS, so it rendered grey.
+            Image(systemName: "minus.circle")
+                .foregroundStyle(.red)
+        }
+        .buttonStyle(.borderless)
+        .help("Remove this world from the project")
     }
 
     // MARK: — Actions
