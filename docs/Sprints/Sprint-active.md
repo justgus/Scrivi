@@ -1,5 +1,7 @@
 # Active Sprints
 
+*Last Updated: 2026-11-21 (**SP-232 → ✅ CLOSED** (user, 2026-11-21: *"Close SP-232"*) → `Closed/Sprint-SP-232.md`; T-0694 ✅ Verified. No Sprint is active.)*
+
 *Last Updated: 2026-11-21 (**SP-232** live pass: all steps but 10 pass; the overflow button's ">>" fix built. ⏳ Step 10 again, CI.)*
 
 *Last Updated: 2026-11-21 (**SP-232 → 🟡 ACTIVE** (user, 2026-11-21: *"Q1-Q5 as recommended, implement SP-232"*) → [`Sprint-SP-232.md`](Sprint-SP-232.md); Q1–Q5 as recommended. Built — AC1–AC3 met, AC4 green locally (CI on the push); T-0694 → 🟠. ⏳ AC5 live pass.)*

@@ -1,5 +1,9 @@
 # Unverified Tasks
 
+*Last Updated: 2026-11-21 (**T-0694 archived** → `Verified/` ([SP-232] closed).)*
+
+*Last Updated: 2026-11-21 (**T-0694 → ✅ Verified** (user, 2026-11-21: *"This passes now."*); archived when SP-232 closes.)*
+
 *Last Updated: 2026-11-21 (**T-0694 → 🟠 Implemented - Not Verified** ([SP-232] built); the live pass is the user's.)*
 
 *Last Updated: 2026-11-21 (**T-0497, T-0693 archived** → `Verified/` ([SP-231] closed).)*
@@ -143,19 +147,6 @@ Tasks that are **implemented and awaiting user verification** before being archi
 ⚠️ This file must not disagree with [`Task-active.md`](Task-active.md) or
 [`Task-backlog.md`](Task-backlog.md). A Task implemented but unverified belongs **here** — not left
 in the backlog carrying a 🟠 status.
-
----
-
-## 🟠 T-0694 — `[Linux]` EP-059 F1: the project window's toolbar, as the Mac's
-
-**Epic:** [EP-059] (F1) · **Status:** 🟠 Implemented - Not Verified ([SP-232] built 2026-11-21; the live pass is the user's) · **Sprint:** [SP-232] (🟡 Active) →
-[`../Sprints/Sprint-SP-232.md`](../Sprints/Sprint-SP-232.md) · **Date Requested:** 2026-11-21 (user, 2026-11-21: *"I'd like to scan the Epic for any tasks that involve creating a menu bar of buttons across the top like macOS and iOS have.  If missing, I'd like to make sure its added to the Epic as a new Sprint and AC."*)
-
-**What:** a toolbar across the top of every Linux project window with the Mac's items (`ProjectToolbar.swift`), each the menus' own
-action. Linux has no `QToolBar` today ([I-0244]). Findings, questions and ACs: the Sprint.
-
-**Built:** `ScriviWindow::buildToolbar` (`ScriviWindow.cpp`): the Mac's items plus the Navigator, each the menus' own action; View ▸
-Show Toolbar; the Mac's names for New Scene / New Chapter / Merge … with Previous. Details: the Sprint.
 
 ---
 

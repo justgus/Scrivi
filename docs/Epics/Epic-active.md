@@ -1,5 +1,7 @@
 # Active Epics
 
+*Last Updated: 2026-11-21 (**EP-059:** part F = [SP-232] ✅ closed (F1 met). E, D, F done; A → B → C remain.)*
+
 *Last Updated: 2026-11-21 (**EP-059:** [SP-232] (part F, the toolbar) 🟡 ACTIVE and built.)*
 
 *Last Updated: 2026-11-21 (**EP-059:** part D = [SP-231] ✅ closed (D1–D3 met); part F = [SP-232] planning.)*
@@ -151,7 +153,7 @@
 
 ## EP-059: `[Linux]` **Linux catches up with the Mac** — every capability gap, one Epic
 
-**Status:** 🟡 **ACTIVE** 2026-11-20 (user, 2026-11-20: *"Nope.  Can't archive yet.  We need to do the Linux gap epic first."*); part E = [SP-230] ✅ closed 2026-11-21; part D = [SP-231] ✅ closed 2026-11-21; part F (toolbar) = [SP-232] (🟡 Active). Created 2026-11-20 (user, 2026-11-20: *"yes, file G1–G9 as an Epic (include everything here, so it is all tracked at once."*). ✅ It **supersedes [EP-035], [EP-036] and [EP-037]**
+**Status:** 🟡 **ACTIVE** 2026-11-20 (user, 2026-11-20: *"Nope.  Can't archive yet.  We need to do the Linux gap epic first."*); part E = [SP-230] ✅ closed 2026-11-21; part D = [SP-231] ✅ closed 2026-11-21; part F (toolbar) = [SP-232] ✅ closed 2026-11-21. Created 2026-11-20 (user, 2026-11-20: *"yes, file G1–G9 as an Epic (include everything here, so it is all tracked at once."*). ✅ It **supersedes [EP-035], [EP-036] and [EP-037]**
 (user, 2026-11-20: *"One Epic for all"*), which are closed into it: their ACs are carried below by reference, verified ones kept.
 **Source:** [`../Scrivi_Linux_Capability_Gap_Review_v0_1.md`](../Scrivi_Linux_Capability_Gap_Review_v0_1.md) (G1–G9, read from the code
 2026-11-20). The core is at parity; every gap is a Linux surface.
@@ -205,7 +207,7 @@ on the Mac.
 - [x] **E3** ✅ [SP-230] (**G9**) — Navigator search, as the Mac's (T-0569): titles and text, matches in closed chapters shown
 
 *F. The project window's toolbar — new 2026-11-21 (user, 2026-11-21: *"I'd like to scan the Epic for any tasks that involve creating a menu bar of buttons across the top like macOS and iOS have.  If missing, I'd like to make sure its added to the Epic as a new Sprint and AC."*):*
-- [ ] **F1** ([I-0244]'s toolbar gap, [T-0694]) — a toolbar across the top of every project window, as the Mac's
+- [x] **F1** ✅ [SP-232] ([I-0244]'s toolbar gap, [T-0694]) — a toolbar across the top of every project window, as the Mac's
       (`ProjectToolbar.swift`): Inspector, Timeline, Project Settings, Worlds, Navigate ▾, New ▾, Merge ▾, View ▾, Import ▾, Export ▾,
       Close Project — each the menus' own action. Linux has no `QToolBar` today. → [SP-232]
 
