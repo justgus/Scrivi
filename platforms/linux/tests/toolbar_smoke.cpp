@@ -24,9 +24,11 @@
 #include <QAction>
 #include <QApplication>
 #include <QDir>
+#include <QImage>
 #include <QMenu>
 #include <QMenuBar>
 #include <QPointer>
+#include <QProxyStyle>
 #include <QTest>
 #include <QTextCursor>
 #include <QToolBar>
@@ -177,10 +179,16 @@ int main(int argc, char** argv)
     QTest::qWait(100);
     auto* overflow = bar->findChild<QToolButton*>(QStringLiteral("qt_toolbar_ext_button"));
     check(overflow != nullptr && overflow->isVisible(), QStringLiteral("§4 a narrow window: the overflow button"));
-    // The live pass: with no theme icon it was invisible. Its word is ">>", drawn whenever the icon cannot be.
-    check(overflow != nullptr && overflow->text() == QStringLiteral(">>")
-              && (!overflow->icon().pixmap(16, 16).isNull() || overflow->toolButtonStyle() == Qt::ToolButtonTextOnly),
-          QStringLiteral("§4 the overflow button is never blank"));
+    // The live pass: the theme's icon drew nothing. Ours must put ink on the button.
+    bool inked = false;
+    if (overflow != nullptr) {
+        const QImage img = overflow->icon().pixmap(32, 32).toImage();
+        for (int y = 0; y < img.height() && !inked; ++y) {
+            for (int x = 0; x < img.width() && !inked; ++x) { inked = qAlpha(img.pixel(x, y)) > 0; }
+        }
+    }
+    check(inked && overflow != nullptr && qobject_cast<QProxyStyle*>(overflow->style()) != nullptr,
+          QStringLiteral("§4 the overflow button draws the app's own chevron, never blank"));
     w->resize(1400, 700);
     QTest::qWait(50);
     auto* showToolbar = w->findChild<QAction*>(QStringLiteral("showToolbarAction"));

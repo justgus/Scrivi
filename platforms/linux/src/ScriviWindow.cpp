@@ -22,6 +22,9 @@
 #include <QLineEdit>
 #include <QMenu>
 #include <QMenuBar>
+#include <QProxyStyle>
+#include <QPixmap>
+#include <QPainter>
 #include <QToolButton>
 #include <QToolBar>
 #include <QIcon>
@@ -1012,6 +1015,30 @@ QIcon themeIcon(std::initializer_list<const char*> names)
     return {};
 }
 
+// [SP-232]: the toolbar's overflow button, drawn — "»" in the text colour — so it is never blank.
+class OverflowIconStyle : public QProxyStyle {
+public:
+    QIcon standardIcon(StandardPixmap which, const QStyleOption* option, const QWidget* widget) const override
+    {
+        if (which != SP_ToolBarHorizontalExtensionButton && which != SP_ToolBarVerticalExtensionButton) {
+            return QProxyStyle::standardIcon(which, option, widget);
+        }
+        const QPalette pal = widget != nullptr ? widget->palette() : QApplication::palette();
+        QPixmap pm(32, 32);
+        pm.fill(Qt::transparent);
+        QPainter painter(&pm);
+        painter.setRenderHint(QPainter::TextAntialiasing);
+        QFont f = painter.font();
+        f.setPixelSize(28);
+        f.setBold(true);
+        painter.setFont(f);
+        painter.setPen(pal.color(QPalette::ButtonText));
+        painter.drawText(pm.rect(), Qt::AlignCenter, QStringLiteral("»"));
+        painter.end();
+        return QIcon(pm);
+    }
+};
+
 }   // namespace
 
 // [SP-232] (EP-059 F1; Apple: `ProjectToolbar.swift`, one shape, ordered by use — user 2026-11-03, [SP-199]). ⚠️ EVERY ITEM IS
@@ -1081,15 +1108,14 @@ QToolBar* ScriviWindow::buildToolbar(QMainWindow* host, const ToolbarActions& a)
     item(a.purgeStale, tr("Purge Stale History Branches…"), tr("Purge Stale History Branches…"),
          themeIcon({"edit-clear-all", "edit-clear"}));
     item(a.about, tr("About Inkwyn"), tr("About Inkwyn"), themeIcon({"help-about"}));
-    // The » overflow button: ⚠️ with no icon from the theme it has no word either, and vanished (user, [SP-232] live pass). Its
-    // text is ">>", shown whenever the icon cannot be drawn.
+    // The » overflow button: the theme's icon drew NOTHING on the VM ([SP-232] live pass, twice), so the toolbar's style gives
+    // it ours. shortcut: a drawn chevron, until the app's glyph set has its icon (user, 2026-11-21).
     if (auto* more = bar->findChild<QToolButton*>(QStringLiteral("qt_toolbar_ext_button"))) {
-        more->setText(QStringLiteral(">>"));
+        auto* style = new OverflowIconStyle;
+        style->setParent(more);
+        more->setStyle(style);   // Qt asks the button's style each time it sets the icon
+        more->setIcon(style->standardIcon(QStyle::SP_ToolBarHorizontalExtensionButton, nullptr, more));
         more->setToolTip(tr("More"));
-        if (more->icon().isNull() || more->icon().pixmap(16, 16).isNull()) {
-            more->setIcon(QIcon());
-            more->setToolButtonStyle(Qt::ToolButtonTextOnly);
-        }
     }
     bar->hide();   // until the window shows a project (`updateMenuState`)
     return bar;
