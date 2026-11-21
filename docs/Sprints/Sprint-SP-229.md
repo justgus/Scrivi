@@ -8,7 +8,7 @@ created: 2026-11-20
 
 # SP-229 — `[Cross]` Rename the app: Scrivi → Inkwyn
 
-**Status:** 🟡 **ACTIVE** (user, 2026-11-20: *"Q1-Q7 as recommended.  I accept our translation.  we may begin."*); ✅ Q1–Q7 as recommended, Q5 with our translation. Built 2026-11-20: AC1–AC5 met, AC6 green locally (CI on the push). ⏳ AC7 live passes.
+**Status:** 🟡 **ACTIVE** (user, 2026-11-20: *"Q1-Q7 as recommended.  I accept our translation.  we may begin."*); ✅ Q1–Q7 as recommended, Q5 with our translation. ✅ **All ACs met** — live passes on the Mac, iPad, iPhone Duo and Linux VM (user, 2026-11-20: *"All steps pass on all platforms."*), CI green; awaiting close approval.
 **Carries:** [T-0684].
 **Epic:** none ([T-0684] has none). It comes before [SP-228] (TestFlight), which waits on it.
 **Size:** M. Mostly strings and configuration. The Mac's app name and the test hosts are the parts that can break the build.
@@ -129,7 +129,7 @@ the art, today's icon stays. ✅ Filed as [T-0691] (2026-11-20).
 **Tests (AC6, 2026-11-20):** core ctest **879/879** (macOS) · Mac interop **TEST SUCCEEDED** · iOS **38/38** · macOS build ·
 Linux (Docker, Qt 6.4) ctest **884/884** as non-root and the CI's **43/43** smokes · `check-package-boundary`,
 `check-abi-project-guards`, `check-engine-stub-parity`, `check-layout-convergence`, `check-manuscript-type-source`,
-`check-textkit2` clean. ⏳ CI on the push.
+`check-textkit2` clean. ✅ CI green on `df64e04` (ScriviCore, Linux App, Apple).
 
 ## Live pass (AC7)
 
@@ -164,8 +164,8 @@ Linux (Docker, Qt 6.4) ctest **884/884** as non-root and the CI's **43/43** smok
 - [x] AC4 — About shows the Wynn stanza as ruled in Q5, on the Mac, iOS and Linux.
 - [x] AC5 — No visible "Scrivi" is left: a grep of the string literals, with each identifier kept listed by file:line in this
       Sprint.
-- [ ] AC6 — Core ctest, Mac interop, iOS tests, the macOS and iOS builds, the Linux smokes (Docker) and CI are green.
-- [ ] AC7 — Live passes: the Mac, the iPad, the iPhone Duo and the Linux VM. A renamed project and its world open after Locate….
+- [x] AC6 — Core ctest, Mac interop, iOS tests, the macOS and iOS builds, the Linux smokes (Docker) and CI are green.
+- [x] AC7 — Live passes: the Mac, the iPad, the iPhone Duo and the Linux VM. A renamed project and its world open after Locate….
 
 ## Progress log
 
@@ -179,7 +179,10 @@ Linux (Docker, Qt 6.4) ctest **884/884** as non-root and the CI's **43/43** smok
   URL to `.inkwyn`, a path the sandbox had not granted → EPERM. **Fixed on the Mac:** each stale build unregistered
   (`lsregister -u`); `UTType("com.caposoft.scrivi.project")` now resolves to `inkwyn` (and `.world`/`.archive` likewise).
   ⚠️ Any old build that is launched or rebuilt re-registers the old tags. ⚠️ The rewrite after the panel can never work under the
-  sandbox: it is the proximate failure, latent since I-0092.
+  sandbox: it is the proximate failure, latent since I-0092. ✅ Filed as **[I-0366]** (user, 2026-11-20: *"yes, file the Issue"*), Issue backlog, not assigned.
+- **2026-11-20** — ✅ **AC6, AC7 met**: every live-pass step passes on the Mac, iPad, iPhone Duo and Linux VM (user, 2026-11-20: *"All steps pass on all platforms."*) (step 4 after the stale registrations were removed); CI green on `df64e04`. T-0684 ✅ Verified. Awaiting close approval.
+
+*Last Updated: 2026-11-20 (✅ **All ACs met** (user, 2026-11-20: *"All steps pass on all platforms."*); awaiting close approval.)*
 
 *Last Updated: 2026-11-20 (🟡 **ACTIVE** and built; ⏳ AC7 live passes.)*
 

@@ -1,5 +1,7 @@
 # Active Sprints
 
+*Last Updated: 2026-11-20 (**SP-229: all ACs met** — live passes on the Mac, iPad, iPhone Duo and Linux VM (user, 2026-11-20: *"All steps pass on all platforms."*), CI green; T-0684 ✅ Verified; awaiting close approval.)*
+
 *Last Updated: 2026-11-20 (**SP-229 → 🟡 ACTIVE** (user, 2026-11-20: *"Q1-Q7 as recommended.  I accept our translation.  we may begin."*) → [`Sprint-SP-229.md`](Sprint-SP-229.md); built — AC1–AC5 met, AC6 green locally (CI on the push); T-0684 → 🟠. ⏳ AC7 live passes.)*
 
 *Last Updated: 2026-11-20 (**SP-227 → ✅ CLOSED** (user, 2026-11-20: *"Close SP-227"*) → `Closed/Sprint-SP-227.md`; T-0689 ✅ Verified. No Sprint is active.)*

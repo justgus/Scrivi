@@ -1,5 +1,7 @@
 # Issue Backlog
 
+*Last Updated: 2026-11-20 — **I-0366 filed here** (from [SP-229]'s Mac live pass, step 4) (user, 2026-11-20: *"yes, file the Issue"*); not assigned.*
+
 *Last Updated: 2026-11-13 — **I-0349 back here** ([SP-217] closed (user, 2026-11-13: *"Linux steps 1-5 and Mac step 6 all pass, close SP-217"*)): Part 2 ✅ verified; Part 3 (dumas' 751 ms, accessibility) open, not assigned; severity High → Medium (751 ms, accepted for AC3).*
 
 *Last Updated: 2026-11-13 — **I-0361 filed here** ([SP-217] Q2, ruled 2026-11-13: under 100 ms → out, as a new Issue); not assigned.*
@@ -40,6 +42,7 @@ Issues listed here are open and documented but not currently assigned to a Sprin
 | ID | Title | Severity | Sprint |
 | -- | ----- | -------- | ------ |
 | **I-0349** | `[Linux]` ⛔ **After a load the window freezes ~5.5 s — GNOME offers "Wait or Force Quit"** (user, 2026-11-04: *"It only started happening today"*). ✅ Measured: the first paint of the manuscript loads FALLBACK FONTS one by one through fontconfig (`QFontEngineMulti::ensureEngineAt` → `FT_New_Face`, main-thread stack sampled); present since at least 2026-11-02 (build 1.0.321); the dialog is likely new with today's gnome-shell upgrade. ✅ A part was mine ([SP-203]'s accessibility layer handled each of a load's thousands of events alone) — coalesced. ✅ **Part 2 (fonts) fixed and verified** ([SP-217], 2026-11-13); ⏳ Part 3: dumas still pauses ~751 ms (accessibility rebuilds the Find text for every scene at once). → [details](#i-0349) | Medium | — |
+| **I-0366** | `[Apple]` **A save panel that returns the wrong extension fails with a raw "operation not permitted": the app rewrites the URL to `.inkwyn`, a path the sandbox never granted** (New Project, Import as a New Project) | Low | — |
 | **I-0361** | `[Linux]` **The timeline's zoom buttons ◎ (`U+25CE`) and − (`U+2212`) are drawn from fallback fonts (DejaVu Sans, Noto Sans Bengali), costing ~23 ms and ~4 ms at their first layout on scrivi-vm** ([SP-217] Q2). → [details](#i-0361) | Low | — |
 | **I-0360** | `[Linux]` **`structural_baseline_smoke` failed once on its I-0348 check — after a structural edit the caret was far off screen (y=−53207, window 0–375) and the window showed scene 40 of 40 — then passed 3 of 3** (Docker Qt 6.4.2 arm64, [SP-216]'s checks, not that Sprint's code). → [details](#i-0360) | Low | — |
 | **I-0359** | `[Linux]` **Heap corruption at exit: the indent smoke printed `indent-ok`, then died (`malloc_consolidate(): unaligned fastbin chunk detected`)** — Linux App CI x86_64 + Qt 6.4, **2 of 2 on `1aaffb3`**; clean on arm64 (scrivi-vm, Docker Qt 6.4) | High | — |
@@ -100,6 +103,25 @@ its advance cancelled by letter spacing (`ManuscriptPresenter::hide`, `Manuscrip
 the-river-of-time 11.6 s → **no stall**; dumas 11.0 s → **751 ms**.
 **Part 3 — open (found 2026-11-13):** dumas' remaining 751 ms is the accessibility layer rebuilding the Find presented text for
 all 1,174 scenes at once on the main thread (`ManuscriptAccessibility` → `PresentedText::refresh` → `buildScene`), sampled.
+
+---
+
+## I-0366: `[Apple]` A save panel returning the wrong extension fails as "operation not permitted"
+
+**Found:** 2026-11-20, [SP-229]'s Mac live pass, step 4 (user: *"When I tapped Create it said "the operation is not permitted"."*).
+**What happens:** `NewProjectSheet.choosePath()` (`NewProjectSheet.swift:149–151`) and Import ▸ as a New Project
+(`ProjectArchiveFlow.swift:457`) take the save panel's URL and, when its extension is not `inkwyn`, replace the extension. The
+sandbox grants write access to **the URL the panel returned**, not to the rewritten one, so the create fails with EPERM and the
+writer sees only "the operation is not permitted". The rewrite is I-0092's defensive branch (2026-07-28); it can never succeed in a
+sandboxed app, and it stayed hidden because the panel always returned the right extension.
+**What triggered it:** after the rename the type IDs stayed (`com.caposoft.scrivi.project`, by [T-0684]'s scope) and the extensions
+changed; ten stale `Scrivi.app` builds on the Mac still declared the old `.scrivi`, so the panel enforced `.scrivi`. Fixed on the
+Mac by unregistering them ([SP-229] progress log). The same can happen on any Mac where an old build registers again.
+**Next:** when the panel's extension is wrong, do not rewrite it: tell the writer the location must end in `.inkwyn` (or reopen
+the panel). Check the other panels that name a Scrivi type (`AppEnvironment.swift:755`, `ProjectArchiveFlow.swift:147,584`) for the
+same shape.
+**Severity:** Low — only a Mac with a stale registration hits it; no tester has one.
+**Status:** 🔵 Open.
 
 ---
 

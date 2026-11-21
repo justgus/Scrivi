@@ -829,7 +829,7 @@ archive files reconstructed after the fact from secondary sources.
 | T-0674 | `[Cross]` EP-054 S5: ePub export | ✅ **SP-213** | **EP-054** | ✅ Verified 2026-11-12 | [`Verified/Task-verified-0674.md`](Verified/Task-verified-0674.md) |
 | T-0675 | `[Cross]` EP-054 S5b: PDF export | ✅ **SP-214** | **EP-054** | ✅ Verified 2026-11-13 | [`Verified/Task-verified-0675.md`](Verified/Task-verified-0675.md) |
 | T-0676 | `[Cross]` EP-054: File ▸ Import / Export submenus, Export ▸ Chapter…, the iPad's timeline import/export | ✅ **SP-215** | **EP-054** | ✅ Verified 2026-11-13 | [`Verified/Task-verified-0676.md`](Verified/Task-verified-0676.md) |
-| T-0684 | `[Cross]` The app's name is too close to Scrivener's → Inkwyn | 🟡 SP-229 | ⚠️ None yet | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
+| T-0684 | `[Cross]` The app's name is too close to Scrivener's → Inkwyn | 🟡 SP-229 | ⚠️ None yet | ✅ Verified | [`Task-unverified.md`](Task-unverified.md) |
 | T-0691 | `[Cross]` Inkwyn's app icon and document icon: the rune ᚹ | — | ⚠️ None yet | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
 | T-0685 | `[Apple]` EP-055 S3a: undo/redo, structural edits, cross-scene clipboard on iOS | ✅ SP-222 | **EP-055** | ✅ Verified | [`Verified/Task-verified-0685.md`](Verified/Task-verified-0685.md) |
 | T-0690 | `[Apple]` EP-055 S8: TestFlight for iPad, iPhone and the Mac | 🔵 SP-228 | **EP-055** | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
@@ -883,6 +883,8 @@ archive files reconstructed after the fact from secondary sources.
 ---
 
 *Last Updated: 2026-11-20 (**T-0249, T-0472 → [EP-059]**; EP-035/036/037 superseded by it.)*
+
+*Last Updated: 2026-11-20 (**T-0684 → ✅ Verified** (user, 2026-11-20: *"All steps pass on all platforms."*).)*
 
 *Last Updated: 2026-11-20 (**T-0684 → 🟠** ([SP-229] activated and built); **T-0691 filed** (the ᚹ icon).)*
 

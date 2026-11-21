@@ -1,5 +1,7 @@
 # Unverified Tasks
 
+*Last Updated: 2026-11-20 (**T-0684 → ✅ Verified** (user, 2026-11-20: *"All steps pass on all platforms."*)); archived when SP-229 closes.)*
+
 *Last Updated: 2026-11-20 (**T-0684 → 🟠 Implemented - Not Verified** ([SP-229] built); the live passes are the user's.)*
 
 *Last Updated: 2026-11-20 (**T-0689 → ✅ Verified** ([SP-227] closed) → `Verified/Task-verified-0689.md`.)*
@@ -128,9 +130,9 @@ in the backlog carrying a 🟠 status.
 
 ---
 
-## 🟠 T-0684 — `[Cross]` The app's name is too close to Scrivener's
+## ✅ T-0684 — `[Cross]` The app's name is too close to Scrivener's
 
-**Epic:** ⚠️ None yet · **Status:** 🟠 Implemented - Not Verified ([SP-229] built 2026-11-20; the live passes are the user's) · **Sprint:** [SP-229] · **Date Requested:** 2026-11-17 (user, planning
+**Epic:** ⚠️ None yet · **Status:** ✅ Verified (user, 2026-11-20: *"All steps pass on all platforms."*) — archived when [SP-229] closes · **Sprint:** [SP-229] · **Date Requested:** 2026-11-17 (user, planning
 [SP-220]: *"the name for my app is alarmingly similar to Scrivener.  We should address that at some point"*; filed (user, 2026-11-17: *"Q3a and Q7a as recommended, yes file the name Task"*))
 
 **What:** Decide whether Scrivi keeps its name. Scrivener (Literature & Latte) is the best-known app in the same category, and
