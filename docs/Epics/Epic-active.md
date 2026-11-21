@@ -1,5 +1,7 @@
 # Active Epics
 
+*Last Updated: 2026-11-20 (**EP-059 → 🟡 ACTIVE** (user, 2026-11-20: *"Nope.  Can't archive yet.  We need to do the Linux gap epic first."*); part E = [SP-230] created in 🔵 Planning, Q1–Q4 to rule. **EP-055 AC9 (TestFlight, [SP-228]) waits until EP-059 is done.**)*
+
 *Last Updated: 2026-11-20 (**EP-055: S8 = [SP-228]** created in 🔵 Planning (user, 2026-11-20: *"Let's to AC9 on EP-055"*); Q1–Q5 to rule.)*
 
 *Last Updated: 2026-11-20 (**EP-055: AC10 ✅ met** (user, 2026-11-20: *"AC10 is met?  I've been doing live passes on real devices for the past 6 months."*); only AC9 (TestFlight) remains.)*
@@ -138,6 +140,70 @@
 *Last Updated: 2026-11-06 (**EP-054 planned**: Q1–Q9 ruled as recommended; S1 = [SP-205], S2 = [SP-206] created in 🔵 Planning (user: *"You may complete the planning for EP-054."*).)*
 
 *Last Updated: 2026-11-06 (**EP-048 → ✅ CLOSED** (user, 2026-11-06: *"F1–F5 as recommended, close EP-048."*) → `Closed/Epic-EP-048.md`.)*
+
+## EP-059: `[Linux]` **Linux catches up with the Mac** — every capability gap, one Epic
+
+**Status:** 🟡 **ACTIVE** 2026-11-20 (user, 2026-11-20: *"Nope.  Can't archive yet.  We need to do the Linux gap epic first."*); part E first = [SP-230] (🔵 Planning). Created 2026-11-20 (user, 2026-11-20: *"yes, file G1–G9 as an Epic (include everything here, so it is all tracked at once."*). ✅ It **supersedes [EP-035], [EP-036] and [EP-037]**
+(user, 2026-11-20: *"One Epic for all"*), which are closed into it: their ACs are carried below by reference, verified ones kept.
+**Source:** [`../Scrivi_Linux_Capability_Gap_Review_v0_1.md`](../Scrivi_Linux_Capability_Gap_Review_v0_1.md) (G1–G9, read from the code
+2026-11-20). The core is at parity; every gap is a Linux surface.
+**Codebase:** `[Linux]` — Qt Widgets over `ScriviBridge`. ⚠️ **Linux adopts Apple's shape** (the Mac is the reference); where
+Linux differs because that is right on Linux, it is not a gap.
+**Goal:** a writer on Linux can do everything a writer on the Mac can: work with the world's objects (open, edit, create, link,
+relate, cite), manage worlds (create one, reconnect), see when a world is away, and find and navigate scenes as on the Mac.
+
+**Acceptance Criteria:**
+
+*A. Objects — from [EP-035] (Object Foundations; its record: [`Closed/Epic-EP-035.md`](Closed/Epic-EP-035.md)):*
+- [x] **A1** (EP-035 AC3) — ✅ world binding from the app: add existing, status, Locate…, remove (SP-127, 2026-09-02)
+- [x] **A2** (EP-035 AC10) — ✅ the Scene Inspector's three tabs, Writing | Worldbuilding | Properties (SP-126, 2026-08-30)
+- [~] **A3** (EP-035 AC1) — open an object by double-click and by menu: ✅ in the Scene Inspector; ⏳ the project-wide list
+- [~] **A4** (EP-035 AC2) — the objects listed by kind, kind scope derived: ✅ the scene's; ⏳ a project-wide browser
+- [ ] **A5** (EP-035 AC4; **G2**) — object create, open, save, delete, promote, with `worldID` threaded through every call; an
+      object linked to and removed from a scene from its card (Apple: `ObjectCard.swift` Add existing… / New / Remove from Scene)
+- [ ] **A6** (EP-035 AC5) — a card's list item shows the object's thumbnail when it has an image
+- [ ] **A7** (**G4**, [T-0491]) — a stack's sort (manual / name / recently added) and card reorder
+
+*B. The detail sheet and media — from [EP-036] ([`Closed/Epic-EP-036.md`](Closed/Epic-EP-036.md)):*
+- [ ] **B1** (EP-036 AC1; **G1**) — the object detail view, in place of today's "not built yet" message (`EditorShell.cpp:4197`):
+      views and edits name, subtitle, notes, tags; edits persist
+- [ ] **B2** (EP-036 AC2) — an image imported, shown, replaced, removed
+- [ ] **B3** (EP-036 AC3) — a pending object opens read-only, explained, never written
+- [ ] **B4** (EP-036 AC4) — a world going away while the sheet is open loses no data
+- [ ] **B5** (EP-036 AC4a; **G4**) — the writer's card stack is honoured, read from `inspector-layout.json`
+- [ ] **B6** (EP-036 AC4b; **G4**) — the stack picker: add and remove cards on a stack (depends on B5)
+
+*C. Relationships and sources — from [EP-037] ([`Closed/Epic-EP-037.md`](Closed/Epic-EP-037.md)):*
+- [ ] **C1** (EP-037 AC1) — the related-objects section, labels read from the right endpoint
+- [ ] **C2** (EP-037 AC2) — a relationship created from the sheet, shown from both ends
+- [ ] **C3** (EP-037 AC3) — push-navigation to a related object, with back and forward
+- [ ] **C4** (EP-037 AC4; **G3**) — sources created from the object they document, with citation detail and footnote text; a
+      scene cites the project's sources (Apple: `SourcesCard.swift`)
+- [ ] **C5** (EP-037 AC5, [T-0472]) — a surface for custom relation types (`scrivi_upsert_relation_type`)
+- [ ] **C6** (EP-037 AC6) — a C ABI test for `scrivi_upsert_relation_type`
+
+*D. Worlds — new 2026-11-20:*
+- [ ] **D1** (**G5**, [T-0497]) — a world can be created from Manage Worlds…, so a Linux-only writer with no world can proceed
+- [ ] **D2** (**G5**) — Reconnect Worlds, as the Mac's (`WorldsView.swift`)
+- [ ] **D3** (**G6**) — the world-warning strip (View ▸ Show World Warnings): the project-wide notice when a world is away, with
+      Manage Worlds…; an imported timeline that failed to read is reported there, not only logged (`EditorShell.cpp:4526`)
+
+*E. Manuscript and navigation — new 2026-11-20:*
+- [ ] **E1** (**G7**) — an untitled scene shows its first line as the manuscript draws it, or "Scene N" when it is empty, in the
+      Navigator and everywhere else a scene is named (today "Untitled Scene", `EditorShell.cpp:2063`; Apple: [I-0327])
+- [ ] **E2** (**G8**, [T-0249]) — Go to Scene, Chapter and Manuscript Start / End, in the menus with the Mac's keys
+- [ ] **E3** (**G9**) — Navigator search, as the Mac's (T-0569): titles and text, matches in closed chapters shown
+
+*Standing (EP-035 AC6–AC9, EP-036 AC5–AC8, EP-037 AC7–AC10):* the Porting Outline corrected from what each part costs; the
+platform-independent rules re-honoured, not re-decided (kind scope derived, edge labels read, patch never reconstruct,
+absence is never deletion, disabled and explained); ctest run non-root with tests on; a live pass per surface-shipping Sprint
+(the Linux VM counts, per [EP-057]).
+
+**Order (provisional):** E and D first (small; E1 is the user's example), then A → B → C, as the 2026-08-25 split ordered them.
+Sizes from the review: A–C about an Epic's worth on their own (Apple's EP-030 / 031 / 034 took 8+ Sprints); D a Sprint; E a
+Sprint.
+
+---
 
 ## EP-057: `[Linux]` **Linux Rig Verification** — every Linux live pass waiting for the rig, held here and nowhere else
 

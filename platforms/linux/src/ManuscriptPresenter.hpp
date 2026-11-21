@@ -88,6 +88,9 @@ public:
     QVector<int> hiddenAtRest(const QString& blockText) const;
     // Block-relative offsets of the hidden ESCAPE backslashes alone (a match starting at an escaped mark takes its `\`).
     QSet<int> escapesOf(const QString& blockText) const { return info(blockText).escapes; }
+    // [SP-230] E1 (Apple's `presentedFirstLine`, [I-0327]): a scene's first non-blank line as the page draws it at rest —
+    // escapes, emphasis markers and a heading prefix hidden, a list prefix shown. "" when the scene is blank.
+    QString presentedFirstLine(const QString& sceneText) const;
 
     // ✅ [SP-183] (EP-047 P3, P9, P10): the paragraph indent and its amount. Each line's indent and line height are decided
     // while it is highlighted and left on its block for `ManuscriptLayout` (Apple: the presenter's paragraph styles).

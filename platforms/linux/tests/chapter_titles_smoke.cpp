@@ -434,7 +434,7 @@ int main(int argc, char** argv)
 
     // ── §6 [SP-226] (T-0657) Collapsible chapters: the current one open, hers remembered ───────────────────────────────
     {
-        auto* tree = wc->editorShell()->findChild<QTreeView*>();
+        QTreeView* tree = wc->editorShell()->findChild<NavigatorTree*>();   // [SP-230] not the first QTreeView: the Navigator has a column now
         check(tree != nullptr, QStringLiteral("§6 the Navigator is a tree"));
         auto chapterRow = [&](int r) { return tree->model()->index(r, 0); };
         auto chapterID = [&](int r) { return chapterRow(r).data(navigator::kChapterIDRole).toString(); };

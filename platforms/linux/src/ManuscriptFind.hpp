@@ -13,6 +13,7 @@
 // patched per edit for the same reason ([SP-171] Plan 1(c)).
 // ⛔ No widgets here — `find_smoke` tests it directly; `FindBar` drives it.
 
+#include <QHash>
 #include <QSet>
 #include <QString>
 #include <QVector>
@@ -60,6 +61,8 @@ public:
 
     // The presented units (tests and the measurement).
     int length() const;
+    // [SP-230] E3: each scene's body as presented, by scene ID — the Navigator's search over what the writer sees.
+    QHash<QString, QString> sceneTexts() const;
 
     // ── EP-050 S4 ([SP-203]): the WHOLE PAGE, for accessibility (Apple's `PresentedLayout`, one map with Find, its Q3) ──
     // Each scene's BOUNDARY before it (its "lead") + its body: chapter titles as they are on the page (Apple Q1), a scene

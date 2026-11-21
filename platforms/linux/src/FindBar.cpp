@@ -205,6 +205,7 @@ void FindBar::buildSlice()
         longestSliceMs_ = std::max(longestSliceMs_, t.elapsed());
         qInfo("[SCRIVI-FIND] presented text built ahead: %d scene(s), %d units, %lld ms after the load, longest slice %lld ms",
               lastRebuilt_, presented_.length(), QDateTime::currentMSecsSinceEpoch() - buildStartedMs_, longestSliceMs_);
+        emit presentedBuilt();
         runPending();
         return;
     }

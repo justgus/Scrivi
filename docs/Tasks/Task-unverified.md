@@ -1,5 +1,9 @@
 # Unverified Tasks
 
+*Last Updated: 2026-11-20 (**T-0692, T-0249 → 🟠 Implemented - Not Verified** ([SP-230] built); the live pass is the user's.)*
+
+*Last Updated: 2026-11-20 (**T-0684 → ✅ Verified** ([SP-229] closed) → `Verified/Task-verified-0684.md`.)*
+
 *Last Updated: 2026-11-20 (**T-0684 → ✅ Verified** (user, 2026-11-20: *"All steps pass on all platforms."*)); archived when SP-229 closes.)*
 
 *Last Updated: 2026-11-20 (**T-0684 → 🟠 Implemented - Not Verified** ([SP-229] built); the live passes are the user's.)*
@@ -130,25 +134,31 @@ in the backlog carrying a 🟠 status.
 
 ---
 
-## ✅ T-0684 — `[Cross]` The app's name is too close to Scrivener's
+## 🟠 T-0692 — `[Linux]` EP-059 E1 + E3: untitled-scene titles as on the Mac, and Navigator search
 
-**Epic:** ⚠️ None yet · **Status:** ✅ Verified (user, 2026-11-20: *"All steps pass on all platforms."*) — archived when [SP-229] closes · **Sprint:** [SP-229] · **Date Requested:** 2026-11-17 (user, planning
-[SP-220]: *"the name for my app is alarmingly similar to Scrivener.  We should address that at some point"*; filed (user, 2026-11-17: *"Q3a and Q7a as recommended, yes file the name Task"*))
+**Epic:** [EP-059] (E1, E3) · **Status:** 🟠 Implemented - Not Verified ([SP-230] built 2026-11-20; the live pass is the user's) · **Sprint:** [SP-230] (🟡 Active) · **Date Requested:** 2026-11-20 (from
+the Linux gap review, G7 and G9; user: *"We need to do the Linux gap epic first."*)
 
-**What:** Decide whether Scrivi keeps its name. Scrivener (Literature & Latte) is the best-known app in the same category, and
-SP-220 now imports its projects, so the two names will sit side by side in menus ("Import ▸ Scrivener Project…"). Questions for
-its planning: whether to rename, before or after the alpha spreads; the name's reach (bundle IDs, the `.scrivi` / `.scrivworld`
-extensions, `scrivi_*` ABI, schema IDs `scrivi.*.v1`, repo and docs) — the internal identifiers need not follow a display
-rename.
+**What:** E1 — an untitled scene is named by its first line as the manuscript shows it, or "Scene N" when blank, wherever Linux
+names a scene (today "Untitled Scene", `EditorShell.cpp:2063`; Apple [I-0327]). E3 — the Navigator's search with the Mac's rules
+([T-0569]). Findings, questions and ACs: the Sprint.
 
-**Scope ruled (user, 2026-11-20):** ✅ **rename what people see** (app name, menus, About, Settings, window titles, App Store Connect
-record, docs, the future `.deb` name) ✅ **and the file extensions** (`.scrivi`, `.scrivworld`, `.scrivarchive`) — ⛔ **no
-compatibility with the old extensions:** *"I have no other testers and we can reset or rename the projects as we go."* ⛔ **Not
-the identifiers:** bundle ID `com.caposoft.scrivi`, the Application Support folder, the `scrivi_*` ABI, schema IDs, repo and
-file names stay. ✅ **The new name is Inkwyn** (user, 2026-11-20: *"I got it on the app store connect.  Inkwyn."*) — *ink* + *wynn* (ᚹ, U+16B9, the rune for "joy" that scribes wrote as the letter ƿ). ⏳ Whether ᚹ appears in the name ("Inkᚹ") or only as a mark, and the exact extensions, are for the Sprint's planning.
+---
 
+## 🟠 T-0249 — `[Linux]` Manuscript navigation gestures
 
-**Built ([SP-229], 2026-11-20):** Inkwyn everywhere text is seen, `.inkwyn` / `.inkwynworld` / `.inkwynarchive`, `Inkwyn.app`, the Wynn stanza in About. Details and the identifiers kept: the Sprint.
+**Epic:** **EP-059** E2 (was EP-022; moved 2026-11-20) · **Status:** 🟠 Implemented - Not Verified ([SP-230] built 2026-11-20; the live pass is the user's) · **Sprint:** [SP-230] (🟡 Active); ✅ Page Forward / Backward dropped (SP-230 Q3: the Mac has neither); ✅ Manuscript Start / End on Ctrl+Home / Ctrl+End (Q2 re-ruled 2026-11-21), scene and chapter without keys as on the Mac
+
+Page Forward / Page Backward + jump to absolute manuscript start / end. **Gestures and keystrokes are
+undecided** — laptops and tablets lack extended keyboards, so no PageUp/PageDown/Home/End may be
+assumed; pick touch-friendly bindings. Raised during SP-063 VNC verification.
+
+⚠️ **Constrained by the VNC input path** (see `project_linux_vnc_input_constraints`): the
+macOS→VNC→x11vnc→Xvfb→Qt chain drops Ctrl+Shift+key combos and pinch/pixelDelta gestures, so **a
+gesture must never be the only path** to any of these actions.
+
+*EP-022 itself is ✅ Closed (2026-07-15); this is an unscheduled follow-up, likely landing with EP-026
+menus/parity.*
 
 ---
 

@@ -243,6 +243,16 @@ QVector<MarkdownRange> PresentedText::find(const QString& query, const Options& 
     return out;
 }
 
+QHash<QString, QString> PresentedText::sceneTexts() const
+{
+    QHash<QString, QString> out;
+    out.reserve(scenes_.size());
+    for (const Scene& s : scenes_) {
+        out.insert(s.sceneID, s.text);
+    }
+    return out;
+}
+
 QString PresentedText::presentedOf(int start, int end) const
 {
     QStringList parts;

@@ -23,6 +23,7 @@ class NavigatorTree;
 class QStandardItemModel;
 class QStandardItem;
 class QLabel;
+class QLineEdit;
 class QProgressBar;
 class QTimer;
 class QSplitter;
@@ -280,6 +281,17 @@ public:
     void expandAllChapters();
     void collapseAllChapters();
     QStringList expandedChapterIDs() const { return expandedChapters_.values(); }   // tests
+
+    // [SP-230] E1 (Apple: the Navigator's title rule, [I-0327]): a scene's title; untitled, its first line as the page shows
+    // it; blank, "Scene N" — its place in the manuscript. Every place Linux names a scene uses it.
+    QString sceneName(int index) const;
+    // [SP-230] E2 (Apple: Scene / Chapter / Project ▸ Go to …): the caret to the start or end of the scene or chapter it is
+    // in, or of the manuscript, scrolled into view.
+    enum class GoTo { SceneStart, SceneEnd, ChapterStart, ChapterEnd, ManuscriptStart, ManuscriptEnd };
+    void goTo(GoTo where);
+    // [SP-230] E3 (Apple: T-0569): the Navigator's search field (tests drive it), and whether body matches are in yet.
+    QLineEdit* navigatorSearchField() const { return navSearch_; }
+    bool navigatorSearchSettled() const { return navSearchPending_ == 0 && bodyMatchQuery_ == navigatorQuery(); }
 
     // --- EP-025 Timeline Panel (SP-079, T-0323) ---------------------------
     //
@@ -557,6 +569,13 @@ private:
     void setQueueCounted(bool counted);   // the queue as ONE piece of background work, for a close or quit
     // (Re)populate the navigator tree from the current SceneDocument segments.
     void rebuildNavigator();
+    // [SP-230] E1: one scene's row follows her typing.
+    void refreshSceneName(int index);
+    // [SP-230] E3
+    QString navigatorQuery() const;
+    void onNavigatorSearchChanged();
+    void searchSceneBodies();
+    void applyNavigatorFilter();
     // [SP-226] (T-0657): the Navigator's chapters — open are the writer's own (`expandedChapters_`) and the current one.
     void applyChapterExpansion();
     void onChapterExpanded(const QModelIndex& index);
@@ -662,6 +681,14 @@ private:
     // shell; attached to the document only between loads, so a load highlights ONCE, with a current scene map.
     ManuscriptPresenter* presenter_ = nullptr;
     NavigatorTree*      navigator_ = nullptr;
+    // [SP-230] E3: the Navigator's column (the search field over the tree) and its search.
+    QWidget*            navigatorPane_ = nullptr;
+    QLineEdit*          navSearch_ = nullptr;
+    QLabel*             navSearching_ = nullptr;   // "Searching…" while the page's text is not built yet (Q4)
+    QSet<QString>       bodyMatches_;              // scene IDs whose body matches `bodyMatchQuery_`
+    QString             bodyMatchQuery_;
+    int                 navSearchGeneration_ = 0;
+    int                 navSearchPending_ = 0;
     QStandardItemModel* navModel_  = nullptr;
     QLabel*             errorLabel_ = nullptr;
     // T-0500 ([I-0195]) — the DETERMINATE project-open progress strip.

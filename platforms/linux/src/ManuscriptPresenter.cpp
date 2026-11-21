@@ -277,6 +277,43 @@ QVector<int> ManuscriptPresenter::hiddenAtRest(const QString& blockText) const
     return out;
 }
 
+QString ManuscriptPresenter::presentedFirstLine(const QString& sceneText) const
+{
+    auto lineAt = [&](int from) {
+        const int nl = sceneText.indexOf(QLatin1Char('\n'), from);
+        return nl < 0 ? sceneText.size() : nl;
+    };
+    int start = 0;
+    while (start < sceneText.size() && ManuscriptEscapes::isBlankLine(sceneText.mid(start, lineAt(start) - start))) {
+        start = lineAt(start) + 1;
+    }
+    if (start >= sceneText.size()) {
+        return {};
+    }
+    // The whole block, so an emphasis pair that closes on a later line is still a pair.
+    int end = lineAt(start);
+    while (end < sceneText.size() && !ManuscriptEscapes::isBlankLine(sceneText.mid(end + 1, lineAt(end + 1) - end - 1))) {
+        end = lineAt(end + 1);
+    }
+    const QString block = sceneText.mid(start, end - start);
+    const QVector<int> hidden = hiddenAtRest(block);
+    QString presented;
+    presented.reserve(block.size());
+    for (int k = 0, h = 0; k < block.size(); ++k) {
+        if (h < hidden.size() && hidden[h] == k) {
+            ++h;
+            continue;
+        }
+        presented += block[k];
+    }
+    for (const QString& line : presented.split(QLatin1Char('\n'))) {
+        if (!line.trimmed().isEmpty()) {
+            return line;
+        }
+    }
+    return {};
+}
+
 // ── Drawing ──────────────────────────────────────────────────────────────────────────────────────
 
 void ManuscriptPresenter::hide(int start, int count, const QString& text)

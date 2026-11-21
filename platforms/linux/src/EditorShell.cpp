@@ -24,7 +24,10 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonValue>
+#include <QFutureWatcher>
 #include <QLabel>
+#include <QLineEdit>
+#include <QtConcurrent/QtConcurrentRun>
 #include <QListWidget>
 #include <QLocale>
 #include <QCursor>
@@ -155,6 +158,21 @@ EditorShell::EditorShell(QWidget* parent, AppEnvironment* env)
             this, &EditorShell::onSceneDropped);
     connect(navigator_, &NavigatorTree::chapterDropRequested,
             this, &EditorShell::onChapterDropped);
+    // [SP-230] E3 (Apple: T-0569): a search field over the tree.
+    navigatorPane_ = new QWidget(this);
+    auto* navColumn = new QVBoxLayout(navigatorPane_);
+    navColumn->setContentsMargins(0, 0, 0, 0);
+    navColumn->setSpacing(2);
+    navSearch_ = new QLineEdit(navigatorPane_);
+    navSearch_->setObjectName(QStringLiteral("navigatorSearch"));
+    navSearch_->setPlaceholderText(tr("Search"));
+    navSearch_->setClearButtonEnabled(true);
+    navSearching_ = new QLabel(tr("Searching…"), navigatorPane_);
+    navSearching_->setVisible(false);
+    navColumn->addWidget(navSearch_);
+    navColumn->addWidget(navSearching_);
+    navColumn->addWidget(navigator_, 1);
+    connect(navSearch_, &QLineEdit::textChanged, this, &EditorShell::onNavigatorSearchChanged);
 
     // --- Viewport (right): editable continuous document -------------------
     viewport_ = new ManuscriptEditor(this);
@@ -165,6 +183,10 @@ EditorShell::EditorShell(QWidget* parent, AppEnvironment* env)
     // per-scene dirty tracking + map maintenance happen in onContentsChange.
     // SP-176 (EP-048 S4, Q4): the find bar sits at the top of the manuscript, hidden until Edit ▸ Find.
     findBar_ = new FindBar(viewport_, this);
+    // [SP-230] Q4: body matches join once the page's text is built.
+    connect(findBar_, &FindBar::presentedBuilt, this, [this]() {
+        if (!navigatorQuery().isEmpty()) { searchSceneBodies(); }
+    });
     auto* manuscript = new QWidget(this);
     auto* manuscriptColumn = new QVBoxLayout(manuscript);
     manuscriptColumn->setContentsMargins(0, 0, 0, 0);
@@ -204,7 +226,7 @@ EditorShell::EditorShell(QWidget* parent, AppEnvironment* env)
             [this](const QHash<QString, QString>& names) { worldNames_ = names; });
 
     splitter_ = new QSplitter(Qt::Horizontal, this);
-    splitter_->addWidget(navigator_);
+    splitter_->addWidget(navigatorPane_);   // the search field + the tree
     splitter_->addWidget(manuscript);   // the find bar + the viewport
     splitter_->addWidget(inspector_);
     splitter_->setStretchFactor(0, 0);   // navigator — fixed-ish
@@ -1080,7 +1102,7 @@ void EditorShell::deleteSceneByID(const QString& sceneID)
 
     const SceneSegment seg = sceneDoc_.segments().at(idx);   // copy (list mutates)
     const QString sceneTitle =
-        seg.title.isEmpty() ? tr("this scene") : QStringLiteral("“%1”").arg(seg.title);
+        QStringLiteral("“%1”").arg(sceneName(idx));
 
     const QMessageBox::StandardButton choice = QMessageBox::question(
         this, tr("Delete Scene"),
@@ -1502,6 +1524,7 @@ void EditorShell::onContentsChange(int position, int charsRemoved, int charsAdde
     dirtyScenes_.insert(sceneDoc_.segments().at(idx).sceneID);
     saveTimer_->start();   // (re)arm the idle-save debounce (T-0239)
     reportEdit(idx, position, charsAdded);
+    refreshSceneName(idx);
 }
 
 // EP-026 S2 (SP-178): one scene edit → history (Apple: `textDidChange` → `noteEdit`). ⛔ Not for text an undo/redo applied
@@ -2059,9 +2082,7 @@ void EditorShell::rebuildNavigator()
             navModel_->appendRow(chapterItem);
             lastChapterID = seg.chapterID;
         }
-        const QString sceneText =
-            seg.title.isEmpty() ? tr("Untitled Scene") : seg.title;
-        auto* sceneItem = new QStandardItem(sceneText);
+        auto* sceneItem = new QStandardItem(sceneName(i));
         sceneItem->setEditable(false);
         sceneItem->setData(seg.sceneID, kSceneIDRole);
         // Scene rows are draggable for reorder (T-0260); nothing accepts drops (the
@@ -2072,11 +2093,176 @@ void EditorShell::rebuildNavigator()
     }
     // [SP-226] (T-0657): ⛔ no longer `expandAll()` — the writer's chapters and the current one.
     applyChapterExpansion();
+    if (!navigatorQuery().isEmpty()) {
+        applyNavigatorFilter();
+    }
 
     // Keep the timeline strip in sync after any structural change (create / delete /
     // rename / reorder / merge / split all rebuild the navigator). Guarded internally
     // against the mid-load programmatic build (load() calls reloadTimeline once at end).
     reloadTimeline();
+}
+
+// ── [SP-230] E1: scene names ──────────────────────────────────────────────────────────────────────────────────────────
+
+QString EditorShell::sceneName(int index) const
+{
+    const SceneSegment& seg = sceneDoc_.segments().at(index);
+    if (!seg.title.trimmed().isEmpty()) {
+        return seg.title;
+    }
+    QString line;
+    if (presenter_ != nullptr) {
+        line = presenter_->presentedFirstLine(seg.text);
+    } else {
+        // Drawn as stored: the first non-blank line as it is.
+        for (const QString& l : seg.text.split(QLatin1Char('\n'))) {
+            if (!l.trimmed().isEmpty()) { line = l; break; }
+        }
+    }
+    return line.trimmed().isEmpty() ? tr("Scene %1").arg(index + 1) : line;
+}
+
+void EditorShell::refreshSceneName(int index)
+{
+    if (index < 0 || index >= sceneDoc_.segments().size()) {
+        return;
+    }
+    const QString sceneID = sceneDoc_.segments().at(index).sceneID;
+    const QString name = sceneName(index);
+    for (int c = 0; c < navModel_->rowCount(); ++c) {
+        QStandardItem* chapter = navModel_->item(c);
+        for (int r = 0; r < chapter->rowCount(); ++r) {
+            QStandardItem* item = chapter->child(r);
+            if (item->data(kSceneIDRole).toString() == sceneID) {
+                if (item->text() != name) {
+                    item->setText(name);
+                    if (!navigatorQuery().isEmpty()) {
+                        applyNavigatorFilter();   // the name she sees is what a title match reads
+                    }
+                }
+                return;
+            }
+        }
+    }
+}
+
+// ── [SP-230] E2: Go To ────────────────────────────────────────────────────────────────────────────────────────────────
+
+void EditorShell::goTo(GoTo where)
+{
+    const auto& segs = sceneDoc_.segments();
+    if (segs.isEmpty() || viewport_ == nullptr) {
+        return;
+    }
+    const int here = std::max(0, sceneDoc_.sceneIndexForCaret(viewport_->textCursor().position()));
+    int first = here, last = here;
+    if (where == GoTo::ChapterStart || where == GoTo::ChapterEnd) {
+        while (first > 0 && segs.at(first - 1).chapterID == segs.at(here).chapterID) { --first; }
+        while (last + 1 < segs.size() && segs.at(last + 1).chapterID == segs.at(here).chapterID) { ++last; }
+    } else if (where == GoTo::ManuscriptStart || where == GoTo::ManuscriptEnd) {
+        first = 0;
+        last = int(segs.size()) - 1;
+    }
+    const bool start = where == GoTo::SceneStart || where == GoTo::ChapterStart || where == GoTo::ManuscriptStart;
+    const int pos = start ? segs.at(first).bodyStart : segs.at(last).bodyStart + segs.at(last).bodyLength;
+    QTextCursor cursor = viewport_->textCursor();
+    cursor.setPosition(pos);
+    viewport_->setTextCursor(cursor);
+    viewport_->ensureCursorVisible();
+    viewport_->setFocus();
+}
+
+// ── [SP-230] E3: the Navigator's search (Apple: T-0569) ─────────────────────────────────────────────────────────────
+
+namespace {
+// Apple's `localizedStandardContains`: case- and diacritic-insensitive.
+QString foldedForSearch(const QString& text)
+{
+    QString out;
+    const QString decomposed = text.normalized(QString::NormalizationForm_D);
+    out.reserve(decomposed.size());
+    for (const QChar c : decomposed) {
+        if (c.category() != QChar::Mark_NonSpacing) { out.append(c); }
+    }
+    return out.toCaseFolded();
+}
+}   // namespace
+
+QString EditorShell::navigatorQuery() const
+{
+    return navSearch_ != nullptr ? navSearch_->text().trimmed() : QString();
+}
+
+void EditorShell::onNavigatorSearchChanged()
+{
+    applyNavigatorFilter();    // titles at once
+    searchSceneBodies();       // bodies when the page's text is in (Q4)
+    applyChapterExpansion();   // open while searching; hers and the current one again when it is cleared
+}
+
+void EditorShell::searchSceneBodies()
+{
+    const QString query = navigatorQuery();
+    const int generation = ++navSearchGeneration_;
+    if (query.isEmpty()) {
+        bodyMatches_.clear();
+        bodyMatchQuery_.clear();
+        navSearching_->setVisible(false);
+        return;
+    }
+    const ManuscriptFind::PresentedText* presented = findBar_ != nullptr ? findBar_->presentedIfBuilt() : nullptr;
+    navSearching_->setVisible(presented == nullptr);
+    if (presented == nullptr) {
+        return;   // `presentedBuilt` runs it again
+    }
+    // ⛔ Not on the GUI thread (feedback: main thread is for UI): the texts are copied (implicitly shared) and matched on a worker.
+    // shortcut: every scene is folded again per query — cache the folded text per scene if a large manuscript lags.
+    const QHash<QString, QString> texts = presented->sceneTexts();
+    ++navSearchPending_;
+    auto* watcher = new QFutureWatcher<QSet<QString>>(this);
+    connect(watcher, &QFutureWatcher<QSet<QString>>::finished, this, [this, watcher, generation, query]() {
+        --navSearchPending_;
+        watcher->deleteLater();
+        if (generation != navSearchGeneration_) {
+            return;   // she typed on
+        }
+        bodyMatches_ = watcher->result();
+        bodyMatchQuery_ = query;
+        applyNavigatorFilter();
+        applyChapterExpansion();
+    });
+    watcher->setFuture(QtConcurrent::run([texts, query]() {
+        const QString folded = foldedForSearch(query);
+        QSet<QString> ids;
+        for (auto it = texts.constBegin(); it != texts.constEnd(); ++it) {
+            if (foldedForSearch(it.value()).contains(folded)) { ids.insert(it.key()); }
+        }
+        return ids;
+    }));
+}
+
+// T-0569's rules: while searching, a chapter whose TITLE matches keeps all its scenes; otherwise a scene is kept when its
+// shown name or its body matches, under its chapter; a chapter with none is hidden.
+void EditorShell::applyNavigatorFilter()
+{
+    const QString query = navigatorQuery();
+    const QString folded = foldedForSearch(query);
+    const bool bodiesIn = bodyMatchQuery_ == query;
+    const QModelIndex root;
+    for (int c = 0; c < navModel_->rowCount(); ++c) {
+        QStandardItem* chapter = navModel_->item(c);
+        const bool chapterMatches = query.isEmpty() || foldedForSearch(chapter->text()).contains(folded);
+        int shown = 0;
+        for (int r = 0; r < chapter->rowCount(); ++r) {
+            QStandardItem* item = chapter->child(r);
+            const bool keep = chapterMatches || foldedForSearch(item->text()).contains(folded)
+                              || (bodiesIn && bodyMatches_.contains(item->data(kSceneIDRole).toString()));
+            navigator_->setRowHidden(r, chapter->index(), !keep);
+            shown += keep ? 1 : 0;
+        }
+        navigator_->setRowHidden(c, root, shown == 0 && !chapterMatches);
+    }
 }
 
 void EditorShell::applyChapterExpansion()
@@ -2087,7 +2273,8 @@ void EditorShell::applyChapterExpansion()
         const QString chapterID = chapter->data(kChapterIDRole).toString();
         const bool hers = expandedChapters_.contains(chapterID);
         const bool current = chapterID == navCurrentChapterID_;
-        navigator_->setExpanded(chapter->index(), hers || current);
+        // [SP-226] Q3 / [SP-230]: every chapter is open while she searches.
+        navigator_->setExpanded(chapter->index(), hers || current || !navigatorQuery().isEmpty());
         // Q5 (user, 2026-11-20): italic = the chapter she is in; bold = one she keeps open; both = bold italic.
         QFont font = chapter->font();
         if (font.italic() != current || font.bold() != hers) {
@@ -3804,7 +3991,7 @@ void EditorShell::setNavigatorVisible(bool visible)
     if (navigator_ == nullptr) {
         return;
     }
-    navigator_->setVisible(visible);
+    navigatorPane_->setVisible(visible);
     session_.setNavigatorVisible(visible);
     if (!restoringPaneVisibility_ && inspector_ != nullptr) {
         inspector_->setStoredNavigatorHidden(!visible);
@@ -3813,7 +4000,7 @@ void EditorShell::setNavigatorVisible(bool visible)
 
 bool EditorShell::isNavigatorVisible() const
 {
-    return navigator_ != nullptr && navigator_->isVisible();
+    return navigatorPane_ != nullptr && navigatorPane_->isVisible();
 }
 
 void EditorShell::setInspectorVisible(bool visible)
@@ -4000,7 +4187,7 @@ void EditorShell::applyTimelineData(const TimelineData& data)
 
         TimelinePanel::Dot dot;
         dot.sceneID    = seg.sceneID;
-        dot.title      = seg.title.isEmpty() ? tr("Scene %1").arg(i + 1) : seg.title;
+        dot.title      = sceneName(i);
         dot.chapterTitle = sceneDoc_.chapterHeadingText(i);
         dot.offsetMs   = offsetMs;
         dot.durationMs = durationMs;
@@ -4259,8 +4446,7 @@ void EditorShell::showTimeDeltaPicker(const QString& sceneID, qint64 seedOffsetM
         const QString sid = segs.at(i).sceneID;
         const qint64 endMs = timelineOffsets_.value(sid, 0)
                              + timelineDurations_.value(sid, kDefaultDurationMs);
-        const QString title = segs.at(i).title.isEmpty()
-            ? tr("Scene %1").arg(i + 1) : segs.at(i).title;
+        const QString title = sceneName(i);
         otherScenes.append({sid, title, endMs});
     }
 

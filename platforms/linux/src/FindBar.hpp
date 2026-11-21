@@ -80,9 +80,14 @@ public:
     bool presentedReady() const { return presentedReady_; }
     bool searchSettled() const;
     qint64 longestSliceMs() const { return longestSliceMs_; }   // the longest the build has held the GUI thread at once
+    // [SP-230] E3: the presented text for the Navigator's search — nullptr until it is built ahead (then `presentedBuilt`).
+    const ManuscriptFind::PresentedText* presentedIfBuilt() { return presentedReady_ ? &presented() : nullptr; }
 
     static constexpr int kQueryPauseMs = 500;   // [T-0613] the user's "say 500 ms"
     static constexpr int kSliceMs = 8;
+
+signals:
+    void presentedBuilt();
 
 protected:
     bool eventFilter(QObject* watched, QEvent* event) override;

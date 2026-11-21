@@ -1,5 +1,13 @@
 # Active Sprints
 
+*Last Updated: 2026-11-21 (**SP-230** Q2 re-ruled: Go to Manuscript Start / End on Ctrl+Home / Ctrl+End; AC2 met. ⏳ AC5 live pass, CI.)*
+
+*Last Updated: 2026-11-20 (**SP-230 built** — AC1, AC3 met; AC2 built, ⚠️ its Manuscript Start / End keys to re-rule (Ctrl+Shift+1–9 paste the copy buffers on Linux); AC4 green locally (CI on the push); T-0692, T-0249 → 🟠. ⏳ AC5 live pass.)*
+
+*Last Updated: 2026-11-20 (**SP-230 → 🟡 ACTIVE** (user, 2026-11-20: *"Q1-Q4 as recommended, activate SP-230"*) → [`Sprint-SP-230.md`](Sprint-SP-230.md); Q1–Q4 as recommended.)*
+
+*Last Updated: 2026-11-20 (**SP-229 → ✅ CLOSED** (user, 2026-11-20: *"Close SP-229"*) → `Closed/Sprint-SP-229.md`; T-0684 ✅ Verified. No Sprint is active.)*
+
 *Last Updated: 2026-11-20 (**SP-229: all ACs met** — live passes on the Mac, iPad, iPhone Duo and Linux VM (user, 2026-11-20: *"All steps pass on all platforms."*), CI green; T-0684 ✅ Verified; awaiting close approval.)*
 
 *Last Updated: 2026-11-20 (**SP-229 → 🟡 ACTIVE** (user, 2026-11-20: *"Q1-Q7 as recommended.  I accept our translation.  we may begin."*) → [`Sprint-SP-229.md`](Sprint-SP-229.md); built — AC1–AC5 met, AC6 green locally (CI on the push); T-0684 → 🟠. ⏳ AC7 live passes.)*

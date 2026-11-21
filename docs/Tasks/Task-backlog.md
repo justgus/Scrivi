@@ -1,5 +1,9 @@
 # Task Backlog
 
+*Last Updated: 2026-11-20 (**T-0692, T-0249 → active** with [SP-230]'s activation (user, 2026-11-20: *"Q1-Q4 as recommended, activate SP-230"*) → `Task-active.md`.)*
+
+*Last Updated: 2026-11-20 (**T-0692 filed** and **T-0249** → [SP-230] (🔵 Planning), EP-059 part E (user, 2026-11-20: *"Nope.  Can't archive yet.  We need to do the Linux gap epic first."*).)*
+
 *Last Updated: 2026-11-20 (**T-0684 → 🟠** with [SP-229] activated and built → `Task-unverified.md` (user, 2026-11-20: *"Q1-Q7 as recommended.  I accept our translation.  we may begin."*); **T-0691 filed** (the ᚹ icon, from SP-229).)*
 
 *Last Updated: 2026-11-20 (**T-0684 → [SP-229]** (🔵 Planning), the rename Sprint (user, 2026-11-20: *"plan the rename sprint"*).)*
@@ -152,7 +156,6 @@ status changes on its own layer.
 | T-0690 | `[Apple]` EP-055 S8: TestFlight for iPad, iPhone and the Mac | EP-055 | 🔵 Backlog — [SP-228] |
 | T-0118 | Scroll bar fidelity — per-scene character-ratio thumb position and size | EP-011 | 🔵 Backlog |
 | T-0197 | Enable Core Spotlight donation on iOS/iPadOS (+ iOS deep-link/bookmark consumer); visionOS when backend links | EP-017 (deferred from T-0190) | 🔵 Backlog |
-| T-0249 | `[Linux]` Manuscript navigation gestures — Page Forward/Backward + jump to absolute manuscript start/end | **EP-059** E2 (was EP-022) | 🔵 Backlog |
 | **T-0459** | ⚠️ **`[Cross]` Per-citation reference markers on the `cites` EDGE** — surface the edge `note`, and ⚠️ **move `page` off the source object** | **EP-032** | 🔵 **Backlog** — ⚠️ **found by live use, SP-120** |
 | **T-0472** | ⚠️ **`[Linux]` Surface for custom relationship types** — build the UI that calls `scrivi_upsert_relation_type`. ⚠️ **The endpoint is fully implemented and has NEVER had a caller on any platform** | **EP-059** C5 (was EP-037) | 🔵 **Backlog** — ⚠️ **user ruling 2026-08-25: a REAL FEATURE owed a surface, not dead code**; ⚠️ **moved EP-035 → EP-037 by the three-way split** |
 | **T-0473** | ⚠️ **`[Apple]` Timeline endpoint parity** — reach `resolve_timeline_project_times`, `set_timeline_epoch_offset`, `set_world_epoch_offset`. ⚠️ **Unreached on Apple; bridged on Linux by SP-121** | ⚠️ **None — no Epic** | 🔵 **Backlog** — ⚠️ **user ruling 2026-08-25: tracked, NOT scheduled** |
@@ -350,21 +353,6 @@ so a tapped Spotlight result can resolve a persisted project across launches (`P
 is currently macOS-only). visionOS is out of scope until its `ScriviEngine` backend links (I-0053
 covered iOS/iPadOS only). Gated on (a) T-0189 ✅ done, and (b) iOS bookmark/restore parity.
 Rationale + assessment: [`Verified/Task-verified-0190.md`](Verified/Task-verified-0190.md).
-
-### T-0249 — `[Linux]` Manuscript navigation gestures
-
-**Epic:** **EP-059** E2 (was EP-022; moved 2026-11-20) · **Status:** 🔵 Backlog
-
-Page Forward / Page Backward + jump to absolute manuscript start / end. **Gestures and keystrokes are
-undecided** — laptops and tablets lack extended keyboards, so no PageUp/PageDown/Home/End may be
-assumed; pick touch-friendly bindings. Raised during SP-063 VNC verification.
-
-⚠️ **Constrained by the VNC input path** (see `project_linux_vnc_input_constraints`): the
-macOS→VNC→x11vnc→Xvfb→Qt chain drops Ctrl+Shift+key combos and pinch/pixelDelta gestures, so **a
-gesture must never be the only path** to any of these actions.
-
-*EP-022 itself is ✅ Closed (2026-07-15); this is an unscheduled follow-up, likely landing with EP-026
-menus/parity.*
 
 ### T-0390 — External Change Repair Matrix: world-package conditions
 

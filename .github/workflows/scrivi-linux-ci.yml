@@ -355,6 +355,12 @@ jobs:
           platforms/linux/tests/chapter_titles_smoke.sh \
             ./build/platforms/linux/scrivi_linux_chapter_titles_smoke
 
+      # [SP-230] (EP-059 E): untitled-scene names, Go To, the Navigator's search.
+      - name: Navigator search smoke test
+        run: |
+          platforms/linux/tests/navigator_search_smoke.sh \
+            ./build/platforms/linux/scrivi_linux_navigator_search_smoke
+
       # ✅ 2026-10-10 (user: "add the missing smokes to CI too") — these eleven smokes existed but CI never ran them.
 
       # ABI parity (EP-034 / SP-121, T-0464).

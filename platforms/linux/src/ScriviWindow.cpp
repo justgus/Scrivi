@@ -797,6 +797,16 @@ void ScriviWindow::buildMenuBar(QMainWindow* host, ScriviWindow* w, AppEnvironme
     connect(mergeScene, &QAction::triggered, host,
             [=]() { if (ed() != nullptr) { ed()->mergeScene(); } });
     editorOnlyActions.append(mergeScene);
+    // [SP-230] E2 (Apple: Scene ▸ Go to …, no keys — every candidate is an editing key on the Mac too).
+    scene->addSeparator();
+    QAction* goToSceneStart = scene->addAction(tr("Go to Scene Start"));
+    goToSceneStart->setObjectName(QStringLiteral("goToSceneStartAction"));
+    connect(goToSceneStart, &QAction::triggered, host, [=]() { if (ed() != nullptr) { ed()->goTo(EditorShell::GoTo::SceneStart); } });
+    editorOnlyActions.append(goToSceneStart);
+    QAction* goToSceneEnd = scene->addAction(tr("Go to Scene End"));
+    goToSceneEnd->setObjectName(QStringLiteral("goToSceneEndAction"));
+    connect(goToSceneEnd, &QAction::triggered, host, [=]() { if (ed() != nullptr) { ed()->goTo(EditorShell::GoTo::SceneEnd); } });
+    editorOnlyActions.append(goToSceneEnd);
 
     // --- Chapter ----------------------------------------------------------
     // Chapter ▸ Merge is the reason this menu exists: Ctrl+Shift+Backspace is swallowed
@@ -813,6 +823,16 @@ void ScriviWindow::buildMenuBar(QMainWindow* host, ScriviWindow* w, AppEnvironme
     connect(mergeChapter, &QAction::triggered, host,
             [=]() { if (ed() != nullptr) { ed()->mergeChapter(); } });
     editorOnlyActions.append(mergeChapter);
+    // [SP-230] E2 (Apple: Chapter ▸ Go to …, no keys).
+    chapter->addSeparator();
+    QAction* goToChapterStart = chapter->addAction(tr("Go to Chapter Start"));
+    goToChapterStart->setObjectName(QStringLiteral("goToChapterStartAction"));
+    connect(goToChapterStart, &QAction::triggered, host, [=]() { if (ed() != nullptr) { ed()->goTo(EditorShell::GoTo::ChapterStart); } });
+    editorOnlyActions.append(goToChapterStart);
+    QAction* goToChapterEnd = chapter->addAction(tr("Go to Chapter End"));
+    goToChapterEnd->setObjectName(QStringLiteral("goToChapterEndAction"));
+    connect(goToChapterEnd, &QAction::triggered, host, [=]() { if (ed() != nullptr) { ed()->goTo(EditorShell::GoTo::ChapterEnd); } });
+    editorOnlyActions.append(goToChapterEnd);
 
     // --- Project ----------------------------------------------------------
     QMenu* project = bar->addMenu(tr("&Project"));
@@ -825,6 +845,19 @@ void ScriviWindow::buildMenuBar(QMainWindow* host, ScriviWindow* w, AppEnvironme
         }
     });
     editorOnlyActions.append(purgeStale);
+    // [SP-230] E2 (Apple: Project ▸ Go to Manuscript Start ⇧⌘0 / End ⇧⌘1). Ctrl+Home / Ctrl+End (Q2 re-ruled): Ctrl+Shift+1–9 are
+    // the copy buffers and Ctrl+Alt+0 / 1 are Format ▸ Body / Heading 1. In the editor its own Ctrl+Home / End answer first.
+    project->addSeparator();
+    QAction* goToManuscriptStart = project->addAction(tr("Go to Manuscript Start"));
+    goToManuscriptStart->setObjectName(QStringLiteral("goToManuscriptStartAction"));
+    goToManuscriptStart->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Home));
+    connect(goToManuscriptStart, &QAction::triggered, host, [=]() { if (ed() != nullptr) { ed()->goTo(EditorShell::GoTo::ManuscriptStart); } });
+    editorOnlyActions.append(goToManuscriptStart);
+    QAction* goToManuscriptEnd = project->addAction(tr("Go to Manuscript End"));
+    goToManuscriptEnd->setObjectName(QStringLiteral("goToManuscriptEndAction"));
+    goToManuscriptEnd->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_End));
+    connect(goToManuscriptEnd, &QAction::triggered, host, [=]() { if (ed() != nullptr) { ed()->goTo(EditorShell::GoTo::ManuscriptEnd); } });
+    editorOnlyActions.append(goToManuscriptEnd);
 
     // --- Project ▸ Manage Worlds… (EP-035 AC3, SP-127 / T-0494) ----------
     //

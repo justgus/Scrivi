@@ -1,5 +1,9 @@
 # Active Tasks
 
+*Last Updated: 2026-11-20 (**T-0692, T-0249 → 🟠** ([SP-230] built) → `Task-unverified.md`.)*
+
+*Last Updated: 2026-11-20 (**T-0692, T-0249 → active** with [SP-230]'s activation (user, 2026-11-20: *"Q1-Q4 as recommended, activate SP-230"*).)*
+
 *Last Updated: 2026-11-20 (**T-0684 → active** with [SP-229]'s activation (user, 2026-11-20: *"Q1-Q7 as recommended.  I accept our translation.  we may begin."*); built the same day → 🟠 `Task-unverified.md`.)*
 
 *Last Updated: 2026-11-20 (**T-0689 → active** with [SP-227]'s activation (user, 2026-11-20: *"implement SP-227"*); built the same day → 🟠 `Task-unverified.md`.)*

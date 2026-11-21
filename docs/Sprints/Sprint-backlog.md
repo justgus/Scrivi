@@ -1,5 +1,9 @@
 # Sprint Backlog
 
+*Last Updated: 2026-11-20 (**SP-230 removed** — activated 2026-11-20.)*
+
+*Last Updated: 2026-11-20 (**SP-230 created in 🔵 Planning** — EP-059 part E (user, 2026-11-20: *"Nope.  Can't archive yet.  We need to do the Linux gap epic first."*); Q1–Q4 to rule. **SP-228 waits until EP-059 is done.**)*
+
 *Last Updated: 2026-11-20 (**SP-229 removed** — activated 2026-11-20.)*
 
 *Last Updated: 2026-11-20 (**SP-229 created in 🔵 Planning** — the rename to Inkwyn, [T-0684] (user, 2026-11-20: *"plan the rename sprint"*); Q1–Q7 to rule.)*

@@ -97,7 +97,7 @@ user-approved), ⛔ not from either copy.\*\* ⚠️ **The table is now ONE unbr
 | EP-056 | `[Linux]` **Install on Ubuntu** — a .deb testers can install, update and remove; for the alpha | 🔵 **Draft** (backlog) 2026-10-24 | — |
 | EP-058 | `[Cross]` **Authorship** — pen names, several ordered authors per project, authors for worlds, writing as the right author on every machine; blocks [EP-054] AC9 | ✅ **CLOSED** 2026-11-11 (user-approved) → [record](Closed/Epic-EP-058.md) | 2026-11-10 | 2026-11-11 |
 | EP-057 | `[Linux]` **Linux Rig Verification** — standing; every Linux live pass waiting for the rig, one Task each, so no Sprint is held open on the rig | 🟡 **ACTIVE** 2026-11-02 (standing, never completes) | — |
-| EP-059 | `[Linux]` **Linux catches up with the Mac** — every capability gap from the 2026-11-20 review (G1–G9): objects, detail sheet, relationships and sources (EP-035/036/037 carried in), world creation and warnings, untitled-scene titles, Go To, Navigator search | 🔵 **Draft** (backlog) 2026-11-20 | — |
+| EP-059 | `[Linux]` **Linux catches up with the Mac** — every capability gap from the 2026-11-20 review (G1–G9): objects, detail sheet, relationships and sources (EP-035/036/037 carried in), world creation and warnings, untitled-scene titles, Go To, Navigator search | 🟡 **ACTIVE** 2026-11-20 | [SP-230] (E) |
 
 ## Statistics
 
@@ -134,6 +134,8 @@ ruling **R-23(②)**. **To count Epics by status, read the table.**
 > been acted on. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-11-20 (**EP-059 → 🟡 ACTIVE** (user, 2026-11-20: *"Nope.  Can't archive yet.  We need to do the Linux gap epic first."*); [SP-230] = part E.)*
 
 *Last Updated: 2026-11-20 (**EP-059 created** 🔵 Draft (user, 2026-11-20: *"yes, file G1–G9 as an Epic (include everything here, so it is all tracked at once."*); **EP-035, EP-036, EP-037 → ✅ CLOSED, superseded by EP-059** (user: *"One Epic for all"*) → `Closed/`.)*
 
