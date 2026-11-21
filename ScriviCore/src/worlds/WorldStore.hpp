@@ -82,7 +82,7 @@ public:
     [[nodiscard]] static AbsolutePath lockPath(const AbsolutePath& packagePath);
 
     // --- T-0381: create ------------------------------------------------------
-    // Creates the .scrivworld package AND this project's binding in one
+    // Creates the .inkwynworld package AND this project's binding in one
     // operation. On failure the project is left exactly as it was (Doc 3 §7).
     [[nodiscard]] Result<WorldRecord> createWorld(const AbsolutePath& projectRoot,
                                                   const AbsolutePath& packagePath,

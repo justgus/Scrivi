@@ -60,7 +60,7 @@ SKIP_WORLDS="${SCRIVI_SKIP_WORLDS:-0}"
 #
 # This was a single `Scrivi-Worlds` volume until a live pass needed
 # `SCRIVI-OTHE` — the drive holding the real test projects
-# (the-stairs-of-tintagael, Eskandar.scrivworld, the-lone-golem). Reusing the
+# (the-stairs-of-tintagael, Eskandar.inkwynworld, the-lone-golem). Reusing the
 # single slot would have silently displaced the Worlds mount, so the volumes are
 # a LIST and any subset can be mounted at once.
 #
@@ -326,7 +326,7 @@ mount_share() {
     #   Observed 2026-09-01. The Worlds volume was pulled on the Mac and replugged.
     #   /mnt/scrivi-worlds then served a listing of a DIFFERENT share (ScriviLinux)
     #   — byte-identical entries, same sizes, same timestamps — while the real
-    #   content (Eskandar.scrivworld) returned ENOENT and the phantom entries
+    #   content (Eskandar.inkwynworld) returned ENOENT and the phantom entries
     #   returned EBADF. A cached listing with nothing behind it.
     #
     #   noserverino makes the client invent inode numbers instead of using the

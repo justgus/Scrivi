@@ -15,7 +15,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Scrivi** is a multi-platform authoring, worldbuilding, and narrative design application. It helps writers, authors, dungeon masters, game designers, and scientists organize characters, scenes, locations, relationships, timelines, and maps for complex projects.
+**Inkwyn (formerly Scrivi)** is a multi-platform authoring, worldbuilding, and narrative design application. It helps writers, authors, dungeon masters, game designers, and scientists organize characters, scenes, locations, relationships, timelines, and maps for complex projects.
+
+⚠️ **Renamed 2026-11-20 ([SP-229]): what people see says Inkwyn, and the packages are `.inkwyn`, `.inkwynworld`, `.inkwynarchive`.** Identifiers keep "Scrivi": the bundle ID `com.caposoft.scrivi`, the Application Support folder, the `scrivi_*` ABI, schema IDs, the `scrivi://` URL scheme, names inside a package (`.scrivi-cache/`, `scrivarchive.json`, …), the Linux binary and desktop file (until [EP-056]), the repo and file names — and the "Scrivi" unnamed-author sentinel. Older docs say `.scrivi` / Scrivi; read them as Inkwyn.
 
 **Target Platforms:** macOS 27.0+, iOS 27.0+, iPadOS 27.0+, visionOS 27.0+, Windows 11, Android, Linux
 

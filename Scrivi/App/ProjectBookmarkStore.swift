@@ -1,7 +1,7 @@
 import Foundation
 import os
 
-// Maps a projectID → a security-scoped bookmark of its on-disk .scrivi path,
+// Maps a projectID → a security-scoped bookmark of its on-disk .inkwyn path,
 // so a deep link (scrivi://open?project=<projectID>) can reopen a project the
 // user previously granted access to — even under the App Sandbox, and even on a
 // cold launch (EP-017 T-0184).

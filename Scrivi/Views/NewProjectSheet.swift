@@ -10,7 +10,7 @@ struct NewProjectSheet: View {
     @State private var slug: String = ""
     // SP-210 Q3: the project's first author — the default pen name, editable.
     @State private var author: String = ""
-    // macOS: full <name>.scrivi path from NSSavePanel. iOS: nil here; the picked parent
+    // macOS: full <name>.inkwyn path from NSSavePanel. iOS: nil here; the picked parent
     // directory is held in `chosenDirectory` and the project folder is composed at create.
     @State private var chosenPath: String? = nil
     @State private var slugError: String? = nil
@@ -104,7 +104,7 @@ struct NewProjectSheet: View {
         .onAppear { if author.isEmpty { author = env.penNames.default } }
         #if !os(macOS)
         // iOS/iPadOS/visionOS: pick the parent folder; the project is created as
-        // <folder>/<slug>.scrivi at Create time.
+        // <folder>/<slug>.inkwyn at Create time.
         .fileImporter(
             isPresented: $showDirImporter,
             allowedContentTypes: [.folder],
@@ -125,7 +125,7 @@ struct NewProjectSheet: View {
         #if os(macOS)
         chosenPath.map { URL(fileURLWithPath: $0).lastPathComponent } ?? "Not chosen"
         #else
-        chosenDirectory.map { "\($0.lastPathComponent)/\(slug.isEmpty ? "my-project" : slug).scrivi" } ?? "Not chosen"
+        chosenDirectory.map { "\($0.lastPathComponent)/\(slug.isEmpty ? "my-project" : slug).inkwyn" } ?? "Not chosen"
         #endif
     }
 
@@ -137,18 +137,18 @@ struct NewProjectSheet: View {
         panel.nameFieldStringValue = slug.isEmpty ? "my-project" : slug
         panel.canCreateDirectories = true
         panel.prompt = "Choose"
-        // Make the panel a .scrivi *package* save (I-0092): with the package UTID set, the panel
-        // appends/enforces the `.scrivi` extension instead of taking the name field verbatim —
+        // Make the panel a .inkwyn *package* save (I-0092): with the package UTID set, the panel
+        // appends/enforces the `.inkwyn` extension instead of taking the name field verbatim —
         // otherwise the project folder was created with no suffix. Matches the Open panel's type.
         let scriviType = UTType("com.caposoft.scrivi.project") ?? .package
         panel.allowedContentTypes = [scriviType]
 
         guard panel.runModal() == .OK, var url = panel.url else { return }
         // Defensive: if the extension is still missing (a user can delete it in the field), add it
-        // so the created folder is always a real `.scrivi` package.
-        if url.pathExtension != "scrivi" {
+        // so the created folder is always a real `.inkwyn` package.
+        if url.pathExtension != "inkwyn" {
             url.deletePathExtension()
-            url.appendPathExtension("scrivi")
+            url.appendPathExtension("inkwyn")
         }
         chosenPath = url.path(percentEncoded: false)
         if slug.isEmpty {
@@ -166,14 +166,14 @@ struct NewProjectSheet: View {
         }
 
         #if os(macOS)
-        // macOS: NSSavePanel already produced the full <name>.scrivi path.
+        // macOS: NSSavePanel already produced the full <name>.inkwyn path.
         guard let path = chosenPath else { return }
         Task {
             await env.createProject(at: path, title: title, slug: trimmedSlug, author: trimmedAuthor)
             if env.projectError == nil { dismiss() }
         }
         #else
-        // iOS: compose <picked directory>/<slug>.scrivi (handles security scope).
+        // iOS: compose <picked directory>/<slug>.inkwyn (handles security scope).
         guard let dir = chosenDirectory else { return }
         Task {
             await env.createProjectInPickedDirectory(dir, title: title, slug: trimmedSlug, author: trimmedAuthor)

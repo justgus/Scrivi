@@ -16,7 +16,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "E_TARGET"
-               BuildableName = "Scrivi.app"
+               BuildableName = "Inkwyn.app"
                ReferencedContainer = "container:Scrivi.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -45,7 +45,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "E_TARGET"
-            BuildableName = "Scrivi.app"
+            BuildableName = "Inkwyn.app"
             ReferencedContainer = "container:Scrivi.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -61,7 +61,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "E_TARGET"
-            BuildableName = "Scrivi.app"
+            BuildableName = "Inkwyn.app"
             ReferencedContainer = "container:Scrivi.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>

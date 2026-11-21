@@ -55,12 +55,12 @@ public:
 
     scrivi::Result<std::vector<scrivi::AbsolutePath>>
     listDirectory(const scrivi::AbsolutePath& p) override {
-        // ⚠️ SP-103: object-kind directories now hang off the .scrivworld package
+        // ⚠️ SP-103: object-kind directories now hang off the .inkwynworld package
         // as well as objects/, so matching "/objects/" alone would count ZERO
         // scans for world objects — and the zero-scan proof would pass
         // vacuously, which is worse than failing. Count either parent.
         if (p.find("/objects/") != std::string::npos ||
-            p.find(".scrivworld/") != std::string::npos) { ++objectDirScans; }
+            p.find(".inkwynworld/") != std::string::npos) { ++objectDirScans; }
         return inner_.listDirectory(p);
     }
 
@@ -119,7 +119,7 @@ struct IndexFixture {
         // SP-103: worldbuilding kinds live in a world, so one must exist first.
         scrivi::worlds::WorldStore ws{services};
         auto w = ws.createWorld(projectDir.string(),
-                                (projectDir / "Index.scrivworld").string(),
+                                (projectDir / "Index.inkwynworld").string(),
                                 "Index World", "");
         REQUIRE(w.ok());
         worldID = w.value().worldID;
@@ -140,7 +140,7 @@ struct IndexFixture {
     // The project index still exists and still governs `source`; it is asserted
     // separately by projectIndexPath() below.
     [[nodiscard]] fs::path indexPath() const {
-        return projectDir / "Index.scrivworld" / "index.json";
+        return projectDir / "Index.inkwynworld" / "index.json";
     }
 
     [[nodiscard]] fs::path projectIndexPath() const {
@@ -155,7 +155,7 @@ struct IndexFixture {
     [[nodiscard]] fs::path kindDir(scrivi::ObjectKind kind) const {
         const auto sub = scrivi::objectKindSubdir(kind);
         return scrivi::objectKindIsWorldScoped(kind)
-            ? projectDir / "Index.scrivworld" / sub
+            ? projectDir / "Index.inkwynworld" / sub
             : projectDir / "objects" / sub;
     }
 
@@ -276,7 +276,7 @@ TEST_CASE("T-0446 — ⚠️ a WORLD object's image reaches the world index too"
     auto id = fix.makeObject(scrivi::ObjectKind::chronicle, "The Long Winter",
                              "long-winter");
 
-    auto pkg  = fix.projectDir / "Index.scrivworld";
+    auto pkg  = fix.projectDir / "Index.inkwynworld";
     auto file = findObjectFile(pkg, "long-winter");
     REQUIRE(!file.empty());
     giveObjectAnImage(file, "asset_world_001", "asset_world_001_thumb");
@@ -326,7 +326,7 @@ TEST_CASE("⚠️ I-0163 — an index written BEFORE the image field REBUILDS it
     IndexFixture fix;
     auto id = fix.makeObject(scrivi::ObjectKind::chronicle, "The Long Winter",
                              "long-winter");
-    auto pkg = fix.projectDir / "Index.scrivworld";
+    auto pkg = fix.projectDir / "Index.inkwynworld";
 
     // Give the object an image on disk, exactly as an import does.
     auto file = findObjectFile(pkg, "long-winter");

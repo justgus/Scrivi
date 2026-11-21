@@ -84,7 +84,7 @@ struct SearchFixture {
         svc.logger       = nullptr;
         scrivi::worlds::WorldStore ws{svc};
         auto w = ws.createWorld(projectDir.string(),
-                                (projectDir / "Search.scrivworld").string(),
+                                (projectDir / "Search.inkwynworld").string(),
                                 "Search World", "");
         REQUIRE(w.ok());
         worldID = w.value().worldID;
@@ -288,8 +288,8 @@ TEST_CASE("extractSearchableText - an UNAVAILABLE world is skipped, never pruned
     // Previously donated entries stay in Spotlight, because a disconnected
     // volume must never make a writer's cast vanish from search (the I-0115
     // principle: never treat unreadable as absent).
-    fs::rename(fix.projectDir / "Search.scrivworld",
-               fix.projectDir / "Search.scrivworld-detached");
+    fs::rename(fix.projectDir / "Search.inkwynworld",
+               fix.projectDir / "Search.inkwynworld-detached");
 
     auto r = fix.extract();
     CHECK(countKind(r, "character") == 0);
@@ -303,7 +303,7 @@ TEST_CASE("extractSearchableText - an UNAVAILABLE world is skipped, never pruned
 TEST_CASE("extractSearchableText - the whole world package is indexed, not only object kinds",
           "[integration][I-0118]") {
     SearchFixture fix;
-    const auto pkg = fix.projectDir / "Search.scrivworld";
+    const auto pkg = fix.projectDir / "Search.inkwynworld";
 
     // ⚠️ Q4 — `historical-events`, `historical-timelines` and `assets` are not
     // ObjectKinds and have no subdir mapping, so they are indexed explicitly.
@@ -402,7 +402,7 @@ TEST_CASE("extractSearchableText - invalid project path returns ok:false",
 
     scrivi::ExtractSearchableTextRequest req;
     req.projectRootPath =
-        (fs::temp_directory_path() / "scrivi-does-not-exist.scrivi").string();
+        (fs::temp_directory_path() / "scrivi-does-not-exist.inkwyn").string();
     auto r = core.extractSearchableText(req);
     CHECK_FALSE(r.ok());
 }

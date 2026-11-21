@@ -4484,14 +4484,14 @@ void EditorShell::onExportTimelineRequested()
     if (timelineJSON.isEmpty()) {
         return;   // export failed (errorOccurred already emitted by the bridge)
     }
-    // Default the save location to the folder the project lives in (its .scrivi
+    // Default the save location to the folder the project lives in (its .inkwyn
     // package's parent), not /root — the writer's projects live together (I-0090).
     const QString startDir = QFileInfo(projectPath_).absolutePath();
     const QString suggested = QDir(startDir)
         .filePath(QStringLiteral("timeline.scrivi-timeline.json"));
     const QString path = QFileDialog::getSaveFileName(
         this, tr("Export Timeline"), suggested,
-        tr("Scrivi Timeline (*.scrivi-timeline.json);;All Files (*)"));
+        tr("Inkwyn Timeline (*.scrivi-timeline.json);;All Files (*)"));
     if (path.isEmpty()) {
         return;   // cancelled
     }
@@ -4620,8 +4620,8 @@ void EditorShell::exportArchive()
     }
     const QString path = QFileDialog::getSaveFileName(
         this, tr("Export Archive"),
-        QDir(QFileInfo(root).absolutePath()).filePath(name + QStringLiteral(".scrivarchive")),
-        tr("Scrivi Archive (*.scrivarchive)"));
+        QDir(QFileInfo(root).absolutePath()).filePath(name + QStringLiteral(".inkwynarchive")),
+        tr("Inkwyn Archive (*.inkwynarchive)"));
     if (path.isEmpty()) {
         return;
     }
@@ -4817,11 +4817,11 @@ void EditorShell::copyManuscriptAsHTML()
 void EditorShell::onImportTimelineRequested()
 {
     // Pick a .scrivi-timeline.json (QFileDialog — VNC-proven, EP-021). Start in the
-    // folder the project lives in (its .scrivi package's parent), not /root (I-0090).
+    // folder the project lives in (its .inkwyn package's parent), not /root (I-0090).
     const QString startDir = QFileInfo(projectPath_).absolutePath();
     const QString path = QFileDialog::getOpenFileName(
         this, tr("Import Timeline"), startDir,
-        tr("Scrivi Timeline (*.scrivi-timeline.json);;All Files (*)"));
+        tr("Inkwyn Timeline (*.scrivi-timeline.json);;All Files (*)"));
     if (path.isEmpty()) {
         return;   // cancelled
     }
@@ -4931,7 +4931,7 @@ QString EditorShell::timelineViewStatePath() const
 void EditorShell::onTimelineViewStateChanged(double zoom, double panFraction)
 {
     // SP-083 T-0338: persist the timeline zoom/pan per project (Linux-only view state —
-    // an INI under app-support, not the backend/.scrivi package). Restored in
+    // an INI under app-support, not the backend/.inkwyn package). Restored in
     // reloadTimeline. No-op before a project is open / without an app-support root.
     const QString path = timelineViewStatePath();
     if (projectID_.isEmpty() || path.isEmpty()) {

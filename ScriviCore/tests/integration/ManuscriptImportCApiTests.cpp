@@ -62,7 +62,7 @@ struct ImportFixture {
     }
     ~ImportFixture() {
         for (const auto& e : fs::directory_iterator(base)) {
-            if (e.path().extension() == ".scrivi") scrivi_free(scrivi_close_project(e.path().c_str()));
+            if (e.path().extension() == ".inkwyn") scrivi_free(scrivi_close_project(e.path().c_str()));
         }
         std::error_code ec;
         fs::remove_all(base, ec);
@@ -254,7 +254,7 @@ TEST_CASE("Manuscript import: refused — not text, too large, no file, a bad fo
 
 TEST_CASE("Manuscript import: into a project at the caret, and cut back as one step (Q2)", "[manuscript-import][capi]") {
     ImportFixture f;
-    const fs::path root = f.base / "Host.scrivi";
+    const fs::path root = f.base / "Host.inkwyn";
     const JsonDoc created = ok(scrivi_create_project(root.c_str(), f.appSupport.c_str(), "Host", "host", kId, kPersona, "T"));
     const JsonDoc first = created.getSubDoc("firstScene");
     const std::string pid = created.getString("projectID"), scene = first.getString("sceneID");
@@ -276,7 +276,7 @@ TEST_CASE("Manuscript import: into a project at the caret, and cut back as one s
 TEST_CASE("Manuscript import: into a project whose chapters have pre-T-0358 lowercase keys", "[manuscript-import][capi]") {
     // SP-218 live pass: "could not find a free chapter order key" — its chapter folders were chapter-k and chapter-s.
     ImportFixture f;
-    const fs::path root = f.base / "Old.scrivi";
+    const fs::path root = f.base / "Old.inkwyn";
     const JsonDoc created = ok(scrivi_create_project(root.c_str(), f.appSupport.c_str(), "Old", "old", kId, kPersona, "T"));
     const JsonDoc first = created.getSubDoc("firstScene");
     const std::string pid = created.getString("projectID"), scene = first.getString("sceneID");
@@ -312,7 +312,7 @@ TEST_CASE("Manuscript import: into a project whose chapters have pre-T-0358 lowe
 
 TEST_CASE("Manuscript import: a new project from a file — its title, chapters and subtitle", "[manuscript-import][capi]") {
     ImportFixture f;
-    const fs::path root = f.base / "Novel.scrivi";
+    const fs::path root = f.base / "Novel.inkwyn";
     const JsonDoc r = f.newProject(f.file("My Novel.md", "# Opening\n\nFirst.\n\n* * *\n\nSecond.\n\n# Next\n\nThird.\n"), root);
     CHECK(r.getString("projectRoot") == root.string());
     CHECK_FALSE(r.getString("projectID").empty());
@@ -323,7 +323,7 @@ TEST_CASE("Manuscript import: a new project from a file — its title, chapters 
     ok(scrivi_open_project(root.c_str(), f.appSupport.c_str(), kId));   // it opens as any project does
 
     // A plain-text file: one untitled chapter, the project's own.
-    const fs::path notes = f.base / "Notes.scrivi";
+    const fs::path notes = f.base / "Notes.inkwyn";
     f.newProject(f.file("Notes.txt", "Just *this*.\n"), notes);
     CHECK(ImportFixture::markdownOf(notes) == "# Notes\n\nby T\n\n# Chapter 1\n\nJust \\*this\\*\\.\n");
 
@@ -341,7 +341,7 @@ const char* const kAuthors = R"({"authors":[{"displayName":"Ann Author"}]})";
 
 // The round trips' source: two chapters, emphasis, a line break, a heading, both lists, a literal star, a subtitle, an author.
 fs::path sourceBook(ImportFixture& f) {
-    const fs::path root = f.base / "Source.scrivi";
+    const fs::path root = f.base / "Source.inkwyn";
     const JsonDoc created = ok(scrivi_create_project(root.c_str(), f.appSupport.c_str(), "The Book", "book", kId, kPersona, "T"));
     const std::string pid = created.getString("projectID");
     const JsonDoc firstScene = created.getSubDoc("firstScene");
@@ -376,7 +376,7 @@ TEST_CASE("Manuscript import: export, import, export — the same bytes (AC3)", 
     const char* authors = kAuthors;
 
     const std::string exported = ImportFixture::markdownOf(root);
-    const fs::path copy = f.base / "Copy.scrivi";
+    const fs::path copy = f.base / "Copy.inkwyn";
     const JsonDoc r = f.newProject(f.file("The Book.md", exported), copy);
     CHECK(r.getString("title") == "The Book");
     CHECK(reportKinds(r) == "byline");
@@ -396,7 +396,7 @@ TEST_CASE("Manuscript import: a 1,000-scene book as a new project (AC1, timed)",
     const auto t0 = std::chrono::steady_clock::now();
     const JsonDoc read = ok(scrivi_import_manuscript(source.c_str(), ""));
     const auto t1 = std::chrono::steady_clock::now();
-    const JsonDoc made = f.newProject(source, f.base / "Big.scrivi");
+    const JsonDoc made = f.newProject(source, f.base / "Big.inkwyn");
     const auto t2 = std::chrono::steady_clock::now();
     using ms = std::chrono::duration<double, std::milli>;
     WARN("read " << ms(t1 - t0).count() << " ms; new project " << ms(t2 - t1).count() << " ms; range "
@@ -404,7 +404,7 @@ TEST_CASE("Manuscript import: a 1,000-scene book as a new project (AC1, timed)",
     CHECK(made.getInt64("sceneCount") == 1000);
 
     // Into a project at the caret, and its undo (the host's structured paste, then the cut of what it inserted).
-    const fs::path host = f.base / "Host.scrivi";
+    const fs::path host = f.base / "Host.inkwyn";
     const JsonDoc created = ok(scrivi_create_project(host.c_str(), f.appSupport.c_str(), "Host", "host", kId, kPersona, "T"));
     const std::string scene = created.getSubDoc("firstScene").getString("sceneID");
     const auto t3 = std::chrono::steady_clock::now();
@@ -642,7 +642,7 @@ TEST_CASE("Manuscript import (.docx): Scrivi's own .docx export imports back to 
     const fs::path root = sourceBook(f);
     const fs::path file = f.base / "The Book.docx";
     ok(scrivi_export_manuscript(root.c_str(), (R"({"format":"docx","destPath":")" + file.string() + "\"}").c_str()));
-    const fs::path copy = f.base / "Copy.scrivi";
+    const fs::path copy = f.base / "Copy.inkwyn";
     const JsonDoc r = f.newProject(file, copy);
     CHECK(r.getString("title") == "The Book");
     CHECK(reportKinds(r) == "byline");
@@ -1040,7 +1040,7 @@ std::map<std::string, std::string> sidecars(const fs::path& root) {
 TEST_CASE("Manuscript import (Scrivener): a new project — titles, chapters and each scene's seed (Q4)",
           "[manuscript-import][scrivener][capi]") {
     ImportFixture f;
-    const fs::path root = f.base / "Voyage.scrivi";
+    const fs::path root = f.base / "Voyage.inkwyn";
     const JsonDoc r = f.newProject(fixture("sp220-every-case.scriv"), root);
     CHECK(r.getString("title") == "sp220-every-case");   // the folder's name
     const std::string md = ImportFixture::markdownOf(root);
@@ -1058,7 +1058,7 @@ TEST_CASE("Manuscript import (Scrivener): a new project — titles, chapters and
 TEST_CASE("Manuscript import (Scrivener): into a project at the caret — seeds kept, cut back as one step",
           "[manuscript-import][scrivener][capi]") {
     ImportFixture f;
-    const fs::path root = f.base / "Host.scrivi";
+    const fs::path root = f.base / "Host.inkwyn";
     const JsonDoc created = ok(scrivi_create_project(root.c_str(), f.appSupport.c_str(), "Host", "host", kId, kPersona, "T"));
     const JsonDoc first = created.getSubDoc("firstScene");
     const std::string pid = created.getString("projectID"), scene = first.getString("sceneID");

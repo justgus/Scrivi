@@ -17,7 +17,7 @@
 //      scrivi.externalTimeline.v1 whose events include the surviving historical event.
 //   6. Remove: removeImportedTimeline → list count back to 0.
 //
-//   argv[1] = project dir to create (e.g. <tmp>/timeline-events.scrivi)
+//   argv[1] = project dir to create (e.g. <tmp>/timeline-events.inkwyn)
 //   $XDG_DATA_HOME drives appSupportRoot; Qt offscreen platform (set by the script).
 //
 // Exit 0 on success; non-zero with a FAIL line on any mismatch.

@@ -21,7 +21,7 @@ WORKDIR="$(mktemp -d)"
 trap 'rm -rf "$WORKDIR"' EXIT
 export XDG_DATA_HOME="$WORKDIR/xdg"
 export QT_QPA_PLATFORM=offscreen
-PROJECT_DIR="$WORKDIR/projects/timeline-events.scrivi"
+PROJECT_DIR="$WORKDIR/projects/timeline-events.inkwyn"
 
 echo "== timeline events: historical CRUD + import/hide/show/offset/export/remove =="
 "$BIN" "$PROJECT_DIR"

@@ -34,7 +34,7 @@ struct Fixture {
     Fixture() {
         static std::atomic<int> counter{0};
         const std::string stem = "scrivi-expanded-" + std::to_string(::getpid()) + "-" + std::to_string(counter.fetch_add(1));
-        projectDir    = fs::temp_directory_path() / (stem + ".scrivi");
+        projectDir    = fs::temp_directory_path() / (stem + ".inkwyn");
         appSupportDir = fs::temp_directory_path() / (stem + "-appsupport");
         fs::create_directories(projectDir);
         fs::create_directories(appSupportDir);

@@ -19,7 +19,7 @@
 #
 # Example (the rig's real project on the CIFS share):
 #   platforms/linux/tools/sp144-open-cost-probe.sh \
-#       /mnt/scrivi-worlds/the-stairs-of-tintagael.scrivi
+#       /mnt/scrivi-worlds/the-stairs-of-tintagael.inkwyn
 set -euo pipefail
 
 PROJECT="${1:?usage: sp144-open-cost-probe.sh <projectRoot> [appSupportRoot]}"

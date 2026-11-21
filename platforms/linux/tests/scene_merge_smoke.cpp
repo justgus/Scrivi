@@ -12,7 +12,7 @@
 //            RELOCATES (nothing lost — the I-0083 fix), the emptied chapter is removed, no text changes; the inverse
 //            relabel re-creates the chapter. Reopen: as described.
 //
-//   argv[1] = project dir to create (e.g. <tmp>/scene-merge.scrivi)
+//   argv[1] = project dir to create (e.g. <tmp>/scene-merge.inkwyn)
 //   $XDG_DATA_HOME drives appSupportRoot; Qt offscreen platform (set by the script).
 //
 // Exit 0 on success; non-zero with a FAIL line on any mismatch.

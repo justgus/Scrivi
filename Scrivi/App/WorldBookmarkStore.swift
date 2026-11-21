@@ -1,10 +1,10 @@
 import Foundation
 import os
 
-// Maps a worldID → a security-scoped bookmark of its .scrivworld package, so a
+// Maps a worldID → a security-scoped bookmark of its .inkwynworld package, so a
 // world stays readable across launches under the App Sandbox (SP-104).
 //
-// ⚠️ WHY THIS EXISTS. A world is DESIGNED to live outside the .scrivi package —
+// ⚠️ WHY THIS EXISTS. A world is DESIGNED to live outside the .inkwyn package —
 // it is a movable, shareable package that several projects may bind. The project
 // bookmark therefore never covers it. Without a bookmark of its own, the sandbox
 // grant a world got from its NSSavePanel/NSOpenPanel died with the process, and

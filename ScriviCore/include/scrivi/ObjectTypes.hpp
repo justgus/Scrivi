@@ -18,8 +18,8 @@ namespace scrivi {
 //
 // Kinds are split by OWNERSHIP (Worldbuilding Object Model v0.2 §3):
 //
-//   PROJECT-scoped — live under objects/<subdir>/ in the .scrivi package.
-//   WORLD-scoped   — live inside a `.scrivworld` package (SP-097), reached
+//   PROJECT-scoped — live under objects/<subdir>/ in the .inkwyn package.
+//   WORLD-scoped   — live inside a `.inkwynworld` package (SP-097), reached
 //                    through the project's binding. Creatable since SP-098
 //                    widened the C ABI with `worldID` (T-0405, I-0113); before
 //                    that they were storable but unreachable at the boundary.
@@ -33,7 +33,7 @@ namespace scrivi {
 
 enum class ObjectKind : std::uint8_t {
     // ⚠️ World-scoped as of SP-103 (2026-08-14) — these were project-scoped
-    // until the scope ruling in Doc 1 §3.0. They now live in the .scrivworld
+    // until the scope ruling in Doc 1 §3.0. They now live in the .inkwynworld
     // package. See objectKindIsWorldScoped.
     character,
     location,

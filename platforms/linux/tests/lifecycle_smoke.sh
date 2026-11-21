@@ -18,13 +18,13 @@ BIN="${1:?usage: lifecycle_smoke.sh <harness-binary>}"
 WORKDIR="$(mktemp -d)"
 trap 'rm -rf "$WORKDIR"' EXIT
 export XDG_DATA_HOME="$WORKDIR/xdg"
-PROJECT_DIR="$WORKDIR/projects/lifecycle-project.scrivi"
+PROJECT_DIR="$WORKDIR/projects/lifecycle-project.inkwyn"
 
 echo "== pass 1 (create → open → close → reopen-recent) =="
 PROJECT_ID="$("$BIN" 1 "$PROJECT_DIR")"
 echo "projectID (pass 1): $PROJECT_ID"
 
-# The .scrivi package must exist on disk.
+# The .inkwyn package must exist on disk.
 if [ ! -f "$PROJECT_DIR/project.json" ]; then
     echo "FAIL: $PROJECT_DIR/project.json was not created"
     exit 1

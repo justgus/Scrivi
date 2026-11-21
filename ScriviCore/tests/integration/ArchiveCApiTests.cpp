@@ -99,8 +99,8 @@ struct ArchiveFixture {
         base = fs::temp_directory_path() / ("scrivi-archive-" + std::to_string(::getpid()) + "-" +
                                             std::to_string(counter.fetch_add(1)));
         fs::remove_all(base);
-        root = base / "src" / (name + ".scrivi");
-        archivePath = base / (name + ".scrivarchive");
+        root = base / "src" / (name + ".inkwyn");
+        archivePath = base / (name + ".inkwynarchive");
         appSupport = base / "support";
         worlds = base / "worlds";
         dest = base / "dest";
@@ -134,7 +134,7 @@ struct ArchiveFixture {
     }
 
     std::string makeWorld(const std::string& name) {
-        return ok(scrivi_create_world(r(), (worlds / (name + ".scrivworld")).c_str(), name.c_str(), "The First Age"))
+        return ok(scrivi_create_world(r(), (worlds / (name + ".inkwynworld")).c_str(), name.c_str(), "The First Age"))
             .getString("worldID");
     }
 
@@ -166,7 +166,7 @@ TEST_CASE("Archive: the round trip is byte-identical, keeps the ID, and the hist
     auto imported = ok(f.importRaw());
     REQUIRE(imported.getBool("imported"));
     const fs::path copy = imported.getString("projectRoot");
-    CHECK(copy == f.dest / "Novel.scrivi");
+    CHECK(copy == f.dest / "Novel.inkwyn");
     CHECK(imported.getString("projectID") == f.projectID);
 
     CHECK(tree(copy) == before);                               // every content file, byte for byte; no junk
@@ -192,7 +192,7 @@ TEST_CASE("Archive: a project name outside ASCII survives the round trip", "[arc
     f.exportArchive(false);
     auto imported = ok(f.importRaw());
     REQUIRE(imported.getBool("imported"));
-    CHECK(fs::path(imported.getString("projectRoot")) == f.dest / "Les Misérables — 第一部.scrivi");
+    CHECK(fs::path(imported.getString("projectRoot")) == f.dest / "Les Misérables — 第一部.inkwyn");
     CHECK(tree(imported.getString("projectRoot")) == before);
 }
 
@@ -248,21 +248,21 @@ TEST_CASE("Archive: a project name already in the folder is Cancel / Rename / Re
     ArchiveFixture f;
     f.exportArchive(false);
     ok(f.importRaw());
-    const fs::path existing = f.dest / "Novel.scrivi";
+    const fs::path existing = f.dest / "Novel.inkwyn";
     writeFile(existing / "written-after-import.md", "the writer's later work");
 
     SECTION("asked: nothing is extracted, the conflict is named") {
         auto r = ok(f.importRaw());
         CHECK_FALSE(r.getBool("imported"));
         CHECK(r.getSubDoc("conflict").getString("kind") == "project");
-        CHECK(r.getSubDoc("conflict").getString("folderName") == "Novel.scrivi");
+        CHECK(r.getSubDoc("conflict").getString("folderName") == "Novel.inkwyn");
         CHECK(entriesIn(f.dest) == 1);
         CHECK(fs::exists(existing / "written-after-import.md"));
     }
     SECTION("Rename: unpacked under the new name, the same project ID") {
         auto r = ok(f.importRaw(options("Novel-2")));
         REQUIRE(r.getBool("imported"));
-        CHECK(fs::path(r.getString("projectRoot")) == f.dest / "Novel-2.scrivi");
+        CHECK(fs::path(r.getString("projectRoot")) == f.dest / "Novel-2.inkwyn");
         CHECK(r.getString("projectID") == f.projectID);
         CHECK(fs::exists(existing / "written-after-import.md"));
     }
@@ -292,7 +292,7 @@ TEST_CASE("Archive: a project name already in the folder is Cancel / Rename / Re
 TEST_CASE("Archive: worlds travel, and a world already here is bound, not copied (AC5, Q8)", "[archive][capi]") {
     ArchiveFixture f;
     const auto worldID = f.makeWorld("Eskandar");
-    const fs::path original = f.worlds / "Eskandar.scrivworld";
+    const fs::path original = f.worlds / "Eskandar.inkwynworld";
 
     SECTION("without worlds: none is carried") {
         auto exported = f.exportArchive(false);
@@ -301,30 +301,30 @@ TEST_CASE("Archive: worlds travel, and a world already here is bound, not copied
     SECTION("the world is still where the binding saw it: bound there, nothing unpacked") {
         auto exported = f.exportArchive(true);
         REQUIRE(exported.arraySize("worlds") == 1);
-        CHECK(exported.arrayItem("worlds", 0).getString("folder") == "Eskandar.scrivworld");
+        CHECK(exported.arrayItem("worlds", 0).getString("folder") == "Eskandar.inkwynworld");
         auto r = ok(f.importRaw());
         REQUIRE(r.arraySize("worlds") == 1);
         CHECK_FALSE(r.arrayItem("worlds", 0).getBool("unpacked"));
         CHECK(fs::path(r.arrayItem("worlds", 0).getString("packagePath")) == original);
-        CHECK_FALSE(fs::exists(f.dest / "Eskandar.scrivworld"));
+        CHECK_FALSE(fs::exists(f.dest / "Eskandar.inkwynworld"));
     }
     SECTION("the world is not on this machine: unpacked beside the project and bound") {
         f.exportArchive(true);
-        fs::rename(original, f.base / "elsewhere.scrivworld");   // gone from where the binding saw it
+        fs::rename(original, f.base / "elsewhere.inkwynworld");   // gone from where the binding saw it
         auto r = ok(f.importRaw());
         REQUIRE(r.arraySize("worlds") == 1);
         CHECK(r.arrayItem("worlds", 0).getBool("unpacked"));
         const auto copy = r.getString("projectRoot");
         auto status = ok(scrivi_get_world_status(copy.c_str(), worldID.c_str()));
         CHECK(status.getString("status") == "available");
-        CHECK(fs::canonical(status.getString("packagePath")) == fs::canonical(f.dest / "Eskandar.scrivworld"));
-        CHECK_FALSE(fs::exists(f.dest / "Eskandar.scrivworld" / ".lock"));
+        CHECK(fs::canonical(status.getString("packagePath")) == fs::canonical(f.dest / "Eskandar.inkwynworld"));
+        CHECK_FALSE(fs::exists(f.dest / "Eskandar.inkwynworld" / ".lock"));
     }
     SECTION("a DIFFERENT world holds the name: asked (no Replace), then Rename") {
         f.exportArchive(true);
-        fs::rename(original, f.base / "elsewhere.scrivworld");
+        fs::rename(original, f.base / "elsewhere.inkwynworld");
         ArchiveFixture other;   // a world of the same name, another world ID, in the destination folder
-        ok(scrivi_create_world(other.r(), (f.dest / "Eskandar.scrivworld").c_str(), "Eskandar", "Another Age"));
+        ok(scrivi_create_world(other.r(), (f.dest / "Eskandar.inkwynworld").c_str(), "Eskandar", "Another Age"));
 
         auto asked = ok(f.importRaw());
         CHECK_FALSE(asked.getBool("imported"));
@@ -335,7 +335,7 @@ TEST_CASE("Archive: worlds travel, and a world already here is bound, not copied
         auto r = ok(f.importRaw(options("", false, worldID, "Eskandar (Novel)")));
         REQUIRE(r.getBool("imported"));
         CHECK(fs::path(r.arrayItem("worlds", 0).getString("packagePath")) ==
-              f.dest / "Eskandar (Novel).scrivworld");
+              f.dest / "Eskandar (Novel).inkwynworld");
         auto status = ok(scrivi_get_world_status(r.getString("projectRoot").c_str(), worldID.c_str()));
         CHECK(status.getString("status") == "available");
     }
@@ -350,12 +350,12 @@ TEST_CASE("Archive: the Mac's trailing slash, and a removed world's leftover fol
     const auto slashed = f.root.string() + "/";
     auto exported = ok(scrivi_export_archive(slashed.c_str(), f.archive().c_str(), 1));
     REQUIRE(exported.arraySize("worlds") == 1);
-    CHECK(exported.arrayItem("worlds", 0).getString("folder") == "Eskandar.scrivworld");
+    CHECK(exported.arrayItem("worlds", 0).getString("folder") == "Eskandar.inkwynworld");
     CHECK(exported.arraySize("skippedWorlds") == 0);
 
     auto imported = ok(f.importRaw());
     REQUIRE(imported.getBool("imported"));
-    CHECK(fs::path(imported.getString("projectRoot")) == f.dest / "Novel.scrivi");
+    CHECK(fs::path(imported.getString("projectRoot")) == f.dest / "Novel.inkwyn");
 }
 
 TEST_CASE("Archive: every rejection leaves nothing behind (AC6)", "[archive][capi]") {
@@ -368,7 +368,7 @@ TEST_CASE("Archive: every rejection leaves nothing behind (AC6)", "[archive][cap
     SECTION("a zip with no table of contents") {
         mz_zip_archive z{};
         REQUIRE(mz_zip_writer_init_file(&z, f.archive().c_str(), 0));
-        REQUIRE(mz_zip_writer_add_mem(&z, "Novel.scrivi/project.json", "{}", 2, 0));
+        REQUIRE(mz_zip_writer_add_mem(&z, "Novel.inkwyn/project.json", "{}", 2, 0));
         REQUIRE(mz_zip_writer_finalize_archive(&z));
         mz_zip_writer_end(&z);
         CHECK(errorOf(f.importRaw()).getString("detail") == "notAnArchive");
@@ -377,13 +377,13 @@ TEST_CASE("Archive: every rejection leaves nothing behind (AC6)", "[archive][cap
         f.exportArchive(false);
         // Rewrite the archive with one hostile entry added.
         mz_zip_archive in{}, out{};
-        const auto hostile = (f.base / "hostile.scrivarchive").string();
+        const auto hostile = (f.base / "hostile.inkwynarchive").string();
         REQUIRE(mz_zip_reader_init_file(&in, f.archive().c_str(), 0));
         REQUIRE(mz_zip_writer_init_file_v2(&out, hostile.c_str(), 0, MZ_ZIP_FLAG_WRITE_ZIP64));
         for (mz_uint i = 0; i < mz_zip_reader_get_num_files(&in); ++i) {
             REQUIRE(mz_zip_writer_add_from_zip_reader(&out, &in, i));
         }
-        REQUIRE(mz_zip_writer_add_mem(&out, "Novel.scrivi/../../escaped.txt", "x", 1, 0));
+        REQUIRE(mz_zip_writer_add_mem(&out, "Novel.inkwyn/../../escaped.txt", "x", 1, 0));
         REQUIRE(mz_zip_writer_finalize_archive(&out));
         mz_zip_writer_end(&out);
         mz_zip_reader_end(&in);
@@ -401,12 +401,12 @@ TEST_CASE("Archive: every rejection leaves nothing behind (AC6)", "[archive][cap
 TEST_CASE("Archive: a failed export leaves no file (AC2)", "[archive][capi]") {
     ArchiveFixture f;
     SECTION("the destination folder does not exist") {
-        const auto target = f.base / "no-such-folder" / "Novel.scrivarchive";
+        const auto target = f.base / "no-such-folder" / "Novel.inkwynarchive";
         errorOf(scrivi_export_archive(f.r(), target.c_str(), 0));
         CHECK_FALSE(fs::exists(target.parent_path()));
     }
     SECTION("the destination is inside the project") {
-        const auto target = f.root / "Novel.scrivarchive";
+        const auto target = f.root / "Novel.inkwynarchive";
         errorOf(scrivi_export_archive(f.r(), target.c_str(), 0));
         CHECK_FALSE(fs::exists(target));
     }

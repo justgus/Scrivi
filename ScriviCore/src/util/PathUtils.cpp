@@ -91,7 +91,7 @@ bool isIgnorableFilesystemArtifact(std::string_view filename) {
     if (filename.starts_with("._")) { return true; }
 
     // Per-directory metadata written by desktop shells. None is project content;
-    // all of them appear inside real `.scrivi` packages on shared volumes.
+    // all of them appear inside real `.inkwyn` packages on shared volumes.
     //
     // ⚠️ Compared case-INSENSITIVELY for the Windows-shell names: FAT and SMB
     // volumes are routinely case-insensitive, and `THUMBS.DB` is the same file as

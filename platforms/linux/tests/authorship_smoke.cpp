@@ -118,7 +118,7 @@ int main(int argc, char** argv)
     bridge.putPenNames(appSupport, {QStringLiteral("A"), QStringLiteral("A")}, QString());
     check(bridge.lastCallFailed(), QStringLiteral("§1 a repeated pen name is refused"));
 
-    const QString named = scratch + QStringLiteral("/named.scrivi");
+    const QString named = scratch + QStringLiteral("/named.inkwyn");
     const QVariantMap createdNamed = bridge.createProject(named, appSupport, QStringLiteral("Named"), QStringLiteral("named"),
                                                           QStringLiteral("Jane Doe"));
     const QVariantMap openedNamed = bridge.openProject(named, appSupport);
@@ -131,7 +131,7 @@ int main(int argc, char** argv)
     bridge.closeProject(named);
 
     // ── §2 Who wrote…? ─────────────────────────────────────────────────────────────────────────────────────────────────
-    const QString old = scratch + QStringLiteral("/old.scrivi");
+    const QString old = scratch + QStringLiteral("/old.inkwyn");
     const QString oldID = bridge.createProject(old, appSupport, QStringLiteral("Old"), QStringLiteral("old"))
                               .value(QStringLiteral("projectID")).toString();   // credited to "Scrivi", as before SP-211
     const QVariantMap before = bridge.getAuthors(old).value(QStringLiteral("authors")).toList().value(0).toMap();
@@ -243,7 +243,7 @@ int main(int argc, char** argv)
     // Another machine: its identity is not this one. ⚠️ On Linux the identity is not kept in the app-support folder (as on
     // the Mac, where the keychain holds it), so a second folder is the SAME identity — the project's member file is given
     // another device's identity instead, exactly as a project made elsewhere arrives.
-    const QString shared = scratch + QStringLiteral("/shared.scrivi");
+    const QString shared = scratch + QStringLiteral("/shared.inkwyn");
     const QString sharedID = bridge.createProject(shared, appSupport, QStringLiteral("Shared"), QStringLiteral("shared"),
                                                   QStringLiteral("Sam Roe"))
                                  .value(QStringLiteral("projectID")).toString();

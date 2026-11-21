@@ -8,7 +8,7 @@ struct LandingView: View {
     @State private var showErrorAlert = false
     #if !os(macOS)
     @State private var showOpenImporter = false
-    // The .scrivi package UTI (declared in Info.plist), with a folder/package fallback.
+    // The .inkwyn package UTI (declared in Info.plist), with a folder/package fallback.
     private var scriviProjectType: UTType {
         UTType("com.caposoft.scrivi.project") ?? .package
     }
@@ -39,7 +39,7 @@ struct LandingView: View {
 
     var body: some View {
         VStack(spacing: 24) {
-            Text("Scrivi")
+            Text("Inkwyn")
                 .font(.largeTitle)
                 .fontWeight(.bold)
 
@@ -110,7 +110,7 @@ struct LandingView: View {
                 .environment(env)
         }
         #if !os(macOS)
-        // iOS/iPadOS/visionOS: pick the .scrivi package via the document browser.
+        // iOS/iPadOS/visionOS: pick the .inkwyn package via the document browser.
         .fileImporter(
             isPresented: $showOpenImporter,
             allowedContentTypes: [scriviProjectType],

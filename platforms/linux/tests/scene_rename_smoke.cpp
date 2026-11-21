@@ -10,7 +10,7 @@
 //      chapterTitle AND rewrites the live in-document heading in place via
 //      reflowBoundaryAt (offset map stays well-formed, later offsets shift).
 //
-//   argv[1] = project dir to create (e.g. <tmp>/scene-rename.scrivi)
+//   argv[1] = project dir to create (e.g. <tmp>/scene-rename.inkwyn)
 //   $XDG_DATA_HOME drives appSupportRoot; Qt offscreen platform (set by the script).
 //
 // Exit 0 on success; non-zero with a FAIL line on any mismatch.

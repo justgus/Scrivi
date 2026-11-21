@@ -13,4 +13,4 @@ export XDG_DATA_HOME="$WORKDIR/xdg"
 export QT_QPA_PLATFORM=offscreen
 
 echo "== range endpoints through ScriviBridge =="
-"$BIN" "$WORKDIR/projects/range.scrivi"
+"$BIN" "$WORKDIR/projects/range.inkwyn"

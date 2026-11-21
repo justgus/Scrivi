@@ -908,17 +908,17 @@ QString SceneInspector::worldDisplayName(const QString& worldID)
     // WITHOUT the volume: `lastKnownPackagePath` is where resolution LOOKED,
     // carried regardless of status (T-0419/[I-0137]) and cached here on the last
     // healthy read. ⚠️ It is the name the WRITER chose for the package, so
-    // "Eskandar.scrivworld" identifies the world to the person reading the
+    // "Eskandar.inkwynworld" identifies the world to the person reading the
     // message in a way a UUID never can.
     const QString pkg = worldPaths_.value(worldID);
     if (!pkg.isEmpty()) {
         // ⚠️ The FOLDER NAME, not the whole path: the status line is one line in
         // a narrow panel, and a six-segment absolute path would swamp the
-        // sentence it is meant to clarify. Suffix stripped -- ".scrivworld" is
+        // sentence it is meant to clarify. Suffix stripped -- ".inkwynworld" is
         // machinery, and the writer named the thing before it.
         QString leaf = QFileInfo(pkg).fileName();
-        if (leaf.endsWith(QStringLiteral(".scrivworld"), Qt::CaseInsensitive)) {
-            leaf.chop(QStringLiteral(".scrivworld").size());
+        if (leaf.endsWith(QStringLiteral(".inkwynworld"), Qt::CaseInsensitive)) {
+            leaf.chop(QStringLiteral(".inkwynworld").size());
         }
         if (!leaf.isEmpty()) { return leaf; }
     }

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # package_folder_smoke.sh — EP-035 / SP-127 (I-0185).
 #
-# ⚠️ `.scrivi` and `.scrivworld` are DIRECTORIES, so an ordinary directory picker
+# ⚠️ `.inkwyn` and `.inkwynworld` are DIRECTORIES, so an ordinary directory picker
 # walks INTO them: the writer double-clicks the project she wants and ends up
 # looking at `manuscript/` and `objects/`. It still worked — which is why nothing
 # caught it — but it lands on the app's two most common actions.

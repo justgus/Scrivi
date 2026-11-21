@@ -95,7 +95,7 @@ int main(int argc, char* argv[])
     const QString projectPath = QString::fromUtf8(argv[1]);
     const QString worldPath   = argc > 2 && *argv[2]
         ? QString::fromUtf8(argv[2])
-        : projectPath + QStringLiteral(".worlds/Dumas-France.scrivworld");
+        : projectPath + QStringLiteral(".worlds/Dumas-France.inkwynworld");
     const int scale = argc > 3 ? qMax(1, QString::fromUtf8(argv[3]).toInt()) : 1;
 
     // ⚠️ REFUSES to touch an existing project. This builds throwaway data and

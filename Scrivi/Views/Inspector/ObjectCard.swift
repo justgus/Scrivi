@@ -31,7 +31,7 @@ struct ObjectCardKind: Sendable, Hashable {
     let typeID: String
     let title: String
     let systemImage: String
-    /// True for kinds stored inside a `.scrivworld` package, which are therefore
+    /// True for kinds stored inside a `.inkwynworld` package, which are therefore
     /// subject to pending presentation when their world is away (§7.2).
     ///
     /// ⚠️ **ASKED OF SCRIVICORE, never written down here** (SP-116 T-0429, D5).

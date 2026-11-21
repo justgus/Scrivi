@@ -65,11 +65,11 @@ const char* scrivi_close_project(const char* projectRootPath);
 
 /* ---- Project archive (EP-054 S1 — SP-205) ---------------------------------
  *
- * A `.scrivarchive` is a zip of ONE project and, optionally, the worlds it binds. It is never a project: export
+ * A `.inkwynarchive` is a zip of ONE project and, optionally, the worlds it binds. It is never a project: export
  * writes it, import unpacks it, and the host then opens the unpacked project the ordinary way.
  *
  * scrivi_export_archive: waits for the project's queued writes, then writes `archivePath` (the host chooses it,
- * normally "<project name>.scrivarchive", and has already asked about overwriting). Left out: `.lock` files,
+ * normally "<project name>.inkwynarchive", and has already asked about overwriting). Left out: `.lock` files,
  * `.cache/`, `indexes/`, OS noise, editor temporaries (package spec §17). Kept: everything else, including
  * `history/` and `.git/`. includeWorlds != 0 carries each bound world that is available; one that is not is listed
  * in skippedWorlds with its status, and the export goes on. A failed export leaves no file at `archivePath`.
@@ -79,7 +79,7 @@ const char* scrivi_close_project(const char* projectRootPath);
  * optionsJSON (may be empty): {projectFolderName?, replaceProject?, worldFolderNames?: {worldID: name}}
  *   A folder name already in destFolderPath extracts NOTHING and returns {imported:false, conflict:{kind:"project"|
  *   "world", folderName, worldID?}}. The host asks the writer and calls again: Rename → projectFolderName (or
- *   worldFolderNames[worldID]; ".scrivi" / ".scrivworld" is added if missing); Replace → replaceProject:true, which
+ *   worldFolderNames[worldID]; ".inkwyn" / ".inkwynworld" is added if missing); Replace → replaceProject:true, which
  *   deletes the old project only after the archive has unpacked and checked, and is refused (error.detail
  *   "projectOpen") while that project is open in this process. A world has no Replace.
  *   A world already here — the same world ID where the binding last saw it, or in destFolderPath — is bound to,
@@ -423,7 +423,7 @@ const char* scrivi_promote_object(const char* projectRootPath,
 /* ---------------------------------------------------------------------------
  * Worlds (EP-031 SP-097) — scrivi.world.v1 / scrivi.world-binding.v1
  *
- * A world is a SEPARATE `.scrivworld` package referenced by the project; only
+ * A world is a SEPARATE `.inkwynworld` package referenced by the project; only
  * binding.json is project-local. `worldID` is the identity — every stored path
  * is a hint, verified against world.json before it is trusted.
  *
@@ -814,12 +814,12 @@ const char* scrivi_load_scene_inspector(const char* projectRootPath, const char*
 /* ---- Searchable content (EP-017 SP-044 — Spotlight indexing facade) ----- */
 
 /*
- * Returns the indexable content of a .scrivi project as the
+ * Returns the indexable content of a .inkwyn project as the
  * scrivi.searchableContent.v1 envelope:
  *   {"ok":true,"result":{
  *     "schema":"scrivi.searchableContent.v1",
  *     "domainIdentifier":"project_...",      // delete-by-domain key (projectID)
- *     "projectRootPath":"/abs/path.scrivi",
+ *     "projectRootPath":"/abs/path.inkwyn",
  *     "items":[ {"uniqueIdentifier":"...","kind":"...", ...}, ... ]
  *   }}
  * One record per project / scene / world object. Read-only. Both the in-app

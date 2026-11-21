@@ -35,7 +35,7 @@ namespace {
 struct WorldFixture {
     fs::path projectDir;
     fs::path appSupportDir;
-    fs::path worldsRoot;          // where .scrivworld packages live, OUTSIDE the project
+    fs::path worldsRoot;          // where .inkwynworld packages live, OUTSIDE the project
 
     platform::LocalFileSystem        fileSystem;
     mocks::DeterministicUUIDProvider uuidProvider;
@@ -88,7 +88,7 @@ struct WorldFixture {
 
     [[nodiscard]] std::string root() const { return projectDir.string(); }
     [[nodiscard]] std::string pkg(const std::string& name) const {
-        return (worldsRoot / (name + ".scrivworld")).string();
+        return (worldsRoot / (name + ".inkwynworld")).string();
     }
 
     WorldRecord makeWorld(const std::string& name = "Midgard",
@@ -245,7 +245,7 @@ TEST_CASE("an unresolvable reference falls back to 'unavailable', never a guess"
     auto binding = b.value();
     binding.reference.lastKnownPath         = "";
     binding.reference.lastKnownAbsolutePath =
-        (fix.worldsRoot / "no-such-dir" / "Ghost.scrivworld").string();
+        (fix.worldsRoot / "no-such-dir" / "Ghost.inkwynworld").string();
     REQUIRE(store.saveBinding(fix.root(), binding).ok());
 
     auto res = store.resolve(fix.root(), w.worldID);
@@ -527,7 +527,7 @@ TEST_CASE("world-scoped kinds round-trip IN WORLD SCOPE (closes AC1's gated half
         // (Compared by suffix rather than prefix: resolve() canonicalizes, and
         // macOS canonicalizes /tmp to /private/tmp, so the absolute prefixes
         // legitimately differ.)
-        REQUIRE(created.value().path.find("Midgard.scrivworld") != std::string::npos);
+        REQUIRE(created.value().path.find("Midgard.inkwynworld") != std::string::npos);
         REQUIRE(created.value().path.find(objectKindSubdir(kind)) != std::string::npos);
         REQUIRE(created.value().path.find("/objects/") == std::string::npos);
 
@@ -561,7 +561,7 @@ TEST_CASE("`rule` is world-scoped and no longer lives under objects/",
     auto created = fix.core.createObject(req);
     REQUIRE(created.ok());
 
-    REQUIRE(created.value().path.find("Midgard.scrivworld") != std::string::npos);
+    REQUIRE(created.value().path.find("Midgard.inkwynworld") != std::string::npos);
     REQUIRE(created.value().path.find("/rules/")            != std::string::npos);
     REQUIRE(created.value().path.find("/objects/")          == std::string::npos);
 
@@ -1078,7 +1078,7 @@ TEST_CASE("⚠️ an UNREACHABLE world's lastKnownPackagePath is NORMALIZED (I-0
     auto b = store.loadBinding(fix.root(), w.worldID);
     REQUIRE(b.ok());
     auto binding = b.value();
-    binding.reference.lastKnownPath         = "../../../../../../mnt/gone/Eskandar.scrivworld";
+    binding.reference.lastKnownPath         = "../../../../../../mnt/gone/Eskandar.inkwynworld";
     binding.reference.lastKnownAbsolutePath = "";
     REQUIRE(store.saveBinding(fix.root(), binding).ok());
 
@@ -1091,7 +1091,7 @@ TEST_CASE("⚠️ an UNREACHABLE world's lastKnownPackagePath is NORMALIZED (I-0
     // must not empty it. T-0419 (I-0137) carries this value precisely so an
     // unreachable world can still be located by a human.
     REQUIRE_FALSE(res.lastKnownPackagePath.empty());
-    REQUIRE(res.lastKnownPackagePath.find("Eskandar.scrivworld") != std::string::npos);
+    REQUIRE(res.lastKnownPackagePath.find("Eskandar.inkwynworld") != std::string::npos);
 
     // ⚠️ The volume is ABSENT, so nothing was verified.
     REQUIRE(res.packagePath.empty());
@@ -1165,7 +1165,7 @@ TEST_CASE("⚠️ a world under an UNEXPECTED MOUNTED volume is NOT reported mis
     // is the [I-0181] defect: a confident claim that invites a writer to relink,
     // recreate, or delete an intact world.
     const AbsolutePath mountPoint = (fs::path(fix.root()) / "mnt-scrivi-worlds").string();
-    const AbsolutePath pkg        = (fs::path(mountPoint) / "Eskandar.scrivworld").string();
+    const AbsolutePath pkg        = (fs::path(mountPoint) / "Eskandar.inkwynworld").string();
 
     WorldStore setup{fix.services};
     auto b = setup.loadBinding(fix.root(), w.worldID);
@@ -1203,7 +1203,7 @@ TEST_CASE("⚠️ an ORDINARY deleted world still reports missing (T-0498 must n
     // MUST still report `missing`, or T-0498 would have traded one false status
     // for another. This runs against the REAL filesystem, no decorator.
     const AbsolutePath container = (fs::path(fix.root()) / "ordinary-folder").string();
-    const AbsolutePath pkg       = (fs::path(container) / "Gone.scrivworld").string();
+    const AbsolutePath pkg       = (fs::path(container) / "Gone.inkwynworld").string();
 
     WorldStore store{fix.services};
     auto b = store.loadBinding(fix.root(), w.worldID);

@@ -17,7 +17,7 @@ import AppKit
 ///
 /// ## ⚠️ A world-scoped object's image lives in the WORLD package
 ///
-/// D6: passing `worldID` puts the bytes inside `.scrivworld`, so the image
+/// D6: passing `worldID` puts the bytes inside `.inkwynworld`, so the image
 /// travels with the world and is present when that world is opened **from a
 /// different project** (AC3). ⚠️ **Passing `""` for a world-scoped object is
 /// I-0151's defect** — `kindDirFor` fails outright rather than defaulting.

@@ -163,7 +163,7 @@ qt_add_executable(scrivi_linux
     # the same reason as the wording above — `palette(mid)` was used as a text
     # colour in BOTH surfaces and was invisible (1.07:1) in the real dark theme.
     src/ThemeColours.hpp
-    # ⚠️ I-0185: a package-aware directory chooser. `.scrivi`/`.scrivworld` are
+    # ⚠️ I-0185: a package-aware directory chooser. `.inkwyn`/`.inkwynworld` are
     # DIRECTORIES, so an ordinary picker walks INTO them. Shared by the Worlds
     # dialog and the Open Project path — ⚠️ NOT by "choose where to create".
     src/PackageFolderDialog.hpp
@@ -2412,7 +2412,7 @@ target_link_libraries(scrivi_linux_theme_contrast_smoke
 target_include_directories(scrivi_linux_theme_contrast_smoke PRIVATE src)
 target_compile_features(scrivi_linux_theme_contrast_smoke PRIVATE cxx_std_23)
 
-# ⚠️ I-0185 — a package is a LEAF. `.scrivi`/`.scrivworld` are directories, so an
+# ⚠️ I-0185 — a package is a LEAF. `.inkwyn`/`.inkwynworld` are directories, so an
 # ordinary picker walks into them and the writer lands in the package's plumbing.
 # ⚠️ It still WORKED, which is why nothing caught it. package_folder_smoke.sh.
 qt_add_executable(scrivi_linux_package_folder_smoke

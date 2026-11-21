@@ -109,7 +109,7 @@ if ! printf '%s' "$VERSION_LINE" | grep -qF "$EXPECTED"; then
     exit 1
 fi
 echo
-echo "    Check the app reports:  ${EXPECTED}   (Help ▸ About Scrivi)"
+echo "    Check the app reports:  ${EXPECTED}   (Help ▸ About Inkwyn)"
 echo "    ⚠️  Anything else means you are running an older binary."
 
 # --- optional: tests --------------------------------------------------------

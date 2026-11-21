@@ -94,7 +94,7 @@ PenNamesPane::PenNamesPane(QWidget* parent) : QWidget(parent)
     addRow->addWidget(newName_);
     addRow->addWidget(add);
     layout->addLayout(addRow);
-    auto* hint = new QLabel(tr("The default (in bold) is offered for a new project, and when Scrivi asks who wrote a "
+    auto* hint = new QLabel(tr("The default (in bold) is offered for a new project, and when Inkwyn asks who wrote a "
                                "project."), this);
     hint->setWordWrap(true);
     hint->setEnabled(false);
@@ -443,7 +443,7 @@ void AuthorQuestionDialog::rebuild()
 
     if (prompt == QLatin1String("nameAuthor")) {
         heading->setText(tr("Who wrote “%1”?").arg(title_));
-        blurb->setText(tr("Scrivi needs the author’s name — it goes in the byline when you export."));
+        blurb->setText(tr("Inkwyn needs the author’s name — it goes in the byline when you export."));
         // [SP-210] Q6: one field per unnamed author, in byline order, the first offered the default pen name.
         QString first = defaultPenName(*bridge_);
         for (const QVariant& a : authors) {

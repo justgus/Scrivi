@@ -70,7 +70,7 @@ Result<AbsolutePath> ObjectStore::kindDirFor(const AbsolutePath& projectRoot,
         return Result<AbsolutePath>::success(kindDir(projectRoot, kind));
     }
 
-    // World-scoped: the files live in the .scrivworld package, never under
+    // World-scoped: the files live in the .inkwynworld package, never under
     // objects/. World Data Separation v0.1 §7 writes no migration code, so an
     // artifact must be created in world scope FROM THE START — putting one in
     // objects/ would strand it permanently.

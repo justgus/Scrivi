@@ -12,7 +12,7 @@
 // scenes, write a unique marker into each scene) so the smoke owns a known,
 // multi-scene project.
 //
-//   argv[1] = project dir to create (e.g. <tmp>/scene-load.scrivi)
+//   argv[1] = project dir to create (e.g. <tmp>/scene-load.inkwyn)
 //   $XDG_DATA_HOME drives appSupportRoot (see AppSupport).
 //
 // Exit 0 on success; non-zero with a FAIL line on any mismatch.

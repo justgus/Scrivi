@@ -128,7 +128,7 @@ public final class ScriviEngine: @unchecked Sendable {
 
     // MARK: — exportArchive / importArchive (EP-054 S2, SP-206)
 
-    /// Writes `<project>.scrivarchive` at `archivePath`: the project, and (`includeWorlds`) each bound world that is
+    /// Writes `<project>.inkwynarchive` at `archivePath`: the project, and (`includeWorlds`) each bound world that is
     /// available. The core waits for the project's queued writes first. ⚠️ Blocking — call it off the main actor.
     public func exportArchive(projectRootPath: String, archivePath: String, includeWorlds: Bool) throws -> ExportArchiveResult {
         let raw = projectRootPath.withCString { prp in
@@ -493,7 +493,7 @@ public final class ScriviEngine: @unchecked Sendable {
     /// Imports a file into the project's — or a world's — asset store.
     ///
     /// Pass a non-empty `worldID` for a world-scoped object's asset so the bytes
-    /// live in the `.scrivworld` package and **travel with the world** to any
+    /// live in the `.inkwynworld` package and **travel with the world** to any
     /// other project that binds it (SP-116 D6). Empty means this project, which
     /// is the pre-D6 behaviour and the default.
     ///

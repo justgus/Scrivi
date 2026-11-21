@@ -14,7 +14,7 @@ export XDG_DATA_HOME="$WORKDIR/xdg"
 export QT_QPA_PLATFORM=offscreen
 
 echo "== Replace / Replace All (the find bar, disk-verified, one undo step, only matched scenes written) =="
-OUT="$("$BIN" "$WORKDIR/projects/replace.scrivi")" || { echo "$OUT"; exit 1; }
+OUT="$("$BIN" "$WORKDIR/projects/replace.inkwyn")" || { echo "$OUT"; exit 1; }
 echo "$OUT"
 if ! echo "$OUT" | grep -qx 'replace-ok'; then
     echo "FAIL: harness did not report replace-ok"

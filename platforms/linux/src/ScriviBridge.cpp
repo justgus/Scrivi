@@ -1148,7 +1148,7 @@ QString ScriviBridge::chooseFolder(const QString& startDir)
 
 QString ScriviBridge::choosePackage(const QString& startDir)
 {
-    // ⚠️ I-0185: a `.scrivi` project is a DIRECTORY, so the ordinary picker walks
+    // ⚠️ I-0185: a `.inkwyn` project is a DIRECTORY, so the ordinary picker walks
     // INTO it and the writer finds herself looking at `manuscript/` and
     // `objects/` rather than at the project she just double-clicked. It still
     // worked — the dialog returns the directory it is viewing — but it makes her

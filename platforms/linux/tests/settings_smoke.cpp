@@ -286,11 +286,11 @@ int main(int argc, char** argv)
     ScriviBridge bridge;
     bridge.bootstrap(QStringLiteral("Scrivi"), appSupport);
     const QString heading = QStringLiteral("# Head line\n\nBody **bold** text.");
-    const Project A = makeProject(bridge, appSupport, scratch + QStringLiteral("/a.scrivi"), {heading, QStringLiteral("Bravo scene.")});
-    const Project B = makeProject(bridge, appSupport, scratch + QStringLiteral("/b.scrivi"), {QStringLiteral("Mac text.")},
+    const Project A = makeProject(bridge, appSupport, scratch + QStringLiteral("/a.inkwyn"), {heading, QStringLiteral("Bravo scene.")});
+    const Project B = makeProject(bridge, appSupport, scratch + QStringLiteral("/b.inkwyn"), {QStringLiteral("Mac text.")},
                                   QStringLiteral(R"({"subtitle":"From the Mac","showChapterTitles":true,"typeface":"Newsreader",)"
                                                  R"("textSize":18,"markupHints":false,"futureKey":{"nested":[1,2]}})"));
-    const Project C = makeProject(bridge, appSupport, scratch + QStringLiteral("/c.scrivi"), {QStringLiteral("Later text.")},
+    const Project C = makeProject(bridge, appSupport, scratch + QStringLiteral("/c.inkwyn"), {QStringLiteral("Later text.")},
                                   QStringLiteral(R"({"typeface":"Future Face"})"));
 
     AppEnvironment env(appSupport);
@@ -567,7 +567,7 @@ int main(int argc, char** argv)
                              QStringLiteral("&File/Import/Manuscript…"),   // SP-218: it makes a project
                              QStringLiteral("&File/Import/Scrivener Project…"),   // SP-220: so does this
                              QStringLiteral("&File/Import/Archive…"), QStringLiteral("&File/Quit"),
-                             QStringLiteral("&Edit/Settings…"), QStringLiteral("&Help/About Scrivi"),
+                             QStringLiteral("&Edit/Settings…"), QStringLiteral("&Help/About Inkwyn"),
                              QStringLiteral("&Help/Show Log Folder")};
         check(startLive == q3, QStringLiteral("§7 only New, Open, Import ▸ Manuscript…, Scrivener Project…, Archive…, Quit, Settings…, About, Show Log Folder are "
                                               "live on the start window (%1)").arg(startLive.join(QStringLiteral(", "))));

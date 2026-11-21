@@ -1,5 +1,7 @@
 # Active Tasks
 
+*Last Updated: 2026-11-20 (**T-0684 → active** with [SP-229]'s activation (user, 2026-11-20: *"Q1-Q7 as recommended.  I accept our translation.  we may begin."*); built the same day → 🟠 `Task-unverified.md`.)*
+
 *Last Updated: 2026-11-20 (**T-0689 → active** with [SP-227]'s activation (user, 2026-11-20: *"implement SP-227"*); built the same day → 🟠 `Task-unverified.md`.)*
 
 *Last Updated: 2026-11-19 (**T-0657 → 🟠** → `Task-unverified.md` ([SP-226] built; the live passes are the user's).)*

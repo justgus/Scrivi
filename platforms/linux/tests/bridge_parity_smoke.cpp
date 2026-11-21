@@ -377,7 +377,7 @@ int main(int argc, char* argv[])
         const QString dest = QDir(QFileInfo(projectPath).absolutePath()).filePath(QStringLiteral("archive-dest"));
         QDir().mkpath(out);
         QDir().mkpath(dest);
-        const QString archive = QDir(out).filePath(QStringLiteral("bridge-parity.scrivarchive"));
+        const QString archive = QDir(out).filePath(QStringLiteral("bridge-parity.inkwynarchive"));
         const QVariantMap exported = bridge.exportArchive(projectPath, archive, true);
         check(!bridge.lastCallFailed() && exported.value(QStringLiteral("files")).toInt() > 0 && QFile::exists(archive),
               "exportArchive: the archive is written");
@@ -395,9 +395,9 @@ int main(int argc, char* argv[])
               "importArchive: the same folder name again is a project conflict");
         const QVariantMap renamed =
             bridge.importArchive(archive, dest, {{QStringLiteral("projectFolderName"), QStringLiteral("Second Copy")}});
-        check(renamed.value(QStringLiteral("projectRoot")).toString().endsWith(QStringLiteral("Second Copy.scrivi")),
+        check(renamed.value(QStringLiteral("projectRoot")).toString().endsWith(QStringLiteral("Second Copy.inkwyn")),
               "importArchive: Rename imports under the new name");
-        const QVariantMap bad = bridge.importArchive(QDir(out).filePath(QStringLiteral("missing.scrivarchive")), dest, {});
+        const QVariantMap bad = bridge.importArchive(QDir(out).filePath(QStringLiteral("missing.inkwynarchive")), dest, {});
         check(bridge.lastCallFailed() && !bad.value(QStringLiteral("errorMessage")).toString().isEmpty(),
               "importArchive: a failure carries its message (and detail) to the flow");
 
@@ -434,7 +434,7 @@ int main(int argc, char* argv[])
         check(!bridge.lastCallFailed() && read.value(QStringLiteral("range")).toMap().value(QStringLiteral("scenes")).toList().size() == 3
                   && read.value(QStringLiteral("report")).toList().size() == 1,
               "importManuscript: the Range to paste and the notes come back");
-        const QString made = QDir(out).filePath(QStringLiteral("Imported.scrivi"));
+        const QString made = QDir(out).filePath(QStringLiteral("Imported.inkwyn"));
         const QVariantMap created = bridge.importManuscript(importFile, made, appSupport);
         check(!bridge.lastCallFailed() && created.value(QStringLiteral("projectRoot")).toString() == made
                   && QFileInfo::exists(QDir(made).filePath(QStringLiteral("project.json"))),

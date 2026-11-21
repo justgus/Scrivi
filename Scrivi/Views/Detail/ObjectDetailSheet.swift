@@ -563,7 +563,7 @@ struct ObjectDetailSheet: View {
                     Label(
                         "Your unsaved changes are held here only. "
                         + "They will be saved when this object's world is available "
-                        + "again — but they will be lost if Scrivi quits first.",
+                        + "again — but they will be lost if Inkwyn quits first.",
                         systemImage: "exclamationmark.triangle.fill"
                     )
                     .font(.callout)

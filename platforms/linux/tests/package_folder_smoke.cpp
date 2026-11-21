@@ -1,7 +1,7 @@
 // package_folder_smoke — EP-035 / SP-127 (I-0185): a package is a LEAF, and a
 // path inside one resolves UP to it.
 //
-// ⚠️ THE DEFECT. `.scrivi` and `.scrivworld` are DIRECTORIES, so `QFileDialog`
+// ⚠️ THE DEFECT. `.inkwyn` and `.inkwynworld` are DIRECTORIES, so `QFileDialog`
 // walks into them. The writer double-clicks the project she wants and finds
 // herself looking at `manuscript/` and `objects/` — the package's plumbing —
 // one level below what she meant to choose.
@@ -21,7 +21,7 @@
 // internals, i.e. it did not fix the complaint at all.
 //
 // What is asserted, against REAL directories on disk:
-//   • a `.scrivi` / `.scrivworld` directory is recognised as a package;
+//   • a `.inkwyn` / `.inkwynworld` directory is recognised as a package;
 //   • an ordinary directory is NOT;
 //   • a path INSIDE a package resolves UP to the package — at any depth;
 //   • an ordinary path is returned UNCHANGED (no surprise rewriting);
@@ -65,8 +65,8 @@ int main(int argc, char** argv)
     QDir base(root);
 
     // A realistic layout: a project package, a world package, and a plain folder.
-    const QString proj  = base.absoluteFilePath(QStringLiteral("the-lone-golem.scrivi"));
-    const QString world = base.absoluteFilePath(QStringLiteral("Eskandar.scrivworld"));
+    const QString proj  = base.absoluteFilePath(QStringLiteral("the-lone-golem.inkwyn"));
+    const QString world = base.absoluteFilePath(QStringLiteral("Eskandar.inkwynworld"));
     const QString plain = base.absoluteFilePath(QStringLiteral("projects"));
     for (const QString& d : {proj, world, plain}) {
         if (!QDir().mkpath(d)) { return fail(QStringLiteral("could not create %1").arg(d)); }
@@ -76,8 +76,8 @@ int main(int argc, char** argv)
     if (!QDir().mkpath(inside)) { return fail(QStringLiteral("could not create %1").arg(inside)); }
 
     // 1 — recognition
-    if (!PackageFolderDialog::isPackage(proj))  { return fail(QStringLiteral(".scrivi not recognised")); }
-    if (!PackageFolderDialog::isPackage(world)) { return fail(QStringLiteral(".scrivworld not recognised")); }
+    if (!PackageFolderDialog::isPackage(proj))  { return fail(QStringLiteral(".inkwyn not recognised")); }
+    if (!PackageFolderDialog::isPackage(world)) { return fail(QStringLiteral(".inkwynworld not recognised")); }
     if (PackageFolderDialog::isPackage(plain))  { return fail(QStringLiteral("plain folder wrongly treated as a package")); }
 
     // 2 — ⚠️ THE ASSERTION THAT MATTERS: descending still lands on the package.
@@ -102,7 +102,7 @@ int main(int argc, char** argv)
 
     // 4 — a package inside a package resolves to the INNERMOST, which is what a
     // writer viewing that folder is actually looking at.
-    const QString nested = proj + QStringLiteral("/nested.scrivworld");
+    const QString nested = proj + QStringLiteral("/nested.inkwynworld");
     if (!QDir().mkpath(nested + QStringLiteral("/objects"))) {
         return fail(QStringLiteral("could not create nested package"));
     }
@@ -127,7 +127,7 @@ int main(int argc, char** argv)
             if (lv == nullptr) { d->reject(); return; }
             for (int r = 0; r < lv->model()->rowCount(lv->rootIndex()); ++r) {
                 const QModelIndex i = lv->model()->index(r, 0, lv->rootIndex());
-                if (i.data().toString() == QStringLiteral("Eskandar.scrivworld")) {
+                if (i.data().toString() == QStringLiteral("Eskandar.inkwynworld")) {
                     clicked = true;
                     QTest::mouseDClick(lv->viewport(), Qt::LeftButton, Qt::NoModifier,
                                        lv->visualRect(i).center());
@@ -146,7 +146,7 @@ int main(int argc, char** argv)
     if (returned != world) {
         return fail(QStringLiteral("a double-click did not CHOOSE the package (got '%1')").arg(returned));
     }
-    if (entered.contains(QStringLiteral(".scrivworld"))) {
+    if (entered.contains(QStringLiteral(".inkwynworld"))) {
         return fail(QStringLiteral("the dialog NAVIGATED INTO the package (%1) — it must be atomic")
                         .arg(entered));
     }

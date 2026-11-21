@@ -176,7 +176,7 @@ final class ProjectWindowController: NSObject, NSWindowDelegate {
                 window.cascadeTopLeft(from: ProjectWindowController.lastCascadePoint)
         }
 
-        let title = session.projectPreferences?.projectTitle ?? "Scrivi"
+        let title = session.projectPreferences?.projectTitle ?? "Inkwyn"
         window.title = title.trimmingCharacters(in: .whitespaces).isEmpty ? "Untitled" : title
 
         super.init()

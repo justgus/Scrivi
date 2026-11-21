@@ -23,7 +23,7 @@ WORKDIR="$(mktemp -d)"
 trap 'rm -rf "$WORKDIR"' EXIT
 export XDG_DATA_HOME="$WORKDIR/xdg"
 export QT_QPA_PLATFORM=offscreen
-PROJECT_DIR="$WORKDIR/projects/bridge-parity.scrivi"
+PROJECT_DIR="$WORKDIR/projects/bridge-parity.inkwyn"
 
 echo "== bridge parity: every SP-121 endpoint reached through ScriviBridge =="
 PROJECT_ID="$("$BIN" "$PROJECT_DIR")"

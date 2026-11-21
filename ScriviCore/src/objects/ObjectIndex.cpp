@@ -32,7 +32,7 @@ constexpr std::string_view kIndexSchema = "scrivi.object-index.v1";
 constexpr int kIndexGeneration = 2;   // 2 = T-0446 image fields
 
 // Kinds the PROJECT index scans — project-scoped only. World-scoped kinds
-// (artifact/chronicle/faction/rule) live in .scrivworld packages and are carried
+// (artifact/chronicle/faction/rule) live in .inkwynworld packages and are carried
 // in the binding's cachedIndex instead (Doc 3 §6.3). `rule` left this list in
 // SP-097 when it became world-scoped (T-0404).
 // ⚠️ SP-103 / T-0409: this was a THIRD copy of the kind list (after the enum and

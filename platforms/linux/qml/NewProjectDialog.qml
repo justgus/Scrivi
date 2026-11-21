@@ -5,7 +5,7 @@ import Scrivi
 
 // NewProjectDialog.qml — the New Project flow (SP-059 / T-0227), the Qt analogue
 // of Apple's NewProjectSheet. Collects a title, an editable auto-derived slug, and
-// a parent folder (via FolderDialog), composes <folder>/<slug>.scrivi, calls
+// a parent folder (via FolderDialog), composes <folder>/<slug>.inkwyn, calls
 // bridge.createProject, and on success adds the project to recents and emits
 // created(). Bridge errors surface inline.
 //
@@ -48,7 +48,7 @@ Page {
     function composedPath() {
         if (chosenFolder.length === 0 || slugField.text.length === 0)
             return ""
-        return chosenFolder + "/" + slugField.text + ".scrivi"
+        return chosenFolder + "/" + slugField.text + ".inkwyn"
     }
 
     header: ToolBar {

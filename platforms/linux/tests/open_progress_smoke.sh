@@ -27,7 +27,7 @@ WORKDIR="$(mktemp -d)"
 trap 'rm -rf "$WORKDIR"' EXIT
 export XDG_DATA_HOME="$WORKDIR/xdg"
 export QT_QPA_PLATFORM=offscreen
-PROJECT_DIR="$WORKDIR/projects/open-progress.scrivi"
+PROJECT_DIR="$WORKDIR/projects/open-progress.inkwyn"
 
 echo "== open progress: determinate total, monotonic, ends at the total =="
 "$BIN" "$PROJECT_DIR"

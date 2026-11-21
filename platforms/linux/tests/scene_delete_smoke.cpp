@@ -11,7 +11,7 @@
 //      text stays well-formed, and a follower promoted to a chapter's first scene
 //      gains its heading (reflow).
 //
-//   argv[1] = project dir to create (e.g. <tmp>/scene-delete.scrivi)
+//   argv[1] = project dir to create (e.g. <tmp>/scene-delete.inkwyn)
 //   $XDG_DATA_HOME drives appSupportRoot; Qt offscreen platform (set by the script).
 //
 // Exit 0 on success; non-zero with a FAIL line on any mismatch.

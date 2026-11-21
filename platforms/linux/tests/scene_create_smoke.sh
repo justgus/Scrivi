@@ -20,7 +20,7 @@ WORKDIR="$(mktemp -d)"
 trap 'rm -rf "$WORKDIR"' EXIT
 export XDG_DATA_HOME="$WORKDIR/xdg"
 export QT_QPA_PLATFORM=offscreen
-PROJECT_DIR="$WORKDIR/projects/scene-create.scrivi"
+PROJECT_DIR="$WORKDIR/projects/scene-create.inkwyn"
 
 echo "== in-editor create-scene + create-chapter (Ctrl+Return / Ctrl+Shift+Return) =="
 PROJECT_ID="$("$BIN" "$PROJECT_DIR")"

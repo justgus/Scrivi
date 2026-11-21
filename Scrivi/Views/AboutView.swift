@@ -5,12 +5,20 @@ import AppKit
 import UIKit
 #endif
 
+/// [SP-229] Q5: the Wynn stanza of the Old English Rune Poem — ᚹ, "joy", the *wyn* in Inkwyn — with our own translation.
+/// ⛔ The rune itself is for the logo only (user, 2026-11-20), so the stanza starts at its first word.
+enum WynnStanza {
+    static let oldEnglish = "Wenne bruceþ, ðe can weana lyt\nsares and sorge and him sylfa hæfþ\nblæd and blysse and eac byrga geniht."
+    static let english = "Joy is his who knows few woes,\nlittle pain or sorrow, and has for himself\nplenty and bliss, and shelter enough."
+    static let source = "The Old English Rune Poem, wynn"
+}
+
 struct AboutView: View {
 
     @Environment(\.dismiss) private var dismiss
 
     private var appName: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String ?? "Scrivi"
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String ?? "Inkwyn"
     }
     private var version: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
@@ -48,6 +56,14 @@ struct AboutView: View {
                 .foregroundStyle(.tertiary)
                 .multilineTextAlignment(.center)
 
+            VStack(spacing: 8) {
+                Text(WynnStanza.oldEnglish).italic()
+                Text(WynnStanza.english)
+                Text("— \(WynnStanza.source)").foregroundStyle(.secondary)
+            }
+            .font(.footnote)
+            .multilineTextAlignment(.center)
+
             Button("Close") { dismiss() }
                 .keyboardShortcut(.defaultAction)
         }
@@ -69,8 +85,24 @@ enum AboutPanel {
         NSApp.orderFrontStandardAboutPanel(options: [
             .applicationVersion: info["CFBundleShortVersionString"] as? String ?? "—",
             .version: info["ScriviCommit"] as? String ?? "—",
-            .credits: NSAttributedString(string: "A multi-platform authoring and worldbuilding app.")
+            .credits: credits
         ])
+    }
+
+    private static var credits: NSAttributedString {
+        let centered = NSMutableParagraphStyle()
+        centered.alignment = .center
+        let regular = NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)
+        let italic = NSFontManager.shared.convert(regular, toHaveTrait: .italicFontMask)
+        let text = NSMutableAttributedString()
+        func add(_ s: String, _ font: NSFont, _ color: NSColor = .labelColor) {
+            text.append(NSAttributedString(string: s, attributes: [.font: font, .foregroundColor: color, .paragraphStyle: centered]))
+        }
+        add("A multi-platform authoring and worldbuilding app.\n\n", regular)
+        add(WynnStanza.oldEnglish + "\n\n", italic)
+        add(WynnStanza.english + "\n\n", regular)
+        add("— " + WynnStanza.source, regular, .secondaryLabelColor)
+        return text
     }
 }
 #endif

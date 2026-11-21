@@ -13,7 +13,7 @@
 //   3. RESET scene 1 to default (source="default", gap 0). Reopen: scene 1
 //      back on the chain; scene 2 follows again.
 //
-//   argv[1] = project dir to create (e.g. <tmp>/timeline-story-time.scrivi)
+//   argv[1] = project dir to create (e.g. <tmp>/timeline-story-time.inkwyn)
 //   $XDG_DATA_HOME drives appSupportRoot; Qt offscreen platform (set by the script).
 //
 // Exit 0 on success; non-zero with a FAIL line on any mismatch.

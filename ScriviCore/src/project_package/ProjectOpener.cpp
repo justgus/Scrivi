@@ -59,7 +59,7 @@ Result<OpenProjectResult> ProjectOpener::open(const OpenProjectRequest& request)
     //        stopped there, which was NOT the ruling.** `load()` runs only when
     //        something asks for the vocabulary — listing types, creating an edge,
     //        opening the picker — and opening a project asks for none of those. On the
-    //        real rig `the-twisted-remains-of-myself.scrivi` opened cleanly with the
+    //        real rig `the-twisted-remains-of-myself.inkwyn` opened cleanly with the
     //        fix compiled in and its pre-I-0125 `appears-in` untouched, because the
     //        project has an empty object index and no edge log, so nothing ever read
     //        the file. The repair was correct and unreachable.

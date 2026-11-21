@@ -29,7 +29,7 @@
 #include "ScriviBridge.hpp"
 
 namespace {
-constexpr auto kTestPath  = "/tmp/scrivi-smoke/demo.scrivi";
+constexpr auto kTestPath  = "/tmp/scrivi-smoke/demo.inkwyn";
 constexpr auto kTestTitle = "Smoke Project";
 } // namespace
 

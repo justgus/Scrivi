@@ -76,7 +76,7 @@ struct CApiFixture {
             "scrivi-object-capi-" + std::to_string(::getpid()) + "-" + std::to_string(counter.fetch_add(1)) + "-" +
             std::to_string(reinterpret_cast<std::uintptr_t>(this));
 
-        projectDir    = fs::temp_directory_path() / (stem + ".scrivi");
+        projectDir    = fs::temp_directory_path() / (stem + ".inkwyn");
         appSupportDir = fs::temp_directory_path() / (stem + "-appsupport");
         worldsRoot    = fs::temp_directory_path() / (stem + "-worlds");
 
@@ -111,7 +111,7 @@ struct CApiFixture {
     [[nodiscard]] const char* appSupport() const { return appSupportDir.c_str(); }
 
     [[nodiscard]] std::string pkg(const std::string& name) const {
-        return (worldsRoot / (name + ".scrivworld")).string();
+        return (worldsRoot / (name + ".inkwynworld")).string();
     }
 
     // Creates a world THROUGH THE ABI and returns its worldID.
@@ -295,7 +295,7 @@ TEST_CASE("C ABI: a world-scoped object round-trips create → open → delete (
     // /private/var while the fixture's is /var — the same directory, spelled two
     // ways, which a prefix compare would call a mismatch.
     const auto path = created.getString("path");
-    REQUIRE(path.find("Midgard.scrivworld/artifacts/") != std::string::npos);
+    REQUIRE(path.find("Midgard.inkwynworld/artifacts/") != std::string::npos);
     REQUIRE(path.find("/objects/") == std::string::npos);
     REQUIRE(fs::exists(path));
 
@@ -944,7 +944,7 @@ TEST_CASE("⚠️ promotion preserves objectID and rewrites ZERO edges (AC8)",
     // package; what promotion preserves (objectID, and an untouched edge log)
     // is unchanged by that.
     REQUIRE(promoted.getString("fromPath").find("/items/") != std::string::npos);
-    REQUIRE(promoted.getString("path").find("Midgard.scrivworld/artifacts/")
+    REQUIRE(promoted.getString("path").find("Midgard.inkwynworld/artifacts/")
                 != std::string::npos);
     REQUIRE_FALSE(fs::exists(promoted.getString("fromPath")));
     REQUIRE(fs::exists(promoted.getString("path")));

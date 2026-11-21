@@ -20,7 +20,7 @@ WORKDIR="$(mktemp -d)"
 trap 'rm -rf "$WORKDIR"' EXIT
 export XDG_DATA_HOME="$WORKDIR/xdg"
 export QT_QPA_PLATFORM=offscreen
-PROJECT_DIR="$WORKDIR/projects/scene-merge.scrivi"
+PROJECT_DIR="$WORKDIR/projects/scene-merge.inkwyn"
 
 echo "== scene merge + chapter merge (I-0083 nothing-lost) =="
 PROJECT_ID="$("$BIN" "$PROJECT_DIR")"

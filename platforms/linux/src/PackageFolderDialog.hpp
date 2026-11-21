@@ -18,7 +18,7 @@
 #include <QTreeView>
 #include <QWidget>
 
-// PackageFolderDialog — inside Scrivi, a `.scrivi` / `.scrivworld` package is an
+// PackageFolderDialog — inside Scrivi, a `.inkwyn` / `.inkwynworld` package is an
 // ATOM (EP-035 / SP-127, I-0185).
 //
 // ## ⚠️ The rule, stated by the user and not negotiable
@@ -54,7 +54,7 @@ namespace PackageFolderDialog {
 // The package suffixes Scrivi owns. ⚠️ Both are directories on disk.
 inline QStringList packageSuffixes()
 {
-    return {QStringLiteral("scrivi"), QStringLiteral("scrivworld")};
+    return {QStringLiteral("inkwyn"), QStringLiteral("inkwynworld")};
 }
 
 inline bool isPackage(const QString& path)

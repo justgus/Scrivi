@@ -14,7 +14,7 @@ BIN="${1:?usage: scene_save_smoke.sh <harness-binary>}"
 WORKDIR="$(mktemp -d)"
 trap 'rm -rf "$WORKDIR"' EXIT
 export XDG_DATA_HOME="$WORKDIR/xdg"
-PROJECT_DIR="$WORKDIR/projects/scene-save.scrivi"
+PROJECT_DIR="$WORKDIR/projects/scene-save.inkwyn"
 
 echo "== per-scene save (edit → save_scene → reopen) =="
 PROJECT_ID="$("$BIN" "$PROJECT_DIR")"

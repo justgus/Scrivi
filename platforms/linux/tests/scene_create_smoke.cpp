@@ -11,7 +11,7 @@
 //      at the right offset, later offsets shift, and the chapter case marks a chapter
 //      boundary (i.e. the map stays consistent without a rebuild).
 //
-//   argv[1] = project dir to create (e.g. <tmp>/scene-create.scrivi)
+//   argv[1] = project dir to create (e.g. <tmp>/scene-create.inkwyn)
 //   $XDG_DATA_HOME drives appSupportRoot; Qt offscreen platform (set by the script).
 //
 // Exit 0 on success; non-zero with a FAIL line on any mismatch.

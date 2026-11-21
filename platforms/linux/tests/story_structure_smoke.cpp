@@ -12,7 +12,7 @@
 //   4. Remove the structure (removeStoryStructure). Reopen: no structure, BUT the
 //      scene's bandID assignment is PRESERVED (the AC4 contract).
 //
-//   argv[1] = project dir to create (e.g. <tmp>/story-structure.scrivi)
+//   argv[1] = project dir to create (e.g. <tmp>/story-structure.inkwyn)
 //   $XDG_DATA_HOME drives appSupportRoot; Qt offscreen platform (set by the script).
 //
 // Exit 0 on success; non-zero with a FAIL line on any mismatch.

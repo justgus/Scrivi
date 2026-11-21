@@ -61,9 +61,9 @@ struct Dirs {
         static std::atomic<int> n{0};
         const std::string stem = "scrivi-authorship-" + std::to_string(n.fetch_add(1)) + "-" +
                                  std::to_string(reinterpret_cast<std::uintptr_t>(this));
-        project = fs::temp_directory_path() / (stem + ".scrivi");
+        project = fs::temp_directory_path() / (stem + ".inkwyn");
         support = fs::temp_directory_path() / (stem + "-support");
-        world   = fs::temp_directory_path() / (stem + "-World.scrivworld");
+        world   = fs::temp_directory_path() / (stem + "-World.inkwynworld");
         fs::create_directories(support);
         okResult(scrivi_create_project(root(), support.c_str(), "Once", "once", "identity-001", "persona-001",
                                        author.c_str()));

@@ -47,7 +47,7 @@ struct TempDir {
 //
 // Steps:
 //  1. Create a local author identity and default persona.
-//  2. Create a new .scrivi project.
+//  2. Create a new .inkwyn project.
 //  3. Create the approved minimum project file set.         (verified via createProject result)
 //  4. Open the project.
 //  5. Display the first or last active writing surface.     (verified via openProject result)
@@ -105,7 +105,7 @@ TEST_CASE("MVP loop - Section 3 end-to-end", "[integration][EP-002][T-0027]") {
     };
 
     // -----------------------------------------------------------------------
-    // Steps 2 & 3: Create a new .scrivi project with the minimum file set.
+    // Steps 2 & 3: Create a new .inkwyn project with the minimum file set.
     // -----------------------------------------------------------------------
     scrivi::CreateProjectRequest createReq;
     createReq.projectRootPath = projectDir.str();

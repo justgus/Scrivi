@@ -56,7 +56,7 @@ struct PenNamesView: View {
                                move: { move(index, by: $0) }, remove: { remove(index) })
                 }
             } footer: {
-                Text("The default is offered for a new project, and when Scrivi asks who wrote a project.")
+                Text("The default is offered for a new project, and when Inkwyn asks who wrote a project.")
             }
             Section {
                 HStack {
@@ -347,7 +347,7 @@ struct AuthorPromptSheet: View {
 
     @ViewBuilder private var nameAuthor: some View {
         Text("Who wrote “\(title)”?").font(.title2.weight(.semibold))
-        Text("Scrivi needs the author’s name — it goes in the byline when you export.")
+        Text("Inkwyn needs the author’s name — it goes in the byline when you export.")
             .foregroundStyle(.secondary)
         if unnamed.isEmpty {
             nameField("Author", text: $newName)

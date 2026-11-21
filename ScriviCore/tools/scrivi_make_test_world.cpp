@@ -92,8 +92,8 @@ int main(int argc, char** argv)
     const std::string projectPath = argv[1];
     const std::string appSupport  = argv[2];
     // ⚠️ The world is a SEPARATE PACKAGE, and the default places it as a SIBLING
-    // of the project -- `<dir>/Dumas-France.scrivworld` next to
-    // `<dir>/dumas.scrivi` -- NOT inside or under it.
+    // of the project -- `<dir>/Dumas-France.inkwynworld` next to
+    // `<dir>/dumas.inkwyn` -- NOT inside or under it.
     //
     // ⚠️ An earlier default appended ".worlds/" to the PROJECT path, which
     // implied the world lived inside the project. ✅ It never did, and for this
@@ -102,7 +102,7 @@ int main(int argc, char** argv)
     // exactly the [I-0195] arrangement the rig measured.
     const std::string worldPath   = (argc > 3 && *argv[3])
         ? std::string(argv[3])
-        : (fs::path(projectPath).parent_path() / "Dumas-France.scrivworld").string();
+        : (fs::path(projectPath).parent_path() / "Dumas-France.inkwynworld").string();
     const int scale = (argc > 4) ? std::max(1, std::atoi(argv[4])) : 1;
 
     // ⚠️ --prose is OPT-IN. The measured 321 s baseline used EMPTY bodies, and a

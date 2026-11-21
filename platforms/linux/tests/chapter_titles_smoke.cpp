@@ -309,11 +309,11 @@ int main(int argc, char** argv)
                                        {QStringLiteral("Beta one."), QStringLiteral("Beta two.")},
                                        {QStringLiteral("Gamma one.")}};
     const QList<int> shape = {2, 2, 1};
-    const Project A = makeProject(bridge, appSupport, scratch + QStringLiteral("/a.scrivi"), layout,
+    const Project A = makeProject(bridge, appSupport, scratch + QStringLiteral("/a.inkwyn"), layout,
                                   {QStringLiteral("The Abbé"), QString(), QString()});
-    const Project B = makeProject(bridge, appSupport, scratch + QStringLiteral("/b.scrivi"), layout, {},
+    const Project B = makeProject(bridge, appSupport, scratch + QStringLiteral("/b.inkwyn"), layout, {},
                                   QStringLiteral(R"({"showChapterTitles":false})"));
-    const Project C = makeProject(bridge, appSupport, scratch + QStringLiteral("/c.scrivi"), layout, {});
+    const Project C = makeProject(bridge, appSupport, scratch + QStringLiteral("/c.inkwyn"), layout, {});
 
     AppEnvironment env(appSupport);
 

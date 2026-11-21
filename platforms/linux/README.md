@@ -1,5 +1,7 @@
 # Scrivi — Linux Platform
 
+**The app is Inkwyn (formerly Scrivi)** ([SP-229]); the binary stays `scrivi_linux` until [EP-056] packages it.
+
 **Status:** 🟢 In development — EP-020 `[Linux]` App Foundation (SP-058).
 
 ## Architecture

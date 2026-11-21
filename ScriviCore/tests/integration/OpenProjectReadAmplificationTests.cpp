@@ -379,9 +379,9 @@ TEST_CASE("[I-0231] AC3 — an absent world binding.json is probed once per swee
         scrivi::worlds::WorldBindingRecord b;
         b.worldID                        = worldID;
         b.displayName                    = "Eskandar";
-        b.reference.lastKnownPath        = "../Eskandar.scrivworld";
+        b.reference.lastKnownPath        = "../Eskandar.inkwynworld";
         b.reference.lastKnownAbsolutePath =
-            (h.projectDir.path.parent_path() / "Eskandar.scrivworld").string();
+            (h.projectDir.path.parent_path() / "Eskandar.inkwynworld").string();
         REQUIRE(ws.saveBinding(h.root(), b).ok());
     }
 

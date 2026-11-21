@@ -1,5 +1,13 @@
 # Sprint Backlog
 
+*Last Updated: 2026-11-20 (**SP-229 removed** — activated 2026-11-20.)*
+
+*Last Updated: 2026-11-20 (**SP-229 created in 🔵 Planning** — the rename to Inkwyn, [T-0684] (user, 2026-11-20: *"plan the rename sprint"*); Q1–Q7 to rule.)*
+
+*Last Updated: 2026-11-20 (**SP-228: Q1–Q3, Q5 ruled** as recommended; ⏸ Q4 and the Sprint wait on [T-0684], the rename (user, 2026-11-20).)*
+
+*Last Updated: 2026-11-20 (**SP-228 created in 🔵 Planning** — EP-055 S8 (user, 2026-11-20: *"Let's to AC9 on EP-055"*); Q1–Q5 to rule.)*
+
 *Last Updated: 2026-11-20 (**SP-227 removed** — activated 2026-11-20.)*
 
 *Last Updated: 2026-11-20 (**SP-227: Q1–Q4 ruled** as recommended (user, 2026-11-20).)*
@@ -108,6 +116,7 @@ Sprints listed here are in 🔵 Planning status — defined and ready to activat
 
 | Sprint | Title | Epic | Doc |
 | ------ | ----- | ---- | --- |
+| **SP-228** | `[Apple]` **[EP-055] S8** — TestFlight for iPad, iPhone and the Mac (T-0690) | EP-055 | [`Sprint-SP-228.md`](Sprint-SP-228.md) |
 
 ---
 

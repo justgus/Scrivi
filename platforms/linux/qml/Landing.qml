@@ -58,7 +58,7 @@ Item {
     //
     // ⚠️ WHAT IT USED TO DO: `var result = bridge.openProject(path, ...)`, a
     // BLOCKING call on the UI thread. MEASURED on the rig 2026-09-18 against
-    // `the-stairs-of-tintagael.scrivi` on a `cache=none` CIFS mount: 155 s frozen
+    // `the-stairs-of-tintagael.inkwyn` on a `cache=none` CIFS mount: 155 s frozen
     // on this line, launch screen silent, "Scrivi is not Responding" every 5 s.
     // ✅ [I-0195] had already moved `EditorShell::load` off the thread — but that
     // runs AFTER this returns, so its progress bar could not appear until the
@@ -140,7 +140,7 @@ Item {
     }
 
     // Best-effort display title for a path: the existing recents title if we have
-    // one, else the folder name minus the .scrivi extension.
+    // one, else the folder name minus the .inkwyn extension.
     function recentTitleFor(path) {
         for (var i = 0; i < recents.entries.length; ++i) {
             if (recents.entries[i].path === path) {
@@ -150,7 +150,7 @@ Item {
             }
         }
         var name = path.substring(path.lastIndexOf("/") + 1)
-        return name.replace(/\.scrivi$/, "")
+        return name.replace(/\.inkwyn$/, "")
     }
 
     // A warm grey with a little depth (user, 2026-11-02): on Wayland GNOME draws no window shadow for Qt's frame, so Landing
@@ -217,7 +217,7 @@ Item {
             Label {
                 Layout.fillWidth: true
                 wrapMode: Text.Wrap
-                text: qsTr("Scrivi can't open this project yet — the following need attention. "
+                text: qsTr("Inkwyn can't open this project yet — the following need attention. "
                            + "Repairing projects arrives in a later update.")
                 opacity: 0.85
             }
@@ -257,7 +257,7 @@ Item {
                     ColumnLayout {
                         spacing: 2
                         Label {
-                            text: qsTr("Scrivi")
+                            text: qsTr("Inkwyn")
                             font.pixelSize: 32
                             font.bold: true
                         }
@@ -282,7 +282,7 @@ Item {
                         enabled: bridge.ready && !window.opening
                         onClicked: {
                             window.landingError = ""
-                            // Pick an existing .scrivi directory with the Widgets
+                            // Pick an existing .inkwyn directory with the Widgets
                             // QFileDialog (reused from the create flow), then open it.
                             var picked = bridge.choosePackage(defaultProjectsFolder)
                             window.openPath(picked)

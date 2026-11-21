@@ -39,7 +39,7 @@ int main(int argc, char** argv)
 
     SessionStore::Entry a;
     a.projectID  = QStringLiteral("PROJ-A");
-    a.path       = QStringLiteral("/tmp/a.scrivi");
+    a.path       = QStringLiteral("/tmp/a.inkwyn");
     a.title      = QStringLiteral("Project A");
     a.frame      = QRect(100, 120, 1220, 760);
     a.maximized  = false;
@@ -60,7 +60,7 @@ int main(int argc, char** argv)
     // A second project, maximized.
     SessionStore::Entry b;
     b.projectID = QStringLiteral("PROJ-B");
-    b.path      = QStringLiteral("/tmp/b.scrivi");
+    b.path      = QStringLiteral("/tmp/b.inkwyn");
     b.maximized = true;
     store.record(b);
     ck(store.entries().size() == 2,                 "two projects recorded");
@@ -87,15 +87,15 @@ int main(int argc, char** argv)
     // would write a fresh window's `maximized=false` over the stored state.
     store.record(b);   // B is maximized, from above
     store.setClosed(b.projectID);
-    store.setOpen(b.projectID, QStringLiteral("/tmp/b-moved.scrivi"), QString());
+    store.setOpen(b.projectID, QStringLiteral("/tmp/b-moved.inkwyn"), QString());
     ck(store.openProjectIDs().contains(b.projectID), "setOpen marks a closed project OPEN");
     ck(store.entry(b.projectID).maximized == true,   "setOpen does NOT clobber maximized");
-    ck(store.entry(b.projectID).path == QLatin1String("/tmp/b-moved.scrivi"),
+    ck(store.entry(b.projectID).path == QLatin1String("/tmp/b-moved.inkwyn"),
        "setOpen updates the path ([R-Q2]: a moved project keeps its record)");
 
     // ⛔ An empty projectID must never be recorded.
     SessionStore::Entry empty;
-    empty.path = QStringLiteral("/tmp/nameless.scrivi");
+    empty.path = QStringLiteral("/tmp/nameless.inkwyn");
     store.record(empty);
     ck(store.entries().size() == 2, "an EMPTY projectID is NOT recorded (no phantom row)");
 

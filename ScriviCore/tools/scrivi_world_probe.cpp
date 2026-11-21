@@ -75,7 +75,7 @@ int main(int argc, char** argv) {
     if (argc < 2) {
         std::fprintf(stderr,
             "usage: %s <projectRoot> [worldID]\n\n"
-            "  projectRoot  a .scrivi project directory\n"
+            "  projectRoot  a .inkwyn project directory\n"
             "  worldID      optional; omitted = every world the project binds\n\n"
             "Prints raw scrivi_list_worlds / scrivi_get_world_status envelopes.\n"
             "Run it BEFORE and AFTER a volume event and diff the output.\n",

@@ -15,7 +15,7 @@
 //      save through the REFRESHED paths must land (a save through the stale ones
 //      would write into the vanished folder).
 //
-//   argv[1] = project dir to create (e.g. <tmp>/chapter-reorder.scrivi)
+//   argv[1] = project dir to create (e.g. <tmp>/chapter-reorder.inkwyn)
 //   $XDG_DATA_HOME drives appSupportRoot; Qt offscreen platform (set by the script).
 //
 // Exit 0 on success; non-zero with a FAIL line on any mismatch.

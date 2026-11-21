@@ -163,7 +163,7 @@ public extension ScriviEngine {
 
     // MARK: — Worlds (SP-097)
 
-    /// Creates a new `.scrivworld` package and binds this project to it.
+    /// Creates a new `.inkwynworld` package and binds this project to it.
     ///
     /// The package is **self-contained and identity-bearing** — its `worldID` is
     /// what every later resolution verifies against, so a same-named package with
@@ -632,8 +632,8 @@ public struct WorldEntry: Decodable, Sendable, Identifiable {
     public var unavailabilityExplanation: String? {
         switch statusReason {
         case "unsupportedWorldFormatVersion":
-            return "This world was saved by a newer version of Scrivi. "
-                 + "Update Scrivi to open it. Your world has not been changed."
+            return "This world was saved by a newer version of Inkwyn. "
+                 + "Update Inkwyn to open it. Your world has not been changed."
         default:
             return nil
         }

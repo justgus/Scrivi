@@ -141,7 +141,7 @@ QString importNotes(const QVariantList& report)
         } else if (kind == QLatin1String("headerFooter")) {
             out << QObject::tr("Headers and footers were left out (first: “%1”).").arg(example);
         } else if (kind == QLatin1String("formatting")) {
-            out << QObject::tr("%1 with formatting Scrivi does not keep — underline, strikethrough, colour, fonts, sizes or alignment — kept as plain text (first: “%2”).").arg(lines, example);
+            out << QObject::tr("%1 with formatting Inkwyn does not keep — underline, strikethrough, colour, fonts, sizes or alignment — kept as plain text (first: “%2”).").arg(lines, example);
         // SP-220: a Scrivener project's
         } else if (kind == QLatin1String("outsideDraft")) {
             out << QObject::tr("%1 left out: only the Draft is imported, not Research, the Trash or anything else outside it (first: “%2”).").arg(many(QObject::tr("item"), QObject::tr("items")), example);
@@ -152,7 +152,7 @@ QString importNotes(const QVariantList& report)
         } else if (kind == QLatin1String("label")) {
             out << QObject::tr("%1 left out (first: on “%2”).").arg(many(QObject::tr("label"), QObject::tr("labels")), example);
         } else if (kind == QLatin1String("status")) {
-            out << QObject::tr("%1 Scrivi has no place for left out (first: %2).").arg(many(QObject::tr("status"), QObject::tr("statuses")), example);
+            out << QObject::tr("%1 Inkwyn has no place for left out (first: %2).").arg(many(QObject::tr("status"), QObject::tr("statuses")), example);
         } else if (kind == QLatin1String("documentNotes")) {
             out << QObject::tr("Notes on %1 left out (first: “%2”).").arg(many(QObject::tr("document"), QObject::tr("documents")), example);
         } else if (kind == QLatin1String("snapshots")) {
@@ -164,7 +164,7 @@ QString importNotes(const QVariantList& report)
         } else if (kind == QLatin1String("media")) {
             out << QObject::tr("%1 in the Draft left out — pictures, PDFs and other files are not imported (first: “%2”).").arg(many(QObject::tr("file"), QObject::tr("files")), example);
         } else if (kind == QLatin1String("notRtf")) {
-            out << QObject::tr("%1 Scrivi could not read as RTF, left out (first: “%2”).").arg(many(QObject::tr("document"), QObject::tr("documents")), example);
+            out << QObject::tr("%1 Inkwyn could not read as RTF, left out (first: “%2”).").arg(many(QObject::tr("document"), QObject::tr("documents")), example);
         } else {
             out << QObject::tr("%1: %2 (first: “%3”).").arg(lines, kind, example);
         }
@@ -219,7 +219,7 @@ void ShellController::importManuscript(EditorShell* into, bool scrivener)
         }
     }
     // A new project: its name, then its folder, as Import Archive asks. (SP-218 live pass: the GTK save dialog's Save went grey
-    // and never returned on a ".scrivi" name.) The core refuses a folder already there, and says so.
+    // and never returned on a ".inkwyn" name.) The core refuses a folder already there, and says so.
     bool ok = false;
     QString name = QInputDialog::getText(parent, tr("Import “%1”").arg(stem),
                                          tr("Name the project, then choose the folder to put it in."),
@@ -233,8 +233,8 @@ void ShellController::importManuscript(EditorShell* into, bool scrivener)
     if (folder.isEmpty()) {
         return;
     }
-    if (!name.endsWith(QStringLiteral(".scrivi"))) {
-        name += QStringLiteral(".scrivi");
+    if (!name.endsWith(QStringLiteral(".inkwyn"))) {
+        name += QStringLiteral(".inkwyn");
     }
     runManuscriptImport(source, QDir(folder).filePath(name), nullptr);
 }
@@ -301,7 +301,7 @@ void ShellController::importArchive(const QString& archivePath)
     QString archive = archivePath;
     if (archive.isEmpty()) {
         archive = QFileDialog::getOpenFileName(parent, tr("Import Archive"), QDir::homePath(),
-                                               tr("Scrivi Archive (*.scrivarchive)"));
+                                               tr("Inkwyn Archive (*.inkwynarchive)"));
         if (archive.isEmpty()) {
             return;
         }
@@ -414,7 +414,7 @@ ScriviWindow::ScriviWindow(QQuickWidget* landing, QString appSupportRoot,
                            AppEnvironment* env)
     : landing_(landing), appSupportRoot_(std::move(appSupportRoot)), env_(env)
 {
-    setWindowTitle(QStringLiteral("Scrivi — Linux (alpha)"));
+    setWindowTitle(QStringLiteral("Inkwyn — Linux (alpha)"));
     // ⚠️ 1220×760 (user ruling 2026-08-30): 240 navigator + 580 manuscript + 400
     // inspector. ⚠️ Widened from 1020 in the SAME step the inspector doubled, so
     // the extra panel width comes out of the WINDOW rather than out of the
@@ -870,13 +870,13 @@ void ScriviWindow::buildMenuBar(QMainWindow* host, ScriviWindow* w, AppEnvironme
     // `editorOnlyActions_`): the most likely moment to ask "is this the right
     // build?" is at the landing screen, before opening anything.
     QMenu* help = bar->addMenu(tr("&Help"));
-    QAction* about = help->addAction(tr("About Scrivi"));
+    QAction* about = help->addAction(tr("About Inkwyn"));
     connect(about, &QAction::triggered, host, [=]() {
         QDialog dlg(host);
-        dlg.setWindowTitle(tr("About Scrivi"));
+        dlg.setWindowTitle(tr("About Inkwyn"));
         auto* layout = new QVBoxLayout(&dlg);
 
-        auto* name = new QLabel(tr("Scrivi"), &dlg);
+        auto* name = new QLabel(tr("Inkwyn"), &dlg);
         QFont nameFont = name->font();
         nameFont.setBold(true);
         nameFont.setPointSize(nameFont.pointSize() + 4);
@@ -891,6 +891,18 @@ void ScriviWindow::buildMenuBar(QMainWindow* host, ScriviWindow* w, AppEnvironme
         // Selectable so a tester can copy the stamp into a bug report.
         build->setTextInteractionFlags(Qt::TextSelectableByMouse);
         layout->addWidget(build);
+
+        // [SP-229] Q5: the Wynn stanza of the Old English Rune Poem (the *wyn* in Inkwyn), with our own translation — as
+        // Apple's `WynnStanza`. ⛔ The rune itself is for the logo only.
+        auto* stanza = new QLabel(
+            tr("<p><i>Wenne bruceþ, ðe can weana lyt<br>sares and sorge and him sylfa hæfþ<br>"
+               "blæd and blysse and eac byrga geniht.</i></p>"
+               "<p>Joy is his who knows few woes,<br>little pain or sorrow, and has for himself<br>"
+               "plenty and bliss, and shelter enough.</p>"
+               "<p>— The Old English Rune Poem, wynn</p>"),
+            &dlg);
+        stanza->setObjectName(QStringLiteral("aboutWynnStanza"));
+        layout->addWidget(stanza);
 
         auto* buttons = new QDialogButtonBox(QDialogButtonBox::Close, &dlg);
         connect(buttons, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);

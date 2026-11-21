@@ -14,7 +14,7 @@ export XDG_DATA_HOME="$WORKDIR/xdg"
 export QT_QPA_PLATFORM=offscreen
 
 echo "== Structured cut / copy / paste (real keys, disk-verified, undo, buffers, Mac history) =="
-OUT="$("$BIN" "$WORKDIR/projects/structured.scrivi")" || { echo "$OUT"; exit 1; }
+OUT="$("$BIN" "$WORKDIR/projects/structured.inkwyn")" || { echo "$OUT"; exit 1; }
 echo "$OUT"
 if ! echo "$OUT" | grep -qx 'structured-paste-ok'; then
     echo "FAIL: harness did not report structured-paste-ok"

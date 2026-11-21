@@ -389,7 +389,7 @@ struct ScriviInteropTests {
         // ⚠️ T-0409: a character is world-scoped, so it needs a world.
         let world = try engine.createWorld(
             projectRootPath: projectDir.path,
-            packagePath: projectDir.url.appendingPathComponent("T10.scrivworld")
+            packagePath: projectDir.url.appendingPathComponent("T10.inkwynworld")
                                        .path(percentEncoded: false),
             displayName: "T10 World", epochLabel: "")
         let created = try engine.createObject(
@@ -420,7 +420,7 @@ struct ScriviInteropTests {
 
         let world = try engine.createWorld(
             projectRootPath: projectDir.path,
-            packagePath: projectDir.url.appendingPathComponent("T10d.scrivworld")
+            packagePath: projectDir.url.appendingPathComponent("T10d.inkwynworld")
                                        .path(percentEncoded: false),
             displayName: "T10 World", epochLabel: "")
         let created = try engine.createObject(
@@ -1080,7 +1080,7 @@ struct ScriviInteropTests {
         // character is world-scoped, so it needs a world to live in.
         let world = try engine.createWorld(
             projectRootPath: projectDir.path,
-            packagePath:     projectDir.url.appendingPathComponent("Interop.scrivworld")
+            packagePath:     projectDir.url.appendingPathComponent("Interop.inkwynworld")
                                         .path(percentEncoded: false),
             displayName:     "Interop World",
             epochLabel:      ""
@@ -1198,7 +1198,7 @@ struct ScriviInteropTests {
     @Test("historyOpen mints a session and reports no undo/redo")
     func historyOpenMintsSession() throws {
         let engine = ScriviEngine()
-        let root = "/tmp/scrivi-history-\(UUID().uuidString).scrivi"
+        let root = "/tmp/scrivi-history-\(UUID().uuidString).inkwyn"
         let opened = try engine.historyOpen(projectRootPath: root)
         #expect(opened.sessionID.hasPrefix("ses_"))
         #expect(!opened.canUndo)
@@ -1210,7 +1210,7 @@ struct ScriviInteropTests {
     @Test("historyGetTree returns a windowed tree and tolerates absent arrays")
     func historyGetTreeWindows() throws {
         let engine = ScriviEngine()
-        let root = "/tmp/scrivi-history-\(UUID().uuidString).scrivi"
+        let root = "/tmp/scrivi-history-\(UUID().uuidString).inkwyn"
         _ = try engine.historyOpen(projectRootPath: root)
         defer { _ = try? engine.historyClose(projectRootPath: root) }
 
@@ -1251,7 +1251,7 @@ struct ScriviInteropTests {
     @Test("record → undo → redo round-trips text and cursor through Swift")
     func historyRoundTrip() throws {
         let engine = ScriviEngine()
-        let root = "/tmp/scrivi-history-\(UUID().uuidString).scrivi"
+        let root = "/tmp/scrivi-history-\(UUID().uuidString).inkwyn"
         _ = try engine.historyOpen(projectRootPath: root)
         defer { _ = try? engine.historyClose(projectRootPath: root) }
 
@@ -1287,7 +1287,7 @@ struct ScriviInteropTests {
     @Test("a structural node round-trips its inverse payload through undo/redo (T-0356)")
     func historyStructuralInverseRoundTrip() throws {
         let engine = ScriviEngine()
-        let root = "/tmp/scrivi-history-\(UUID().uuidString).scrivi"
+        let root = "/tmp/scrivi-history-\(UUID().uuidString).inkwyn"
         _ = try engine.historyOpen(projectRootPath: root)
         defer { _ = try? engine.historyClose(projectRootPath: root) }
 
@@ -1327,7 +1327,7 @@ struct ScriviInteropTests {
     @Test("a cut-into-buffer event carries a bufferID and undoes like a plain cut (Trade T3)")
     func historyCutIntoBufferTag() throws {
         let engine = ScriviEngine()
-        let root = "/tmp/scrivi-history-\(UUID().uuidString).scrivi"
+        let root = "/tmp/scrivi-history-\(UUID().uuidString).inkwyn"
         _ = try engine.historyOpen(projectRootPath: root)
         defer { _ = try? engine.historyClose(projectRootPath: root) }
 
@@ -1349,7 +1349,7 @@ struct ScriviInteropTests {
     @Test("recording identical text reports noOp")
     func historyNoOpOnIdenticalText() throws {
         let engine = ScriviEngine()
-        let root = "/tmp/scrivi-history-\(UUID().uuidString).scrivi"
+        let root = "/tmp/scrivi-history-\(UUID().uuidString).inkwyn"
         _ = try engine.historyOpen(projectRootPath: root)
         defer { _ = try? engine.historyClose(projectRootPath: root) }
 
@@ -1362,7 +1362,7 @@ struct ScriviInteropTests {
     @Test("undo stops at a barrier with a notice")
     func historyBarrierStopsUndo() throws {
         let engine = ScriviEngine()
-        let root = "/tmp/scrivi-history-\(UUID().uuidString).scrivi"
+        let root = "/tmp/scrivi-history-\(UUID().uuidString).inkwyn"
         _ = try engine.historyOpen(projectRootPath: root)
         defer { _ = try? engine.historyClose(projectRootPath: root) }
 
@@ -1392,7 +1392,7 @@ struct ScriviInteropTests {
     @Test("history calls before open throw a ScriviError")
     func historyBeforeOpenThrows() throws {
         let engine = ScriviEngine()
-        let root = "/tmp/scrivi-history-unopened-\(UUID().uuidString).scrivi"
+        let root = "/tmp/scrivi-history-unopened-\(UUID().uuidString).inkwyn"
         #expect(throws: ScriviError.self) {
             _ = try engine.historyUndo(projectRootPath: root)
         }
@@ -1401,7 +1401,7 @@ struct ScriviInteropTests {
     @Test("historyClose reports whether a history was open")
     func historyCloseReporting() throws {
         let engine = ScriviEngine()
-        let root = "/tmp/scrivi-history-\(UUID().uuidString).scrivi"
+        let root = "/tmp/scrivi-history-\(UUID().uuidString).inkwyn"
         _ = try engine.historyOpen(projectRootPath: root)
         #expect(try engine.historyClose(projectRootPath: root).closed)
         #expect(!(try engine.historyClose(projectRootPath: root).closed))   // already closed
@@ -1871,7 +1871,7 @@ struct ScriviGraphInteropTests {
 
         let world = try engine.createWorld(
             projectRootPath: projectDir.path,
-            packagePath: projectDir.url.appendingPathComponent("Graph.scrivworld")
+            packagePath: projectDir.url.appendingPathComponent("Graph.inkwynworld")
                                        .path(percentEncoded: false),
             displayName: "Graph World",
             epochLabel: ""
@@ -1941,7 +1941,7 @@ struct ScriviGraphInteropTests {
         // ⚠️ There is deliberately NO test that flips the guard off and asserts the
         // projects reopen. That negative control would re-enable, on a real machine
         // with real bookmarks, exactly the behaviour that silently rewrote
-        // `the-twisted-remains-of-myself.scrivi`. The evidence for the fix is a
+        // `the-twisted-remains-of-myself.inkwyn`. The evidence for the fix is a
         // before/after checksum of all 220 files in both real projects across a full
         // `xcodebuild test` run — recorded in I-0150 — not a test that reproduces the
         // damage to prove it was possible.
@@ -2016,7 +2016,7 @@ struct ScriviGraphInteropTests {
 
         // ⚠️ AC3's storage rule: a world-scoped object's image lives INSIDE the
         // world package, not under the project.
-        #expect(path.contains(".scrivworld"))
+        #expect(path.contains(".inkwynworld"))
     }
 
     // MARK: ⚠️ T-0441 — the drifted vocabulary, tested THROUGH THE BOUNDARY
@@ -2029,7 +2029,7 @@ struct ScriviGraphInteropTests {
     /// The pre-I-0125 `appears-in`, written straight to disk: `sourceKind:
     /// "character"` (the constraint I-0125 removed) and the kind-specific
     /// `inverseLabel`. ⚠️ Reproduces what is still on the rig in
-    /// `the-twisted-remains-of-myself.scrivi`.
+    /// `the-twisted-remains-of-myself.inkwyn`.
     private func driftVocabulary(_ f: Fixture) throws {
         let path = f.root + "/objects/relation-types.json"
         let drifted = """
@@ -2368,7 +2368,7 @@ struct ScriviGraphInteropTests {
     func worldRoundTripsThroughTheBoundary() throws {
         let f = try makeFixture()
         let worldDir = try TempDir()
-        let packagePath = worldDir.url.appendingPathComponent("Midgard.scrivworld")
+        let packagePath = worldDir.url.appendingPathComponent("Midgard.inkwynworld")
             .path(percentEncoded: false)
 
         let created = try f.engine.createWorld(
@@ -2407,7 +2407,7 @@ struct ScriviGraphInteropTests {
     func bindingCachesNames() throws {
         let f = try makeFixture()
         let worldDir = try TempDir()
-        let packagePath = worldDir.url.appendingPathComponent("Midgard.scrivworld")
+        let packagePath = worldDir.url.appendingPathComponent("Midgard.inkwynworld")
             .path(percentEncoded: false)
 
         let created = try f.engine.createWorld(
@@ -2535,7 +2535,7 @@ struct ScriviGraphInteropTests {
     func worldUnavailableDetailCrossesTheBoundary() throws {
         let f = try makeFixture()
         let worldDir = try TempDir()
-        let packagePath = worldDir.url.appendingPathComponent("Vanishing.scrivworld")
+        let packagePath = worldDir.url.appendingPathComponent("Vanishing.inkwynworld")
             .path(percentEncoded: false)
 
         let created = try f.engine.createWorld(
@@ -2591,7 +2591,7 @@ struct ScriviGraphInteropTests {
     func listObjectsOmitsUnreachableWorldWithoutError() throws {
         let f = try makeFixture()
         let worldDir = try TempDir()
-        let packagePath = worldDir.url.appendingPathComponent("Fading.scrivworld")
+        let packagePath = worldDir.url.appendingPathComponent("Fading.inkwynworld")
             .path(percentEncoded: false)
 
         let created = try f.engine.createWorld(
@@ -2988,7 +2988,7 @@ struct ObjectCreationInteropTests {
             title: "Create Interop", slug: "create-interop", authorshipRef: ref)
         let world = try engine.createWorld(
             projectRootPath: projectDir.path,
-            packagePath: projectDir.url.appendingPathComponent("Create.scrivworld")
+            packagePath: projectDir.url.appendingPathComponent("Create.inkwynworld")
                                        .path(percentEncoded: false),
             displayName: "Create World", epochLabel: "")
         return Fixture(engine: engine, ref: ref, projectDir: projectDir,
@@ -3123,7 +3123,7 @@ struct ObjectCreationInteropTests {
     func createdWorldIsListed() throws {
         let f = try makeFixture()
         let worldDir = try TempDir()
-        let packagePath = worldDir.url.appendingPathComponent("Midgard.scrivworld")
+        let packagePath = worldDir.url.appendingPathComponent("Midgard.inkwynworld")
             .path(percentEncoded: false)
 
         // Before T-0408 nothing in the app called either of these.
@@ -3193,7 +3193,7 @@ struct WorldVolumeStatusTests {
         // Refinement answers "why can't I reach it" — a reachable world has no why.
         #expect(WorldVolumeStatus.refine(
             coreStatus: .available,
-            packagePath: "/Volumes/Nope/Gone.scrivworld") == .available)
+            packagePath: "/Volumes/Nope/Gone.inkwynworld") == .available)
     }
 
     @Test("a package on an unmounted volume reports unmounted, NOT missing")
@@ -3204,7 +3204,7 @@ struct WorldVolumeStatusTests {
         // rebuild a world that is sitting intact on a disconnected disk.
         let status = WorldVolumeStatus.refine(
             coreStatus: .missing,
-            packagePath: "/Volumes/Definitely Not Mounted 8Xz/Eskandar.scrivworld")
+            packagePath: "/Volumes/Definitely Not Mounted 8Xz/Eskandar.inkwynworld")
         #expect(status == .unmounted)
     }
 
@@ -3214,10 +3214,10 @@ struct WorldVolumeStatusTests {
         // concluded is the honest answer.
         #expect(WorldVolumeStatus.refine(
             coreStatus: .missing,
-            packagePath: "/Users/nobody/Desktop/Gone.scrivworld") == .missing)
+            packagePath: "/Users/nobody/Desktop/Gone.inkwynworld") == .missing)
         #expect(WorldVolumeStatus.refine(
             coreStatus: .unavailable,
-            packagePath: "/Users/nobody/Desktop/Gone.scrivworld") == .unavailable)
+            packagePath: "/Users/nobody/Desktop/Gone.inkwynworld") == .unavailable)
     }
 
     @Test("an empty package path never invents a diagnosis")
@@ -3231,7 +3231,7 @@ struct WorldVolumeStatusTests {
         // The root volume is always mounted, so it stands in for "the volume is
         // there" without depending on the user's external drive being connected.
         let status = WorldVolumeStatus.refine(
-            coreStatus: .missing, packagePath: "/System/Volumes/Data/nothing.scrivworld")
+            coreStatus: .missing, packagePath: "/System/Volumes/Data/nothing.inkwynworld")
         #expect(status != .unmounted)
     }
 
@@ -3252,7 +3252,7 @@ struct WorldVolumeStatusTests {
         let json = """
         {"worlds":[{"worldID":"w-1","displayName":"Eskandar","status":"missing",
         "packagePath":"",
-        "lastKnownPackagePath":"/Volumes/Definitely Not Mounted 8Xz/Eskandar.scrivworld",
+        "lastKnownPackagePath":"/Volumes/Definitely Not Mounted 8Xz/Eskandar.inkwynworld",
         "epochOffsetMs":0}]}
         """
         let result = try JSONDecoder().decode(ListWorldsResult.self,
@@ -3286,8 +3286,8 @@ struct WorldVolumeStatusTests {
     func availableWorldUnaffected() throws {
         let json = """
         {"worlds":[{"worldID":"w-1","displayName":"Here","status":"available",
-        "packagePath":"/Users/nobody/Here.scrivworld",
-        "lastKnownPackagePath":"/Users/nobody/Here.scrivworld","epochOffsetMs":0}]}
+        "packagePath":"/Users/nobody/Here.inkwynworld",
+        "lastKnownPackagePath":"/Users/nobody/Here.inkwynworld","epochOffsetMs":0}]}
         """
         let result = try JSONDecoder().decode(ListWorldsResult.self,
                                               from: Data(json.utf8))
@@ -3303,7 +3303,7 @@ struct WorldVolumeStatusTests {
     func worldStatusResultRefines() throws {
         let json = """
         {"worldID":"w-1","status":"missing","packagePath":"",
-        "lastKnownPackagePath":"/Volumes/Definitely Not Mounted 8Xz/E.scrivworld"}
+        "lastKnownPackagePath":"/Volumes/Definitely Not Mounted 8Xz/E.inkwynworld"}
         """
         let result = try JSONDecoder().decode(WorldStatusResult.self,
                                               from: Data(json.utf8))
@@ -3350,7 +3350,7 @@ struct WorldMountNotificationTests {
         // `missing`, which tells the writer to restore from backup (I-0115).
         let status = WorldVolumeStatus.refine(
             coreStatus: .missing,
-            packagePath: "/Volumes/ScriviMountProbe Gone/Eskandar.scrivworld")
+            packagePath: "/Volumes/ScriviMountProbe Gone/Eskandar.inkwynworld")
         #expect(status == .unmounted)
     }
     #endif
@@ -5372,7 +5372,7 @@ struct ProjectSettingsTravelTests {
         init() throws {
             let base = FileManager.default.temporaryDirectory.appendingPathComponent("scrivi-settings-\(UUID().uuidString)")
             let appSupport = base.appendingPathComponent("support").path(percentEncoded: false)
-            root = base.appendingPathComponent("p.scrivi").path(percentEncoded: false)
+            root = base.appendingPathComponent("p.inkwyn").path(percentEncoded: false)
             try FileManager.default.createDirectory(atPath: appSupport, withIntermediateDirectories: true)
             try FileManager.default.createDirectory(atPath: root, withIntermediateDirectories: true)
             let id = try engine.ensureLocalIdentity(displayName: "Test", appSupportRoot: appSupport)
@@ -5848,7 +5848,7 @@ struct ManuscriptTypographyTests {
     func settings() throws {
         let base = FileManager.default.temporaryDirectory.appendingPathComponent("scrivi-type-\(UUID().uuidString)")
         let support = base.appendingPathComponent("s").path(percentEncoded: false)
-        let root = base.appendingPathComponent("p.scrivi").path(percentEncoded: false)
+        let root = base.appendingPathComponent("p.inkwyn").path(percentEncoded: false)
         try FileManager.default.createDirectory(atPath: support, withIntermediateDirectories: true)
         try FileManager.default.createDirectory(atPath: root, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: base) }
@@ -6046,7 +6046,7 @@ struct ManuscriptIndentTests {
     func settings() throws {
         let base = FileManager.default.temporaryDirectory.appendingPathComponent("scrivi-indent-\(UUID().uuidString)")
         let support = base.appendingPathComponent("s").path(percentEncoded: false)
-        let root = base.appendingPathComponent("p.scrivi").path(percentEncoded: false)
+        let root = base.appendingPathComponent("p.inkwyn").path(percentEncoded: false)
         try FileManager.default.createDirectory(atPath: support, withIntermediateDirectories: true)
         try FileManager.default.createDirectory(atPath: root, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: base) }
@@ -6162,7 +6162,7 @@ struct MarkupHintsTests {
     func settings() throws {
         let base = FileManager.default.temporaryDirectory.appendingPathComponent("scrivi-hints-\(UUID().uuidString)")
         let support = base.appendingPathComponent("s").path(percentEncoded: false)
-        let root = base.appendingPathComponent("p.scrivi").path(percentEncoded: false)
+        let root = base.appendingPathComponent("p.inkwyn").path(percentEncoded: false)
         try FileManager.default.createDirectory(atPath: support, withIntermediateDirectories: true)
         try FileManager.default.createDirectory(atPath: root, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: base) }
@@ -9029,7 +9029,7 @@ extension ScriviInteropTests {
         let projectID = try f.engine.openProject(projectRootPath: f.projectDir.path, appSupportRoot: f.appSupport.path).projectID
         f.engine.closeProject(projectRootPath: f.projectDir.path)
         let out = try TempDir(), dest = try TempDir()
-        let archive = out.url.appendingPathComponent("Interop Git Test.scrivarchive").path(percentEncoded: false)
+        let archive = out.url.appendingPathComponent("Interop Git Test.inkwynarchive").path(percentEncoded: false)
 
         let exported = try f.engine.exportArchive(projectRootPath: f.projectDir.path, archivePath: archive, includeWorlds: true)
         #expect(exported.files > 0)
@@ -9047,7 +9047,7 @@ extension ScriviInteropTests {
 
         let renamed = try f.engine.importArchive(archivePath: archive, destFolderPath: dest.path, projectFolderName: "Second Copy")
         #expect(renamed.imported)
-        #expect(renamed.projectRoot.hasSuffix("Second Copy.scrivi"))
+        #expect(renamed.projectRoot.hasSuffix("Second Copy.inkwyn"))
     }
 }
 
@@ -9067,7 +9067,7 @@ extension ScriviInteropTests {
         #expect(read.chapterCount == 2 && read.sceneCount == 3 && read.encoding == "utf-8")   // the head is no scene
         #expect(read.report.map(\.kind) == ["link"] && read.projectRoot == nil)
 
-        let root = URL(fileURLWithPath: f.appSupport.path).appendingPathComponent("Imported.scrivi").path
+        let root = URL(fileURLWithPath: f.appSupport.path).appendingPathComponent("Imported.inkwyn").path
         let made = try f.engine.importManuscript(sourcePath: source.path, newProject: (root, f.appSupport.path, f.ref))
         #expect(made.projectRoot == root && made.title == "Imported Book" && made.range == nil)
         let opened = try f.engine.openProject(projectRootPath: root, appSupportRoot: f.appSupport.path)

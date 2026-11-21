@@ -53,7 +53,7 @@ namespace {
 QString buildStamp()
 {
     // The commit names exactly what is running: it matches the rig's `git rev-parse` or it does not.
-    return QStringLiteral("Scrivi (Linux) %1 (%2), Qt %3")
+    return QStringLiteral("Inkwyn (Linux) %1 (%2), Qt %3")
         .arg(QLatin1String(SCRIVI_VERSION), QLatin1String(SCRIVI_COMMIT), QLatin1String(qVersion()));
 }
 } // namespace

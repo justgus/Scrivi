@@ -301,7 +301,7 @@ public:
     void importTimeline();
     void exportTimeline();
     // [SP-206] File ▸ Export Archive… (Apple: `AppEnvironment.exportArchive`): this project, the world question when it
-    // binds one, a save dialog for "<project>.scrivarchive", the call on a worker with the progress row after 400 ms.
+    // binds one, a save dialog for "<project>.inkwynarchive", the call on a worker with the progress row after 400 ms.
     // The caller has flushed the editor; the core drains the write queue.
     void exportArchive();
     // [SP-207] File ▸ Export ▸ Manuscript ▸ / Current Chapter ▸ and Copy as HTML (Apple: `AppEnvironment.exportManuscript` /

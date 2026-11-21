@@ -41,7 +41,7 @@ struct ConcurrencyFixture {
         static std::atomic<int> counter{0};
         const std::string stem = "scrivi-concurrency-" + std::to_string(::getpid()) + "-" + std::to_string(counter.fetch_add(1)) + "-" +
                                  std::to_string(reinterpret_cast<std::uintptr_t>(this));
-        projectDir    = fs::temp_directory_path() / (stem + ".scrivi");
+        projectDir    = fs::temp_directory_path() / (stem + ".inkwyn");
         appSupportDir = fs::temp_directory_path() / (stem + "-appsupport");
         fs::create_directories(projectDir);
         fs::create_directories(appSupportDir);
@@ -236,7 +236,7 @@ TEST_CASE("Q2: two projects in ONE process write into the world they share at th
           "[concurrency][capi][world]") {
     ConcurrencyFixture a;
     ConcurrencyFixture b;
-    const fs::path pkg = a.appSupportDir / "Shared.scrivworld";
+    const fs::path pkg = a.appSupportDir / "Shared.inkwynworld";
     JsonDoc created = envelope(scrivi_create_world(a.root(), pkg.c_str(), "Shared", "Year One"));
     REQUIRE(created.getBool("ok"));
     const std::string worldID = created.getSubDoc("result").getString("worldID");

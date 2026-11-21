@@ -90,7 +90,7 @@ struct GraphFixture {
 
         worlds::WorldStore ws{services};
         auto w = ws.createWorld(projectDir.string(),
-                                (projectDir / "Graph.scrivworld").string(),
+                                (projectDir / "Graph.inkwynworld").string(),
                                 "Graph World", "");
         REQUIRE(w.ok());
         worldID = w.value().worldID;
@@ -262,7 +262,7 @@ TEST_CASE("relation-type validation protects the duplicate rule",
 // is already correct, so a test that merely seeds normally passes VACUOUSLY —
 // precisely how this defect survived from 2026-08-17 to 2026-08-21 with a green
 // suite. `writeDriftedVocabulary` reproduces the exact bytes found on the rig in
-// `the-twisted-remains-of-myself.scrivi`.
+// `the-twisted-remains-of-myself.inkwyn`.
 // ---------------------------------------------------------------------------
 
 namespace {
@@ -456,7 +456,7 @@ TEST_CASE("S1b — a MISSING seeded type is restored without disturbing the rest
 // runs only when something asks for the vocabulary, and opening a project asks for
 // none of those.
 //
-// ⚠️ Found on the real rig. `the-twisted-remains-of-myself.scrivi` opened cleanly
+// ⚠️ Found on the real rig. `the-twisted-remains-of-myself.inkwyn` opened cleanly
 // with the fix compiled into the running app and its pre-I-0125 `appears-in`
 // untouched — empty object index, no edge log, so nothing ever read the file.
 //
@@ -524,7 +524,7 @@ TEST_CASE("I-0149 — opening a CURRENT project still does not rewrite the file"
 
 // ⚠️ RIG CHECK — opt-in, hidden by default ([.rig]): points the real open path at
 // a COPY of an actual project on disk. Run with:
-//   ScriviCoreTests "[rig]" -- (env SCRIVI_RIG_PROJECT=/path/to/copy.scrivi)
+//   ScriviCoreTests "[rig]" -- (env SCRIVI_RIG_PROJECT=/path/to/copy.inkwyn)
 // Skipped silently when the env var is unset, so CI is unaffected.
 TEST_CASE("rig — opening a real drifted project repairs it", "[.rig]") {
     const char* rigPath = std::getenv("SCRIVI_RIG_PROJECT");
@@ -1026,7 +1026,7 @@ TEST_CASE("⚠️ I-0183: an UNREADABLE world package does NOT prune its edges",
     REQUIRE(edge.ok());
     REQUIRE(store.load(fix.root()).value().size() == 1);
 
-    const fs::path pkg = fix.projectDir / "Graph.scrivworld";
+    const fs::path pkg = fix.projectDir / "Graph.inkwynworld";
     REQUIRE(fs::exists(pkg / "world.json"));
 
     // Make the object set UNREADABLE while leaving world.json readable — exactly
@@ -1279,7 +1279,7 @@ TEST_CASE("[I-0324] an endpoint sweep reads each file once, however many scene l
     CHECK(listing <= 2);
 
     // [I-0316]: with the world gone, its `world.json` was looked for once per endpoint. The edges are held, not pruned.
-    fs::rename(fx.projectDir / "Graph.scrivworld", fx.projectDir / "Graph-away.scrivworld");
+    fs::rename(fx.projectDir / "Graph.inkwynworld", fx.projectDir / "Graph-away.inkwynworld");
     const int away = mostReadsOfOneFile([&] {
         auto r = store.repairDangling(fx.root());
         REQUIRE(r.ok());

@@ -116,7 +116,7 @@ int main(int argc, char** argv)
 
     // A realistic world path: long, and its identity lives in the TAIL.
     const QString path =
-        QStringLiteral("/mnt/scrivi-worlds/Eskandar-2.scrivworld");
+        QStringLiteral("/mnt/scrivi-worlds/Eskandar-2.inkwynworld");
 
     QWidget host;
     auto* label = new ElidingPathLabel(path, &host);
@@ -140,7 +140,7 @@ int main(int argc, char** argv)
     }
     // ⚠️ THE ASSERTION THAT MATTERS: the package name identifies the world, so it
     // is the one part that must never be the bit that gets dropped.
-    if (!atRealWidth.contains(QStringLiteral(".scrivworld"))) {
+    if (!atRealWidth.contains(QStringLiteral(".inkwynworld"))) {
         return fail("the package name (the tail) was lost at the real row width");
     }
     // And it must genuinely fit — an elide that still overflows is just clipping.

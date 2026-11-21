@@ -239,8 +239,8 @@ int main(int argc, char** argv)
     bridge.bootstrap(QStringLiteral("Scrivi"), appSupport);
     const QString s0 = QStringLiteral("x **bold text** y");
     const QString s1 = QStringLiteral("Bravo two");
-    const Project A = makeProject(bridge, appSupport, scratch + QStringLiteral("/a.scrivi"), {s0, s1});
-    const Project B = makeProject(bridge, appSupport, scratch + QStringLiteral("/b.scrivi"), {QStringLiteral("Other")});
+    const Project A = makeProject(bridge, appSupport, scratch + QStringLiteral("/a.inkwyn"), {s0, s1});
+    const Project B = makeProject(bridge, appSupport, scratch + QStringLiteral("/b.inkwyn"), {QStringLiteral("Other")});
 
     AppEnvironment env(appSupport);
     ScriviWindow* wa = openWindow(env, A);

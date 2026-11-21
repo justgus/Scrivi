@@ -26,7 +26,7 @@ WORKDIR="$(mktemp -d)"
 trap 'rm -rf "$WORKDIR"' EXIT
 export XDG_DATA_HOME="$WORKDIR/xdg"
 export QT_QPA_PLATFORM=offscreen
-PROJECT_DIR="$WORKDIR/projects/chapter-reorder.scrivi"
+PROJECT_DIR="$WORKDIR/projects/chapter-reorder.inkwyn"
 
 echo "== chapter drag-reorder (AC5): block splice + persistence + path refresh =="
 PROJECT_ID="$("$BIN" "$PROJECT_DIR")"

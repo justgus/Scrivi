@@ -496,6 +496,8 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-225** | `[Apple]` **[EP-055] S5** — worlds and the timeline's dots on iPad and iPhone (T-0688) | EP-055 | 2026-11-19 | 2026-11-19 | ✅ **CLOSED** → [`Closed/Sprint-SP-225.md`](Closed/Sprint-SP-225.md) |
 | **SP-226** | `[Cross]` **[EP-055] S6** — collapsible chapters in the Navigator (T-0657) | EP-055 | 2026-11-19 | 2026-11-20 | ✅ **CLOSED** → [`Closed/Sprint-SP-226.md`](Closed/Sprint-SP-226.md) |
 | **SP-227** | `[Apple]` **[EP-055] S7** — the whole app at iPhone width (T-0689) | EP-055 | 2026-11-20 | 2026-11-20 | ✅ **CLOSED** → [`Closed/Sprint-SP-227.md`](Closed/Sprint-SP-227.md) |
+| **SP-228** | `[Apple]` **[EP-055] S8** — TestFlight for iPad, iPhone and the Mac (T-0690) | EP-055 | 2026-11-20 | — | 🔵 **PLANNING** → [`Sprint-SP-228.md`](Sprint-SP-228.md) |
+| **SP-229** | `[Cross]` Rename the app: Scrivi → Inkwyn (T-0684) | — | 2026-11-20 | — | 🟡 **ACTIVE** → [`Sprint-SP-229.md`](Sprint-SP-229.md) |
 | **SP-160** | `[Linux]` **[EP-049] S1** — Linux writes Apple's manuscript format: escaping, paste/copy, pair deletion, Return/⌫, shared corpus (T-0586); + I-0276 | EP-049 | 2026-10-04 | 2026-10-04 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-160.md) |
 
 ## Statistics
@@ -535,6 +537,12 @@ by status, read the table.**
 > on neither time. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-11-20 (**SP-229 → 🟡 ACTIVE** (user, 2026-11-20: *"Q1-Q7 as recommended.  I accept our translation.  we may begin."*); built.)*
+
+*Last Updated: 2026-11-20 (**SP-229 created in 🔵 Planning** — the rename to Inkwyn, [T-0684] (user, 2026-11-20: *"plan the rename sprint"*); Q1–Q7 to rule.)*
+
+*Last Updated: 2026-11-20 (**SP-228 created in 🔵 Planning** (user, 2026-11-20: *"Let's to AC9 on EP-055"*), issued via `next-id.py`; Q1–Q5 to rule.)*
 
 *Last Updated: 2026-11-20 (**SP-227 → ✅ CLOSED** (user, 2026-11-20: *"Close SP-227"*))*
 

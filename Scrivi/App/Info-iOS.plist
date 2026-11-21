@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<!-- The iOS target generates its Info.plist; Xcode merges this file into it. [SP-206] Without this declaration
-	     `UTType("com.caposoft.scrivi.archive")` is nil on iOS and the import picker greys every .scrivarchive out.
+	     `UTType("com.caposoft.scrivi.archive")` is nil on iOS and the import picker greys every .inkwynarchive out.
 	     Kept identical to the Mac's entries in Info.plist. -->
 	<!-- [SP-224] Files lists Scrivi under Open With, and a tap opens the package where it lies (in place, never a copy).
 	     The roles and ranks are the Mac's (Info.plist): a world is Viewer/Alternate, reached only through a project. -->
@@ -54,7 +54,7 @@
 			<key>UTTypeIdentifier</key>
 			<string>com.caposoft.scrivi.project</string>
 			<key>UTTypeDescription</key>
-			<string>Scrivi Project</string>
+			<string>Inkwyn Project</string>
 			<key>UTTypeConformsTo</key>
 			<array>
 				<string>com.apple.package</string>
@@ -63,7 +63,7 @@
 			<dict>
 				<key>public.filename-extension</key>
 				<array>
-					<string>scrivi</string>
+					<string>inkwyn</string>
 				</array>
 			</dict>
 		</dict>
@@ -71,7 +71,7 @@
 			<key>UTTypeIdentifier</key>
 			<string>com.caposoft.scrivi.world</string>
 			<key>UTTypeDescription</key>
-			<string>Scrivi World</string>
+			<string>Inkwyn World</string>
 			<key>UTTypeConformsTo</key>
 			<array>
 				<string>com.apple.package</string>
@@ -80,7 +80,7 @@
 			<dict>
 				<key>public.filename-extension</key>
 				<array>
-					<string>scrivworld</string>
+					<string>inkwynworld</string>
 				</array>
 			</dict>
 		</dict>
@@ -88,7 +88,7 @@
 			<key>UTTypeIdentifier</key>
 			<string>com.caposoft.scrivi.archive</string>
 			<key>UTTypeDescription</key>
-			<string>Scrivi Archive</string>
+			<string>Inkwyn Archive</string>
 			<key>UTTypeConformsTo</key>
 			<array>
 				<string>public.zip-archive</string>
@@ -98,7 +98,7 @@
 			<dict>
 				<key>public.filename-extension</key>
 				<array>
-					<string>scrivarchive</string>
+					<string>inkwynarchive</string>
 				</array>
 			</dict>
 		</dict>

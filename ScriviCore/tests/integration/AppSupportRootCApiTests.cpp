@@ -94,14 +94,14 @@ TEST_CASE("scrivi_ensure_local_identity - RELATIVE appSupportRoot is rejected",
 TEST_CASE("scrivi_open_project - NULL appSupportRoot is rejected",
           "[integration][cabi][I-0191]") {
     const auto before = cwdEntries();
-    expectRejected(scrivi_open_project("/tmp/nonexistent.scrivi", nullptr, "identity_x"),
+    expectRejected(scrivi_open_project("/tmp/nonexistent.inkwyn", nullptr, "identity_x"),
                    before);
 }
 
 TEST_CASE("scrivi_create_project - junk appSupportRoot is rejected",
           "[integration][cabi][I-0191]") {
     const auto before = cwdEntries();
-    expectRejected(scrivi_create_project("/tmp/nonexistent.scrivi",
+    expectRejected(scrivi_create_project("/tmp/nonexistent.inkwyn",
                                          kJunkBytes.c_str(),
                                          "Title", "title",
                                          "identity_x", "persona_x", "Ada"),

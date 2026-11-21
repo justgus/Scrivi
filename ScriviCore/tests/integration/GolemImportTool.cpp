@@ -8,7 +8,7 @@
 // ⚠️ Tagged `[.golem-import]` — hidden by default, so `ctest` never runs it.
 // It is inert unless BOTH env vars are set:
 //     GOLEM_SOURCE_JSON  parsed chapters/scenes (see parse_golem.py)
-//     GOLEM_DEST         destination .scrivi path (must NOT already exist)
+//     GOLEM_DEST         destination .inkwyn path (must NOT already exist)
 
 #include <catch2/catch_test_macros.hpp>
 

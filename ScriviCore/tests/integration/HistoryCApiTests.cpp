@@ -99,7 +99,7 @@ struct HistoryRoot {
         static std::atomic<int> counter{0};
         path = (std::filesystem::temp_directory_path() /
                 ("scrivi-history-capi-" + std::to_string(::getpid()) + "-" + std::to_string(counter.fetch_add(1)) + "-" +
-                 std::to_string(reinterpret_cast<std::uintptr_t>(this)) + ".scrivi"))
+                 std::to_string(reinterpret_cast<std::uintptr_t>(this)) + ".inkwyn"))
                    .string();
     }
     ~HistoryRoot() { std::error_code ec; std::filesystem::remove_all(path, ec); }

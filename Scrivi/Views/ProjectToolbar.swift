@@ -161,7 +161,7 @@ struct ProjectToolbar: ToolbarContent {
         // SP-210 Q1: the app's Settings (pen names) — last, so it is the first into the ⋯ menu.
         ToolbarItem(placement: placement) {
             Button { env.showAppSettings = true } label: {
-                Label("Scrivi Settings", systemImage: "gearshape.2")
+                Label("Inkwyn Settings", systemImage: "gearshape.2")
             }
         }
         #endif
@@ -181,7 +181,7 @@ struct ProjectToolbar: ToolbarContent {
                 env.showAbout = true
                 #endif
             } label: {
-                Label("About Scrivi", systemImage: "info.circle")
+                Label("About Inkwyn", systemImage: "info.circle")
             }
         }
 

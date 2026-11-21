@@ -183,7 +183,7 @@ struct ScriviApp: App {
         // macOS: the only SwiftUI scene is the Welcome/Landing window. Project editor windows
         // are AppKit NSWindows owned by ProjectWindowManager (deterministic lifecycle;
         // WindowGroup(for:) was abandoned because it cached dead windows — T-0194).
-        Window("Welcome to Scrivi", id: "welcome") {
+        Window("Welcome to Inkwyn", id: "welcome") {
             WelcomeWindowRoot()
                 .environment(env)
                 .task { await launchSetup() }
@@ -537,7 +537,7 @@ struct ScriviApp: App {
 
         // About menu. ✅ [SP-193]: the standard panel, which needs no window (the Welcome sheet did).
         CommandGroup(replacing: .appInfo) {
-            Button("About Scrivi") { AboutPanel.show() }
+            Button("About Inkwyn") { AboutPanel.show() }
         }
         HelpCommands()   // ⚠️ one entry: a `CommandsBuilder` takes at most ten
     }
@@ -645,7 +645,7 @@ struct ScriviApp: App {
         iosEditAndFormatCommands   // ⚠️ its own builder: a `CommandsBuilder` takes at most ten entries
 
         CommandGroup(replacing: .appInfo) {
-            Button("About Scrivi") { env.showAbout = true }
+            Button("About Inkwyn") { env.showAbout = true }
         }
         CommandGroup(after: .appInfo) {
             Button("User Manual") { }

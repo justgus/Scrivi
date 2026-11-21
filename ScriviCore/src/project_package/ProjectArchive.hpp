@@ -1,5 +1,5 @@
 #pragma once
-// ProjectArchive — one project, and optionally its worlds, in one `.scrivarchive` zip (EP-054 S1, SP-205).
+// ProjectArchive — one project, and optionally its worlds, in one `.inkwynarchive` zip (EP-054 S1, SP-205).
 //
 // An archive is NEVER a project: nothing reads, searches or edits inside it. It is written by `exportArchive` and
 // unpacked by `importArchive`; the platform then opens the unpacked project the ordinary way.

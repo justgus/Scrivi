@@ -21,7 +21,7 @@ WORKDIR="$(mktemp -d)"
 trap 'rm -rf "$WORKDIR"' EXIT
 export XDG_DATA_HOME="$WORKDIR/xdg"
 export QT_QPA_PLATFORM=offscreen
-PROJECT_DIR="$WORKDIR/projects/scene-rename.scrivi"
+PROJECT_DIR="$WORKDIR/projects/scene-rename.inkwyn"
 
 echo "== navigator rename-scene + rename-chapter (context menu → edit) =="
 PROJECT_ID="$("$BIN" "$PROJECT_DIR")"

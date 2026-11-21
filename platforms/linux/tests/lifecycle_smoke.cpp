@@ -14,7 +14,7 @@
 //           projectID as pass 1). Proves the loop survives a restart.
 //
 // $XDG_DATA_HOME drives appSupportRoot (see AppSupport); the project dir is
-// passed as argv[2] (pass 1) so both passes point at the same on-disk .scrivi.
+// passed as argv[2] (pass 1) so both passes point at the same on-disk .inkwyn.
 
 #include <QCoreApplication>
 

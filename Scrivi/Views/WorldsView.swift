@@ -272,10 +272,10 @@ struct WorldsView: View {
         }
     }
 
-    /// The `.scrivworld` package UTI (declared in Info.plist), with a package
+    /// The `.inkwynworld` package UTI (declared in Info.plist), with a package
     /// fallback if Launch Services has not registered it yet.
     ///
-    /// ⚠️ WHY THE PANELS NEED THIS. A `.scrivworld` is a DIRECTORY. Without a
+    /// ⚠️ WHY THE PANELS NEED THIS. A `.inkwynworld` is a DIRECTORY. Without a
     /// content-type filter an `NSOpenPanel` with `canChooseDirectories = true`
     /// lets the writer DESCEND INTO the package — `index.json`, the kind
     /// subdirectories, `world.json` — instead of choosing it.
@@ -298,8 +298,8 @@ struct WorldsView: View {
         // shareable package on disk, not hidden project-internal state (Doc 3 §4.1).
         let panel = NSSavePanel()
         panel.title = "Create World"
-        panel.nameFieldStringValue = "\(name).scrivworld"
-        // ⚠️ Declaring the type keeps the `.scrivworld` extension attached even
+        panel.nameFieldStringValue = "\(name).inkwynworld"
+        // ⚠️ Declaring the type keeps the `.inkwynworld` extension attached even
         // if the writer edits the name field, so a world cannot be born as a
         // plain directory the app will not recognise later.
         panel.allowedContentTypes = [scriviWorldType]
@@ -370,10 +370,10 @@ struct WorldsView: View {
         panel.title = "Locate “\(world.displayName)”"
         // ⚠️ The package must be pickable AS AN ATOM, not traversed into.
         // `allowedContentTypes` is what stops the panel descending; leaving
-        // `canChooseDirectories` true alone made every `.scrivworld` a folder
+        // `canChooseDirectories` true alone made every `.inkwynworld` a folder
         // the writer could open and get lost inside (I-0185's class).
         //
-        // ⚠️ I-0217: `canChooseFiles` MUST be `true`. A `.scrivworld` conforms to
+        // ⚠️ I-0217: `canChooseFiles` MUST be `true`. A `.inkwynworld` conforms to
         // `com.apple.package`, so AppKit presents it as a FILE — with
         // `canChooseFiles = false` every package greyed out and only a
         // double-click could force selection. `treatsFilePackagesAsDirectories
@@ -472,7 +472,7 @@ struct WorldsView: View {
             defer { if scoped { picked.stopAccessingSecurityScopedResource() } }
             switch action {
             case .createIn(let name):
-                createWorld(at: picked.appendingPathComponent("\(name).scrivworld", isDirectory: true), name: name)
+                createWorld(at: picked.appendingPathComponent("\(name).inkwynworld", isDirectory: true), name: name)
             case .addExisting:
                 bindExistingWorld(at: picked)
             case .relink(let world):

@@ -1170,7 +1170,7 @@ namespace {
 // fail the whole index extraction).
 //
 // ⚠️ I-0118: `baseDir` used to be hardcoded as <project>/objects. It is now
-// passed in, because a world-scoped object lives in the .scrivworld package —
+// passed in, because a world-scoped object lives in the .inkwynworld package —
 // and since T-0409 that is every kind except `source`.
 //
 // `linkQuery` is the deep-link ownership clause ("project=<id>" or

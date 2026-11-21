@@ -24,8 +24,8 @@ namespace {
 // The archive's own table of contents, its first entry. A zip without it is not a Scrivi archive.
 constexpr const char* kManifestName = "scrivarchive.json";
 constexpr std::string_view kFormat  = "scrivi.archive.v1";
-constexpr std::string_view kProjectExt = ".scrivi";
-constexpr std::string_view kWorldExt   = ".scrivworld";
+constexpr std::string_view kProjectExt = ".inkwyn";
+constexpr std::string_view kWorldExt   = ".inkwynworld";
 
 Error ioError(std::string message, const AbsolutePath& path) {
     return {.code = ErrorCode::ioError, .message = std::move(message), .path = path};
@@ -35,7 +35,7 @@ Error invalid(std::string message, const AbsolutePath& path = {}, std::string de
             .detail = std::move(detail)};
 }
 
-// A folder path without its trailing separator: the Mac passes the project as `…/Novel.scrivi/`, whose
+// A folder path without its trailing separator: the Mac passes the project as `…/Novel.inkwyn/`, whose
 // filename() is empty, and an empty prefix makes every entry name absolute (miniz: "invalid filename").
 fs::path folderPath(const std::string& p) {
     auto q = fs::path(p).lexically_normal();

@@ -1,5 +1,19 @@
 # Task Backlog
 
+*Last Updated: 2026-11-20 (**T-0684 → 🟠** with [SP-229] activated and built → `Task-unverified.md` (user, 2026-11-20: *"Q1-Q7 as recommended.  I accept our translation.  we may begin."*); **T-0691 filed** (the ᚹ icon, from SP-229).)*
+
+*Last Updated: 2026-11-20 (**T-0684 → [SP-229]** (🔵 Planning), the rename Sprint (user, 2026-11-20: *"plan the rename sprint"*).)*
+
+*Last Updated: 2026-11-20 (**T-0684: the name is Inkwyn**, reserved in App Store Connect (user, 2026-11-20).)*
+
+*Last Updated: 2026-11-20 (**T-0684 scope ruled** — the visible name and the file extensions; identifiers stay (user, 2026-11-20).)*
+
+*Last Updated: 2026-11-20 (**T-0684 next** — the rename comes before [SP-228] (user, 2026-11-20).)*
+
+*Last Updated: 2026-11-20 (**T-0249, T-0472, T-0491, T-0497 → [EP-059]** (E2, C5, A7, D1): EP-035/036/037 superseded by it; T-0249 moved from EP-022.)*
+
+*Last Updated: 2026-11-20 (**T-0690 filed** — EP-055 S8, carried by [SP-228] (🔵 Planning) (user, 2026-11-20: *"Let's to AC9 on EP-055"*).)*
+
 *Last Updated: 2026-11-20 (**T-0689 → active** with [SP-227]'s activation (user, 2026-11-20: *"implement SP-227"*) → `Task-active.md`; built the same day → `Task-unverified.md`.)*
 
 *Last Updated: 2026-11-20 (**T-0689 filed** — EP-055 S7, carried by [SP-227] (🔵 Planning) (user, 2026-11-20: *"plan SP-227"*).)*
@@ -135,18 +149,19 @@ status changes on its own layer.
 
 | Task | Title | Epic | Status |
 | ---- | ----- | ---- | ------ |
+| T-0690 | `[Apple]` EP-055 S8: TestFlight for iPad, iPhone and the Mac | EP-055 | 🔵 Backlog — [SP-228] |
 | T-0118 | Scroll bar fidelity — per-scene character-ratio thumb position and size | EP-011 | 🔵 Backlog |
 | T-0197 | Enable Core Spotlight donation on iOS/iPadOS (+ iOS deep-link/bookmark consumer); visionOS when backend links | EP-017 (deferred from T-0190) | 🔵 Backlog |
-| T-0249 | `[Linux]` Manuscript navigation gestures — Page Forward/Backward + jump to absolute manuscript start/end | EP-022 (unscheduled) | 🔵 Backlog |
+| T-0249 | `[Linux]` Manuscript navigation gestures — Page Forward/Backward + jump to absolute manuscript start/end | **EP-059** E2 (was EP-022) | 🔵 Backlog |
 | **T-0459** | ⚠️ **`[Cross]` Per-citation reference markers on the `cites` EDGE** — surface the edge `note`, and ⚠️ **move `page` off the source object** | **EP-032** | 🔵 **Backlog** — ⚠️ **found by live use, SP-120** |
-| **T-0472** | ⚠️ **`[Linux]` Surface for custom relationship types** — build the UI that calls `scrivi_upsert_relation_type`. ⚠️ **The endpoint is fully implemented and has NEVER had a caller on any platform** | **EP-037** | 🔵 **Backlog** — ⚠️ **user ruling 2026-08-25: a REAL FEATURE owed a surface, not dead code**; ⚠️ **moved EP-035 → EP-037 by the three-way split** |
+| **T-0472** | ⚠️ **`[Linux]` Surface for custom relationship types** — build the UI that calls `scrivi_upsert_relation_type`. ⚠️ **The endpoint is fully implemented and has NEVER had a caller on any platform** | **EP-059** C5 (was EP-037) | 🔵 **Backlog** — ⚠️ **user ruling 2026-08-25: a REAL FEATURE owed a surface, not dead code**; ⚠️ **moved EP-035 → EP-037 by the three-way split** |
 | **T-0473** | ⚠️ **`[Apple]` Timeline endpoint parity** — reach `resolve_timeline_project_times`, `set_timeline_epoch_offset`, `set_world_epoch_offset`. ⚠️ **Unreached on Apple; bridged on Linux by SP-121** | ⚠️ **None — no Epic** | 🔵 **Backlog** — ⚠️ **user ruling 2026-08-25: tracked, NOT scheduled** |
-| **T-0497** | ⚠️ **`[Linux]` World CREATION** — the one Worlds action SP-127 deliberately deferred. ⚠️ **Apple entangles it with `WorldBookmarkStore` (macOS sandbox grants, NO Linux equivalent)**, and ✅ **AC3 asks for added / status read / relinked, not created**. ⚠️ **PRIORITY ARGUMENT CHANGED BY THE T-0496 LIVE PASS (2026-09-01):** ⚠️ **the user hit this as a DEAD END while setting up a test** — `Project ▸ Manage Worlds…` offers **no create affordance**, so ⚠️ **a project with no world cannot proceed on Linux at all**: there is nothing to *add* or *relink*. ✅ **Apple detects the no-world case and PROMPTS the writer to create one** — ⚠️ **the deferral assumed add+relink were enough to be USABLE, and they are not.** ⚠️ **The step-7 test could not be completed on Linux alone; the world (`Alpha Centauri`) had to be created in the APPLE app** — ⚠️ **the sharpest evidence available that this is a gap, not a nicety.** | **EP-035** | 🔵 **Backlog** — ⚠️ **unscheduled, but ⚠️ NOW BLOCKING a Linux-only writer** |
+| **T-0497** | ⚠️ **`[Linux]` World CREATION** — the one Worlds action SP-127 deliberately deferred. ⚠️ **Apple entangles it with `WorldBookmarkStore` (macOS sandbox grants, NO Linux equivalent)**, and ✅ **AC3 asks for added / status read / relinked, not created**. ⚠️ **PRIORITY ARGUMENT CHANGED BY THE T-0496 LIVE PASS (2026-09-01):** ⚠️ **the user hit this as a DEAD END while setting up a test** — `Project ▸ Manage Worlds…` offers **no create affordance**, so ⚠️ **a project with no world cannot proceed on Linux at all**: there is nothing to *add* or *relink*. ✅ **Apple detects the no-world case and PROMPTS the writer to create one** — ⚠️ **the deferral assumed add+relink were enough to be USABLE, and they are not.** ⚠️ **The step-7 test could not be completed on Linux alone; the world (`Alpha Centauri`) had to be created in the APPLE app** — ⚠️ **the sharpest evidence available that this is a gap, not a nicety.** | **EP-059** D1 (was EP-035) | 🔵 **Backlog** — ⚠️ **unscheduled, but ⚠️ NOW BLOCKING a Linux-only writer** |
 | T-0621 | `[Cross]` Explore a whole-manuscript history view (a tree, or a branching timeline) | ⚠️ None yet | 🔵 Backlog — exploration |
 | T-0628 | `[Cross]` EP-052: keep a held queue on local disk and push it when the project returns | EP-052 (unscheduled) | 🔵 Backlog |
 | T-0663 | `[Cross]` Properties tab: the project's file facts (folder, path, dates, size) | ⚠️ None yet | 🔵 Backlog — Q1–Q5 ruled |
 | T-0667 | `[Cross]` EP-054: paste a Copy as HTML chapter into AO3 itself once it is back online | EP-054 | 🔵 Backlog — waits for AO3 |
-| T-0684 | `[Cross]` The app's name: "Scrivi" is alarmingly close to "Scrivener" | ⚠️ None yet | 🔵 Backlog |
+| T-0691 | `[Cross]` Inkwyn's app icon and document icon: the rune ᚹ | ⚠️ None yet | 🔵 Backlog — waits on the artwork |
 
 > ✅ **T-0477 – T-0479 LEFT this file 2026-08-31 when SP-124 was ACTIVATED**, per the standing rule that
 > active Tasks never sit in the backlog. ✅ **They are now VERIFIED (2026-09-10) and ARCHIVED** →
@@ -177,18 +192,28 @@ status changes on its own layer.
 
 ## Detail
 
-## 🔵 T-0684 — `[Cross]` The app's name is too close to Scrivener's
+## 🔵 T-0690 — `[Apple]` EP-055 S8: TestFlight for iPad, iPhone and the Mac
 
-**Epic:** ⚠️ None yet · **Status:** 🔵 Backlog · **Sprint:** Not Assigned · **Date Requested:** 2026-11-17 (user, planning
-[SP-220]: *"the name for my app is alarmingly similar to Scrivener.  We should address that at some point"*; filed (user, 2026-11-17: *"Q3a and Q7a as recommended, yes file the name Task"*))
+**Epic:** [EP-055] (AC9) · **Status:** 🔵 Backlog · **Sprint:** [SP-228] (🔵 Planning) →
+[`../Sprints/Sprint-SP-228.md`](../Sprints/Sprint-SP-228.md) · **Date Requested:** 2026-11-20 (user: *"Let's to AC9 on EP-055"*)
 
-**What:** Decide whether Scrivi keeps its name. Scrivener (Literature & Latte) is the best-known app in the same category, and
-SP-220 now imports its projects, so the two names will sit side by side in menus ("Import ▸ Scrivener Project…"). Questions for
-its planning: whether to rename, before or after the alpha spreads; the name's reach (bundle IDs, the `.scrivi` / `.scrivworld`
-extensions, `scrivi_*` ABI, schema IDs `scrivi.*.v1`, repo and docs) — the internal identifiers need not follow a display
-rename.
+**What:** archive the iOS and Mac apps from a clean clone, add a privacy manifest and the export-compliance key, and get both
+builds onto TestFlight for internal and then external testers. Findings, questions and ACs: the Sprint.
 
 ---
+
+
+---
+
+## 🔵 T-0691 — `[Cross]` Inkwyn's app icon and document icon: the rune ᚹ
+
+**Epic:** ⚠️ None yet · **Status:** 🔵 Backlog — waits on the artwork (the user's) · **Sprint:** Not Assigned · **Date Requested:**
+2026-11-20 (from [SP-229] Q-ruling, user: *"Q1-Q7 as recommended"*; the rune is for the logo only, user, 2026-11-20: *"we should
+onlt use the rune in the logo"*)
+
+**What:** the app's icon on every platform (iOS light/dark/tinted, the Mac's sizes, the Linux theme icon) and the project
+document icon, drawn on ᚹ (wynn, U+16B9). Today's icon stays until the art exists. ⛔ The rune never appears in the app's name or
+in text.
 
 ---
 
@@ -328,7 +353,7 @@ Rationale + assessment: [`Verified/Task-verified-0190.md`](Verified/Task-verifie
 
 ### T-0249 — `[Linux]` Manuscript navigation gestures
 
-**Epic:** EP-022 (unscheduled) · **Status:** 🔵 Backlog
+**Epic:** **EP-059** E2 (was EP-022; moved 2026-11-20) · **Status:** 🔵 Backlog
 
 Page Forward / Page Backward + jump to absolute manuscript start / end. **Gestures and keystrokes are
 undecided** — laptops and tablets lack extended keyboards, so no PageUp/PageDown/Home/End may be
@@ -435,7 +460,7 @@ code is left alone; nothing is deleted; and the file is written **only when some
 
 ## ⚠️ T-0472 — `[Linux]` Surface for custom relationship types
 
-**Epic:** **EP-037** (⚠️ **was EP-035 — moved by the 2026-08-25 three-way split**) · **Ruled:** 2026-08-25 (user)
+**Epic:** **EP-059** C5 (EP-037 superseded 2026-11-20; ⚠️ **was EP-035 — moved by the 2026-08-25 three-way split**) · **Ruled:** 2026-08-25 (user)
 **Origin:** EP-034 close / SP-121's ABI gap audit
 
 ⚠️ **`scrivi_upsert_relation_type` is fully implemented and has zero callers on ANY platform.** The core
@@ -622,7 +647,7 @@ wholesale. Prior note follows.)*
 T-0408 (SP-099) and T-0409/T-0411 (SP-103), all ✅ Verified 2026-08-15; and T-0217, carried 🔵 Backlog
 under the superseded SP-057 despite completing in SP-094.)*
 
-## Unscheduled — EP-035, filed 2026-08-29
+## Unscheduled — EP-059 A7 (filed 2026-08-29 under EP-035, superseded 2026-11-20)
 
 | ID | Title | Priority | Status |
 | -- | ----- | -------- | ------ |

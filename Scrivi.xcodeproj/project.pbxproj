@@ -15,7 +15,6 @@
 		C003_BF /* LandingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C003 /* LandingView.swift */; };
 		C004_BF /* EditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C004 /* EditorView.swift */; };
 		C005_BF /* NewProjectSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C005 /* NewProjectSheet.swift */; };
-		C210A_BF /* AuthorshipViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = C210A /* AuthorshipViews.swift */; };
 		C006_BF /* ViewportSceneLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = C006 /* ViewportSceneLoader.swift */; };
 		C007_BF /* ManuscriptTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C007 /* ManuscriptTextView.swift */; };
 		C008_BF /* SceneNavigatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C008 /* SceneNavigatorView.swift */; };
@@ -58,8 +57,6 @@
 		C072_BF /* ObjectPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C072 /* ObjectPickerView.swift */; };
 		C073_BF /* WorldsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C073 /* WorldsView.swift */; };
 		C074_BF /* WorldBookmarkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C074 /* WorldBookmarkStore.swift */; };
-		C2A5_BF /* ProjectArchiveFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A5 /* ProjectArchiveFlow.swift */; };
-		C2A6_BF /* ManuscriptPDF.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A6 /* ManuscriptPDF.swift */; };
 		C075_BF /* WorldVolumeStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = C075 /* WorldVolumeStatus.swift */; };
 		C076_BF /* WorldWarningView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C076 /* WorldWarningView.swift */; };
 		C077_BF /* SourcesCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C077 /* SourcesCard.swift */; };
@@ -70,15 +67,18 @@
 		C082_BF /* ManuscriptCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = C082 /* ManuscriptCommands.swift */; };
 		C083_BF /* ManuscriptFind.swift in Sources */ = {isa = PBXBuildFile; fileRef = C083 /* ManuscriptFind.swift */; };
 		C090_BF /* ManuscriptEditing.swift in Sources */ = {isa = PBXBuildFile; fileRef = C090 /* ManuscriptEditing.swift */; };
-		C094_BF /* ManuscriptStructure.swift in Sources */ = {isa = PBXBuildFile; fileRef = C094 /* ManuscriptStructure.swift */; };
 		C091_BF /* ManuscriptUITextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C091 /* ManuscriptUITextView.swift */; };
 		C092_BF /* ProjectToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = C092 /* ProjectToolbar.swift */; };
 		C093_BF /* PanelSwipes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C093 /* PanelSwipes.swift */; };
+		C094_BF /* ManuscriptStructure.swift in Sources */ = {isa = PBXBuildFile; fileRef = C094 /* ManuscriptStructure.swift */; };
 		C099_BF /* ScriviDiag.swift in Sources */ = {isa = PBXBuildFile; fileRef = C099 /* ScriviDiag.swift */; };
+		C210A_BF /* AuthorshipViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = C210A /* AuthorshipViews.swift */; };
 		C2A1_BF /* StaleBranchesSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A1 /* StaleBranchesSheet.swift */; };
 		C2A2_BF /* ManuscriptTypography.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A2 /* ManuscriptTypography.swift */; };
 		C2A3_BF /* ManuscriptAccessibility.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A3 /* ManuscriptAccessibility.swift */; };
 		C2A4_BF /* ManuscriptPresentedMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A4 /* ManuscriptPresentedMap.swift */; };
+		C2A5_BF /* ProjectArchiveFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A5 /* ProjectArchiveFlow.swift */; };
+		C2A6_BF /* ManuscriptPDF.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A6 /* ManuscriptPDF.swift */; };
 		CORPUS_BF /* manuscript_format_corpus.json in Resources */ = {isa = PBXBuildFile; fileRef = CORPUS_REF /* manuscript_format_corpus.json */; };
 		C_CITE_BF /* Citation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B022 /* Citation.swift */; };
 		C_EAPICK_BF /* ExistingAssetPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B020 /* ExistingAssetPicker.swift */; };
@@ -88,7 +88,6 @@
 		D003_BF /* LandingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C003 /* LandingView.swift */; };
 		D004_BF /* EditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C004 /* EditorView.swift */; };
 		D005_BF /* NewProjectSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C005 /* NewProjectSheet.swift */; };
-		D210A_BF /* AuthorshipViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = C210A /* AuthorshipViews.swift */; };
 		D006_BF /* ViewportSceneLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = C006 /* ViewportSceneLoader.swift */; };
 		D007_BF /* ManuscriptTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C007 /* ManuscriptTextView.swift */; };
 		D008_BF /* SceneNavigatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C008 /* SceneNavigatorView.swift */; };
@@ -130,8 +129,6 @@
 		D072_BF /* ObjectPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C072 /* ObjectPickerView.swift */; };
 		D073_BF /* WorldsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C073 /* WorldsView.swift */; };
 		D074_BF /* WorldBookmarkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C074 /* WorldBookmarkStore.swift */; };
-		D2A5_BF /* ProjectArchiveFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A5 /* ProjectArchiveFlow.swift */; };
-		D2A6_BF /* ManuscriptPDF.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A6 /* ManuscriptPDF.swift */; };
 		D075_BF /* WorldVolumeStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = C075 /* WorldVolumeStatus.swift */; };
 		D076_BF /* WorldWarningView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C076 /* WorldWarningView.swift */; };
 		D077_BF /* SourcesCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C077 /* SourcesCard.swift */; };
@@ -142,15 +139,18 @@
 		D082_BF /* ManuscriptCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = C082 /* ManuscriptCommands.swift */; };
 		D083_BF /* ManuscriptFind.swift in Sources */ = {isa = PBXBuildFile; fileRef = C083 /* ManuscriptFind.swift */; };
 		D090_BF /* ManuscriptEditing.swift in Sources */ = {isa = PBXBuildFile; fileRef = C090 /* ManuscriptEditing.swift */; };
-		D094_BF /* ManuscriptStructure.swift in Sources */ = {isa = PBXBuildFile; fileRef = C094 /* ManuscriptStructure.swift */; };
 		D091_BF /* ManuscriptUITextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C091 /* ManuscriptUITextView.swift */; };
 		D092_BF /* ProjectToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = C092 /* ProjectToolbar.swift */; };
 		D093_BF /* PanelSwipes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C093 /* PanelSwipes.swift */; };
+		D094_BF /* ManuscriptStructure.swift in Sources */ = {isa = PBXBuildFile; fileRef = C094 /* ManuscriptStructure.swift */; };
 		D099_BF /* ScriviDiag.swift in Sources */ = {isa = PBXBuildFile; fileRef = C099 /* ScriviDiag.swift */; };
+		D210A_BF /* AuthorshipViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = C210A /* AuthorshipViews.swift */; };
 		D2A1_BF /* StaleBranchesSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A1 /* StaleBranchesSheet.swift */; };
 		D2A2_BF /* ManuscriptTypography.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A2 /* ManuscriptTypography.swift */; };
 		D2A3_BF /* ManuscriptAccessibility.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A3 /* ManuscriptAccessibility.swift */; };
 		D2A4_BF /* ManuscriptPresentedMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A4 /* ManuscriptPresentedMap.swift */; };
+		D2A5_BF /* ProjectArchiveFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A5 /* ProjectArchiveFlow.swift */; };
+		D2A6_BF /* ManuscriptPDF.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A6 /* ManuscriptPDF.swift */; };
 		D_CITE_BF /* Citation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B022 /* Citation.swift */; };
 		D_EAPICK_BF /* ExistingAssetPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B020 /* ExistingAssetPicker.swift */; };
 		D_SRCSEC_BF /* ObjectSourcesSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B021 /* ObjectSourcesSection.swift */; };
@@ -159,7 +159,6 @@
 		E003_BF /* LandingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C003 /* LandingView.swift */; };
 		E004_BF /* EditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C004 /* EditorView.swift */; };
 		E005_BF /* NewProjectSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C005 /* NewProjectSheet.swift */; };
-		E210A_BF /* AuthorshipViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = C210A /* AuthorshipViews.swift */; };
 		E006_BF /* ViewportSceneLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = C006 /* ViewportSceneLoader.swift */; };
 		E007_BF /* ManuscriptTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C007 /* ManuscriptTextView.swift */; };
 		E008_BF /* SceneNavigatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C008 /* SceneNavigatorView.swift */; };
@@ -201,8 +200,6 @@
 		E072_BF /* ObjectPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C072 /* ObjectPickerView.swift */; };
 		E073_BF /* WorldsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C073 /* WorldsView.swift */; };
 		E074_BF /* WorldBookmarkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C074 /* WorldBookmarkStore.swift */; };
-		E2A5_BF /* ProjectArchiveFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A5 /* ProjectArchiveFlow.swift */; };
-		E2A6_BF /* ManuscriptPDF.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A6 /* ManuscriptPDF.swift */; };
 		E075_BF /* WorldVolumeStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = C075 /* WorldVolumeStatus.swift */; };
 		E076_BF /* WorldWarningView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C076 /* WorldWarningView.swift */; };
 		E077_BF /* SourcesCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C077 /* SourcesCard.swift */; };
@@ -213,15 +210,18 @@
 		E082_BF /* ManuscriptCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = C082 /* ManuscriptCommands.swift */; };
 		E083_BF /* ManuscriptFind.swift in Sources */ = {isa = PBXBuildFile; fileRef = C083 /* ManuscriptFind.swift */; };
 		E090_BF /* ManuscriptEditing.swift in Sources */ = {isa = PBXBuildFile; fileRef = C090 /* ManuscriptEditing.swift */; };
-		E094_BF /* ManuscriptStructure.swift in Sources */ = {isa = PBXBuildFile; fileRef = C094 /* ManuscriptStructure.swift */; };
 		E091_BF /* ManuscriptUITextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C091 /* ManuscriptUITextView.swift */; };
 		E092_BF /* ProjectToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = C092 /* ProjectToolbar.swift */; };
 		E093_BF /* PanelSwipes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C093 /* PanelSwipes.swift */; };
+		E094_BF /* ManuscriptStructure.swift in Sources */ = {isa = PBXBuildFile; fileRef = C094 /* ManuscriptStructure.swift */; };
 		E099_BF /* ScriviDiag.swift in Sources */ = {isa = PBXBuildFile; fileRef = C099 /* ScriviDiag.swift */; };
+		E210A_BF /* AuthorshipViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = C210A /* AuthorshipViews.swift */; };
 		E2A1_BF /* StaleBranchesSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A1 /* StaleBranchesSheet.swift */; };
 		E2A2_BF /* ManuscriptTypography.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A2 /* ManuscriptTypography.swift */; };
 		E2A3_BF /* ManuscriptAccessibility.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A3 /* ManuscriptAccessibility.swift */; };
 		E2A4_BF /* ManuscriptPresentedMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A4 /* ManuscriptPresentedMap.swift */; };
+		E2A5_BF /* ProjectArchiveFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A5 /* ProjectArchiveFlow.swift */; };
+		E2A6_BF /* ManuscriptPDF.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A6 /* ManuscriptPDF.swift */; };
 		E_CITE_BF /* Citation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B022 /* Citation.swift */; };
 		E_EAPICK_BF /* ExistingAssetPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B020 /* ExistingAssetPicker.swift */; };
 		E_SRCSEC_BF /* ObjectSourcesSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B021 /* ObjectSourcesSection.swift */; };
@@ -270,7 +270,6 @@
 		C003 /* LandingView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = LandingView.swift; path = Scrivi/Views/LandingView.swift; sourceTree = SOURCE_ROOT; };
 		C004 /* EditorView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = EditorView.swift; path = Scrivi/Views/EditorView.swift; sourceTree = SOURCE_ROOT; };
 		C005 /* NewProjectSheet.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = NewProjectSheet.swift; path = Scrivi/Views/NewProjectSheet.swift; sourceTree = SOURCE_ROOT; };
-		C210A /* AuthorshipViews.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = AuthorshipViews.swift; path = Scrivi/Views/AuthorshipViews.swift; sourceTree = SOURCE_ROOT; };
 		C006 /* ViewportSceneLoader.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ViewportSceneLoader.swift; path = Scrivi/Views/ViewportSceneLoader.swift; sourceTree = SOURCE_ROOT; };
 		C007 /* ManuscriptTextView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptTextView.swift; path = Scrivi/Views/ManuscriptTextView.swift; sourceTree = SOURCE_ROOT; };
 		C008 /* SceneNavigatorView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = SceneNavigatorView.swift; path = Scrivi/Views/SceneNavigatorView.swift; sourceTree = SOURCE_ROOT; };
@@ -302,8 +301,6 @@
 		C072 /* ObjectPickerView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ObjectPickerView.swift; path = Scrivi/Views/Inspector/ObjectPickerView.swift; sourceTree = SOURCE_ROOT; };
 		C073 /* WorldsView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = WorldsView.swift; path = Scrivi/Views/WorldsView.swift; sourceTree = SOURCE_ROOT; };
 		C074 /* WorldBookmarkStore.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = WorldBookmarkStore.swift; path = Scrivi/App/WorldBookmarkStore.swift; sourceTree = SOURCE_ROOT; };
-		C2A5 /* ProjectArchiveFlow.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ProjectArchiveFlow.swift; path = Scrivi/App/ProjectArchiveFlow.swift; sourceTree = SOURCE_ROOT; };
-		C2A6 /* ManuscriptPDF.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptPDF.swift; path = Scrivi/App/ManuscriptPDF.swift; sourceTree = SOURCE_ROOT; };
 		C075 /* WorldVolumeStatus.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = WorldVolumeStatus.swift; path = Scrivi/App/WorldVolumeStatus.swift; sourceTree = SOURCE_ROOT; };
 		C076 /* WorldWarningView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = WorldWarningView.swift; path = Scrivi/Views/WorldWarningView.swift; sourceTree = SOURCE_ROOT; };
 		C077 /* SourcesCard.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = SourcesCard.swift; path = Scrivi/Views/Inspector/SourcesCard.swift; sourceTree = SOURCE_ROOT; };
@@ -314,19 +311,22 @@
 		C082 /* ManuscriptCommands.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptCommands.swift; path = Scrivi/Views/ManuscriptCommands.swift; sourceTree = SOURCE_ROOT; };
 		C083 /* ManuscriptFind.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptFind.swift; path = Scrivi/Views/ManuscriptFind.swift; sourceTree = SOURCE_ROOT; };
 		C090 /* ManuscriptEditing.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptEditing.swift; path = Scrivi/Views/ManuscriptEditing.swift; sourceTree = SOURCE_ROOT; };
-		C094 /* ManuscriptStructure.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptStructure.swift; path = Scrivi/Views/ManuscriptStructure.swift; sourceTree = SOURCE_ROOT; };
 		C091 /* ManuscriptUITextView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptUITextView.swift; path = Scrivi/Views/ManuscriptUITextView.swift; sourceTree = SOURCE_ROOT; };
 		C092 /* ProjectToolbar.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ProjectToolbar.swift; path = Scrivi/Views/ProjectToolbar.swift; sourceTree = SOURCE_ROOT; };
 		C093 /* PanelSwipes.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = PanelSwipes.swift; path = Scrivi/Views/PanelSwipes.swift; sourceTree = SOURCE_ROOT; };
+		C094 /* ManuscriptStructure.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptStructure.swift; path = Scrivi/Views/ManuscriptStructure.swift; sourceTree = SOURCE_ROOT; };
 		C099 /* ScriviDiag.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ScriviDiag.swift; path = Scrivi/App/ScriviDiag.swift; sourceTree = SOURCE_ROOT; };
+		C210A /* AuthorshipViews.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = AuthorshipViews.swift; path = Scrivi/Views/AuthorshipViews.swift; sourceTree = SOURCE_ROOT; };
 		C2A1 /* StaleBranchesSheet.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = StaleBranchesSheet.swift; path = Scrivi/Views/StaleBranchesSheet.swift; sourceTree = SOURCE_ROOT; };
 		C2A2 /* ManuscriptTypography.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptTypography.swift; path = Scrivi/Views/ManuscriptTypography.swift; sourceTree = SOURCE_ROOT; };
 		C2A3 /* ManuscriptAccessibility.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptAccessibility.swift; path = Scrivi/Views/ManuscriptAccessibility.swift; sourceTree = SOURCE_ROOT; };
 		C2A4 /* ManuscriptPresentedMap.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptPresentedMap.swift; path = Scrivi/Views/ManuscriptPresentedMap.swift; sourceTree = SOURCE_ROOT; };
+		C2A5 /* ProjectArchiveFlow.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ProjectArchiveFlow.swift; path = Scrivi/App/ProjectArchiveFlow.swift; sourceTree = SOURCE_ROOT; };
+		C2A6 /* ManuscriptPDF.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptPDF.swift; path = Scrivi/App/ManuscriptPDF.swift; sourceTree = SOURCE_ROOT; };
 		CORPUS_REF /* manuscript_format_corpus.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = manuscript_format_corpus.json; path = ScriviCore/tests/fixtures/manuscript_format_corpus.json; sourceTree = SOURCE_ROOT; };
-		C_PRODUCT /* Scrivi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Scrivi.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		D_PRODUCT /* Scrivi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Scrivi.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		E_PRODUCT /* Scrivi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Scrivi.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		C_PRODUCT /* Inkwyn.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Inkwyn.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D_PRODUCT /* Inkwyn.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Inkwyn.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E_PRODUCT /* Inkwyn.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Inkwyn.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F001 /* ScriviInteropTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ScriviInteropTests.swift; path = Scrivi/Tests/ScriviInteropTests.swift; sourceTree = SOURCE_ROOT; };
 		FONTS_REF /* Fonts */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Fonts; path = Resources/Fonts; sourceTree = SOURCE_ROOT; };
 		F_PRODUCT /* ScriviInteropTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ScriviInteropTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -382,9 +382,9 @@
 		GRP_PRODUCTS /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				C_PRODUCT /* Scrivi.app */,
-				D_PRODUCT /* Scrivi.app */,
-				E_PRODUCT /* Scrivi.app */,
+				C_PRODUCT /* Inkwyn.app */,
+				D_PRODUCT /* Inkwyn.app */,
+				E_PRODUCT /* Inkwyn.app */,
 				F_PRODUCT /* ScriviInteropTests.xctest */,
 				G_PRODUCT /* ScriviTests-iOS.xctest */,
 			);
@@ -505,7 +505,7 @@
 			);
 			name = ScriviApp;
 			productName = ScriviApp;
-			productReference = C_PRODUCT /* Scrivi.app */;
+			productReference = C_PRODUCT /* Inkwyn.app */;
 			productType = "com.apple.product-type.application";
 		};
 		D_TARGET /* ScriviApp-iOS */ = {
@@ -524,7 +524,7 @@
 			);
 			name = "ScriviApp-iOS";
 			productName = "ScriviApp-iOS";
-			productReference = D_PRODUCT /* Scrivi.app */;
+			productReference = D_PRODUCT /* Inkwyn.app */;
 			productType = "com.apple.product-type.application";
 		};
 		E_TARGET /* ScriviApp-visionOS */ = {
@@ -541,7 +541,7 @@
 			);
 			name = "ScriviApp-visionOS";
 			productName = "ScriviApp-visionOS";
-			productReference = E_PRODUCT /* Scrivi.app */;
+			productReference = E_PRODUCT /* Inkwyn.app */;
 			productType = "com.apple.product-type.application";
 		};
 		F_TARGET /* ScriviInteropTests */ = {
@@ -1038,7 +1038,7 @@
 				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
 				ENABLE_RESOURCE_ACCESS_USB = NO;
 				INFOPLIST_FILE = "$(SRCROOT)/Scrivi/App/Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = Scrivi;
+				INFOPLIST_KEY_CFBundleDisplayName = Inkwyn;
 				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1052,9 +1052,10 @@
 					Security,
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.caposoft.scrivi$(SCRIVI_TEST_HOST_ID_SUFFIX)";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.caposoft.inkwyn--INKWYN-TEST-HOST-ID-SUFFIX-";
+				"PRODUCT_BUNDLE_IDENTIFIER[sdk=macosx*]" = com.caposoft.inkwyn;
 				PRODUCT_MODULE_NAME = ScriviApp;
-				PRODUCT_NAME = Scrivi;
+				PRODUCT_NAME = Inkwyn;
 				RUNTIME_EXCEPTION_ALLOW_DYLD_ENVIRONMENT_VARIABLES = NO;
 				RUNTIME_EXCEPTION_ALLOW_JIT = NO;
 				RUNTIME_EXCEPTION_ALLOW_UNSIGNED_EXECUTABLE_MEMORY = NO;
@@ -1095,7 +1096,7 @@
 				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
 				ENABLE_RESOURCE_ACCESS_USB = NO;
 				INFOPLIST_FILE = "$(SRCROOT)/Scrivi/App/Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = Scrivi;
+				INFOPLIST_KEY_CFBundleDisplayName = Inkwyn;
 				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1109,9 +1110,10 @@
 					Security,
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.caposoft.scrivi$(SCRIVI_TEST_HOST_ID_SUFFIX)";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.caposoft.inkwyn--INKWYN-TEST-HOST-ID-SUFFIX-";
+				"PRODUCT_BUNDLE_IDENTIFIER[sdk=macosx*]" = com.caposoft.inkwyn;
 				PRODUCT_MODULE_NAME = ScriviApp;
-				PRODUCT_NAME = Scrivi;
+				PRODUCT_NAME = Inkwyn;
 				RUNTIME_EXCEPTION_ALLOW_DYLD_ENVIRONMENT_VARIABLES = NO;
 				RUNTIME_EXCEPTION_ALLOW_JIT = NO;
 				RUNTIME_EXCEPTION_ALLOW_UNSIGNED_EXECUTABLE_MEMORY = NO;
@@ -1133,7 +1135,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "$(SRCROOT)/Scrivi/App/Info-iOS.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = Scrivi;
+				INFOPLIST_KEY_CFBundleDisplayName = Inkwyn;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UIStatusBarHidden = YES;
@@ -1149,8 +1151,9 @@
 					Security,
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.caposoft.scrivi;
-				PRODUCT_NAME = Scrivi;
+				PRODUCT_BUNDLE_IDENTIFIER = com.caposoft.inkwyn;
+				PRODUCT_MODULE_NAME = Scrivi;
+				PRODUCT_NAME = Inkwyn;
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_INCLUDE_PATHS = "$(SRCROOT)/ScriviCore/include/scrivi";
@@ -1168,7 +1171,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "$(SRCROOT)/Scrivi/App/Info-iOS.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = Scrivi;
+				INFOPLIST_KEY_CFBundleDisplayName = Inkwyn;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UIStatusBarHidden = YES;
@@ -1184,8 +1187,9 @@
 					Security,
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.caposoft.scrivi;
-				PRODUCT_NAME = Scrivi;
+				PRODUCT_BUNDLE_IDENTIFIER = com.caposoft.inkwyn;
+				PRODUCT_MODULE_NAME = Scrivi;
+				PRODUCT_NAME = Inkwyn;
 				SDKROOT = iphoneos;
 				SWIFT_INCLUDE_PATHS = "$(SRCROOT)/ScriviCore/include/scrivi";
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
@@ -1202,7 +1206,8 @@
 				CODE_SIGN_STYLE = Automatic;
 				GENERATE_INFOPLIST_FILE = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.caposoft.scrivi;
-				PRODUCT_NAME = Scrivi;
+				PRODUCT_MODULE_NAME = Scrivi;
+				PRODUCT_NAME = Inkwyn;
 				SDKROOT = xros;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -1219,7 +1224,8 @@
 				CODE_SIGN_STYLE = Automatic;
 				GENERATE_INFOPLIST_FILE = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.caposoft.scrivi;
-				PRODUCT_NAME = Scrivi;
+				PRODUCT_MODULE_NAME = Scrivi;
+				PRODUCT_NAME = Inkwyn;
 				SDKROOT = xros;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 6.0;
@@ -1243,7 +1249,7 @@
 				SWIFT_INCLUDE_PATHS = "$(SRCROOT)/ScriviCore/include/scrivi";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 6.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Scrivi.app/Contents/MacOS/Scrivi";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Inkwyn.app/Contents/MacOS/Inkwyn";
 			};
 			name = Debug;
 		};
@@ -1262,7 +1268,7 @@
 				SWIFT_INCLUDE_PATHS = "$(SRCROOT)/ScriviCore/include/scrivi";
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 6.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Scrivi.app/Contents/MacOS/Scrivi";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Inkwyn.app/Contents/MacOS/Inkwyn";
 			};
 			name = Release;
 		};
@@ -1281,7 +1287,7 @@
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Scrivi.app/Scrivi";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Inkwyn.app/Inkwyn";
 			};
 			name = Debug;
 		};
@@ -1299,7 +1305,7 @@
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Scrivi.app/Scrivi";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Inkwyn.app/Inkwyn";
 			};
 			name = Release;
 		};

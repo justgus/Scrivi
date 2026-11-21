@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Runs the macOS interop tests (ScriviInteropTests) WITHOUT quitting a running Scrivi.
 #
-# ⚠️ WHY THIS EXISTS. The tests are HOSTED in Scrivi.app (TEST_HOST), and LaunchServices
+# ⚠️ WHY THIS EXISTS. The tests are HOSTED in Inkwyn.app (TEST_HOST), and LaunchServices
 # refuses to launch a second app with the SAME BUNDLE IDENTIFIER — measured 2026-10-03:
 # "Could not launch ScriviInteropTests", even from a separate DerivedData path. So the
 # test host is built under its own ID (com.caposoft.scrivi.testhost, via the
@@ -11,7 +11,7 @@
 # host never sees the writer's session state (the I-0150 class).
 #
 # ⚠️ The test host declares Scrivi's document types, so it is UNREGISTERED from
-# LaunchServices afterwards — otherwise Finder could pick it to open a .scrivi package.
+# LaunchServices afterwards — otherwise Finder could pick it to open a .inkwyn package.
 set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -23,5 +23,5 @@ xcodebuild -workspace "$REPO_ROOT/Scrivi.xcworkspace" -scheme ScriviApp \
     SCRIVI_TEST_HOST_ID_SUFFIX=.testhost "$@" test
 status=$?
 
-"$LSREGISTER" -u "$DERIVED/Build/Products/Debug/Scrivi.app" 2>/dev/null || true
+"$LSREGISTER" -u "$DERIVED/Build/Products/Debug/Inkwyn.app" 2>/dev/null || true
 exit $status

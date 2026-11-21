@@ -313,7 +313,7 @@ import UniformTypeIdentifiers
         // her actual projects under whatever code had just been compiled.
         //
         // ⚠️ **This is how SP-118's reconciliation silently rewrote
-        // `the-twisted-remains-of-myself.scrivi` while the user had Scrivi closed** —
+        // `the-twisted-remains-of-myself.inkwyn` while the user had Scrivi closed** —
         // a test run, not a launch, did it. The repair happened to be correct; a
         // buggy core would have written the bug into her real writing with no
         // launch, no prompt, and no record beyond a file mtime.
@@ -509,7 +509,7 @@ import UniformTypeIdentifiers
                 ProjectBookmarkStore.record(projectID: result.projectID, url: url)
             }
             // ⚠️ Re-acquire sandbox access to this project's WORLDS before anything
-            // reads them. A world lives outside the .scrivi package, so the project
+            // reads them. A world lives outside the .inkwyn package, so the project
             // bookmark does not cover it; without this the package is unreadable and
             // ScriviCore reports the world as unavailable — and since T-0409 made
             // every worldbuilding kind world-scoped, that blocks creating a
@@ -531,7 +531,7 @@ import UniformTypeIdentifiers
     //
     // Called on the load path so the FIRST world read already sees a readable
     // package. Listing worlds is itself safe without access — the bindings live
-    // inside the .scrivi package — so this can enumerate before activating.
+    // inside the .inkwyn package — so this can enumerate before activating.
     private func activateWorlds(for session: ProjectSession) {
         // [SP-225] On iOS too: since [SP-224] the store resolves there, and a world outside the project's folder is unreadable without it.
         guard let root = session.projectRootPath else { return }
@@ -746,10 +746,10 @@ import UniformTypeIdentifiers
     func presentOpenProjectPanel() {
         #if os(macOS)
         let panel = NSOpenPanel()
-        // A .scrivi project is a *package* (a directory with a registered UTI). The panel must
-        // present it as a single selectable item, not traverse into it. Allow files of the .scrivi
+        // A .inkwyn project is a *package* (a directory with a registered UTI). The panel must
+        // present it as a single selectable item, not traverse into it. Allow files of the .inkwyn
         // type and treat packages as opaque (not directories); fall back to allowing directories so
-        // a .scrivi that lost its UTI registration is still choosable. This mirrors the Welcome
+        // a .inkwyn that lost its UTI registration is still choosable. This mirrors the Welcome
         // screen's .fileImporter, which allows the same com.caposoft.scrivi.project type.
         let scriviType = UTType("com.caposoft.scrivi.project") ?? .package
         panel.allowedContentTypes = [scriviType]
@@ -757,7 +757,7 @@ import UniformTypeIdentifiers
         panel.canChooseDirectories = true
         panel.treatsFilePackagesAsDirectories = false
         panel.allowsMultipleSelection = false
-        panel.title = "Open Scrivi Project"
+        panel.title = "Open Inkwyn Project"
         panel.prompt = "Open"
         guard panel.runModal() == .OK, let url = panel.url else { return }
         Task {
@@ -805,11 +805,11 @@ import UniformTypeIdentifiers
 
     // Creates a project inside a user-picked parent directory (iOS/iPadOS/visionOS). The macOS
     // path uses NSSavePanel directly in NewProjectSheet; iOS picks a folder, then we compose
-    // <parent>/<slug>.scrivi. Security scope is started for the create + initial read.
+    // <parent>/<slug>.inkwyn. Security scope is started for the create + initial read.
     @MainActor
     func createProjectInPickedDirectory(_ directory: URL, title: String, slug: String, author: String) async {
         let scoped = directory.startAccessingSecurityScopedResource()
-        let projectURL = directory.appendingPathComponent("\(slug).scrivi", isDirectory: true)
+        let projectURL = directory.appendingPathComponent("\(slug).inkwyn", isDirectory: true)
         await createProject(at: projectURL.path(percentEncoded: false), title: title, slug: slug, author: author)
         // On success the session holds the package open; release on failure.
         if projectError != nil, scoped {
@@ -844,10 +844,10 @@ import UniformTypeIdentifiers
         }
     }
 
-    /// Opens a `.scrivi` package the writer double-clicked in Finder (or dropped
+    /// Opens a `.inkwyn` package the writer double-clicked in Finder (or dropped
     /// on the app icon).
     ///
-    /// ⚠️ A `.scrivworld` can arrive here too, because the app DECLARES that type
+    /// ⚠️ A `.inkwynworld` can arrive here too, because the app DECLARES that type
     /// (Info.plist) so Finder will treat the package as an atom. ⚠️ Declaring it
     /// does NOT mean the app can open one: a world is only ever reached through a
     /// project that binds it, which is why the world type is declared
@@ -861,7 +861,7 @@ import UniformTypeIdentifiers
         // unreachable volume cannot be read, and this message must not depend on
         // the volume being present.
         // [SP-206] Q3: a double-clicked archive starts Import — it is never opened as a project.
-        if url.pathExtension.lowercased() == "scrivarchive" {
+        if url.pathExtension.lowercased() == "inkwynarchive" {
             #if os(macOS)
             chooseFolderAndImport(url)
             #else
@@ -870,10 +870,10 @@ import UniformTypeIdentifiers
             return
         }
 
-        if url.pathExtension.lowercased() == "scrivworld" {
+        if url.pathExtension.lowercased() == "inkwynworld" {
             projectError = ScriviError(
                 code: -1,
-                message: "“\(url.lastPathComponent)” is a Scrivi world, not a project. "
+                message: "“\(url.lastPathComponent)” is an Inkwyn world, not a project. "
                        + "Open a project that uses it, then manage it from Project ▸ Worlds.")
             return
         }
@@ -916,14 +916,14 @@ import UniformTypeIdentifiers
         // ⚠️ A FINDER DOUBLE-CLICK ARRIVES HERE AS A `file://` URL, NOT a
         // `scrivi://` one — and `ScriviDeepLink.init?` requires
         // `url.scheme == "scrivi"` (ScriviURL.swift:34). So every
-        // double-clicked `.scrivi` package failed the guard below, reported
+        // double-clicked `.inkwyn` package failed the guard below, reported
         // "Unrecognized Scrivi link", and returned WITHOUT OPENING ANYTHING.
         //
         // ⚠️ THE SYMPTOM HID THE CAUSE: the app was already showing the restored
         // session, so double-clicking a project looked like it "opened to the
         // last project" rather than like a failure. Registering the package UTI
         // is what made this reachable at all — before that, Finder never sent
-        // the app a `.scrivi` at all.
+        // the app a `.inkwyn` at all.
         //
         // ✅ File URLs route to the SAME path the Open Project panel uses
         // (`presentOpenProjectPanel` → `loadProject(at:bookmarkURL:)`), so the
@@ -935,7 +935,7 @@ import UniformTypeIdentifiers
         }
 
         guard let link = ScriviDeepLink(url: url) else {
-            projectError = ScriviError(code: -1, message: "Unrecognized Scrivi link")
+            projectError = ScriviError(code: -1, message: "Unrecognized Inkwyn link")
             return
         }
 
@@ -980,7 +980,7 @@ import UniformTypeIdentifiers
         guard ProjectBookmarkStore.hasBookmark(projectID: link.projectID) else {
             projectError = ScriviError(
                 code: -1,
-                message: "Open this project in Scrivi once so it can be reopened from Spotlight.")
+                message: "Open this project in Inkwyn once so it can be reopened from Spotlight.")
             return
         }
         if let session = await ensureOpenAndShow(projectID: link.projectID) {

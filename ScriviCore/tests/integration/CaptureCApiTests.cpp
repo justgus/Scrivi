@@ -43,7 +43,7 @@ struct Root {
         static std::atomic<int> counter{0};
         path = (std::filesystem::temp_directory_path() /
                 ("scrivi-capture-capi-" + std::to_string(::getpid()) + "-" + std::to_string(counter.fetch_add(1)) + "-" +
-                 std::to_string(reinterpret_cast<std::uintptr_t>(this)) + ".scrivi"))
+                 std::to_string(reinterpret_cast<std::uintptr_t>(this)) + ".inkwyn"))
                    .string();
         std::error_code ec;
         std::filesystem::remove_all(path, ec);   // a crashed earlier run can leave this exact path behind with a log in it
@@ -391,7 +391,7 @@ TEST_CASE("capture ABI: after a real structured paste, the next edit and then th
                           ("scrivi-i0293-" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
     fs::remove_all(base);
     fs::create_directories(base / "as");
-    const std::string root = (base / "p.scrivi").string(), as = (base / "as").string();
+    const std::string root = (base / "p.inkwyn").string(), as = (base / "as").string();
     const JsonDoc created = ok(scrivi_create_project(root.c_str(), as.c_str(), "I-0293", "i0293", "identity-001",
                                                      "persona-001", "T"));
     const std::string pid = created.getString("projectID");
@@ -472,7 +472,7 @@ TEST_CASE("capture ABI: a reopen after a structured paste, or its undo, takes no
                           ("scrivi-i0296-" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
     fs::remove_all(base);
     fs::create_directories(base / "as");
-    const std::string root = (base / "p.scrivi").string(), as = (base / "as").string();
+    const std::string root = (base / "p.inkwyn").string(), as = (base / "as").string();
     const JsonDoc created = ok(scrivi_create_project(root.c_str(), as.c_str(), "I-0296", "i0296", "identity-001",
                                                      "persona-001", "T"));
     const std::string pid = created.getString("projectID");
@@ -679,7 +679,7 @@ TEST_CASE("capture ABI: the state says when the newest step is a barrier", "[cap
 }
 
 TEST_CASE("capture ABI: not open → an error, never a crash", "[capture-abi]") {
-    const char* raw = scrivi_capture_state("/nonexistent/never-opened.scrivi");
+    const char* raw = scrivi_capture_state("/nonexistent/never-opened.inkwyn");
     auto parsed = parseJson(raw);
     scrivi_free(raw);
     REQUIRE(parsed.ok());
@@ -842,7 +842,7 @@ TEST_CASE("fragment ABI: a paste and its undo keep the project index true to the
                           ("scrivi-i0297-" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
     fs::remove_all(base);
     fs::create_directories(base / "as");
-    const std::string root = (base / "p.scrivi").string(), as = (base / "as").string();
+    const std::string root = (base / "p.inkwyn").string(), as = (base / "as").string();
     const char* id = "identity-001";
     const char* persona = "persona-001";
     const JsonDoc created = ok(scrivi_create_project(root.c_str(), as.c_str(), "I-0297", "i0297", id, persona, "T"));

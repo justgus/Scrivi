@@ -64,7 +64,7 @@ struct QueueProject {
         base = fs::temp_directory_path() / ("scrivi-queue-" + std::to_string(::getpid()) + "-" +
                                             std::to_string(counter.fetch_add(1)));
         fs::remove_all(base);
-        root = base / "Queue.scrivi";
+        root = base / "Queue.inkwyn";
         appSupport = base / "support";
         fs::create_directories(appSupport);
         projectID = ok(scrivi_create_project(r(), as(), "Queue", "queue", "identity-001", "persona-001", "T"))

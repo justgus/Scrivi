@@ -15,7 +15,7 @@
 //      derived, never stored). (No create-then-reorderChapter: that reslugged K's folder mid-split
 //      and stranded the captured scene paths — the I-0074 defect class.)
 //
-//   argv[1] = project dir to create (e.g. <tmp>/scene-reorder.scrivi)
+//   argv[1] = project dir to create (e.g. <tmp>/scene-reorder.inkwyn)
 //   $XDG_DATA_HOME drives appSupportRoot; Qt offscreen platform (set by the script).
 //
 // Exit 0 on success; non-zero with a FAIL line on any mismatch.

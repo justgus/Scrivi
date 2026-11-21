@@ -20,7 +20,7 @@ WORKDIR="$(mktemp -d)"
 trap 'rm -rf "$WORKDIR"' EXIT
 export XDG_DATA_HOME="$WORKDIR/xdg"
 export QT_QPA_PLATFORM=offscreen
-PROJECT_DIR="$WORKDIR/projects/story-structure.scrivi"
+PROJECT_DIR="$WORKDIR/projects/story-structure.inkwyn"
 
 echo "== story structure: set + assign + re-proportion + remove(keeps assignment) =="
 PROJECT_ID="$("$BIN" "$PROJECT_DIR")"

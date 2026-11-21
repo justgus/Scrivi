@@ -51,8 +51,8 @@ usage: $0 <mountpoint> <projectRoot> [worldID]
 
   mountpoint  the LOCAL removable volume about to be yanked
               e.g. /media/\$USER/SCRIVI3
-  projectRoot a .scrivi project whose world lives on that volume
-              e.g. \$HOME/ScriviLinux/projects/the-stairs-of-tintagael.scrivi
+  projectRoot a .inkwyn project whose world lives on that volume
+              e.g. \$HOME/ScriviLinux/projects/the-stairs-of-tintagael.inkwyn
   worldID     optional; omitted = every world the project binds
 
 ⚠️ Use a COPY of a world, never live writing work.

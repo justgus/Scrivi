@@ -75,7 +75,7 @@ struct ObjectFixture {
         // SP-103: every worldbuilding kind is world-scoped now.
         scrivi::worlds::WorldStore ws{services};
         auto w = ws.createWorld(projectDir.string(),
-                                (projectDir / "Obj.scrivworld").string(),
+                                (projectDir / "Obj.inkwynworld").string(),
                                 "Object World", "");
         REQUIRE(w.ok());
         worldID = w.value().worldID;

@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Scrivi</string>
+	<string>Inkwyn</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -13,7 +13,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>Scrivi</string>
+	<string>Inkwyn</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -100,7 +100,7 @@
 			<key>UTTypeIdentifier</key>
 			<string>com.caposoft.scrivi.project</string>
 			<key>UTTypeDescription</key>
-			<string>Scrivi Project</string>
+			<string>Inkwyn Project</string>
 			<key>UTTypeConformsTo</key>
 			<array>
 				<string>com.apple.package</string>
@@ -109,13 +109,13 @@
 			<dict>
 				<key>public.filename-extension</key>
 				<array>
-					<string>scrivi</string>
+					<string>inkwyn</string>
 				</array>
 			</dict>
 		</dict>
 		<!-- The WORLD package (SP-128, 2026-09-10).
 
-		     ⚠️ WHY THIS MATTERS, and it is not cosmetic: a `.scrivworld` is a
+		     ⚠️ WHY THIS MATTERS, and it is not cosmetic: a `.inkwynworld` is a
 		     DIRECTORY. Without this declaration Finder shows it as a folder the
 		     writer can open and rummage through — manuscript-adjacent JSON,
 		     `index.json`, kind subdirectories — and, worse, every NSOpenPanel
@@ -134,7 +134,7 @@
 			<key>UTTypeIdentifier</key>
 			<string>com.caposoft.scrivi.world</string>
 			<key>UTTypeDescription</key>
-			<string>Scrivi World</string>
+			<string>Inkwyn World</string>
 			<key>UTTypeConformsTo</key>
 			<array>
 				<string>com.apple.package</string>
@@ -143,7 +143,7 @@
 			<dict>
 				<key>public.filename-extension</key>
 				<array>
-					<string>scrivworld</string>
+					<string>inkwynworld</string>
 				</array>
 			</dict>
 		</dict>
@@ -152,7 +152,7 @@
 			<key>UTTypeIdentifier</key>
 			<string>com.caposoft.scrivi.archive</string>
 			<key>UTTypeDescription</key>
-			<string>Scrivi Archive</string>
+			<string>Inkwyn Archive</string>
 			<key>UTTypeConformsTo</key>
 			<array>
 				<string>public.zip-archive</string>
@@ -162,7 +162,7 @@
 			<dict>
 				<key>public.filename-extension</key>
 				<array>
-					<string>scrivarchive</string>
+					<string>inkwynarchive</string>
 				</array>
 			</dict>
 		</dict>

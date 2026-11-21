@@ -10,7 +10,7 @@ import AppKit
 //
 // Rulings: SP-206 Q1 — an import whose project is already open (same ID) is unpacked but NOT opened, because the open
 // path would raise the original's window (R3); Q2 — Export exports the focused window's project, flushed first; Q3 — a
-// double-clicked `.scrivarchive` starts Import. EP-054 Q4 — a project name clash is Cancel / Rename / Replace; SP-205 Q3
+// double-clicked `.inkwynarchive` starts Import. EP-054 Q4 — a project name clash is Cancel / Rename / Replace; SP-205 Q3
 // — a world name clash is Cancel / Rename.
 
 /// A question the archive flow puts to the writer. The Mac answers it with an `NSAlert`; iOS with an `.alert`.
@@ -145,7 +145,7 @@ extension AppEnvironment {
         #if os(macOS)
         let panel = NSSavePanel()
         panel.allowedContentTypes = [Self.archiveType]
-        panel.nameFieldStringValue = "\(name).scrivarchive"
+        panel.nameFieldStringValue = "\(name).inkwynarchive"
         panel.title = "Export Archive"
         panel.prompt = "Export"
         guard panel.runModal() == .OK, let url = panel.url else { return }
@@ -153,10 +153,10 @@ extension AppEnvironment {
         let staging = stagingFolder(for: url)
         #else
         let staging = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        destination = staging.appendingPathComponent("\(name).scrivarchive")
+        destination = staging.appendingPathComponent("\(name).inkwynarchive")
         #endif
         try? FileManager.default.createDirectory(at: staging, withIntermediateDirectories: true)
-        let written = staging.appendingPathComponent("\(name).scrivarchive").path(percentEncoded: false)
+        let written = staging.appendingPathComponent("\(name).inkwynarchive").path(percentEncoded: false)
 
         let withWorlds = includeWorlds
         do {
@@ -383,7 +383,7 @@ extension AppEnvironment {
         defer { if scoped { url.stopAccessingSecurityScopedResource() } }
         guard let json = try? String(contentsOf: url, encoding: .utf8),   // boundary-ok: the picker's file, outside any package
               let peek = try? JSONDecoder().decode(Peek.self, from: Data(json.utf8)) else {
-            await tell("The timeline could not be imported", "“\(url.lastPathComponent)” is not a Scrivi timeline file.")
+            await tell("The timeline could not be imported", "“\(url.lastPathComponent)” is not an Inkwyn timeline file.")
             return
         }
         session.pendingTimelineImport = PendingTimelineImport(json: json, sourceName: peek.sourceProjectTitle ?? "Imported Timeline",
@@ -454,7 +454,7 @@ extension AppEnvironment {
         panel.prompt = "Import"
         panel.allowedContentTypes = [UTType("com.caposoft.scrivi.project") ?? .package]
         guard panel.runModal() == .OK, var project = panel.url else { return }
-        if project.pathExtension != "scrivi" { project.deletePathExtension(); project.appendPathExtension("scrivi") }
+        if project.pathExtension != "inkwyn" { project.deletePathExtension(); project.appendPathExtension("inkwyn") }
         // The panel asked about replacing; the core never writes over a folder, so the old one goes to the Trash first.
         if FileManager.default.fileExists(atPath: project.path(percentEncoded: false)) {
             do { try FileManager.default.trashItem(at: project, resultingItemURL: nil) } catch {
@@ -487,7 +487,7 @@ extension AppEnvironment {
         _ = folder.startAccessingSecurityScopedResource()
         let stem = source.deletingPathExtension().lastPathComponent
         await importManuscriptAsProject(source.path(percentEncoded: false), stem,
-                                        at: folder.appendingPathComponent("\(stem).scrivi", isDirectory: true))
+                                        at: folder.appendingPathComponent("\(stem).inkwyn", isDirectory: true))
     }
     #endif
 
@@ -556,19 +556,19 @@ extension AppEnvironment {
             case "textBox": return "\(many("text box", "text boxes")) left out, with their text (first: in “\(n.example)”)."
             case "equation": return "\(many("equation", "equations")) left out (first: in “\(n.example)”)."
             case "headerFooter": return "Headers and footers were left out (first: “\(n.example)”)."
-            case "formatting": return "\(lines) with formatting Scrivi does not keep — underline, strikethrough, colour, fonts, sizes or alignment — kept as plain text (first: “\(n.example)”)."
+            case "formatting": return "\(lines) with formatting Inkwyn does not keep — underline, strikethrough, colour, fonts, sizes or alignment — kept as plain text (first: “\(n.example)”)."
             // SP-220: a Scrivener project's
             case "outsideDraft": return "\(many("item", "items")) left out: only the Draft is imported, not Research, the Trash or anything else outside it (first: “\(n.example)”)."
             case "notCompiled": return "\(many("document", "documents")) marked not to include in compile, imported all the same (first: “\(n.example)”)."
             case "parts": return "\(many("folder", "folders")) above the chapters left out; their chapters are kept (first: “\(n.example)”)."
             case "label": return "\(many("label", "labels")) left out (first: on “\(n.example)”)."
-            case "status": return "\(many("status", "statuses")) Scrivi has no place for left out (first: \(n.example))."
+            case "status": return "\(many("status", "statuses")) Inkwyn has no place for left out (first: \(n.example))."
             case "documentNotes": return "Notes on \(many("document", "documents")) left out (first: “\(n.example)”)."
             case "snapshots": return "Snapshots of \(many("document", "documents")) left out (first: “\(n.example)”)."
             case "customMetadata": return "Custom metadata on \(many("document", "documents")) left out (first: “\(n.example)”)."
             case "documentLink": return "\(many("link", "links")) to other documents, kept as text (first: in “\(n.example)”)."
             case "media": return "\(many("file", "files")) in the Draft left out — pictures, PDFs and other files are not imported (first: “\(n.example)”)."
-            case "notRtf": return "\(many("document", "documents")) Scrivi could not read as RTF, left out (first: “\(n.example)”)."
+            case "notRtf": return "\(many("document", "documents")) Inkwyn could not read as RTF, left out (first: “\(n.example)”)."
             default: return "\(lines): \(n.kind) (first: “\(n.example)”)."
             }
         }

@@ -79,7 +79,7 @@ struct Project {
         const auto base = fs::temp_directory_path() / ("scrivi-ep053-capi-" + std::to_string(::getpid()) + "-" + std::to_string(counter.fetch_add(1)) + "-" +
                                                       std::to_string(reinterpret_cast<std::uintptr_t>(this)));
         fs::remove_all(base);
-        root = base / "Novel.scrivi";
+        root = base / "Novel.inkwyn";
         appSupport = base / "support";
         fs::create_directories(appSupport);
         const JsonDoc created = ok(scrivi_create_project(root.c_str(), appSupport.c_str(), "Range Novel", "range-novel",

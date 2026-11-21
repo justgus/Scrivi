@@ -75,7 +75,7 @@ struct AssetCApiFixture {
             "scrivi-asset-capi-" + std::to_string(::getpid()) + "-" + std::to_string(counter.fetch_add(1)) + "-" +
             std::to_string(reinterpret_cast<std::uintptr_t>(this));
 
-        projectDir    = fs::temp_directory_path() / (stem + ".scrivi");
+        projectDir    = fs::temp_directory_path() / (stem + ".inkwyn");
         appSupportDir = fs::temp_directory_path() / (stem + "-appsupport");
         worldsRoot    = fs::temp_directory_path() / (stem + "-worlds");
         sourceDir     = fs::temp_directory_path() / (stem + "-src");
@@ -104,7 +104,7 @@ struct AssetCApiFixture {
     [[nodiscard]] const char* appSupport() const { return appSupportDir.c_str(); }
 
     [[nodiscard]] std::string pkg(const std::string& name) const {
-        return (worldsRoot / (name + ".scrivworld")).string();
+        return (worldsRoot / (name + ".inkwynworld")).string();
     }
 
     std::string makeWorld(const std::string& name = "Eskandar") {
@@ -202,8 +202,8 @@ TEST_CASE("C ABI: a world-scoped asset is written into the world package, not th
     const auto assetPath = imported.getString("assetPath");
     REQUIRE_FALSE(assetPath.empty());
 
-    // The bytes are inside the .scrivworld package...
-    REQUIRE(assetPath.find(".scrivworld") != std::string::npos);
+    // The bytes are inside the .inkwynworld package...
+    REQUIRE(assetPath.find(".inkwynworld") != std::string::npos);
     REQUIRE(fs::exists(assetPath));
 
     // ...and NOT under the project. This is the whole point of D6: an image
@@ -257,7 +257,7 @@ TEST_CASE("C ABI: an empty worldID still means the project — pre-D6 callers ar
 
     const auto assetPath = imported.getString("assetPath");
     REQUIRE(assetPath.find(fix.projectDir.string()) != std::string::npos);
-    REQUIRE(assetPath.find(".scrivworld") == std::string::npos);
+    REQUIRE(assetPath.find(".inkwynworld") == std::string::npos);
 
     auto listed = okResult(scrivi_list_assets(fix.root(), "", ""));
     REQUIRE(listed.getInt("count") == 1);

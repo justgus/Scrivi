@@ -6,7 +6,7 @@
 // new bytes came back (both via scrivi_open_project's activeScene.markdown and via
 // a fresh scrivi_open_scene). Confirms scrivi_save_scene wrote the real .md.
 //
-//   argv[1] = project dir to create (e.g. <tmp>/scene-save.scrivi)
+//   argv[1] = project dir to create (e.g. <tmp>/scene-save.inkwyn)
 //   $XDG_DATA_HOME drives appSupportRoot (see AppSupport).
 //
 // Exit 0 on success; non-zero with a FAIL line on any mismatch.

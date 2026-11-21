@@ -2,8 +2,8 @@
 
 // World types (EP-031 SP-097). Design: World Data Separation v0.1 §6.1–§6.5.
 //
-// A world is a SEPARATE `.scrivworld` package referenced by a project (W6=A),
-// not a folder inside `.scrivi`. Only `binding.json` is project-local. The
+// A world is a SEPARATE `.inkwynworld` package referenced by a project (W6=A),
+// not a folder inside `.inkwyn`. Only `binding.json` is project-local. The
 // package is self-contained — it carries its own object index and assets, so it
 // can be moved, copied, or opened by another project with nothing left behind.
 

@@ -1,6 +1,7 @@
 # Scrivi Project Package Structure v0.1
 
 **Status:** Approved baseline  
+⚠️ **Renamed ([SP-229], 2026-11-20):** the app is Inkwyn and a project package is `.inkwyn` (`.inkwynworld` for a world). Read `.scrivi` below as `.inkwyn`; the names inside the package are unchanged.  
 **Project:** Scrivi  
 **Document type:** Backend / project package structure  
 **Purpose:** Define the physical on-disk structure of a `.scrivi` project package.  

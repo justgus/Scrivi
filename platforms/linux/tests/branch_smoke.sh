@@ -16,7 +16,7 @@ export XDG_CONFIG_HOME="$WORKDIR/config"
 export QT_QPA_PLATFORM=offscreen
 
 echo "== Branching undo (chooser, mark, History, settings, purge — real keys, disk-verified) =="
-OUT="$("$BIN" "$WORKDIR/projects/branch.scrivi")" || { echo "$OUT"; exit 1; }
+OUT="$("$BIN" "$WORKDIR/projects/branch.inkwyn")" || { echo "$OUT"; exit 1; }
 echo "$OUT"
 if ! echo "$OUT" | grep -qx 'branch-ok'; then
     echo "FAIL: harness did not report branch-ok"

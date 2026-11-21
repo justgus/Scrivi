@@ -343,7 +343,7 @@ QWidget* WorldsDialog::makeRow(const Entry& e)
 
 void WorldsDialog::relinkWorld(const Entry& e)
 {
-    // ⚠️ A `.scrivworld` package is a DIRECTORY. A file picker cannot select one,
+    // ⚠️ A `.inkwynworld` package is a DIRECTORY. A file picker cannot select one,
     // so this must be the directory chooser.
     //
     // ⚠️ Starts from the last known path's PARENT when there is one: a writer
@@ -354,7 +354,7 @@ void WorldsDialog::relinkWorld(const Entry& e)
         startDir = QFileInfo(known).absolutePath();
     }
 
-    // ⚠️ I-0185: a `.scrivworld` is a DIRECTORY, so a plain directory picker
+    // ⚠️ I-0185: a `.inkwynworld` is a DIRECTORY, so a plain directory picker
     // walks INTO it and the writer ends up looking at `world.json`. This chooser
     // treats a package as a leaf — and still resolves upward if she descends.
     const QString picked = PackageFolderDialog::choose(
@@ -368,7 +368,7 @@ void WorldsDialog::relinkWorld(const Entry& e)
         // world. ⚠️ Surface it — suppressing it would let her believe a repair
         // happened that did not.
         showActionError(tr("“%1” could not be relinked to that folder. "
-                           "Check that it is the right .scrivworld package.")
+                           "Check that it is the right .inkwynworld package.")
                             .arg(e.displayName));
         return;
     }
@@ -391,7 +391,7 @@ void WorldsDialog::addExistingWorld()
     bridge_->addWorld(projectRootPath_, picked);
     if (bridge_->lastCallFailed()) {
         showActionError(tr("That folder could not be added as a world. "
-                           "Check that it is a .scrivworld package."));
+                           "Check that it is a .inkwynworld package."));
         return;
     }
 

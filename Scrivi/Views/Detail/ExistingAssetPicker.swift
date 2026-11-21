@@ -11,7 +11,7 @@ import AppKit
 /// T-0447 shipped exactly one way to set an image — *Add Image…*, which imports
 /// from the filesystem. ⚠️ **A picture already sitting in the world was therefore
 /// unreachable**, which is precisely what happened on the rig: `myton-portrait.png`
-/// was in `Eskandar.scrivworld` and Myton's record had no `image` key, so the app
+/// was in `Eskandar.inkwynworld` and Myton's record had no `image` key, so the app
 /// could not show it and offered no way to link it.
 ///
 /// ⚠️ **And the obvious workaround is harmful.** `AssetStore` stores bytes at

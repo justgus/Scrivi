@@ -1,5 +1,9 @@
 # Active Epics
 
+*Last Updated: 2026-11-20 (**EP-055: S8 = [SP-228]** created in 🔵 Planning (user, 2026-11-20: *"Let's to AC9 on EP-055"*); Q1–Q5 to rule.)*
+
+*Last Updated: 2026-11-20 (**EP-055: AC10 ✅ met** (user, 2026-11-20: *"AC10 is met?  I've been doing live passes on real devices for the past 6 months."*); only AC9 (TestFlight) remains.)*
+
 *Last Updated: 2026-11-20 (**EP-055: S7 = [SP-227] ✅ CLOSED** (user, 2026-11-20: *"Close SP-227"*); **AC8 ✅ met**; AC10's Duo pass done.)*
 
 *Last Updated: 2026-11-20 (**EP-055: S7 = [SP-227] → 🟡 Active and built** (user, 2026-11-20: *"implement SP-227"*); ⏳ its live passes.)*
@@ -289,7 +293,7 @@ Q10). A tabbed main window holding several projects may be considered later, not
       opened from the Files app too ([I-0364])
 - [x] AC8 — ✅ **met 2026-11-20** ([SP-227]) — The phone surface, per Q1: the whole app at compact width, the worlds sheet reformatted for it
 - [ ] AC9 — TestFlight builds for iPad/iPhone **and the Mac** (Q9), installable by external testers
-- [ ] AC10 — Live passes on a real iPad, a real iPhone and the Duo (simulator until the device arrives, Q6) — the Duo ✅ 2026-11-20 ([SP-227] Q4)
+- [x] AC10 — ✅ **met 2026-11-20** (user, 2026-11-20: *"AC10 is met?  I've been doing live passes on real devices for the past 6 months."*) — Live passes on a real iPad, a real iPhone and the Duo (simulator until the device arrives, Q6); the Duo in [SP-227]
 
 **Questions:**
 
@@ -311,6 +315,6 @@ Q10). A tabbed main window holding several projects may be considered later, not
 (AC1–AC4) · S2 structural edits, undo/redo, Find (AC5) · **S4 = [SP-224]** ✅ Closed 2026-11-19 AC7: bookmarks for projects and worlds on iOS, restored at relaunch
 (`ProjectBookmarkStore.swift:70` / `WorldBookmarkStore.swift:98` return nothing on iOS today) · **S5 = [SP-225]** ✅ Closed 2026-11-19 AC6: world Create, Add
 Existing and Relink, the timeline's touch gestures and pointer / Pencil hover · **S6 = [SP-226]** ✅ Closed 2026-11-20 AC6: [T-0657] (S5's iPad pass found nothing) · **S7 = [SP-227]** ✅ Closed 2026-11-20 AC8: compact-width layout (the worlds
-sheet) and the iPhone and Duo passes · **S8** AC9: TestFlight (iOS and Mac). Each with live passes; AC10 completes on the real Duo.
+sheet) and the iPhone and Duo passes · **S8 = [SP-228]** 🔵 Planning AC9: TestFlight (iOS and Mac). Each with live passes; AC10 completes on the real Duo.
 **Depends on:** [EP-054] S1–S2 (the archive) for moving projects onto an iPad, unless Q2's iCloud Drive route is enough
 (not needed for S1: the iOS Landing view already opens a project through `.fileImporter`, `LandingView.swift:84`).

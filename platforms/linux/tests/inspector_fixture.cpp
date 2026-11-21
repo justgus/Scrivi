@@ -40,7 +40,7 @@ int main(int argc, char* argv[])
     // only `source` objects and show ONE group — which would not exercise the
     // grouping at all. Build a world alongside the project so world-scoped kinds
     // are creatable too.
-    const QString worldPath = projectPath + QStringLiteral(".worlds/Eskandar.scrivworld");
+    const QString worldPath = projectPath + QStringLiteral(".worlds/Eskandar.inkwynworld");
     const QVariantMap world = bridge.createWorld(
         projectPath, worldPath, QStringLiteral("Eskandar"), QStringLiteral("AE"));
     const QString worldID = world.value("worldID").toString();

@@ -72,7 +72,7 @@ public:
     Q_INVOKABLE QVariantMap ensureLocalIdentity(const QString& displayName,
                                                 const QString& appSupportRoot);
 
-    // Creates a .scrivi project on disk (SP-059 / T-0225). Fills the remaining
+    // Creates a .inkwyn project on disk (SP-059 / T-0225). Fills the remaining
     // scrivi_create_project args from the bootstrapped identity + appSupportRoot,
     // calls it, and returns {projectID, firstScene:{sceneID, metadataPath,
     // contentPath}} to QML. On failure returns an empty map and emits
@@ -94,7 +94,7 @@ public:
     // `startDir` is the initial directory (absolute path); empty = platform default.
     Q_INVOKABLE QString chooseFolder(const QString& startDir);
 
-    // Opens a package-aware chooser for picking an EXISTING `.scrivi` project
+    // Opens a package-aware chooser for picking an EXISTING `.inkwyn` project
     // (I-0185). ⚠️ A package is a DIRECTORY, so `chooseFolder` above walks into
     // it; this one treats it as a leaf and selects it, while still resolving
     // upward if the writer descends anyway. Returns "" on cancel.
@@ -102,7 +102,7 @@ public:
     // correct there.
     Q_INVOKABLE QString choosePackage(const QString& startDir);
 
-    // Opens an existing .scrivi project (SP-060 / T-0230). Fills appSupportRoot +
+    // Opens an existing .inkwyn project (SP-060 / T-0230). Fills appSupportRoot +
     // the bootstrapped identityID, calls scrivi_open_project, and returns the ok
     // "result" object to QML — which carries "mode":
     //   • "ready"          → {projectID, mode, activeScene{...}, restored{...}, scenes:[...]}

@@ -52,8 +52,8 @@ int main(int argc, char** argv)
 
     // ---- Seed: A open at quit, B closed by the writer earlier, C open at quit
     //      but MOVED since (its path no longer resolves) ------------------------
-    const QString pathA    = root + QStringLiteral("/a.scrivi");
-    const QString pathGone = root + QStringLiteral("/moved-away.scrivi");
+    const QString pathA    = root + QStringLiteral("/a.inkwyn");
+    const QString pathGone = root + QStringLiteral("/moved-away.inkwyn");
     QDir().mkpath(pathA);
     {
         SessionStore seed(root);
@@ -67,7 +67,7 @@ int main(int argc, char** argv)
         seed.record(a);
         SessionStore::Entry b;
         b.projectID = QStringLiteral("proj-B");
-        b.path      = QStringLiteral("/projects/b.scrivi");
+        b.path      = QStringLiteral("/projects/b.inkwyn");
         b.frame     = QRect(10, 10, 900, 700);
         seed.record(b);
         seed.setClosed(b.projectID);

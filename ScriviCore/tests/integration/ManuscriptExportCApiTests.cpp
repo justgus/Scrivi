@@ -68,7 +68,7 @@ struct ExportFixture {
         base = fs::temp_directory_path() / ("scrivi-mexport-" + std::to_string(::getpid()) + "-" +
                                             std::to_string(counter.fetch_add(1)));
         fs::remove_all(base);
-        root = base / "Dumas.scrivi";
+        root = base / "Dumas.inkwyn";
         appSupport = base / "support";
         fs::create_directories(appSupport);
         const JsonDoc created = ok(scrivi_create_project(r(), as(), "The Three Musketeers", "dumas", kId, kPersona, "T"));

@@ -15,7 +15,7 @@ export XDG_DATA_HOME="$WORKDIR/xdg"
 export QT_QPA_PLATFORM=offscreen
 
 echo "== Undo / redo (real keys, disk-verified, persistence, barriers, grouped edits) =="
-OUT="$("$BIN" "$WORKDIR/projects/undo.scrivi")" || { echo "$OUT"; exit 1; }
+OUT="$("$BIN" "$WORKDIR/projects/undo.inkwyn")" || { echo "$OUT"; exit 1; }
 echo "$OUT"
 if ! echo "$OUT" | grep -qx 'undo-ok'; then
     echo "FAIL: harness did not report undo-ok"

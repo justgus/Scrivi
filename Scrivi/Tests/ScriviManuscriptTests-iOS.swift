@@ -726,14 +726,14 @@ struct IOSBookmarkTests {
 
     @Test("a Files URL names the restored project despite a trailing slash or the /private symlink")
     func filesURLMatchesRestoredProject() throws {
-        let folder = try tempFolder().appendingPathComponent("p.scrivi", isDirectory: true)
+        let folder = try tempFolder().appendingPathComponent("p.inkwyn", isDirectory: true)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: folder.deletingLastPathComponent()) }
         let plain = folder.path(percentEncoded: false)          // ends in "/"
         let resolved = folder.resolvingSymlinksInPath().path(percentEncoded: false)
         #expect(AppEnvironment.samePackage(folder, String(plain.dropLast())))
         #expect(AppEnvironment.samePackage(URL(filePath: resolved), plain))
-        #expect(!AppEnvironment.samePackage(folder, folder.deletingLastPathComponent().appendingPathComponent("q.scrivi").path(percentEncoded: false)))
+        #expect(!AppEnvironment.samePackage(folder, folder.deletingLastPathComponent().appendingPathComponent("q.inkwyn").path(percentEncoded: false)))
     }
 
     @Test("a world's bookmark is recorded, and forgotten")
@@ -750,7 +750,7 @@ struct IOSBookmarkTests {
     @MainActor func worldCreatedInFolder() throws {
         let folder = try tempFolder()
         let support = folder.appendingPathComponent("support", isDirectory: true)
-        let root = folder.appendingPathComponent("p.scrivi", isDirectory: true)
+        let root = folder.appendingPathComponent("p.inkwyn", isDirectory: true)
         try FileManager.default.createDirectory(at: support, withIntermediateDirectories: true)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: folder) }
@@ -763,7 +763,7 @@ struct IOSBookmarkTests {
                                          title: "iOS Worlds", slug: "ios-worlds", authorshipRef: ref)
 
         // What `WorldsView.handlePicked` does for Create: the package inside the picked folder.
-        let package = folder.appendingPathComponent("Eskandar.scrivworld", isDirectory: true)
+        let package = folder.appendingPathComponent("Eskandar.inkwynworld", isDirectory: true)
         let created = try env.engine.createWorld(projectRootPath: rootPath, packagePath: package.path(percentEncoded: false),
                                                  displayName: "Eskandar")
         defer { WorldBookmarkStore.forget(worldID: created.worldID) }
@@ -775,7 +775,7 @@ struct IOSBookmarkTests {
         #expect(listed.first?.status == "available")
 
         // Relink: the package moved; the same worldID is accepted at the new path and its bookmark replaced.
-        let moved = folder.appendingPathComponent("moved/Eskandar.scrivworld", isDirectory: true)
+        let moved = folder.appendingPathComponent("moved/Eskandar.inkwynworld", isDirectory: true)
         try FileManager.default.createDirectory(at: moved.deletingLastPathComponent(), withIntermediateDirectories: true)
         try FileManager.default.moveItem(at: package, to: moved)
         _ = try env.engine.relinkWorld(projectRootPath: rootPath, worldID: created.worldID,
@@ -869,7 +869,7 @@ struct IOSBookmarkTests {
         try await session.loadAsync(at: root.path)
         let prefs = try #require(session.projectPreferences)
         // The widest world row: one whose package is gone, so it shows its status and Locate….
-        let gone = worlds.appendingPathComponent("A World With a Long Enough Name.scrivworld")
+        let gone = worlds.appendingPathComponent("A World With a Long Enough Name.inkwynworld")
         _ = try env.engine.createWorld(projectRootPath: root.path, packagePath: gone.path,
                                        displayName: "A World With a Long Enough Name")
         try FileManager.default.removeItem(at: gone)

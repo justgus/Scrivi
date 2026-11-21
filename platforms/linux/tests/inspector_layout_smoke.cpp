@@ -9,7 +9,7 @@
 // layout gone.
 //
 // The fixture below is a REAL Apple-written layout shape, taken from
-// `the-lone-golem.scrivi` (35 world objects, 4 scenes with per-scene stacks).
+// `the-lone-golem.inkwyn` (35 world objects, 4 scenes with per-scene stacks).
 //
 // What is asserted:
 //   • an Apple-written document round-trips with EVERY key intact after a

@@ -395,6 +395,9 @@ AC anyway.
 ✅ **A desktop launcher is installed** at `~/.local/share/applications/scrivi.desktop` (and copied to
 `~/Desktop/`), using the real app icon from `Scrivi/Assets.xcassets/AppIconMacOS.appiconset/`
 installed to `~/.local/share/icons/hicolor/512x512/apps/scrivi.png`.
+✅ **Its `Name=` is `Inkwyn`** ([SP-229], the rename). The file names and the icon name stay `scrivi` (the app sets that desktop
+file name, `main.cpp:82`; [EP-056] renames them with the package). On an existing launcher:
+`sed -i 's/^Name=.*/Name=Inkwyn/' ~/.local/share/applications/scrivi.desktop ~/Desktop/scrivi.desktop`.
 
 ⚠️ **GNOME requires a Desktop launcher be marked trusted**, or it renders as a text file:
 

@@ -192,9 +192,9 @@ int main(int argc, char** argv)
     const QString appSupport = scrivi::linux_app::appSupportRoot();
     ScriviBridge bridge;
     bridge.bootstrap(QStringLiteral("Scrivi"), appSupport);
-    const Project A = makeProject(bridge, appSupport, scratch + QStringLiteral("/a.scrivi"),
+    const Project A = makeProject(bridge, appSupport, scratch + QStringLiteral("/a.inkwyn"),
                                   {QStringLiteral("cat one"), QStringLiteral("Bravo"), QStringLiteral("cat three")});
-    const Project B = makeProject(bridge, appSupport, scratch + QStringLiteral("/b.scrivi"), {QStringLiteral("cat b")});
+    const Project B = makeProject(bridge, appSupport, scratch + QStringLiteral("/b.inkwyn"), {QStringLiteral("cat b")});
 
     AppEnvironment env(appSupport);
     QPointer<ScriviWindow> wa = openWindow(env, A);
@@ -259,7 +259,7 @@ int main(int argc, char** argv)
     // ── §2b [SP-196] A structural edit that cannot reach the disk is HELD: the editor stays read-only (the job will
     //    run), a close does not wait on it, and it lands and is applied once the folder is writable again ─────────────────
     {
-        const Project C = makeProject(bridge, appSupport, scratch + QStringLiteral("/c.scrivi"), {QStringLiteral("Alpha one. Alpha two.")});
+        const Project C = makeProject(bridge, appSupport, scratch + QStringLiteral("/c.inkwyn"), {QStringLiteral("Alpha one. Alpha two.")});
         QPointer<ScriviWindow> wc = openWindow(env, C);
         ManuscriptEditor* ec = editorOf(wc);
         bool landedOk = false;
@@ -335,7 +335,7 @@ int main(int argc, char** argv)
         for (int i = 0; i < 30; ++i) {
             seeds << QStringLiteral("Scene %1 of the loading test.").arg(i);
         }
-        const Project C = makeProject(bridge, appSupport, scratch + QStringLiteral("/c.scrivi"), seeds);
+        const Project C = makeProject(bridge, appSupport, scratch + QStringLiteral("/c.inkwyn"), seeds);
         for (int round = 0; round < 6; ++round) {
             auto* shell = new EditorShell;
             shell->load(C.dir, appSupport, QStringLiteral("Loading"));   // no envelope handed over: the worker opens it
@@ -349,7 +349,7 @@ int main(int argc, char** argv)
     // ── §6 [I-0310] A SHOWN, focused window torn down: the editor's focus-out must not read the document already freed ──
     {
         QStringList seeds{QStringLiteral("Shown and focused.")};
-        const Project D = makeProject(bridge, appSupport, scratch + QStringLiteral("/d.scrivi"), seeds);
+        const Project D = makeProject(bridge, appSupport, scratch + QStringLiteral("/d.inkwyn"), seeds);
         auto* shell = new EditorShell;
         QEventLoop loop;
         QObject::connect(shell, &EditorShell::loadFinished, &loop, &QEventLoop::quit);

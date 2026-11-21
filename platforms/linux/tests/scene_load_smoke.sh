@@ -18,13 +18,13 @@ WORKDIR="$(mktemp -d)"
 trap 'rm -rf "$WORKDIR"' EXIT
 export XDG_DATA_HOME="$WORKDIR/xdg"
 export QT_QPA_PLATFORM=offscreen
-PROJECT_DIR="$WORKDIR/projects/scene-load.scrivi"
+PROJECT_DIR="$WORKDIR/projects/scene-load.inkwyn"
 
 echo "== scene-load assembly (3 scenes → one document) =="
 PROJECT_ID="$("$BIN" "$PROJECT_DIR")"
 echo "projectID: $PROJECT_ID"
 
-# The .scrivi package must exist on disk.
+# The .inkwyn package must exist on disk.
 if [ ! -f "$PROJECT_DIR/project.json" ]; then
     echo "FAIL: $PROJECT_DIR/project.json was not created"
     exit 1

@@ -45,7 +45,7 @@ struct BuffersRoot {
         static std::atomic<int> counter{0};
         path = (std::filesystem::temp_directory_path() /
                 ("scrivi-buffers-capi-" + std::to_string(::getpid()) + "-" + std::to_string(counter.fetch_add(1)) + "-" +
-                 std::to_string(reinterpret_cast<std::uintptr_t>(this)) + ".scrivi"))
+                 std::to_string(reinterpret_cast<std::uintptr_t>(this)) + ".inkwyn"))
                    .string();
     }
     ~BuffersRoot() { std::error_code ec; std::filesystem::remove_all(path, ec); }

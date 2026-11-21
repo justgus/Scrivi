@@ -62,7 +62,7 @@ struct EventFixture {
             "scrivi-hist-tags-" + std::to_string(::getpid()) + "-" + std::to_string(counter.fetch_add(1)) + "-" +
             std::to_string(reinterpret_cast<std::uintptr_t>(this));
 
-        projectDir    = fs::temp_directory_path() / (stem + ".scrivi");
+        projectDir    = fs::temp_directory_path() / (stem + ".inkwyn");
         appSupportDir = fs::temp_directory_path() / (stem + "-appsupport");
         fs::create_directories(projectDir);
         fs::create_directories(appSupportDir);

@@ -242,17 +242,17 @@ int main(int argc, char** argv)
         "First para one.\n\nSecond para two.\n\n# A heading\n\nAfter heading.\n\n- a list item\n\nAfter list.\n\n"
         "> a quote\n\nAfter quote.\n\nLine one of a block\nline two of it.");
     const QString scene1 = QStringLiteral("Scene two opens.\n\nScene two second.");
-    const Project A = makeProject(bridge, appSupport, scratch + QStringLiteral("/a.scrivi"), {scene0, scene1});
-    const Project B = makeProject(bridge, appSupport, scratch + QStringLiteral("/b.scrivi"),
+    const Project A = makeProject(bridge, appSupport, scratch + QStringLiteral("/a.inkwyn"), {scene0, scene1});
+    const Project B = makeProject(bridge, appSupport, scratch + QStringLiteral("/b.inkwyn"),
                                   {QStringLiteral("Mac one.\n\nMac two.")},
                                   QStringLiteral(R"({"paragraphIndent":"every","indentEm":2.5})"));
-    const Project C = makeProject(bridge, appSupport, scratch + QStringLiteral("/c.scrivi"),
+    const Project C = makeProject(bridge, appSupport, scratch + QStringLiteral("/c.inkwyn"),
                                   {QStringLiteral("Later one.\n\nLater two.")}, QStringLiteral(R"({"paragraphIndent":"hanging"})"));
     QStringList many;
     for (int i = 0; i < 80; ++i) {
         many << QStringLiteral("Scene %1 opens here.\n\nScene %1 goes on.").arg(i);
     }
-    const Project D = makeProject(bridge, appSupport, scratch + QStringLiteral("/d.scrivi"), many);
+    const Project D = makeProject(bridge, appSupport, scratch + QStringLiteral("/d.inkwyn"), many);
 
     AppEnvironment env(appSupport);
 

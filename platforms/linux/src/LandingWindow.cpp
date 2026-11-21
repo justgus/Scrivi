@@ -10,7 +10,7 @@
 LandingWindow::LandingWindow(QQuickWidget* landing, AppEnvironment* env)
     : landing_(landing), env_(env)
 {
-    setWindowTitle(QStringLiteral("Scrivi"));
+    setWindowTitle(QStringLiteral("Inkwyn"));
     // ⚠️ 820×560 — the size Landing.qml's own root Item declares, so the window
     // matches the content it was designed at rather than inheriting the editor's
     // 1220×760 (which left the landing content floating in empty space).

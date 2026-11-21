@@ -28,8 +28,8 @@
 #
 # ⚠️ To put the WORLD on the slow mount (which is the point), pass its path
 # explicitly, e.g.:
-#   dumas_world_fixture.sh "$BIN" ~/ScriviProjects/dumas.scrivi \
-#       /mnt/scrivi-net/worlds/Dumas-France.scrivworld 3
+#   dumas_world_fixture.sh "$BIN" ~/ScriviProjects/dumas.inkwyn \
+#       /mnt/scrivi-net/worlds/Dumas-France.inkwynworld 3
 set -euo pipefail
 
 BIN="${1:?usage: dumas_world_fixture.sh <harness-binary> <projectDir> [worldPath] [scale]}"

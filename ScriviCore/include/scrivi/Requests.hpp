@@ -98,7 +98,7 @@ struct CreateObjectRequest {
     Slug          slug;            // optional override; if empty, derived from displayName
     AuthorshipRef author;
     // REQUIRED for world-scoped kinds (artifact/chronicle/faction/rule), which
-    // live in a .scrivworld package rather than objects/ (EP-031 SP-097).
+    // live in a .inkwynworld package rather than objects/ (EP-031 SP-097).
     // Empty for project-scoped kinds.
     std::string   worldID;
 };

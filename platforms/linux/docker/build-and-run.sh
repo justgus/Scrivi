@@ -20,7 +20,7 @@
 #     come back (SP-059 AC4/AC5, verifiable visually over VNC).
 #   • Shared projects  →  /projects   (host default: ~/ScriviLinux/projects,
 #       override: SCRIVI_PROJECTS_DIR). A folder visible on BOTH macOS and the
-#     container: drop existing .scrivi packages here from macOS, then browse to
+#     container: drop existing .inkwyn packages here from macOS, then browse to
 #     /projects in the app's "Choose…" folder picker to create/open there. New
 #     projects created under /projects likewise appear on the Mac.
 #   • ⚠️ The REAL RIG DRIVE  →  mounted at the SAME ABSOLUTE PATH it has on macOS
@@ -29,8 +29,8 @@
 #     Carries the Eskandar world and the real projects (project_test_rig_tintagael_eskandar).
 #
 #     ⚠️ THE IDENTICAL PATH IS LOad-BEARING, NOT TIDINESS. A project's world
-#     binding stores an ABSOLUTE path — the-stairs-of-tintagael.scrivi records
-#     `/Volumes/Scrivi Worlds/Eskandar.scrivworld/`. Mount the drive anywhere else
+#     binding stores an ABSOLUTE path — the-stairs-of-tintagael.inkwyn records
+#     `/Volumes/Scrivi Worlds/Eskandar.inkwynworld/`. Mount the drive anywhere else
 #     (e.g. /worlds) and that path does not exist in the container, so the app
 #     reports **"World 'Eskandar' is unavailable. These 5 links are held pending."**
 #     — CORRECTLY, because from inside the container it genuinely is not there.
@@ -58,7 +58,7 @@
 #     touch it.
 #
 # ⚠️ BOTH MOUNTS ARE NEEDED TOGETHER for the real click-through projects.
-#     `the-stairs-of-tintagael.scrivi` and `the-lone-golem.scrivi` live in
+#     `the-stairs-of-tintagael.inkwyn` and `the-lone-golem.inkwyn` live in
 #     $PROJECTS_DIR (→ /projects) and are BOTH bound to the SAME Eskandar world on
 #     the drive. The projects mount makes them openable; the drive-at-its-own-path
 #     mount makes their shared world RESOLVE. With only the first, both projects
