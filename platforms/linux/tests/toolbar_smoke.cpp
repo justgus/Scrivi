@@ -177,6 +177,10 @@ int main(int argc, char** argv)
     QTest::qWait(100);
     auto* overflow = bar->findChild<QToolButton*>(QStringLiteral("qt_toolbar_ext_button"));
     check(overflow != nullptr && overflow->isVisible(), QStringLiteral("§4 a narrow window: the overflow button"));
+    // The live pass: with no theme icon it was invisible. Its word is ">>", drawn whenever the icon cannot be.
+    check(overflow != nullptr && overflow->text() == QStringLiteral(">>")
+              && (!overflow->icon().pixmap(16, 16).isNull() || overflow->toolButtonStyle() == Qt::ToolButtonTextOnly),
+          QStringLiteral("§4 the overflow button is never blank"));
     w->resize(1400, 700);
     QTest::qWait(50);
     auto* showToolbar = w->findChild<QAction*>(QStringLiteral("showToolbarAction"));

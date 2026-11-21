@@ -8,7 +8,7 @@ created: 2026-11-21
 
 # SP-232 — `[Linux]` [EP-059] F: the project window's toolbar
 
-**Status:** 🟡 **ACTIVE** (user, 2026-11-21: *"Q1-Q5 as recommended, implement SP-232"*); ✅ Q1–Q5 as recommended. Built 2026-11-21: AC1–AC3 met; AC4 green locally (CI on the push). ⏳ AC5 live pass. Planned 2026-11-21 (user: *"Close SP-231 and plan SP-232"*).
+**Status:** 🟡 **ACTIVE** (user, 2026-11-21: *"Q1-Q5 as recommended, implement SP-232"*); ✅ Q1–Q5 as recommended. Built 2026-11-21: AC1–AC3 met; AC4 green locally (CI on the push). AC5: steps 1–12 pass on the VM (user, 2026-11-21: *"The only think I'd change is that, in the absence of an icon for the >> button (Step 10), use the actual text ">>". It has no text below it, so without an icon it becomes invisible. Other than that all 12 steps passed."*); ⏳ step 10 again, on the » fix. Planned 2026-11-21 (user: *"Close SP-231 and plan SP-232"*).
 Created 2026-11-21 (user, 2026-11-21: *"I'd like to scan the Epic for any tasks that involve creating a menu bar of buttons across
 the top like macOS and iOS have. If missing, I'd like to make sure its added to the Epic as a new Sprint and AC."*).
 **Carries:** [T-0694].
@@ -111,6 +111,10 @@ Manuscript Start moves the caret; the » button at 420 px; View ▸ Show Toolbar
 Project takes it with the project. Linux (Docker, Qt 6.4) ctest **884/884** as non-root, **46/46** CI smokes, every target built. No
 core or Apple code changed. ⏳ CI on the push. (Docker has no icon theme: the icons are seen only in the live pass.)
 
+⚠️ **Live-pass finding (2026-11-21):** with no icon from the theme the » overflow button had no word either, and was invisible on
+the VM. ✅ Fixed: its text is ">>", drawn whenever its icon cannot be (`buildToolbar`, the `qt_toolbar_ext_button`); `toolbar_smoke`
+§4 checks it is never blank. ⚠️ Docker's Fusion style always has the icon, so the text-only case is seen only on the VM.
+
 ## Live pass (AC5) — the Linux VM
 
 With a project open:
@@ -128,7 +132,8 @@ With a project open:
 7. New ▾ ▸ New Scene with the caret mid-scene: the scene splits there. Then Merge ▾ ▸ Merge Scene with Previous: they rejoin.
 8. View ▾: Show World Warnings, Show Markup Hints and Show Buffers, checked as in the View menu.
 9. Import ▾ and Export ▾: the File menu's Import and Export items; Export ends with Copy as HTML. (Press Escape; nothing to import.)
-10. Narrow the window: the last items go behind a » button at the right end; click it to reach them. Widen it again.
+10. Narrow the window: the last items go behind a button at the right end — its icon, or ">>" when the theme has none; click it to
+    reach them. Widen it again. (✅ Re-check after the 2026-11-21 fix.)
 11. View ▸ Show Toolbar: unchecked, the toolbar goes; checked, it returns.
 12. Click Close Project: back to the start window, with no toolbar; its View ▸ Show Toolbar is greyed.
 
@@ -139,15 +144,18 @@ With a project open:
 - [x] AC2 — Icons and labels as Q2; the names as Q3, in the toolbar and the menus.
 - [x] AC3 — Items that do not fit go behind the overflow button; View ▸ Show Toolbar hides and shows it (Q5); none on the Landing window.
 - [ ] AC4 — Linux ctest (non-root, tests on), the smokes (the new one in CI), CI green.
-- [ ] AC5 — Live pass on the Linux VM.
+- [~] AC5 — Live pass on the Linux VM: ✅ steps 1–9, 11, 12 (user, 2026-11-21: *"The only think I'd change is that, in the absence of an icon for the >> button (Step 10), use the actual text ">>". It has no text below it, so without an icon it becomes invisible. Other than that all 12 steps passed."*); ⏳ step 10 on the ">>" fix.
 
 ## Progress log
 
+- **2026-11-21** — Live pass: every step passes but 10 (the overflow button invisible without a theme icon); fixed — ">>" as its text. ⏳ Step 10 again.
 - **2026-11-21** — Built: AC1–AC3 met; AC4 green locally; T-0694 → 🟠.
 - **2026-11-21** — 🟡 **ACTIVE** (user, 2026-11-21: *"Q1-Q5 as recommended, implement SP-232"*); Q1–Q5 as recommended; T-0694 → active.
 - **2026-11-21** — Planned in full (user, 2026-11-21: *"Close SP-231 and plan SP-232"*): the Mac's 13 items read, every Linux verb
   found as a menu action, two naming differences found; Q1–Q5 to rule.
 - **2026-11-21** — 🔵 **Created in Planning**, issued via `next-id.py`; carries [T-0694].
+
+*Last Updated: 2026-11-21 (Live pass: step 10's finding fixed; ⏳ step 10 again, CI.)*
 
 *Last Updated: 2026-11-21 (Built; ⏳ AC5 live pass, CI.)*
 

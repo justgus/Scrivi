@@ -1081,6 +1081,16 @@ QToolBar* ScriviWindow::buildToolbar(QMainWindow* host, const ToolbarActions& a)
     item(a.purgeStale, tr("Purge Stale History Branches…"), tr("Purge Stale History Branches…"),
          themeIcon({"edit-clear-all", "edit-clear"}));
     item(a.about, tr("About Inkwyn"), tr("About Inkwyn"), themeIcon({"help-about"}));
+    // The » overflow button: ⚠️ with no icon from the theme it has no word either, and vanished (user, [SP-232] live pass). Its
+    // text is ">>", shown whenever the icon cannot be drawn.
+    if (auto* more = bar->findChild<QToolButton*>(QStringLiteral("qt_toolbar_ext_button"))) {
+        more->setText(QStringLiteral(">>"));
+        more->setToolTip(tr("More"));
+        if (more->icon().isNull() || more->icon().pixmap(16, 16).isNull()) {
+            more->setIcon(QIcon());
+            more->setToolButtonStyle(Qt::ToolButtonTextOnly);
+        }
+    }
     bar->hide();   // until the window shows a project (`updateMenuState`)
     return bar;
 }
