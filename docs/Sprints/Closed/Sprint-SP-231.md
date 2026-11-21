@@ -1,16 +1,16 @@
 ---
 sprint: SP-231
 epic: EP-059
-status: Active
+status: Closed
 platform: Linux
 created: 2026-11-21
 ---
 
 # SP-231 — `[Linux]` [EP-059] D: create a world, Reconnect Worlds, the world-warning strip
 
-**Status:** 🟡 **ACTIVE** (user, 2026-11-21: *"Q1-Q4 as recommended, implement SP-231"*); ✅ Q1–Q4 as recommended. Built 2026-11-21: AC1–AC4 met; AC5 green locally (CI on the push). ⏳ AC6 live pass. Planned 2026-11-21 (user: *"Then you can begin planning SP-231."*).
+**Status:** ✅ **CLOSED** 2026-11-21 (user, 2026-11-21: *"Close SP-231 and plan SP-232"*). Was 🟡 **ACTIVE** (user, 2026-11-21: *"Q1-Q4 as recommended, implement SP-231"*); ✅ Q1–Q4 as recommended. Built 2026-11-21: AC1–AC4 met; AC5 ✅ (CI green on `73ee9d0`); AC6 ✅ (user, 2026-11-21: *"All the live tests pass."*). **All ACs met — awaiting close approval.** Planned 2026-11-21 (user: *"Then you can begin planning SP-231."*).
 **Carries:** [T-0497] (D1), [T-0693] (D2, D3).
-**Epic:** [EP-059] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md) — part **D** (D1–D3), next by the Epic's order ("E and D
+**Epic:** [EP-059] → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md) — part **D** (D1–D3), next by the Epic's order ("E and D
 first"). Part F, the toolbar ([SP-232]), follows it: its View item carries Show World Warnings, which this Sprint builds.
 **Size:** M — three surfaces, each with an Apple original to copy; the core endpoints are already bridged.
 
@@ -97,8 +97,8 @@ a strip says so, as on the Mac.
 **Tests (AC5, 2026-11-21):** `world_warning_smoke` (new, in CI): Create… through Project ▸ Manage Worlds…, a duplicate refused, a
 world moved away (the strip, its name and pending link, along the bottom edge), × until a second world goes, the View toggle,
 both moved back + the dialog's Reconnect Worlds (the strip gone), and a broken imported timeline named in the banner. Linux
-(Docker, Qt 6.4) ctest **884/884** as non-root, **45/45** CI smokes, every target built. No core or Apple code changed. ⏳ CI on the
-push.
+(Docker, Qt 6.4) ctest **884/884** as non-root, **45/45** CI smokes, every target built. No core or Apple code changed. ✅ CI green on `73ee9d0`
+(Linux App CI run 44947811319, `world-warning-ok`).
 
 ## Live pass (AC6) — the Linux VM
 
@@ -132,15 +132,21 @@ A world moved with `mv` stands in for an unplugged drive. Have a project open wi
 - [x] AC3 — (D3) When a world is away, the strip names it and the links held pending, with Manage Worlds… and ×; × hides it until
       another world goes away; View ▸ Show World Warnings hides it; nothing in it deletes.
 - [x] AC4 — A rejected imported timeline is reported with its file and reason (Q4), not only logged.
-- [ ] AC5 — Linux ctest (non-root, tests on), the smokes (the new one in CI), CI green.
-- [ ] AC6 — Live pass on the Linux VM.
+- [x] AC5 — Linux ctest (non-root, tests on), the smokes (the new one in CI), CI green.
+- [x] AC6 — Live pass on the Linux VM (user, 2026-11-21: *"All the live tests pass."*).
 
 ## Progress log
 
+- **2026-11-21** — ✅ **CLOSED** (user, 2026-11-21: *"Close SP-231 and plan SP-232"*); T-0497, T-0693 archived.
+- **2026-11-21** — ✅ AC6 live pass (user, 2026-11-21: *"All the live tests pass."*); CI green; T-0497, T-0693 → ✅ Verified. Awaiting close approval.
 - **2026-11-21** — Built: AC1–AC4 met; AC5 green locally; T-0497, T-0693 → 🟠.
 - **2026-11-21** — 🟡 **ACTIVE** (user, 2026-11-21: *"Q1-Q4 as recommended, implement SP-231"*); Q1–Q4 as recommended; T-0497, T-0693 → active.
 - **2026-11-21** — 🔵 **Created in Planning** (user, 2026-11-21: *"Then you can begin planning SP-231."*), issued via `next-id.py`;
   carries [T-0497] and [T-0693]. Q1–Q4 to rule.
+
+*Last Updated: 2026-11-21 (✅ **CLOSED**.)*
+
+*Last Updated: 2026-11-21 (✅ All ACs met — live pass, CI green; awaiting close approval.)*
 
 *Last Updated: 2026-11-21 (Built; ⏳ AC6 live pass, CI.)*
 

@@ -366,6 +366,11 @@ jobs:
           platforms/linux/tests/world_warning_smoke.sh \
             ./build/platforms/linux/scrivi_linux_world_warning_smoke
 
+      - name: Toolbar smoke test
+        run: |
+          platforms/linux/tests/toolbar_smoke.sh \
+            ./build/platforms/linux/scrivi_linux_toolbar_smoke
+
       # ✅ 2026-10-10 (user: "add the missing smokes to CI too") — these eleven smokes existed but CI never ran them.
 
       # ABI parity (EP-034 / SP-121, T-0464).

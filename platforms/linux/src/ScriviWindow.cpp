@@ -22,6 +22,9 @@
 #include <QLineEdit>
 #include <QMenu>
 #include <QMenuBar>
+#include <QToolButton>
+#include <QToolBar>
+#include <QIcon>
 #include <QMessageBox>
 #include <QPointer>
 #include <QProgressDialog>
@@ -710,6 +713,19 @@ void ScriviWindow::buildMenuBar(QMainWindow* host, ScriviWindow* w, AppEnvironme
 
     QMenu* view = bar->addMenu(tr("&View"));
 
+    // [SP-232] Q5: View ▸ Show Toolbar (Apple: the system's View ▸ Show/Hide Toolbar, at the top). Greyed on the start window,
+    // which has no toolbar ([SP-216] Q2: one menu bar for both).
+    QAction* showToolbar = view->addAction(tr("Show Toolbar"));
+    showToolbar->setObjectName(QStringLiteral("showToolbarAction"));
+    showToolbar->setCheckable(true);
+    connect(showToolbar, &QAction::toggled, host, [w](bool on) {
+        if (w == nullptr) { return; }
+        w->toolbarWanted_ = on;
+        if (w->toolbar_ != nullptr) { w->toolbar_->setVisible(on); }
+    });
+    editorOnlyActions.append(showToolbar);
+    view->addSeparator();
+
     // ⚠️ [I-0256] — Show Scene Navigator. ⛔ THERE WAS NO CONTROL FOR THIS AT ALL.
     // ✅ Found by the user's live pass 2026-09-29: *"there is no option to hide the
     // Scene Navigator."*
@@ -796,13 +812,14 @@ void ScriviWindow::buildMenuBar(QMainWindow* host, ScriviWindow* w, AppEnvironme
 
     // --- Scene ------------------------------------------------------------
     QMenu* scene = bar->addMenu(tr("&Scene"));
-    QAction* splitScene = scene->addAction(tr("Split Scene"));
+    // [SP-232] Q3: the Mac's names (New Scene, Merge … with Previous) — the toolbar and the menus say the same thing.
+    QAction* splitScene = scene->addAction(tr("New Scene"));
     splitScene->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Return));
     connect(splitScene, &QAction::triggered, host,
             [=]() { if (ed() != nullptr) { ed()->splitScene(); } });
     editorOnlyActions.append(splitScene);
 
-    QAction* mergeScene = scene->addAction(tr("Merge Scene"));
+    QAction* mergeScene = scene->addAction(tr("Merge Scene with Previous"));
     mergeScene->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Backspace));
     connect(mergeScene, &QAction::triggered, host,
             [=]() { if (ed() != nullptr) { ed()->mergeScene(); } });
@@ -822,13 +839,13 @@ void ScriviWindow::buildMenuBar(QMainWindow* host, ScriviWindow* w, AppEnvironme
     // Chapter ▸ Merge is the reason this menu exists: Ctrl+Shift+Backspace is swallowed
     // by the macOS→VNC input path, so the menu action is the reliable trigger.
     QMenu* chapter = bar->addMenu(tr("&Chapter"));
-    QAction* splitChapter = chapter->addAction(tr("Split Chapter"));
+    QAction* splitChapter = chapter->addAction(tr("New Chapter"));
     splitChapter->setShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_Return));
     connect(splitChapter, &QAction::triggered, host,
             [=]() { if (ed() != nullptr) { ed()->splitChapter(); } });
     editorOnlyActions.append(splitChapter);
 
-    QAction* mergeChapter = chapter->addAction(tr("Merge Chapter"));
+    QAction* mergeChapter = chapter->addAction(tr("Merge Chapter with Previous"));
     mergeChapter->setShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_Backspace));
     connect(mergeChapter, &QAction::triggered, host,
             [=]() { if (ed() != nullptr) { ed()->mergeChapter(); } });
@@ -969,6 +986,13 @@ void ScriviWindow::buildMenuBar(QMainWindow* host, ScriviWindow* w, AppEnvironme
         w->showWorldWarningsAction_ = showWorldWarnings;
         w->showBuffersAction_ = showBuffers;
         w->showMarkupHintsAction_ = showMarkupHints;
+        w->showToolbarAction_ = showToolbar;
+        w->toolbar_ = buildToolbar(host, {showNavigator, showInspector, showTimeline, settings, worldsAction,
+                                          {goToSceneStart, goToSceneEnd, goToChapterStart, goToChapterEnd,
+                                           goToManuscriptStart, goToManuscriptEnd},
+                                          {splitScene, splitChapter}, {mergeScene, mergeChapter},
+                                          {showWorldWarnings, showMarkupHints, showBuffers}, importMenu, exportMenu, copyAsHtml,
+                                          closeProj, purgeStale, about});
     } else {
         for (QAction* a : startWindowProjectOnly) {
             a->setEnabled(false);
@@ -976,8 +1000,102 @@ void ScriviWindow::buildMenuBar(QMainWindow* host, ScriviWindow* w, AppEnvironme
     }
 }
 
+namespace {
+
+// The first of `names` the desktop theme has; none → a null icon, and the button shows its word alone (Q2).
+QIcon themeIcon(std::initializer_list<const char*> names)
+{
+    for (const char* n : names) {
+        const QIcon icon = QIcon::fromTheme(QString::fromLatin1(n));
+        if (!icon.isNull()) { return icon; }
+    }
+    return {};
+}
+
+}   // namespace
+
+// [SP-232] (EP-059 F1; Apple: `ProjectToolbar.swift`, one shape, ordered by use — user 2026-11-03, [SP-199]). ⚠️ EVERY ITEM IS
+// THE MENUS' OWN ACTION (Apple: "the toolbar is a SURFACE for what the menu bar already does", EP-040 AC2): enabled, checked and
+// keyed with its menu item, one code path. Drop-downs hold the menus' actions. A narrow window moves items behind » from the
+// end, as the Mac's ⋯.
+QToolBar* ScriviWindow::buildToolbar(QMainWindow* host, const ToolbarActions& a)
+{
+    auto* bar = new QToolBar(tr("Toolbar"), host);
+    bar->setObjectName(QStringLiteral("projectToolbar"));
+    bar->setMovable(false);
+    bar->setFloatable(false);
+    bar->setContextMenuPolicy(Qt::PreventContextMenu);   // hidden by View ▸ Show Toolbar only (Q5)
+    bar->toggleViewAction()->setVisible(false);
+    bar->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);   // Q2: the word under the theme's icon, alone when it has none
+    host->addToolBar(Qt::TopToolBarArea, bar);
+
+    // An item: the action itself, with the toolbar's short word and the Mac's help; no icon in the menus (as the Mac's).
+    auto item = [bar](QAction* action, const QString& word, const QString& help, QIcon icon) {
+        action->setIcon(icon);
+        action->setIconVisibleInMenu(false);
+        action->setIconText(word);
+        action->setToolTip(help);
+        bar->addAction(action);
+    };
+    // A drop-down of the menus' actions.
+    auto dropDown = [bar](const char* name, const QString& word, const QString& help, QIcon icon, QMenu* menu) {
+        auto* button = new QToolButton(bar);
+        button->setObjectName(QString::fromLatin1(name));
+        button->setText(word);
+        button->setToolTip(help);
+        button->setIcon(icon);
+        button->setPopupMode(QToolButton::InstantPopup);
+        button->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+        button->setMenu(menu);
+        bar->addWidget(button);
+    };
+    auto menuOf = [host](const QList<QAction*>& actions) {
+        auto* menu = new QMenu(host);
+        menu->addActions(actions);
+        return menu;
+    };
+
+    // Q4: the Navigator first, where the Mac's sidebar button sits.
+    item(a.navigator, tr("Navigator"), tr("Show or hide the Scene Navigator"), themeIcon({"sidebar-show", "view-sidebar"}));
+    item(a.inspector, tr("Inspector"), tr("Show or hide the Scene Inspector"),
+         themeIcon({"sidebar-show-right", "view-right-pane", "view-sidebar"}));
+    item(a.timeline, tr("Timeline"), tr("Show or hide the Timeline"), themeIcon({"x-office-calendar", "office-calendar"}));
+    item(a.settings, tr("Project Settings"), tr("Project Settings… (Ctrl+Alt+,)"),
+         themeIcon({"document-properties", "preferences-system"}));
+    item(a.worlds, tr("Worlds"), tr("Manage Worlds…"), themeIcon({"applications-internet", "emblem-web"}));
+    dropDown("toolbarNavigate", tr("Navigate"), tr("Go to a scene, chapter or manuscript start or end"),
+             themeIcon({"go-jump"}), menuOf(a.navigate));
+    dropDown("toolbarNew", tr("New"), tr("New Scene (Ctrl+Return) or New Chapter (Ctrl+Shift+Return)"),
+             themeIcon({"list-add", "document-new"}), menuOf(a.create));
+    dropDown("toolbarMerge", tr("Merge"), tr("Merge Scene (Ctrl+Backspace) or Merge Chapter (Ctrl+Shift+Backspace) with the "
+                                             "previous one"),
+             themeIcon({"object-merge", "merge"}), menuOf(a.merge));
+    dropDown("toolbarView", tr("View"), tr("View options"), themeIcon({"view-reveal", "view-visible"}), menuOf(a.view));
+    dropDown("toolbarImport", tr("Import"), tr("Import"), themeIcon({"document-import", "document-open"}), a.importMenu);
+    QMenu* exportDrop = menuOf(a.exportMenu->actions());   // File ▸ Export's items, then Copy as HTML (as the Mac's)
+    exportDrop->addSeparator();
+    exportDrop->addAction(a.copyAsHtml);
+    dropDown("toolbarExport", tr("Export"), tr("Export"), themeIcon({"document-export", "document-send", "document-save-as"}),
+             exportDrop);
+    item(a.closeProject, tr("Close Project"), tr("Close Project (Ctrl+W)"), themeIcon({"window-close", "document-close"}));
+    item(a.purgeStale, tr("Purge Stale History Branches…"), tr("Purge Stale History Branches…"),
+         themeIcon({"edit-clear-all", "edit-clear"}));
+    item(a.about, tr("About Inkwyn"), tr("About Inkwyn"), themeIcon({"help-about"}));
+    bar->hide();   // until the window shows a project (`updateMenuState`)
+    return bar;
+}
+
 void ScriviWindow::updateMenuState(bool editorActive)
 {
+    // [SP-232]: the toolbar is the project's; View ▸ Show Toolbar's check follows the writer's choice.
+    if (toolbar_ != nullptr) {
+        toolbar_->setVisible(editorActive && toolbarWanted_);
+    }
+    if (showToolbarAction_ != nullptr) {
+        const QSignalBlocker block(showToolbarAction_);
+        showToolbarAction_->setChecked(toolbarWanted_);
+    }
+
     for (QAction* a : editorOnlyActions_) {
         a->setEnabled(editorActive);
     }

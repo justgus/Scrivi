@@ -1,5 +1,9 @@
 # Sprint Backlog
 
+*Last Updated: 2026-11-21 (**SP-232 removed** — activated 2026-11-21.)*
+
+*Last Updated: 2026-11-21 (**SP-232 planned in full** (user, 2026-11-21: *"Close SP-231 and plan SP-232"*); Q1–Q5 to rule.)*
+
 *Last Updated: 2026-11-21 (**SP-231 removed** — activated 2026-11-21.)*
 
 *Last Updated: 2026-11-21 (**SP-231 created in 🔵 Planning** — EP-059 part D (user, 2026-11-21: *"Then you can begin planning SP-231."*); Q1–Q4 to rule. **SP-232 created in 🔵 Planning** — EP-059 part F, the toolbar (user, 2026-11-21: *"I'd like to scan the Epic for any tasks that involve creating a menu bar of buttons across the top like macOS and iOS have.  If missing, I'd like to make sure its added to the Epic as a new Sprint and AC."*); planned after SP-231.)*
@@ -124,7 +128,6 @@ Sprints listed here are in 🔵 Planning status — defined and ready to activat
 
 | Sprint | Title | Epic | Doc |
 | ------ | ----- | ---- | --- |
-| **SP-232** | `[Linux]` **[EP-059] F** — the project window's toolbar (T-0694) | EP-059 | [`Sprint-SP-232.md`](Sprint-SP-232.md) |
 | **SP-228** | `[Apple]` **[EP-055] S8** — TestFlight for iPad, iPhone and the Mac (T-0690) | EP-055 | [`Sprint-SP-228.md`](Sprint-SP-228.md) |
 
 ---

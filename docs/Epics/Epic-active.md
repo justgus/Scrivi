@@ -1,5 +1,9 @@
 # Active Epics
 
+*Last Updated: 2026-11-21 (**EP-059:** [SP-232] (part F, the toolbar) 🟡 ACTIVE and built.)*
+
+*Last Updated: 2026-11-21 (**EP-059:** part D = [SP-231] ✅ closed (D1–D3 met); part F = [SP-232] planning.)*
+
 *Last Updated: 2026-11-21 (**EP-059:** [SP-231] (part D) 🟡 ACTIVE and built; D3's text corrected (Q4: a rejected imported timeline is reported in the Timeline panel's banner, as the Mac).)*
 
 *Last Updated: 2026-11-21 (**EP-059:** part E = [SP-230] ✅ closed (E1–E3 met); part D = [SP-231] 🔵 Planning; ✅ **part F added, the toolbar** (F1, [SP-232] 🔵 Planning) (user, 2026-11-21: *"I'd like to scan the Epic for any tasks that involve creating a menu bar of buttons across the top like macOS and iOS have.  If missing, I'd like to make sure its added to the Epic as a new Sprint and AC."*).)*
@@ -147,7 +151,7 @@
 
 ## EP-059: `[Linux]` **Linux catches up with the Mac** — every capability gap, one Epic
 
-**Status:** 🟡 **ACTIVE** 2026-11-20 (user, 2026-11-20: *"Nope.  Can't archive yet.  We need to do the Linux gap epic first."*); part E = [SP-230] ✅ closed 2026-11-21; part D = [SP-231] (🟡 Active); part F (toolbar) = [SP-232] (🔵 Planning). Created 2026-11-20 (user, 2026-11-20: *"yes, file G1–G9 as an Epic (include everything here, so it is all tracked at once."*). ✅ It **supersedes [EP-035], [EP-036] and [EP-037]**
+**Status:** 🟡 **ACTIVE** 2026-11-20 (user, 2026-11-20: *"Nope.  Can't archive yet.  We need to do the Linux gap epic first."*); part E = [SP-230] ✅ closed 2026-11-21; part D = [SP-231] ✅ closed 2026-11-21; part F (toolbar) = [SP-232] (🟡 Active). Created 2026-11-20 (user, 2026-11-20: *"yes, file G1–G9 as an Epic (include everything here, so it is all tracked at once."*). ✅ It **supersedes [EP-035], [EP-036] and [EP-037]**
 (user, 2026-11-20: *"One Epic for all"*), which are closed into it: their ACs are carried below by reference, verified ones kept.
 **Source:** [`../Scrivi_Linux_Capability_Gap_Review_v0_1.md`](../Scrivi_Linux_Capability_Gap_Review_v0_1.md) (G1–G9, read from the code
 2026-11-20). The core is at parity; every gap is a Linux surface.
@@ -188,9 +192,9 @@ on the Mac.
 - [ ] **C6** (EP-037 AC6) — a C ABI test for `scrivi_upsert_relation_type`
 
 *D. Worlds — new 2026-11-20:*
-- [ ] **D1** (**G5**, [T-0497]; [SP-231]) — a world can be created from Manage Worlds…, so a Linux-only writer with no world can proceed
-- [ ] **D2** (**G5**, [T-0693]; [SP-231]) — Reconnect Worlds, as the Mac's (`WorldsView.swift`)
-- [ ] **D3** (**G6**, [T-0693]; [SP-231]) — the world-warning strip (View ▸ Show World Warnings): the project-wide notice when a world is away, with
+- [x] **D1** ✅ [SP-231] (**G5**, [T-0497]; [SP-231]) — a world can be created from Manage Worlds…, so a Linux-only writer with no world can proceed
+- [x] **D2** ✅ [SP-231] (**G5**, [T-0693]; [SP-231]) — Reconnect Worlds, as the Mac's (`WorldsView.swift`)
+- [x] **D3** ✅ [SP-231] (**G6**, [T-0693]; [SP-231]) — the world-warning strip (View ▸ Show World Warnings): the project-wide notice when a world is away, with
       Manage Worlds…; an imported timeline that failed to read is reported, not only logged — ✅ in the Timeline panel's own banner, as
       the Mac's (`TimelineStripView.swift:950`), not in the world strip ([SP-231] Q4, 2026-11-21)
 

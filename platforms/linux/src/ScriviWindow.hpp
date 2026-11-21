@@ -14,6 +14,8 @@ class AppEnvironment;
 class QAction;
 class QQuickWidget;
 class QStackedWidget;
+class QMenu;
+class QToolBar;
 class EditorShell;
 class BufferService;
 
@@ -166,6 +168,29 @@ public:
     // disabled with no project). Items that need no project (New, Open, Import ▸ Archive…, Settings…, Quit, Help) work in both.
     static void buildMenuBar(QMainWindow* host, ScriviWindow* w, AppEnvironment* env);
 
+private:
+    // [SP-232] The toolbar's items, all the menus' own (`buildMenuBar` makes them, then the toolbar from them).
+    struct ToolbarActions {
+        QAction* navigator;
+        QAction* inspector;
+        QAction* timeline;
+        QAction* settings;
+        QAction* worlds;
+        QList<QAction*> navigate;
+        QList<QAction*> create;
+        QList<QAction*> merge;
+        QList<QAction*> view;
+        QMenu* importMenu;
+        QMenu* exportMenu;
+        QAction* copyAsHtml;
+        QAction* closeProject;
+        QAction* purgeStale;
+        QAction* about;
+    };
+    static QToolBar* buildToolbar(QMainWindow* host, const ToolbarActions& actions);
+
+public:
+
     ~ScriviWindow() override;
 
 protected:
@@ -210,4 +235,10 @@ private:
 
     // EP-026 S5 (SP-179) — View ▸ Show Buffers (Ctrl+Alt+B), checkable; bound to the app-wide palette.
     QAction* showBuffersAction_ = nullptr;
+
+    // [SP-232] (EP-059 F1; Apple: `ProjectToolbar.swift`): the project window's toolbar, the menus' own actions, and View ▸
+    // Show Toolbar (Q5: on by default, per window, not saved). Shown only while the window shows a project.
+    QToolBar* toolbar_ = nullptr;
+    QAction*  showToolbarAction_ = nullptr;
+    bool      toolbarWanted_ = true;
 };

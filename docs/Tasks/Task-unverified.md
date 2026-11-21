@@ -1,5 +1,11 @@
 # Unverified Tasks
 
+*Last Updated: 2026-11-21 (**T-0694 → 🟠 Implemented - Not Verified** ([SP-232] built); the live pass is the user's.)*
+
+*Last Updated: 2026-11-21 (**T-0497, T-0693 archived** → `Verified/` ([SP-231] closed).)*
+
+*Last Updated: 2026-11-21 (**T-0497, T-0693 → ✅ Verified** (user, 2026-11-21: *"All the live tests pass."*); archived when SP-231 closes.)*
+
 *Last Updated: 2026-11-21 (**T-0497, T-0693 → 🟠 Implemented - Not Verified** ([SP-231] built); the live pass is the user's.)*
 
 *Last Updated: 2026-11-21 (**T-0692, T-0249 archived** → `Verified/` ([SP-230] closed).)*
@@ -140,31 +146,16 @@ in the backlog carrying a 🟠 status.
 
 ---
 
-## 🟠 T-0497 — `[Linux]` World creation
+## 🟠 T-0694 — `[Linux]` EP-059 F1: the project window's toolbar, as the Mac's
 
-**Epic:** [EP-059] (D1; was EP-035) · **Status:** 🟠 Implemented - Not Verified ([SP-231] built 2026-11-21; the live pass is the user's) · **Sprint:** [SP-231] (🟡 Active) → [`../Sprints/Sprint-SP-231.md`](../Sprints/Sprint-SP-231.md) · **Date Requested:** 2026-09-01 (the T-0496 live pass)
+**Epic:** [EP-059] (F1) · **Status:** 🟠 Implemented - Not Verified ([SP-232] built 2026-11-21; the live pass is the user's) · **Sprint:** [SP-232] (🟡 Active) →
+[`../Sprints/Sprint-SP-232.md`](../Sprints/Sprint-SP-232.md) · **Date Requested:** 2026-11-21 (user, 2026-11-21: *"I'd like to scan the Epic for any tasks that involve creating a menu bar of buttons across the top like macOS and iOS have.  If missing, I'd like to make sure its added to the Epic as a new Sprint and AC."*)
 
-**What (as filed):** ⚠️ **`[Linux]` World CREATION** — the one Worlds action SP-127 deliberately deferred. ⚠️ **Apple entangles it with `WorldBookmarkStore` (macOS sandbox grants, NO Linux equivalent)**, and ✅ **AC3 asks for added / status read / relinked, not created**. ⚠️ **PRIORITY ARGUMENT CHANGED BY THE T-0496 LIVE PASS (2026-09-01):** ⚠️ **the user hit this as a DEAD END while setting up a test** — `Project ▸ Manage Worlds…` offers **no create affordance**, so ⚠️ **a project with no world cannot proceed on Linux at all**: there is nothing to *add* or *relink*. ✅ **Apple detects the no-world case and PROMPTS the writer to create one** — ⚠️ **the deferral assumed add+relink were enough to be USABLE, and they are not.** ⚠️ **The step-7 test could not be completed on Linux alone; the world (`Alpha Centauri`) had to be created in the APPLE app** — ⚠️ **the sharpest evidence available that this is a gap, not a nicety.**
+**What:** a toolbar across the top of every Linux project window with the Mac's items (`ProjectToolbar.swift`), each the menus' own
+action. Linux has no `QToolBar` today ([I-0244]). Findings, questions and ACs: the Sprint.
 
-**Built:** Create… in the Worlds dialog — a name, then a folder (Q1) — `<folder>/<name>.inkwynworld`, bound to the project
-(`WorldsDialog::createWorldIn`, `WorldsDialog.cpp`). The Mac's "prompt" when there is no world is its New Object form's line
-(`ObjectCard.swift:836`), which comes to Linux with object creation (EP-059 A5).
-
----
-
-## 🟠 T-0693 — `[Linux]` EP-059 D2 + D3: Reconnect Worlds, and the world-warning strip
-
-**Epic:** [EP-059] (D2, D3) · **Status:** 🟠 Implemented - Not Verified ([SP-231] built 2026-11-21; the live pass is the user's) · **Sprint:** [SP-231] (🟡 Active) →
-[`../Sprints/Sprint-SP-231.md`](../Sprints/Sprint-SP-231.md) · **Date Requested:** 2026-11-20 (the Linux gap review, G5 and G6);
-filed 2026-11-21 (user, 2026-11-21: *"Then you can begin planning SP-231."*)
-
-**What:** a Reconnect Worlds button in the Worlds dialog that re-reads every open project's worlds and refreshes the Inspector, and
-the Mac's world-warning strip (an unavailable world named, its pending links counted, Manage Worlds…, ×, View ▸ Show World
-Warnings). Findings, questions and ACs: the Sprint.
-
-**Built:** Reconnect Worlds (`WorldsDialog.cpp`, `AppEnvironment::reconnectWorlds`, and on coming back to the app, `main.cpp`);
-`EditorShell::refreshWorlds` (off the main thread); `WorldWarningStrip` and View ▸ Show World Warnings; rejected imported
-timelines in the Timeline panel's banner (`TimelinePanel::setRejectedImports`). Details: the Sprint.
+**Built:** `ScriviWindow::buildToolbar` (`ScriviWindow.cpp`): the Mac's items plus the Navigator, each the menus' own action; View ▸
+Show Toolbar; the Mac's names for New Scene / New Chapter / Merge … with Previous. Details: the Sprint.
 
 ---
 

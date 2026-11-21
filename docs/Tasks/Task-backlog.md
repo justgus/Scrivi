@@ -1,5 +1,7 @@
 # Task Backlog
 
+*Last Updated: 2026-11-21 (**T-0694 → active** with [SP-232]'s activation (user, 2026-11-21: *"Q1-Q5 as recommended, implement SP-232"*); built the same day → 🟠 `Task-unverified.md`.)*
+
 *Last Updated: 2026-11-21 (**T-0497, T-0693 → active** with [SP-231]'s activation (user, 2026-11-21: *"Q1-Q4 as recommended, implement SP-231"*); built the same day → 🟠 `Task-unverified.md`.)*
 
 *Last Updated: 2026-11-21 (**T-0693, T-0694 filed** — EP-059 D2+D3 ([SP-231]) and F1, the toolbar ([SP-232]); **T-0497 → [SP-231]**.)*
@@ -157,7 +159,6 @@ status changes on its own layer.
 
 | Task | Title | Epic | Status |
 | ---- | ----- | ---- | ------ |
-| T-0694 | `[Linux]` EP-059 F1: the project window's toolbar, as the Mac's | EP-059 | 🔵 Backlog — [SP-232] |
 | T-0690 | `[Apple]` EP-055 S8: TestFlight for iPad, iPhone and the Mac | EP-055 | 🔵 Backlog — [SP-228] |
 | T-0118 | Scroll bar fidelity — per-scene character-ratio thumb position and size | EP-011 | 🔵 Backlog |
 | T-0197 | Enable Core Spotlight donation on iOS/iPadOS (+ iOS deep-link/bookmark consumer); visionOS when backend links | EP-017 (deferred from T-0190) | 🔵 Backlog |
@@ -198,16 +199,6 @@ status changes on its own layer.
 ---
 
 ## Detail
-
-## 🔵 T-0694 — `[Linux]` EP-059 F1: the project window's toolbar, as the Mac's
-
-**Epic:** [EP-059] (F1) · **Status:** 🔵 Backlog · **Sprint:** [SP-232] (🔵 Planning) →
-[`../Sprints/Sprint-SP-232.md`](../Sprints/Sprint-SP-232.md) · **Date Requested:** 2026-11-21 (user, 2026-11-21: *"I'd like to scan the Epic for any tasks that involve creating a menu bar of buttons across the top like macOS and iOS have.  If missing, I'd like to make sure its added to the Epic as a new Sprint and AC."*)
-
-**What:** a toolbar across the top of every Linux project window with the Mac's items (`ProjectToolbar.swift`), each the menus' own
-action. Linux has no `QToolBar` today ([I-0244]). Findings, questions and ACs: the Sprint.
-
----
 
 ## 🔵 T-0690 — `[Apple]` EP-055 S8: TestFlight for iPad, iPhone and the Mac
 

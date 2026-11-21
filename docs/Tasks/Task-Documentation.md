@@ -832,9 +832,9 @@ archive files reconstructed after the fact from secondary sources.
 | T-0684 | `[Cross]` The app's name is too close to Scrivener's → Inkwyn | ✅ SP-229 | ⚠️ None yet | ✅ Verified | [`Verified/Task-verified-0684.md`](Verified/Task-verified-0684.md) |
 | T-0691 | `[Cross]` Inkwyn's app icon and document icon: the rune ᚹ | — | ⚠️ None yet | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
 | T-0692 | `[Linux]` EP-059 E1 + E3: untitled-scene titles as on the Mac, and Navigator search | ✅ SP-230 | **EP-059** | ✅ Verified | [`Verified/Task-verified-0692.md`](Verified/Task-verified-0692.md) |
-| T-0497 | `[Linux]` World creation (EP-059 D1) | 🟡 SP-231 | **EP-059** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
-| T-0693 | `[Linux]` EP-059 D2 + D3: Reconnect Worlds, and the world-warning strip | 🟡 SP-231 | **EP-059** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
-| T-0694 | `[Linux]` EP-059 F1: the project window's toolbar, as the Mac's | 🔵 SP-232 | **EP-059** | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
+| T-0497 | `[Linux]` World creation (EP-059 D1) | ✅ SP-231 | **EP-059** | ✅ Verified | [`Verified/Task-verified-0497.md`](Verified/Task-verified-0497.md) |
+| T-0693 | `[Linux]` EP-059 D2 + D3: Reconnect Worlds, and the world-warning strip | ✅ SP-231 | **EP-059** | ✅ Verified | [`Verified/Task-verified-0693.md`](Verified/Task-verified-0693.md) |
+| T-0694 | `[Linux]` EP-059 F1: the project window's toolbar, as the Mac's | 🟡 SP-232 | **EP-059** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
 | T-0685 | `[Apple]` EP-055 S3a: undo/redo, structural edits, cross-scene clipboard on iOS | ✅ SP-222 | **EP-055** | ✅ Verified | [`Verified/Task-verified-0685.md`](Verified/Task-verified-0685.md) |
 | T-0690 | `[Apple]` EP-055 S8: TestFlight for iPad, iPhone and the Mac | 🔵 SP-228 | **EP-055** | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
 | T-0689 | `[Apple]` EP-055 S7: the whole app at iPhone width | ✅ SP-227 | **EP-055** | ✅ Verified | [`Verified/Task-verified-0689.md`](Verified/Task-verified-0689.md) |
@@ -885,6 +885,12 @@ archive files reconstructed after the fact from secondary sources.
 ⚠️ **This index ended at `T-0485 (next available)` until 2026-09-10 — ✅ that was STALE.** ⚠️ **T-0485–T-0498 had all been taken**, and T-0485–T-0490/T-0492–T-0496 are archived as Verified. ⚠️ **Rows for T-0486–T-0497 are NOT reconstructed here** — ✅ **their Sprints' closed records are authoritative** (`feedback_archive_on_close`).
 
 ---
+
+*Last Updated: 2026-11-21 (**T-0694 → 🟠** ([SP-232] activated and built).)*
+
+*Last Updated: 2026-11-21 (**T-0497, T-0693 archived** ([SP-231] closed).)*
+
+*Last Updated: 2026-11-21 (**T-0497, T-0693 → ✅ Verified** ([SP-231] live pass).)*
 
 *Last Updated: 2026-11-21 (**T-0497, T-0693 → 🟠** ([SP-231] activated and built).)*
 
