@@ -172,6 +172,14 @@ Linux (Docker, Qt 6.4) ctest **884/884** as non-root and the CI's **43/43** smok
 - **2026-11-20** — 🔵 **Created in Planning** (user, 2026-11-20: *"plan the rename sprint"*), issued via `next-id.py`; carries
   [T-0684]. Q1–Q7 to rule.
 - **2026-11-20** — 🟡 **ACTIVE** (user, 2026-11-20: *"Q1-Q7 as recommended.  I accept our translation.  we may begin."*): Q1–Q7 as recommended, our translation for Q5. Built the same day: AC1–AC5 met, AC6 green locally; T-0684 → 🟠; T-0691 filed (the ᚹ icon).
+- **2026-11-20** — ⚠️ **Live pass, Mac step 4 failed** (user: *"When I tapped Create it said "the operation is not permitted"."*).
+  **Cause:** ten stale `Scrivi.app` builds (DerivedData, the Trash, a Desktop probe build, `build-xc-*`) were still registered with
+  LaunchServices, declaring the SAME type IDs (`com.caposoft.scrivi.project`, kept by the scope) with the OLD extensions. The
+  system resolved the type to `.scrivi`, so the save panel enforced `.scrivi`; `NewProjectSheet.choosePath()` then rewrote the
+  URL to `.inkwyn`, a path the sandbox had not granted → EPERM. **Fixed on the Mac:** each stale build unregistered
+  (`lsregister -u`); `UTType("com.caposoft.scrivi.project")` now resolves to `inkwyn` (and `.world`/`.archive` likewise).
+  ⚠️ Any old build that is launched or rebuilt re-registers the old tags. ⚠️ The rewrite after the panel can never work under the
+  sandbox: it is the proximate failure, latent since I-0092.
 
 *Last Updated: 2026-11-20 (🟡 **ACTIVE** and built; ⏳ AC7 live passes.)*
 
