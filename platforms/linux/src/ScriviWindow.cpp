@@ -744,6 +744,16 @@ void ScriviWindow::buildMenuBar(QMainWindow* host, ScriviWindow* w, AppEnvironme
     });
     editorOnlyActions.append(showTimeline);
 
+    // [SP-231] D3 (Apple: View ▸ Show World Warnings, §7.3 — its own toggle, not the Timeline's; on by default, not saved).
+    // The strip still shows only when a world is away.
+    QAction* showWorldWarnings = view->addAction(tr("Show World Warnings"));
+    showWorldWarnings->setObjectName(QStringLiteral("showWorldWarningsAction"));
+    showWorldWarnings->setCheckable(true);
+    connect(showWorldWarnings, &QAction::toggled, host, [=](bool on) {
+        if (ed() != nullptr) { ed()->setWorldWarningsVisible(on); }
+    });
+    editorOnlyActions.append(showWorldWarnings);
+
     // Show Buffers (EP-026 S5, SP-179 / T-0606) — the ONE app-wide Copy Buffers palette, following the front project.
     // ✅ Ctrl+Alt+B (user, 2026-10-11: *"Ctrl-Alt-B is correct."*), Apple's ⌥⌘B. Every window's check follows the one
     // palette (`AppEnvironment::setBuffersPaletteVisible`).
@@ -956,6 +966,7 @@ void ScriviWindow::buildMenuBar(QMainWindow* host, ScriviWindow* w, AppEnvironme
         w->showNavigatorAction_ = showNavigator;
         w->showInspectorAction_ = showInspector;
         w->showTimelineAction_ = showTimeline;
+        w->showWorldWarningsAction_ = showWorldWarnings;
         w->showBuffersAction_ = showBuffers;
         w->showMarkupHintsAction_ = showMarkupHints;
     } else {
@@ -995,6 +1006,11 @@ void ScriviWindow::updateMenuState(bool editorActive)
                            && editor_->isTimelineVisible();
         const QSignalBlocker block(showTimelineAction_);
         showTimelineAction_->setChecked(shown);
+    }
+
+    if (showWorldWarningsAction_ != nullptr) {
+        const QSignalBlocker block(showWorldWarningsAction_);
+        showWorldWarningsAction_->setChecked(editorActive && editor_ != nullptr && editor_->worldWarningsVisible());
     }
 
     // [SP-182]: View ▸ Show Markup Hints follows THIS window's project.
@@ -1039,6 +1055,10 @@ void ScriviWindow::showEditor(const QString& projectPath, const QString& title,
         editor_ = new EditorShell(this, env_);
         connect(editor_, &EditorShell::closeRequested,
                 this, &ScriviWindow::showLanding);
+        // [SP-231] D2 (Apple: `AppEnvironment.reconnectWorlds`): Reconnect Worlds re-reads every open project.
+        connect(editor_, &EditorShell::reconnectWorldsRequested, this, [this]() {
+            if (env_ != nullptr) { env_->reconnectWorlds(); }
+        });
         // ⚠️ T-0499 ([I-0195]): `load()` is ASYNCHRONOUS and no longer returns
         // whether it worked -- the answer is not known when it returns. The view
         // stack switches from HERE instead.

@@ -28,6 +28,7 @@ class QProgressBar;
 class QTimer;
 class QSplitter;
 class ScriviBridge;
+class WorldWarningStrip;
 class ManuscriptEditor;
 class HistoryCapture;
 class QMenu;
@@ -252,6 +253,14 @@ public:
     // EP-058 S3 ([SP-211]): Who wrote “Title”? / Which of these authors are you? — over this window.
     void askAuthor(const QString& title);
     void manageWorlds();
+    // [SP-231] D2 (Apple: `AppEnvironment.reconnectWorlds`): re-read this project's worlds and the links held toward
+    // the away ones, on a worker, then refresh the warning strip and the Inspector. Coalesced: one read at a time.
+    void refreshWorlds();
+    // [SP-231] D3: View ▸ Show World Warnings (Apple: on by default, not saved) and the strip itself (tests).
+    void setWorldWarningsVisible(bool visible);
+    bool worldWarningsVisible() const;
+    WorldWarningStrip* worldWarningStrip() const { return worldWarning_; }
+    bool worldsRefreshSettled() const { return !worldsRefreshing_ && !worldsRefreshPending_; }   // tests
 
     // --- EP-024 Scene Inspector (SP-078, T-0319) --------------------------
     //
@@ -343,6 +352,9 @@ signals:
     // T-0499 ([I-0195]): `load()` finished. `ok` is what `load()` used to return.
     // ⚠️ The caller MUST switch its view stack from here, not from load()'s return.
     void loadFinished(bool ok);
+
+    // [SP-231] D2: the Worlds dialog's Reconnect Worlds — every open project re-reads its worlds (the window forwards it).
+    void reconnectWorldsRequested();
 
     // [SP-191]: a structural edit (`runRangeEdit`) has landed — applied (`ok`) or not — and the editor takes input again.
     void structuralEditFinished(bool ok);
@@ -785,6 +797,11 @@ private:
     // `EditorShell` directly with no app environment; ⛔ they never exercise the
     // registry, so every use below is guarded rather than assumed.
     AppEnvironment*     env_ = nullptr;
+
+    // [SP-231] D3: the world-warning strip over the manuscript's bottom edge, and D2's one-at-a-time read.
+    WorldWarningStrip*  worldWarning_ = nullptr;
+    bool                worldsRefreshing_ = false;
+    bool                worldsRefreshPending_ = false;
 
     SceneDocument&      sceneDoc_ = session_.sceneDoc();
 

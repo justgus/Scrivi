@@ -498,7 +498,9 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-227** | `[Apple]` **[EP-055] S7** — the whole app at iPhone width (T-0689) | EP-055 | 2026-11-20 | 2026-11-20 | ✅ **CLOSED** → [`Closed/Sprint-SP-227.md`](Closed/Sprint-SP-227.md) |
 | **SP-228** | `[Apple]` **[EP-055] S8** — TestFlight for iPad, iPhone and the Mac (T-0690) | EP-055 | 2026-11-20 | — | 🔵 **PLANNING** → [`Sprint-SP-228.md`](Sprint-SP-228.md) |
 | **SP-229** | `[Cross]` Rename the app: Scrivi → Inkwyn (T-0684) | — | 2026-11-20 | 2026-11-20 | ✅ **CLOSED** → [`Closed/Sprint-SP-229.md`](Closed/Sprint-SP-229.md) |
-| **SP-230** | `[Linux]` **[EP-059] E** — untitled-scene titles, Go To, Navigator search (T-0692, T-0249) | EP-059 | 2026-11-20 | — | 🟡 **ACTIVE** → [`Sprint-SP-230.md`](Sprint-SP-230.md) |
+| **SP-230** | `[Linux]` **[EP-059] E** — untitled-scene titles, Go To, Navigator search (T-0692, T-0249) | EP-059 | 2026-11-20 | 2026-11-21 | ✅ **CLOSED** → [`Closed/Sprint-SP-230.md`](Closed/Sprint-SP-230.md) |
+| **SP-231** | `[Linux]` **[EP-059] D** — create a world, Reconnect Worlds, the world-warning strip (T-0497, T-0693) | EP-059 | 2026-11-21 | — | 🟡 **ACTIVE** → [`Sprint-SP-231.md`](Sprint-SP-231.md) |
+| **SP-232** | `[Linux]` **[EP-059] F** — the project window's toolbar (T-0694) | EP-059 | 2026-11-21 | — | 🔵 **Planning** → [`Sprint-SP-232.md`](Sprint-SP-232.md) |
 | **SP-160** | `[Linux]` **[EP-049] S1** — Linux writes Apple's manuscript format: escaping, paste/copy, pair deletion, Return/⌫, shared corpus (T-0586); + I-0276 | EP-049 | 2026-10-04 | 2026-10-04 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-160.md) |
 
 ## Statistics
@@ -538,6 +540,12 @@ by status, read the table.**
 > on neither time. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-11-21 (**SP-231 → 🟡 ACTIVE** (user, 2026-11-21: *"Q1-Q4 as recommended, implement SP-231"*).)*
+
+*Last Updated: 2026-11-21 (**SP-231** (EP-059 D) and **SP-232** (EP-059 F, the toolbar) created in 🔵 Planning.)*
+
+*Last Updated: 2026-11-21 (**SP-230 → ✅ CLOSED** (user, 2026-11-21: *"Close SP-230"*).)*
 
 *Last Updated: 2026-11-20 (**SP-230 → 🟡 ACTIVE** (user, 2026-11-20: *"Q1-Q4 as recommended, activate SP-230"*).)*
 

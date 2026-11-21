@@ -231,6 +231,15 @@ void AppEnvironment::projectWindowClosing(ScriviWindow* window)
 //
 // ✅ SO: flush everything FIRST (R7 — never lose edits), then close OUR windows
 // from OUR OWN map (⛔ not from Qt's snapshot), then quit.
+void AppEnvironment::reconnectWorlds()
+{
+    for (ScriviWindow* window : windows_.allWindows()) {
+        if (window != nullptr && window->editorShell() != nullptr) {
+            window->editorShell()->refreshWorlds();
+        }
+    }
+}
+
 void AppEnvironment::quitApplication()
 {
     // ⚠️ Re-entrant Quit (the writer clicks twice) must not restart the teardown.

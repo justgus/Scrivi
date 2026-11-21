@@ -1,5 +1,9 @@
 # Active Epics
 
+*Last Updated: 2026-11-21 (**EP-059:** [SP-231] (part D) 🟡 ACTIVE and built; D3's text corrected (Q4: a rejected imported timeline is reported in the Timeline panel's banner, as the Mac).)*
+
+*Last Updated: 2026-11-21 (**EP-059:** part E = [SP-230] ✅ closed (E1–E3 met); part D = [SP-231] 🔵 Planning; ✅ **part F added, the toolbar** (F1, [SP-232] 🔵 Planning) (user, 2026-11-21: *"I'd like to scan the Epic for any tasks that involve creating a menu bar of buttons across the top like macOS and iOS have.  If missing, I'd like to make sure its added to the Epic as a new Sprint and AC."*).)*
+
 *Last Updated: 2026-11-20 (**EP-059 → 🟡 ACTIVE** (user, 2026-11-20: *"Nope.  Can't archive yet.  We need to do the Linux gap epic first."*); part E = [SP-230] created in 🔵 Planning, Q1–Q4 to rule. **EP-055 AC9 (TestFlight, [SP-228]) waits until EP-059 is done.**)*
 
 *Last Updated: 2026-11-20 (**EP-055: S8 = [SP-228]** created in 🔵 Planning (user, 2026-11-20: *"Let's to AC9 on EP-055"*); Q1–Q5 to rule.)*
@@ -143,14 +147,15 @@
 
 ## EP-059: `[Linux]` **Linux catches up with the Mac** — every capability gap, one Epic
 
-**Status:** 🟡 **ACTIVE** 2026-11-20 (user, 2026-11-20: *"Nope.  Can't archive yet.  We need to do the Linux gap epic first."*); part E first = [SP-230] (🔵 Planning). Created 2026-11-20 (user, 2026-11-20: *"yes, file G1–G9 as an Epic (include everything here, so it is all tracked at once."*). ✅ It **supersedes [EP-035], [EP-036] and [EP-037]**
+**Status:** 🟡 **ACTIVE** 2026-11-20 (user, 2026-11-20: *"Nope.  Can't archive yet.  We need to do the Linux gap epic first."*); part E = [SP-230] ✅ closed 2026-11-21; part D = [SP-231] (🟡 Active); part F (toolbar) = [SP-232] (🔵 Planning). Created 2026-11-20 (user, 2026-11-20: *"yes, file G1–G9 as an Epic (include everything here, so it is all tracked at once."*). ✅ It **supersedes [EP-035], [EP-036] and [EP-037]**
 (user, 2026-11-20: *"One Epic for all"*), which are closed into it: their ACs are carried below by reference, verified ones kept.
 **Source:** [`../Scrivi_Linux_Capability_Gap_Review_v0_1.md`](../Scrivi_Linux_Capability_Gap_Review_v0_1.md) (G1–G9, read from the code
 2026-11-20). The core is at parity; every gap is a Linux surface.
 **Codebase:** `[Linux]` — Qt Widgets over `ScriviBridge`. ⚠️ **Linux adopts Apple's shape** (the Mac is the reference); where
 Linux differs because that is right on Linux, it is not a gap.
 **Goal:** a writer on Linux can do everything a writer on the Mac can: work with the world's objects (open, edit, create, link,
-relate, cite), manage worlds (create one, reconnect), see when a world is away, and find and navigate scenes as on the Mac.
+relate, cite), manage worlds (create one, reconnect), see when a world is away, find and navigate scenes, and reach the verbs from a toolbar, as
+on the Mac.
 
 **Acceptance Criteria:**
 
@@ -183,25 +188,31 @@ relate, cite), manage worlds (create one, reconnect), see when a world is away, 
 - [ ] **C6** (EP-037 AC6) — a C ABI test for `scrivi_upsert_relation_type`
 
 *D. Worlds — new 2026-11-20:*
-- [ ] **D1** (**G5**, [T-0497]) — a world can be created from Manage Worlds…, so a Linux-only writer with no world can proceed
-- [ ] **D2** (**G5**) — Reconnect Worlds, as the Mac's (`WorldsView.swift`)
-- [ ] **D3** (**G6**) — the world-warning strip (View ▸ Show World Warnings): the project-wide notice when a world is away, with
-      Manage Worlds…; an imported timeline that failed to read is reported there, not only logged (`EditorShell.cpp:4526`)
+- [ ] **D1** (**G5**, [T-0497]; [SP-231]) — a world can be created from Manage Worlds…, so a Linux-only writer with no world can proceed
+- [ ] **D2** (**G5**, [T-0693]; [SP-231]) — Reconnect Worlds, as the Mac's (`WorldsView.swift`)
+- [ ] **D3** (**G6**, [T-0693]; [SP-231]) — the world-warning strip (View ▸ Show World Warnings): the project-wide notice when a world is away, with
+      Manage Worlds…; an imported timeline that failed to read is reported, not only logged — ✅ in the Timeline panel's own banner, as
+      the Mac's (`TimelineStripView.swift:950`), not in the world strip ([SP-231] Q4, 2026-11-21)
 
 *E. Manuscript and navigation — new 2026-11-20:*
-- [ ] **E1** (**G7**) — an untitled scene shows its first line as the manuscript draws it, or "Scene N" when it is empty, in the
+- [x] **E1** ✅ [SP-230] (**G7**) — an untitled scene shows its first line as the manuscript draws it, or "Scene N" when it is empty, in the
       Navigator and everywhere else a scene is named (today "Untitled Scene", `EditorShell.cpp:2063`; Apple: [I-0327])
-- [ ] **E2** (**G8**, [T-0249]) — Go to Scene, Chapter and Manuscript Start / End, in the menus with the Mac's keys
-- [ ] **E3** (**G9**) — Navigator search, as the Mac's (T-0569): titles and text, matches in closed chapters shown
+- [x] **E2** ✅ [SP-230] (**G8**, [T-0249]) — Go to Scene, Chapter and Manuscript Start / End, in the menus with the Mac's keys (✅ re-ruled for Linux: Manuscript Start / End on Ctrl+Home / Ctrl+End)
+- [x] **E3** ✅ [SP-230] (**G9**) — Navigator search, as the Mac's (T-0569): titles and text, matches in closed chapters shown
+
+*F. The project window's toolbar — new 2026-11-21 (user, 2026-11-21: *"I'd like to scan the Epic for any tasks that involve creating a menu bar of buttons across the top like macOS and iOS have.  If missing, I'd like to make sure its added to the Epic as a new Sprint and AC."*):*
+- [ ] **F1** ([I-0244]'s toolbar gap, [T-0694]) — a toolbar across the top of every project window, as the Mac's
+      (`ProjectToolbar.swift`): Inspector, Timeline, Project Settings, Worlds, Navigate ▾, New ▾, Merge ▾, View ▾, Import ▾, Export ▾,
+      Close Project — each the menus' own action. Linux has no `QToolBar` today. → [SP-232]
 
 *Standing (EP-035 AC6–AC9, EP-036 AC5–AC8, EP-037 AC7–AC10):* the Porting Outline corrected from what each part costs; the
 platform-independent rules re-honoured, not re-decided (kind scope derived, edge labels read, patch never reconstruct,
 absence is never deletion, disabled and explained); ctest run non-root with tests on; a live pass per surface-shipping Sprint
 (the Linux VM counts, per [EP-057]).
 
-**Order (provisional):** E and D first (small; E1 is the user's example), then A → B → C, as the 2026-08-25 split ordered them.
+**Order (provisional):** E and D first (small; E1 is the user's example), then F (its View item needs D3), then A → B → C, as the 2026-08-25 split ordered them.
 Sizes from the review: A–C about an Epic's worth on their own (Apple's EP-030 / 031 / 034 took 8+ Sprints); D a Sprint; E a
-Sprint.
+Sprint; F a Sprint.
 
 ---
 

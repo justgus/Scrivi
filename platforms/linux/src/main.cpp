@@ -209,6 +209,11 @@ int main(int argc, char* argv[])
     // `AppEnvironment::projectsToRestore()`: a headless run (`QT_QPA_PLATFORM=
     // offscreen`) or `SCRIVI_NO_RESTORE` opens NOTHING and leaves `session.ini` intact.
     env.restoreSession();
+    // [SP-231] D2 Q2 (Apple: foregrounding reconnects): coming back to the app re-checks every project's worlds, so a
+    // drive plugged back in needs no click.
+    QObject::connect(&app, &QGuiApplication::applicationStateChanged, &app, [&env](Qt::ApplicationState state) {
+        if (state == Qt::ApplicationActive) { env.reconnectWorlds(); }
+    });
     const int exitCode = app.exec();
     DiagnosticLog::stop(exitCode);   // "session ended": its absence means the app crashed or was killed
     return exitCode;

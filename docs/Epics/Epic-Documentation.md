@@ -135,6 +135,8 @@ ruling **R-23(②)**. **To count Epics by status, read the table.**
 
 ---
 
+*Last Updated: 2026-11-21 (**EP-059:** [SP-230] ✅ closed (E); **part F, the toolbar, added** ([SP-232]); [SP-231] = D, 🔵 Planning.)*
+
 *Last Updated: 2026-11-20 (**EP-059 → 🟡 ACTIVE** (user, 2026-11-20: *"Nope.  Can't archive yet.  We need to do the Linux gap epic first."*); [SP-230] = part E.)*
 
 *Last Updated: 2026-11-20 (**EP-059 created** 🔵 Draft (user, 2026-11-20: *"yes, file G1–G9 as an Epic (include everything here, so it is all tracked at once."*); **EP-035, EP-036, EP-037 → ✅ CLOSED, superseded by EP-059** (user: *"One Epic for all"*) → `Closed/`.)*

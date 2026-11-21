@@ -64,6 +64,8 @@
 #include "NavigatorTree.hpp"
 #include "SceneInspector.hpp"
 #include "WorldsDialog.hpp"
+#include "WorldStatusText.hpp"
+#include "WorldWarningStrip.hpp"
 #include "AuthorshipDialogs.hpp"
 #include "ScriviBridge.hpp"
 #include "StoryStructures.hpp"
@@ -193,6 +195,8 @@ EditorShell::EditorShell(QWidget* parent, AppEnvironment* env)
     manuscriptColumn->setSpacing(0);
     manuscriptColumn->addWidget(findBar_);
     manuscriptColumn->addWidget(viewport_, 1);
+    // [SP-231] D3 (Apple: `WorldWarningView`, laid over the manuscript's bottom edge, above the Timeline — Q3).
+    worldWarning_ = new WorldWarningStrip(manuscript, [this]() { manageWorlds(); });
 
     // --- Inspector (right): EP-024 Scene Inspector panel ------------------
     // Docks as the THIRD pane of the same splitter (navigator | viewport |
@@ -700,6 +704,7 @@ void EditorShell::load(const QString& projectPath,
             applyLoadedProject(projectPath, appSupportRoot, payload);
             DiagnosticLog::note(QStringLiteral("load: finished in %1 ms (%2 scenes)").arg(loadClock.elapsed()).arg(sceneDoc_.segments().size()));
             emit loadFinished(true);
+            refreshWorlds();   // [SP-231] D3: the strip, when a world is away
             // EP-058 S3 ([SP-211]): the window's edits are recorded as the project's writing-as author; with no answer yet,
             // ask — once, on the project's first load (a structural reload keeps the window's author).
             if (const QVariantMap w = payload.writingAs; !w.isEmpty()) {
@@ -3962,9 +3967,97 @@ void EditorShell::manageWorlds()
         if (inspector_ != nullptr) {
             inspector_->reload();
         }
+        refreshWorlds();   // [SP-231]: the warning strip reads the same state
     });
+    // [SP-231] D2: Reconnect Worlds re-reads EVERY open project, as Apple's (`AppEnvironment.reconnectWorlds`).
+    // The window forwards it to `AppEnvironment::reconnectWorlds` (out-of-line, so not called from here: tools link the shell
+    // without it).
+    connect(&dlg, &WorldsDialog::reconnectRequested, this, &EditorShell::reconnectWorldsRequested);
 
     dlg.exec();
+}
+
+void EditorShell::refreshWorlds()
+{
+    if (bridge_ == nullptr || projectPath_.isEmpty()) {
+        return;
+    }
+    if (worldsRefreshing_) {
+        worldsRefreshPending_ = true;   // a burst (activation + a click) becomes one more read
+        return;
+    }
+    worldsRefreshing_ = true;
+    struct WorldsRead {
+        QList<WorldWarningStrip::Row> rows;
+        bool failed = false;
+    };
+    const WorkerBridge::Handle handle = WorkerBridge::handleFor(bridge_);   // [I-0309]
+    const QString root = projectPath_;
+    auto settle = [this]() {
+        worldsRefreshing_ = false;
+        if (std::exchange(worldsRefreshPending_, false)) {
+            refreshWorlds();
+        }
+    };
+    AsyncCall::run<WorldsRead>(
+        this,
+        [handle, root]() -> WorldsRead {
+            WorkerBridge bridge(handle);
+            WorldsRead read;
+            const QVariantList worlds = bridge->listWorlds(root).value(QStringLiteral("worlds")).toList();
+            if (bridge->lastCallFailed()) {
+                read.failed = true;
+                return read;
+            }
+            QList<QVariantMap> away;
+            for (const QVariant& v : worlds) {
+                const QVariantMap m = v.toMap();
+                if (!WorldStatusText::isAvailable(m.value(QStringLiteral("status")).toString())) { away.append(m); }
+            }
+            // [I-0330] (Apple): the pending sweep only when a world is away.
+            QHash<QString, int> counts;
+            if (!away.isEmpty()) {
+                const QVariantList pending = bridge->listPendingEdges(root).value(QStringLiteral("pending")).toList();
+                for (const QVariant& p : pending) { ++counts[p.toMap().value(QStringLiteral("worldID")).toString()]; }
+            }
+            for (const QVariantMap& m : away) {
+                WorldWarningStrip::Row r;
+                r.worldID = m.value(QStringLiteral("worldID")).toString();
+                r.displayName = m.value(QStringLiteral("displayName")).toString();
+                if (r.displayName.isEmpty()) { r.displayName = r.worldID; }
+                r.status = m.value(QStringLiteral("status")).toString();
+                r.pendingCount = counts.value(r.worldID);
+                read.rows.append(r);
+            }
+            std::sort(read.rows.begin(), read.rows.end(), [](const auto& a, const auto& b) {
+                return a.displayName.localeAwareCompare(b.displayName) < 0;
+            });
+            return read;
+        },
+        [this, settle](const WorldsRead& read) {
+            worldWarning_->setRows(read.rows, read.failed ? tr("This project's worlds could not be read.") : QString());
+            // I-0128 (Apple: `bumpWorldRevision`): the Inspector's objects follow their world back without a scene change.
+            if (inspector_ != nullptr) {
+                inspector_->reload();
+            }
+            settle();
+        },
+        [this, settle]() {
+            // ⚠️ Honest, not a claim about the data (I-0115) — the Worlds dialog's own words.
+            worldWarning_->setRows({}, tr("This project's worlds are taking longer than expected to read — one may be on "
+                                          "a disconnected or unreachable volume. Nothing has been lost."));
+            settle();
+        });
+}
+
+void EditorShell::setWorldWarningsVisible(bool visible)
+{
+    worldWarning_->setShownByView(visible);
+}
+
+bool EditorShell::worldWarningsVisible() const
+{
+    return worldWarning_->shownByView();
 }
 
 // ⚠️ [I-0256] — the Scene Navigator's show/hide. ✅ USER-RULED MECHANISM.
@@ -4710,11 +4803,15 @@ void EditorShell::reloadImportedTimelines(const QVariantMap& li)
 
     // [I-0214] Files the core could not read or parse. ⚠️ They were previously discarded
     // in silence, so an empty panel was indistinguishable from "nothing imported".
-    // ⚠️ LOGGED ONLY, DELIBERATELY: Linux has no passive warning strip (Apple uses one,
-    // mirroring WorldWarningView), and a QMessageBox here would be MODAL on every single
-    // load — worse than the silence it replaces. ⛔ The Linux surface is a KNOWN GAP,
-    // recorded in [I-0214]; do not close it with a modal.
+    // ✅ [SP-231] Q4: named in the Timeline panel's own banner, as Apple's (`rejectedImportsBanner`), and logged.
+    // ⛔ Never a modal: it would interrupt every load.
     const int rejectedCount = li.value(QStringLiteral("rejectedCount")).toInt();
+    QList<QPair<QString, QString>> rejected;
+    for (const QVariant& v : li.value(QStringLiteral("rejected")).toList()) {
+        const QVariantMap rm = v.toMap();
+        rejected.append({rm.value(QStringLiteral("path")).toString(), rm.value(QStringLiteral("reason")).toString()});
+    }
+    timeline_->setRejectedImports(rejected);
     if (rejectedCount > 0) {
         // ⚠️ `rejected` is a NESTED ARRAY in the envelope; parseEnvelope's toVariantMap()
         // preserves it as a QVariantList of QVariantMap — NOT as a JSON string.

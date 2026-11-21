@@ -30,15 +30,20 @@ class QLabel;
 // - `WorldBookmarkStore` — macOS security-scoped bookmarks. ⚠️ There is no Linux
 //   equivalent and porting one would be cargo cult; Linux has ordinary filesystem
 //   permissions and needs no grant to persist.
-// - World CREATION — deferred to T-0497. AC3 asks for added / status read /
-//   relinked. ⚠️ Apple's create path is entangled with the grant store above.
 // - "Remove All World References" — ⚠️ Apple omits it too: destructive to pending
 //   links, and it must be sought out rather than sit beside routine actions.
+class QLineEdit;
+class QPushButton;
+
 class WorldsDialog : public QDialog {
     Q_OBJECT
 
 public:
     WorldsDialog(ScriviBridge* bridge, QString projectRootPath, QWidget* parent = nullptr);
+
+    // [SP-231] D1 (T-0497; Apple: `WorldsView.createWorld(at:name:)`): the world named in the field, made as
+    // `<folder>/<name>.inkwynworld` and bound to this project. Create… asks for the folder (Q1), then calls this.
+    bool createWorldIn(const QString& folder);
 
 signals:
     // ⚠️ Emitted after ANY mutation that can change a world's resolved status.
@@ -52,6 +57,8 @@ signals:
     // ⚠️ Every mutating handler here emits this. A new action that forgets to is
     // the same defect again.
     void worldsChanged();
+    // [SP-231] D2: Reconnect Worlds — the shell re-reads every open project (Apple: `AppEnvironment.reconnectWorlds`).
+    void reconnectRequested();
 
 private:
     // One row's worth of what the core reported. Mirrors the `scrivi_list_worlds`
@@ -81,6 +88,7 @@ private:
 
     void relinkWorld(const Entry& e);
     void addExistingWorld();
+    void createWorld();
     void removeWorldReference(const Entry& e);
 
     // Shows an error beneath the list. ⚠️ Never swallows one: a rejected relink
@@ -100,4 +108,6 @@ private:
     QVBoxLayout* rowsLayout_ = nullptr;
     QLabel*      emptyLabel_ = nullptr;
     QLabel*      errorLabel_ = nullptr;
+    QLineEdit*   newWorldName_ = nullptr;
+    QPushButton* createButton_ = nullptr;
 };

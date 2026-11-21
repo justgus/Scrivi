@@ -1,5 +1,11 @@
 # Unverified Tasks
 
+*Last Updated: 2026-11-21 (**T-0497, T-0693 → 🟠 Implemented - Not Verified** ([SP-231] built); the live pass is the user's.)*
+
+*Last Updated: 2026-11-21 (**T-0692, T-0249 archived** → `Verified/` ([SP-230] closed).)*
+
+*Last Updated: 2026-11-21 (**T-0692, T-0249 → ✅ Verified** (user, 2026-11-21: *"All steps pass."*); archived when SP-230 closes.)*
+
 *Last Updated: 2026-11-20 (**T-0692, T-0249 → 🟠 Implemented - Not Verified** ([SP-230] built); the live pass is the user's.)*
 
 *Last Updated: 2026-11-20 (**T-0684 → ✅ Verified** ([SP-229] closed) → `Verified/Task-verified-0684.md`.)*
@@ -134,31 +140,31 @@ in the backlog carrying a 🟠 status.
 
 ---
 
-## 🟠 T-0692 — `[Linux]` EP-059 E1 + E3: untitled-scene titles as on the Mac, and Navigator search
+## 🟠 T-0497 — `[Linux]` World creation
 
-**Epic:** [EP-059] (E1, E3) · **Status:** 🟠 Implemented - Not Verified ([SP-230] built 2026-11-20; the live pass is the user's) · **Sprint:** [SP-230] (🟡 Active) · **Date Requested:** 2026-11-20 (from
-the Linux gap review, G7 and G9; user: *"We need to do the Linux gap epic first."*)
+**Epic:** [EP-059] (D1; was EP-035) · **Status:** 🟠 Implemented - Not Verified ([SP-231] built 2026-11-21; the live pass is the user's) · **Sprint:** [SP-231] (🟡 Active) → [`../Sprints/Sprint-SP-231.md`](../Sprints/Sprint-SP-231.md) · **Date Requested:** 2026-09-01 (the T-0496 live pass)
 
-**What:** E1 — an untitled scene is named by its first line as the manuscript shows it, or "Scene N" when blank, wherever Linux
-names a scene (today "Untitled Scene", `EditorShell.cpp:2063`; Apple [I-0327]). E3 — the Navigator's search with the Mac's rules
-([T-0569]). Findings, questions and ACs: the Sprint.
+**What (as filed):** ⚠️ **`[Linux]` World CREATION** — the one Worlds action SP-127 deliberately deferred. ⚠️ **Apple entangles it with `WorldBookmarkStore` (macOS sandbox grants, NO Linux equivalent)**, and ✅ **AC3 asks for added / status read / relinked, not created**. ⚠️ **PRIORITY ARGUMENT CHANGED BY THE T-0496 LIVE PASS (2026-09-01):** ⚠️ **the user hit this as a DEAD END while setting up a test** — `Project ▸ Manage Worlds…` offers **no create affordance**, so ⚠️ **a project with no world cannot proceed on Linux at all**: there is nothing to *add* or *relink*. ✅ **Apple detects the no-world case and PROMPTS the writer to create one** — ⚠️ **the deferral assumed add+relink were enough to be USABLE, and they are not.** ⚠️ **The step-7 test could not be completed on Linux alone; the world (`Alpha Centauri`) had to be created in the APPLE app** — ⚠️ **the sharpest evidence available that this is a gap, not a nicety.**
+
+**Built:** Create… in the Worlds dialog — a name, then a folder (Q1) — `<folder>/<name>.inkwynworld`, bound to the project
+(`WorldsDialog::createWorldIn`, `WorldsDialog.cpp`). The Mac's "prompt" when there is no world is its New Object form's line
+(`ObjectCard.swift:836`), which comes to Linux with object creation (EP-059 A5).
 
 ---
 
-## 🟠 T-0249 — `[Linux]` Manuscript navigation gestures
+## 🟠 T-0693 — `[Linux]` EP-059 D2 + D3: Reconnect Worlds, and the world-warning strip
 
-**Epic:** **EP-059** E2 (was EP-022; moved 2026-11-20) · **Status:** 🟠 Implemented - Not Verified ([SP-230] built 2026-11-20; the live pass is the user's) · **Sprint:** [SP-230] (🟡 Active); ✅ Page Forward / Backward dropped (SP-230 Q3: the Mac has neither); ✅ Manuscript Start / End on Ctrl+Home / Ctrl+End (Q2 re-ruled 2026-11-21), scene and chapter without keys as on the Mac
+**Epic:** [EP-059] (D2, D3) · **Status:** 🟠 Implemented - Not Verified ([SP-231] built 2026-11-21; the live pass is the user's) · **Sprint:** [SP-231] (🟡 Active) →
+[`../Sprints/Sprint-SP-231.md`](../Sprints/Sprint-SP-231.md) · **Date Requested:** 2026-11-20 (the Linux gap review, G5 and G6);
+filed 2026-11-21 (user, 2026-11-21: *"Then you can begin planning SP-231."*)
 
-Page Forward / Page Backward + jump to absolute manuscript start / end. **Gestures and keystrokes are
-undecided** — laptops and tablets lack extended keyboards, so no PageUp/PageDown/Home/End may be
-assumed; pick touch-friendly bindings. Raised during SP-063 VNC verification.
+**What:** a Reconnect Worlds button in the Worlds dialog that re-reads every open project's worlds and refreshes the Inspector, and
+the Mac's world-warning strip (an unavailable world named, its pending links counted, Manage Worlds…, ×, View ▸ Show World
+Warnings). Findings, questions and ACs: the Sprint.
 
-⚠️ **Constrained by the VNC input path** (see `project_linux_vnc_input_constraints`): the
-macOS→VNC→x11vnc→Xvfb→Qt chain drops Ctrl+Shift+key combos and pinch/pixelDelta gestures, so **a
-gesture must never be the only path** to any of these actions.
-
-*EP-022 itself is ✅ Closed (2026-07-15); this is an unscheduled follow-up, likely landing with EP-026
-menus/parity.*
+**Built:** Reconnect Worlds (`WorldsDialog.cpp`, `AppEnvironment::reconnectWorlds`, and on coming back to the app, `main.cpp`);
+`EditorShell::refreshWorlds` (off the main thread); `WorldWarningStrip` and View ▸ Show World Warnings; rejected imported
+timelines in the Timeline panel's banner (`TimelinePanel::setRejectedImports`). Details: the Sprint.
 
 ---
 

@@ -1,16 +1,16 @@
 ---
 sprint: SP-230
 epic: EP-059
-status: Active
+status: Closed
 platform: Linux
 created: 2026-11-20
 ---
 
 # SP-230 — `[Linux]` [EP-059] E: untitled-scene titles, Go To, Navigator search
 
-**Status:** 🟡 **ACTIVE** (user, 2026-11-20: *"Q1-Q4 as recommended, activate SP-230"*); ✅ Q1–Q4 as recommended. Built 2026-11-20: AC1, AC3 met; AC2 met (keys re-ruled 2026-11-21: Ctrl+Home / Ctrl+End); AC4 green locally (CI on the push). ⏳ AC5 live pass. Planned 2026-11-20 (user: *"We need to do the Linux gap epic first."*).
+**Status:** ✅ **CLOSED** 2026-11-21 (user, 2026-11-21: *"Close SP-230"*). Was 🟡 **ACTIVE** (user, 2026-11-20: *"Q1-Q4 as recommended, activate SP-230"*); ✅ Q1–Q4 as recommended. Built 2026-11-20: AC1, AC3 met; AC2 met (keys re-ruled 2026-11-21: Ctrl+Home / Ctrl+End); AC4 ✅ (CI green on `98ee22f`); AC5 ✅ (user, 2026-11-21: *"All steps pass."*). **All ACs met — awaiting close approval.** Planned 2026-11-20 (user: *"We need to do the Linux gap epic first."*).
 **Carries:** [T-0692] (E1, E3), [T-0249] (E2).
-**Epic:** [EP-059] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md) — part **E** (E1–E3), first by the Epic's order ("E and D
+**Epic:** [EP-059] → [`../../Epics/Epic-active.md`](../../Epics/Epic-active.md) — part **E** (E1–E3), first by the Epic's order ("E and D
 first; E1 is the user's example"). [SP-228] (TestFlight) waits until EP-059 is done (user, 2026-11-20).
 **Size:** M — three surfaces, each with an Apple original to copy.
 
@@ -96,7 +96,7 @@ In the editor its own Ctrl+Home / End answer first, and in the Navigator tree it
 action from the tree); the menu action takes them elsewhere.
 
 **Tests (AC4, 2026-11-20):** Linux (Docker, Qt 6.4) ctest **884/884** as non-root and **44/44** CI smokes (43 + the new one). No
-core or Apple code changed. ⏳ CI on the push.
+core or Apple code changed. ✅ CI green on `98ee22f` (Linux App CI run 44941236517, `navigator-search-ok`). macOS core ctest not rerun: no core code changed (879/879 at SP-229).
 
 ## Live pass (AC5) — the Linux VM
 
@@ -127,16 +127,22 @@ core or Apple code changed. ⏳ CI on the push.
       move the caret there and scroll to it; Manuscript Start / End on Q2's keys (re-ruled: Ctrl+Home / Ctrl+End).
 - [x] AC3 — (E3) The Navigator's search, with the Mac's rules: chapter-title match keeps its scenes, scene title or body match
       keeps the scene, bodies as the writer sees them, every chapter open while searching, cleared by its clear button.
-- [ ] AC4 — Linux ctest (non-root, tests on), the smokes (new ones added to CI), macOS core ctest, CI green.
-- [ ] AC5 — Live pass on the Linux VM.
+- [x] AC4 — Linux ctest (non-root, tests on), the smokes (new ones added to CI), macOS core ctest, CI green.
+- [x] AC5 — Live pass on the Linux VM (user, 2026-11-21: *"All steps pass."*).
 
 ## Progress log
 
 - **2026-11-20** — 🔵 **Created in Planning** (user, 2026-11-20: *"Nope.  Can't archive yet.  We need to do the Linux gap epic
   first."*), issued via `next-id.py`; carries [T-0692] and [T-0249]. Q1–Q4 to rule.
 - **2026-11-20** — 🟡 **ACTIVE** (user, 2026-11-20: *"Q1-Q4 as recommended, activate SP-230"*); T-0692 and T-0249 → active.
+- **2026-11-21** — ✅ **CLOSED** (user, 2026-11-21: *"Close SP-230"*); T-0692, T-0249 archived.
+- **2026-11-21** — ✅ AC5 live pass (user, 2026-11-21: *"All steps pass."*); CI green; T-0692, T-0249 → ✅ Verified. Awaiting close approval.
 - **2026-11-21** — Q2 re-ruled: Ctrl+Home / Ctrl+End (Ctrl+Alt+0 / 1 found taken by Format first); AC2 met.
 - **2026-11-20** — Built: AC1, AC3 met; AC2 built without keys (⚠️ Ctrl+Shift+1–9 are the copy buffers on Linux: Q2 to re-rule); AC4 green locally; T-0692, T-0249 → 🟠.
+
+*Last Updated: 2026-11-21 (✅ **CLOSED**.)*
+
+*Last Updated: 2026-11-21 (✅ All ACs met — live pass, CI green; awaiting close approval.)*
 
 *Last Updated: 2026-11-21 (Q2 re-ruled: Ctrl+Home / Ctrl+End; ⏳ AC5 live pass, CI.)*
 

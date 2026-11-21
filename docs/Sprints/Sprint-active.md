@@ -1,5 +1,11 @@
 # Active Sprints
 
+*Last Updated: 2026-11-21 (**SP-231 → 🟡 ACTIVE** (user, 2026-11-21: *"Q1-Q4 as recommended, implement SP-231"*) → [`Sprint-SP-231.md`](Sprint-SP-231.md); Q1–Q4 as recommended. Built — AC1–AC4 met, AC5 green locally (CI on the push); T-0497, T-0693 → 🟠. ⏳ AC6 live pass.)*
+
+*Last Updated: 2026-11-21 (**SP-230 → ✅ CLOSED** (user, 2026-11-21: *"Close SP-230"*) → `Closed/Sprint-SP-230.md`; T-0692, T-0249 ✅ Verified. No Sprint is active.)*
+
+*Last Updated: 2026-11-21 (**SP-230 all ACs met** — live pass (user, 2026-11-21: *"All steps pass."*), CI green; T-0692, T-0249 ✅ Verified; awaiting close approval.)*
+
 *Last Updated: 2026-11-21 (**SP-230** Q2 re-ruled: Go to Manuscript Start / End on Ctrl+Home / Ctrl+End; AC2 met. ⏳ AC5 live pass, CI.)*
 
 *Last Updated: 2026-11-20 (**SP-230 built** — AC1, AC3 met; AC2 built, ⚠️ its Manuscript Start / End keys to re-rule (Ctrl+Shift+1–9 paste the copy buffers on Linux); AC4 green locally (CI on the push); T-0692, T-0249 → 🟠. ⏳ AC5 live pass.)*

@@ -4,12 +4,14 @@
 #include <QList>
 #include <QPointF>
 #include <QString>
+#include <QPair>
 #include <QWidget>
 
 #include <algorithm>
 #include <limits>
 
 class QToolButton;
+class QLabel;
 class QTimer;
 class QScrollBar;
 
@@ -103,6 +105,10 @@ public:
     // listImportedTimelines + the stored files (events aren't in the list projection).
     // Only visible rows occupy layout height + paint. Triggers a repaint.
     void setImportedTimelines(const QList<ImportedRow>& rows);
+
+    // [SP-231] Q4 (Apple: `TimelineStripView.rejectedImportsBanner`, [I-0214]): imported timeline files the core could
+    // not read — (file path, reason) — named in a banner along the panel's top, never only logged. Empty hides it.
+    void setRejectedImports(const QList<QPair<QString, QString>>& rejected);
 
     // --- SP-084 co-located dot clustering (T-0346) ------------------------
     // One member of an aggregate: a project-row dot, either a scene (`isScene`, index
@@ -403,6 +409,7 @@ private:
     // zoomed. Lay out in resizeEvent; syncScrollBar() keeps the bar's range/value in
     // step with zoom_/panFraction_.
     QToolButton* zoomSceneBtn_ = nullptr;   // T-0640
+    QLabel* rejectedBanner_ = nullptr;      // [SP-231] Q4
     QToolButton* zoomInBtn_  = nullptr;
     QToolButton* zoomOutBtn_ = nullptr;
     QScrollBar*  hScroll_    = nullptr;

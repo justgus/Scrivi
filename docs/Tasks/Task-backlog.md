@@ -1,5 +1,9 @@
 # Task Backlog
 
+*Last Updated: 2026-11-21 (**T-0497, T-0693 → active** with [SP-231]'s activation (user, 2026-11-21: *"Q1-Q4 as recommended, implement SP-231"*); built the same day → 🟠 `Task-unverified.md`.)*
+
+*Last Updated: 2026-11-21 (**T-0693, T-0694 filed** — EP-059 D2+D3 ([SP-231]) and F1, the toolbar ([SP-232]); **T-0497 → [SP-231]**.)*
+
 *Last Updated: 2026-11-20 (**T-0692, T-0249 → active** with [SP-230]'s activation (user, 2026-11-20: *"Q1-Q4 as recommended, activate SP-230"*) → `Task-active.md`.)*
 
 *Last Updated: 2026-11-20 (**T-0692 filed** and **T-0249** → [SP-230] (🔵 Planning), EP-059 part E (user, 2026-11-20: *"Nope.  Can't archive yet.  We need to do the Linux gap epic first."*).)*
@@ -153,13 +157,13 @@ status changes on its own layer.
 
 | Task | Title | Epic | Status |
 | ---- | ----- | ---- | ------ |
+| T-0694 | `[Linux]` EP-059 F1: the project window's toolbar, as the Mac's | EP-059 | 🔵 Backlog — [SP-232] |
 | T-0690 | `[Apple]` EP-055 S8: TestFlight for iPad, iPhone and the Mac | EP-055 | 🔵 Backlog — [SP-228] |
 | T-0118 | Scroll bar fidelity — per-scene character-ratio thumb position and size | EP-011 | 🔵 Backlog |
 | T-0197 | Enable Core Spotlight donation on iOS/iPadOS (+ iOS deep-link/bookmark consumer); visionOS when backend links | EP-017 (deferred from T-0190) | 🔵 Backlog |
 | **T-0459** | ⚠️ **`[Cross]` Per-citation reference markers on the `cites` EDGE** — surface the edge `note`, and ⚠️ **move `page` off the source object** | **EP-032** | 🔵 **Backlog** — ⚠️ **found by live use, SP-120** |
 | **T-0472** | ⚠️ **`[Linux]` Surface for custom relationship types** — build the UI that calls `scrivi_upsert_relation_type`. ⚠️ **The endpoint is fully implemented and has NEVER had a caller on any platform** | **EP-059** C5 (was EP-037) | 🔵 **Backlog** — ⚠️ **user ruling 2026-08-25: a REAL FEATURE owed a surface, not dead code**; ⚠️ **moved EP-035 → EP-037 by the three-way split** |
 | **T-0473** | ⚠️ **`[Apple]` Timeline endpoint parity** — reach `resolve_timeline_project_times`, `set_timeline_epoch_offset`, `set_world_epoch_offset`. ⚠️ **Unreached on Apple; bridged on Linux by SP-121** | ⚠️ **None — no Epic** | 🔵 **Backlog** — ⚠️ **user ruling 2026-08-25: tracked, NOT scheduled** |
-| **T-0497** | ⚠️ **`[Linux]` World CREATION** — the one Worlds action SP-127 deliberately deferred. ⚠️ **Apple entangles it with `WorldBookmarkStore` (macOS sandbox grants, NO Linux equivalent)**, and ✅ **AC3 asks for added / status read / relinked, not created**. ⚠️ **PRIORITY ARGUMENT CHANGED BY THE T-0496 LIVE PASS (2026-09-01):** ⚠️ **the user hit this as a DEAD END while setting up a test** — `Project ▸ Manage Worlds…` offers **no create affordance**, so ⚠️ **a project with no world cannot proceed on Linux at all**: there is nothing to *add* or *relink*. ✅ **Apple detects the no-world case and PROMPTS the writer to create one** — ⚠️ **the deferral assumed add+relink were enough to be USABLE, and they are not.** ⚠️ **The step-7 test could not be completed on Linux alone; the world (`Alpha Centauri`) had to be created in the APPLE app** — ⚠️ **the sharpest evidence available that this is a gap, not a nicety.** | **EP-059** D1 (was EP-035) | 🔵 **Backlog** — ⚠️ **unscheduled, but ⚠️ NOW BLOCKING a Linux-only writer** |
 | T-0621 | `[Cross]` Explore a whole-manuscript history view (a tree, or a branching timeline) | ⚠️ None yet | 🔵 Backlog — exploration |
 | T-0628 | `[Cross]` EP-052: keep a held queue on local disk and push it when the project returns | EP-052 (unscheduled) | 🔵 Backlog |
 | T-0663 | `[Cross]` Properties tab: the project's file facts (folder, path, dates, size) | ⚠️ None yet | 🔵 Backlog — Q1–Q5 ruled |
@@ -194,6 +198,16 @@ status changes on its own layer.
 ---
 
 ## Detail
+
+## 🔵 T-0694 — `[Linux]` EP-059 F1: the project window's toolbar, as the Mac's
+
+**Epic:** [EP-059] (F1) · **Status:** 🔵 Backlog · **Sprint:** [SP-232] (🔵 Planning) →
+[`../Sprints/Sprint-SP-232.md`](../Sprints/Sprint-SP-232.md) · **Date Requested:** 2026-11-21 (user, 2026-11-21: *"I'd like to scan the Epic for any tasks that involve creating a menu bar of buttons across the top like macOS and iOS have.  If missing, I'd like to make sure its added to the Epic as a new Sprint and AC."*)
+
+**What:** a toolbar across the top of every Linux project window with the Mac's items (`ProjectToolbar.swift`), each the menus' own
+action. Linux has no `QToolBar` today ([I-0244]). Findings, questions and ACs: the Sprint.
+
+---
 
 ## 🔵 T-0690 — `[Apple]` EP-055 S8: TestFlight for iPad, iPhone and the Mac
 

@@ -1,4 +1,5 @@
 #include "TimelinePanel.hpp"
+#include <QFileInfo>
 
 #include <QContextMenuEvent>
 #include <QFrame>
@@ -90,6 +91,22 @@ TimelinePanel::TimelinePanel(QWidget* parent) : QWidget(parent)
         emit viewStateChanged(zoom_, panFraction_);   // persist (T-0338)
     });
 
+    // [SP-231] Q4: the rejected-imports banner (hidden until a file fails to load).
+    rejectedBanner_ = new QLabel(this);
+    rejectedBanner_->setObjectName(QStringLiteral("rejectedImportsBanner"));
+    rejectedBanner_->setWordWrap(true);
+    rejectedBanner_->setTextFormat(Qt::RichText);
+    rejectedBanner_->setContentsMargins(10, 4, 10, 4);
+    rejectedBanner_->setAutoFillBackground(true);
+    {
+        QPalette pal = rejectedBanner_->palette();
+        const QColor base = pal.color(QPalette::Window);
+        pal.setColor(QPalette::Window, QColor::fromRgbF(base.redF() * 0.9 + 0.1, base.greenF() * 0.9 + 0.058,
+                                                        base.blueF() * 0.9));   // a tenth amber, as Apple's
+        rejectedBanner_->setPalette(pal);
+    }
+    rejectedBanner_->hide();
+
     // Keep the control + scrollbar in step with zoom changes.
     connect(this, &TimelinePanel::zoomChanged, this, &TimelinePanel::syncScrollBar);
 }
@@ -103,9 +120,31 @@ void TimelinePanel::layoutControls()
     zoomInBtn_->setGeometry(width() - 2 * kBtn - kMargin - 2, y, kBtn, kBtn);
     zoomOutBtn_->setGeometry(width() - kBtn - kMargin, y, kBtn, kBtn);
     zoomSceneBtn_->setGeometry(width() - 3 * kBtn - kMargin - 4, y, kBtn, kBtn);
+    if (rejectedBanner_ != nullptr && rejectedBanner_->isVisible()) {
+        rejectedBanner_->setGeometry(0, 0, width(), rejectedBanner_->heightForWidth(width()));
+    }
     // Scrollbar runs along the bottom, left of the buttons.
     hScroll_->setGeometry(kMargin, height() - kBtn - kMargin,
                           width() - 3 * kBtn - 3 * kMargin - 6, kBtn - 6);
+}
+
+void TimelinePanel::setRejectedImports(const QList<QPair<QString, QString>>& rejected)
+{
+    if (rejected.isEmpty()) {
+        rejectedBanner_->hide();
+        return;
+    }
+    // ⚠️ It names the FILE: "an import failed" is unactionable (Apple). Nothing here offers to delete it.
+    QString html = QStringLiteral("<b>▲ %1</b>").arg(rejected.size() == 1
+        ? tr("1 imported timeline could not be loaded")
+        : tr("%1 imported timelines could not be loaded").arg(rejected.size()));
+    for (const auto& [path, reason] : rejected) {
+        html += QStringLiteral("<br>%1 — %2").arg(QFileInfo(path).fileName().toHtmlEscaped(), reason.toHtmlEscaped());
+    }
+    rejectedBanner_->setText(html);
+    rejectedBanner_->show();
+    rejectedBanner_->raise();
+    layoutControls();
 }
 
 void TimelinePanel::syncScrollBar()

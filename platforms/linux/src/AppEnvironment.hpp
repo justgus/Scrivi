@@ -275,6 +275,10 @@ public:
     // `ScriviWindow`, which is only forward-declared here.
     void flushAllWindows();
 
+    // [SP-231] D2 (Apple: `AppEnvironment.reconnectWorlds`): every open project re-reads its worlds — Reconnect Worlds,
+    // and coming back to the app (Q2). Out-of-line for the same reason as flushAllWindows.
+    void reconnectWorlds();
+
     // ---- The Landing window ([R-Q3], T-0561) ----------------------------
     //
     // ⚠️ EXACTLY ONE, app-wide. ⛔ "Both pages in every window" was rejected on

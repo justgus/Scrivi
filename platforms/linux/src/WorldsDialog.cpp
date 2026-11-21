@@ -16,6 +16,8 @@
 #include <QLabel>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QDir>
+#include <QLineEdit>
 #include <QColor>
 #include <QPaintEvent>
 #include <QPalette>
@@ -166,9 +168,33 @@ WorldsDialog::WorldsDialog(ScriviBridge* bridge, QString projectRootPath, QWidge
     emptyLabel_->hide();
     layout->addWidget(emptyLabel_);
 
+    // [SP-231] D1 (T-0497; Apple: WorldsView's "New world name" field and Create…).
+    auto* createRow = new QHBoxLayout;
+    newWorldName_ = new QLineEdit(this);
+    newWorldName_->setObjectName(QStringLiteral("newWorldName"));
+    newWorldName_->setPlaceholderText(tr("New world name"));
+    createRow->addWidget(newWorldName_, 1);
+    createButton_ = new QPushButton(tr("Create…"), this);
+    createButton_->setObjectName(QStringLiteral("createWorldButton"));
+    createButton_->setEnabled(false);
+    createRow->addWidget(createButton_);
+    connect(newWorldName_, &QLineEdit::textChanged, this,
+            [this](const QString& t) { createButton_->setEnabled(!t.trimmed().isEmpty()); });
+    connect(newWorldName_, &QLineEdit::returnPressed, this, &WorldsDialog::createWorld);
+    connect(createButton_, &QPushButton::clicked, this, &WorldsDialog::createWorld);
+    layout->addLayout(createRow);
+
     auto* buttons = new QDialogButtonBox(this);
     auto* addBtn = buttons->addButton(tr("Add Existing World…"), QDialogButtonBox::ActionRole);
     connect(addBtn, &QPushButton::clicked, this, &WorldsDialog::addExistingWorld);
+    // [SP-231] D2 (Apple: WorldsView's Reconnect Worlds, I-0123): re-checks worlds whose drive came back.
+    auto* reconnectBtn = buttons->addButton(tr("Reconnect Worlds"), QDialogButtonBox::ActionRole);
+    reconnectBtn->setObjectName(QStringLiteral("reconnectWorldsButton"));
+    reconnectBtn->setToolTip(tr("Re-check worlds that were unavailable — use after reconnecting a drive."));
+    connect(reconnectBtn, &QPushButton::clicked, this, [this]() {
+        emit reconnectRequested();
+        reload();
+    });
     auto* closeBtn = buttons->addButton(QDialogButtonBox::Close);
     connect(closeBtn, &QPushButton::clicked, this, &QDialog::accept);
     layout->addWidget(buttons);
@@ -398,6 +424,42 @@ void WorldsDialog::addExistingWorld()
     showActionError(QString());
     emit worldsChanged();
     reload();
+}
+
+void WorldsDialog::createWorld()
+{
+    const QString name = newWorldName_->text().trimmed();
+    if (name.isEmpty()) { return; }
+    // Q1: where, as Linux New Project asks (and the iPad, [SP-225] Q1) — the world is made inside the folder chosen.
+    const QString folder = QFileDialog::getExistingDirectory(
+        this, tr("Choose the folder to put “%1” in").arg(name), QDir::homePath(),
+        QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+    if (folder.isEmpty()) { return; }
+    createWorldIn(folder);
+}
+
+bool WorldsDialog::createWorldIn(const QString& folder)
+{
+    const QString name = newWorldName_->text().trimmed();
+    if (name.isEmpty()) { return false; }
+    // ⚠️ Inside a package is never a place for a world (I-0185's rule): the package itself is the atom.
+    const QString target = QDir(PackageFolderDialog::packageRootFor(folder)).filePath(name + QStringLiteral(".inkwynworld"));
+    if (QFileInfo::exists(target)) {
+        showActionError(tr("There is already something called “%1” in that folder.").arg(QFileInfo(target).fileName()));
+        return false;
+    }
+    createButton_->setEnabled(false);
+    bridge_->createWorld(projectRootPath_, target, name, QString());
+    if (bridge_->lastCallFailed()) {
+        createButton_->setEnabled(true);
+        showActionError(tr("“%1” could not be created there.").arg(name));
+        return false;
+    }
+    newWorldName_->clear();
+    showActionError(QString());
+    emit worldsChanged();   // I-0130: the strip and the Inspector, not just this list
+    reload();
+    return true;
 }
 
 void WorldsDialog::removeWorldReference(const Entry& e)
