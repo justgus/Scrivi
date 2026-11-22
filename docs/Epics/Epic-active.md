@@ -1,5 +1,11 @@
 # Active Epics
 
+*Last Updated: 2026-11-22 (**EP-059:** [SP-235] 🔵 Planning — the object detail view and its image (B1–B4, [T-0697]); Q1–Q6 to rule.)*
+
+*Last Updated: 2026-11-22 (**EP-059:** [SP-234] ✅ closed (user, 2026-11-22: *"close SP-234, then plan B1-B4"*); A3–A6 ticked.)*
+
+*Last Updated: 2026-11-22 (**EP-059:** [SP-234] live pass ✅ and CI green; A3–A6 ticked at its close.)*
+
 *Last Updated: 2026-11-22 (**EP-059:** [SP-234] built (A3–A6); ⏳ its live pass.)*
 
 *Last Updated: 2026-11-22 (**EP-059:** [SP-234] 🟡 ACTIVE (user, 2026-11-22: *"Q1-Q5 as recommended, implement SP-234"*); Q1–Q5 as recommended.)*
@@ -167,7 +173,7 @@
 
 ## EP-059: `[Linux]` **Linux catches up with the Mac** — every capability gap, one Epic
 
-**Status:** 🟡 **ACTIVE** 2026-11-20 (user, 2026-11-20: *"Nope.  Can't archive yet.  We need to do the Linux gap epic first."*); part E = [SP-230] ✅ closed 2026-11-21; part D = [SP-231] ✅ closed 2026-11-21; part F (toolbar) = [SP-232] ✅ closed 2026-11-21; part A's first Sprint = [SP-233] ✅ closed 2026-11-22; its second = [SP-234] 🟡 Active, built. Created 2026-11-20 (user, 2026-11-20: *"yes, file G1–G9 as an Epic (include everything here, so it is all tracked at once."*). ✅ It **supersedes [EP-035], [EP-036] and [EP-037]**
+**Status:** 🟡 **ACTIVE** 2026-11-20 (user, 2026-11-20: *"Nope.  Can't archive yet.  We need to do the Linux gap epic first."*); part E = [SP-230] ✅ closed 2026-11-21; part D = [SP-231] ✅ closed 2026-11-21; part F (toolbar) = [SP-232] ✅ closed 2026-11-21; part A's first Sprint = [SP-233] ✅ closed 2026-11-22; its second = [SP-234] ✅ closed 2026-11-22; part B (B1–B4) = [SP-235] 🔵 Planning. Created 2026-11-20 (user, 2026-11-20: *"yes, file G1–G9 as an Epic (include everything here, so it is all tracked at once."*). ✅ It **supersedes [EP-035], [EP-036] and [EP-037]**
 (user, 2026-11-20: *"One Epic for all"*), which are closed into it: their ACs are carried below by reference, verified ones kept.
 **Source:** [`../Scrivi_Linux_Capability_Gap_Review_v0_1.md`](../Scrivi_Linux_Capability_Gap_Review_v0_1.md) (G1–G9, read from the code
 2026-11-20). The core is at parity; every gap is a Linux surface.
@@ -182,11 +188,11 @@ on the Mac.
 *A. Objects — from [EP-035] (Object Foundations; its record: [`Closed/Epic-EP-035.md`](Closed/Epic-EP-035.md)):*
 - [x] **A1** (EP-035 AC3) — ✅ world binding from the app: add existing, status, Locate…, remove (SP-127, 2026-09-02)
 - [x] **A2** (EP-035 AC10) — ✅ the Scene Inspector's three tabs, Writing | Worldbuilding | Properties (SP-126, 2026-08-30)
-- [~] **A3** (EP-035 AC1) — open an object by double-click and by menu: ✅ in the Scene Inspector; ⏳ the project-wide list → [SP-234] Q1
-- [~] **A4** (EP-035 AC2) — the objects listed by kind, kind scope derived: ✅ the scene's; ⏳ a project-wide browser → [SP-234] Q1
-- [ ] **A5** (EP-035 AC4; **G2**, [T-0696] → [SP-234]) — object create, open, save, delete, promote, with `worldID` threaded through every call; an
+- [x] **A3** ✅ [SP-234] (EP-035 AC1) — open an object by double-click and by menu, in the Scene Inspector; the project-wide list is the Add <Kind>… picker, as the Mac's ([SP-234] Q1)
+- [x] **A4** ✅ [SP-234] (EP-035 AC2) — the objects listed by kind, kind scope derived: the scene's, and the project's in the Add <Kind>… picker; no separate browser, as the Mac ([SP-234] Q1)
+- [x] **A5** ✅ [SP-234] (EP-035 AC4; **G2**, [T-0696]) — object create, open, save, delete, promote, with `worldID` threaded through every call; an
       object linked to and removed from a scene from its card (Apple: `ObjectCard.swift` Add existing… / New / Remove from Scene); ⚠️ delete and promote have no surface on the Mac either → A8, A9 (2026-11-21)
-- [ ] **A6** (EP-035 AC5, [T-0696] → [SP-234]) — a card's list item shows the object's thumbnail when it has an image
+- [x] **A6** ✅ [SP-234] (EP-035 AC5, [T-0696]) — a card's list item shows the object's thumbnail when it has an image
 - [x] **A7** ✅ [SP-233] (**G4**, [T-0491]) — a stack's sort (manual / name / recently added) and card reorder → [SP-233] (⚠️ the Mac has no
       reorder — `moveCards` has no caller; [SP-233] Q2)
 - [ ] **A8** `[Apple]` — Delete Object and Promote on the Mac and iOS, which have neither today (the core has both). New 2026-11-21
@@ -195,11 +201,11 @@ on the Mac.
 - [ ] **A9** — Delete Object and Promote on Linux, in the shape A8 sets. ⛔ **Blocked by A8's Sprint.** Not yet created
 
 *B. The detail sheet and media — from [EP-036] ([`Closed/Epic-EP-036.md`](Closed/Epic-EP-036.md)):*
-- [ ] **B1** (EP-036 AC1; **G1**) — the object detail view, in place of today's "not built yet" message (`EditorShell.cpp:4197`):
+- [ ] **B1** (EP-036 AC1; **G1**, [T-0697] → [SP-235]) — the object detail view, in place of today's "not built yet" message (`EditorShell.cpp:4503`):
       views and edits name, subtitle, notes, tags; edits persist
-- [ ] **B2** (EP-036 AC2) — an image imported, shown, replaced, removed
-- [ ] **B3** (EP-036 AC3) — a pending object opens read-only, explained, never written
-- [ ] **B4** (EP-036 AC4) — a world going away while the sheet is open loses no data
+- [ ] **B2** (EP-036 AC2, [T-0697] → [SP-235]) — an image imported, shown, replaced, removed
+- [ ] **B3** (EP-036 AC3, [T-0697] → [SP-235]) — a pending object opens read-only, explained, never written
+- [ ] **B4** (EP-036 AC4, [T-0697] → [SP-235]) — a world going away while the sheet is open loses no data
 - [x] **B5** ✅ [SP-233] (EP-036 AC4a; **G4**) — the writer's card stack is honoured, read from `inspector-layout.json` → [SP-233], brought
       forward: A5's verbs live on a kind's card, and Linux has none
 - [x] **B6** ✅ [SP-233] (EP-036 AC4b; **G4**) — the stack picker: add and remove cards on a stack (depends on B5) → [SP-233]

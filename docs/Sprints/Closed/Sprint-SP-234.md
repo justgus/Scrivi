@@ -1,8 +1,8 @@
 # Sprint SP-234 — `[Linux]` [EP-059] A: the object verbs on a card (A3–A6)
 
-**Status:** 🟡 **ACTIVE** 2026-11-22 (user, 2026-11-22: *"Q1-Q5 as recommended, implement SP-234"*); ✅ Q1–Q5 as recommended. Built 2026-11-22: AC1–AC6 met; AC7 green locally (CI on the push). ⏳ AC8 live pass. Created 2026-11-22 (user, 2026-11-22: *"close SP-233.  Lets proceed to planning A3-A6."*).
+**Status:** ✅ **CLOSED** 2026-11-22 (user, 2026-11-22: *"close SP-234, then plan B1-B4"*). Was 🟡 **ACTIVE** 2026-11-22 (user, 2026-11-22: *"Q1-Q5 as recommended, implement SP-234"*); ✅ Q1–Q5 as recommended. Built 2026-11-22: AC1–AC8 met — CI green, live pass (user, 2026-11-22: *"Check the CI on the push.  All these tests passed on Linux."*). Created 2026-11-22 (user, 2026-11-22: *"close SP-233.  Lets proceed to planning A3-A6."*).
 **Carries:** [T-0696] (A3–A6).
-**Epic:** [EP-059] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md) — part **A**, second Sprint, on [SP-233]'s card stacks.
+**Epic:** [EP-059] → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md) — part **A**, second Sprint, on [SP-233]'s card stacks.
 **Size:** M–L — every endpoint is bridged; none has a Linux caller yet (`createObject`, `createEdge`, `deleteEdge`, `saveObject`
 are declared in `ScriviBridge.hpp` and called nowhere in `platforms/linux/src`).
 
@@ -157,13 +157,15 @@ Build on the VM (`git pull`, then build as §9 of the rig doc). Then
       disabled and explained.
 - [x] AC5 — (A5, Q3) A draft left at a scene boundary asks; each answer does what it says, and the commit goes to the origin scene.
 - [x] AC6 — (A6) A row shows its object's image when there is one.
-- [~] AC7 — Tests: ✅ Docker (Qt 6.4, non-root): ctest **884/884**, smokes **48/48** (the new one in CI); ⏳ CI on the push.
-- [ ] AC8 — Live pass on the Linux VM.
+- [x] AC7 — Tests: ✅ Docker (Qt 6.4, non-root): ctest **884/884**, smokes **48/48**; ✅ CI run 45065134350 on `61c7cc1` green ("Inspector object verbs smoke test" passed).
+- [x] AC8 — Live pass on the Linux VM: all 14 steps passed (user, 2026-11-22: *"Check the CI on the push.  All these tests passed on Linux."*).
 
 ## Progress log
 
+- **2026-11-22** — ✅ **CLOSED** (user, 2026-11-22: *"close SP-234, then plan B1-B4"*); T-0696 archived → `Verified/Task-verified-0696.md`; A3–A6 ticked.
+- **2026-11-22** — ✅ AC7 (CI green on `61c7cc1`) and AC8 (live pass, all 14 steps) (user, 2026-11-22: *"Check the CI on the push.  All these tests passed on Linux."*); T-0696 → ✅ Verified. Awaiting close approval.
 - **2026-11-22** — Built: AC1–AC6 met; AC7 green locally (884/884, 48/48); T-0696 → 🟠. ⏳ AC8 live pass, CI.
 - **2026-11-22** — 🟡 **ACTIVE** (user, 2026-11-22: *"Q1-Q5 as recommended, implement SP-234"*); Q1–Q5 as recommended; T-0696 → active; [I-0367] filed (Q5).
 - **2026-11-22** — 🔵 **Created in Planning** via `next-id.py`; carries [T-0696] (new). Q1–Q5 to rule.
 
-*Last Updated: 2026-11-22 (Built; ⏳ AC8 live pass, CI.)*
+*Last Updated: 2026-11-22 (✅ CLOSED.)*

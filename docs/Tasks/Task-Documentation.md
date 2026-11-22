@@ -836,7 +836,8 @@ archive files reconstructed after the fact from secondary sources.
 | T-0693 | `[Linux]` EP-059 D2 + D3: Reconnect Worlds, and the world-warning strip | ✅ SP-231 | **EP-059** | ✅ Verified | [`Verified/Task-verified-0693.md`](Verified/Task-verified-0693.md) |
 | T-0694 | `[Linux]` EP-059 F1: the project window's toolbar, as the Mac's | ✅ SP-232 | **EP-059** | ✅ Verified | [`Verified/Task-verified-0694.md`](Verified/Task-verified-0694.md) |
 | T-0695 | `[Linux]` EP-059 B5+B6: the Scene Inspector's card stacks, as the Mac's | ✅ SP-233 | **EP-059** | ✅ Verified | [`Verified/Task-verified-0695.md`](Verified/Task-verified-0695.md) |
-| T-0696 | `[Linux]` EP-059 A3–A6: the object verbs on a card, as the Mac's | 🟡 SP-234 | **EP-059** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
+| T-0696 | `[Linux]` EP-059 A3–A6: the object verbs on a card, as the Mac's | ✅ SP-234 | **EP-059** | ✅ Verified | [`Verified/Task-verified-0696.md`](Verified/Task-verified-0696.md) |
+| T-0697 | `[Linux]` EP-059 B1–B4: the object detail view and its image, as the Mac's | 🔵 SP-235 | **EP-059** | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
 | T-0685 | `[Apple]` EP-055 S3a: undo/redo, structural edits, cross-scene clipboard on iOS | ✅ SP-222 | **EP-055** | ✅ Verified | [`Verified/Task-verified-0685.md`](Verified/Task-verified-0685.md) |
 | T-0690 | `[Apple]` EP-055 S8: TestFlight for iPad, iPhone and the Mac | 🔵 SP-228 | **EP-055** | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
 | T-0689 | `[Apple]` EP-055 S7: the whole app at iPhone width | ✅ SP-227 | **EP-055** | ✅ Verified | [`Verified/Task-verified-0689.md`](Verified/Task-verified-0689.md) |
@@ -887,6 +888,12 @@ archive files reconstructed after the fact from secondary sources.
 ⚠️ **This index ended at `T-0485 (next available)` until 2026-09-10 — ✅ that was STALE.** ⚠️ **T-0485–T-0498 had all been taken**, and T-0485–T-0490/T-0492–T-0496 are archived as Verified. ⚠️ **Rows for T-0486–T-0497 are NOT reconstructed here** — ✅ **their Sprints' closed records are authoritative** (`feedback_archive_on_close`).
 
 ---
+
+*Last Updated: 2026-11-22 (**T-0697 filed** ([SP-235], 🔵 Planning).)*
+
+*Last Updated: 2026-11-22 (**T-0696 archived** → `Verified/` ([SP-234] closed).)*
+
+*Last Updated: 2026-11-22 (**T-0696 → ✅ Verified** (SP-234 live pass).)*
 
 *Last Updated: 2026-11-22 (**T-0696 → 🟠** ([SP-234] built).)*
 

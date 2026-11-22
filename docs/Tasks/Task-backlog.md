@@ -1,5 +1,7 @@
 # Task Backlog
 
+*Last Updated: 2026-11-22 (**T-0697 filed** — EP-059 B1–B4, carried by [SP-235] (🔵 Planning) (user, 2026-11-22: *"close SP-234, then plan B1-B4"*).)*
+
 *Last Updated: 2026-11-22 (**T-0696 → active** with [SP-234]'s activation (user, 2026-11-22: *"Q1-Q5 as recommended, implement SP-234"*).)*
 
 *Last Updated: 2026-11-22 (**T-0696 filed** — EP-059 A3–A6, carried by [SP-234] (🔵 Planning) (user, 2026-11-22: *"close SP-233.  Lets proceed to planning A3-A6."*).)*
@@ -167,6 +169,7 @@ status changes on its own layer.
 
 | Task | Title | Epic | Status |
 | ---- | ----- | ---- | ------ |
+| T-0697 | `[Linux]` EP-059 B1–B4: the object detail view and its image, as the Mac's | EP-059 | 🔵 Backlog — [SP-235] |
 | T-0690 | `[Apple]` EP-055 S8: TestFlight for iPad, iPhone and the Mac | EP-055 | 🔵 Backlog — [SP-228] |
 | T-0118 | Scroll bar fidelity — per-scene character-ratio thumb position and size | EP-011 | 🔵 Backlog |
 | T-0197 | Enable Core Spotlight donation on iOS/iPadOS (+ iOS deep-link/bookmark consumer); visionOS when backend links | EP-017 (deferred from T-0190) | 🔵 Backlog |
@@ -207,6 +210,18 @@ status changes on its own layer.
 ---
 
 ## Detail
+
+## 🔵 T-0697 — `[Linux]` EP-059 B1–B4: the object detail view and its image, as the Mac's
+
+**Epic:** [EP-059] (B1, B2, B3, B4) · **Status:** 🔵 Backlog · **Sprint:** [SP-235] (🔵 Planning) →
+[`../Sprints/Sprint-SP-235.md`](../Sprints/Sprint-SP-235.md) · **Date Requested:** 2026-11-22 (user, 2026-11-22: *"close SP-234, then plan B1-B4"*)
+
+**What:** the Mac's object detail sheet (`ObjectDetailSheet.swift`, `ObjectImageSection.swift`) on Linux, in place of the "not built
+yet" message (`EditorShell.cpp:4503`): Name, Subtitle, Notes, Tags, edited and saved by patch; the image added, replaced, chosen from
+the world and removed; read-only and explained when the object's world is away; nothing lost when the world goes away while it is open.
+Sources, Relationships and in-sheet navigation are C1–C4. Findings, questions and ACs: the Sprint.
+
+---
 
 ## 🔵 T-0690 — `[Apple]` EP-055 S8: TestFlight for iPad, iPhone and the Mac
 

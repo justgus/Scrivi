@@ -1,5 +1,9 @@
 # Unverified Tasks
 
+*Last Updated: 2026-11-22 (**T-0696 archived** → `Verified/` ([SP-234] closed).)*
+
+*Last Updated: 2026-11-22 (**T-0696 → ✅ Verified** (user, 2026-11-22: *"Check the CI on the push.  All these tests passed on Linux."*); archived when [SP-234] closes.)*
+
 *Last Updated: 2026-11-22 (**T-0696 → 🟠 Implemented - Not Verified** ([SP-234] built); the live pass is the user's.)*
 
 *Last Updated: 2026-11-22 (**T-0695, T-0491 archived** → `Verified/` ([SP-233] closed).)*
@@ -155,22 +159,6 @@ Tasks that are **implemented and awaiting user verification** before being archi
 ⚠️ This file must not disagree with [`Task-active.md`](Task-active.md) or
 [`Task-backlog.md`](Task-backlog.md). A Task implemented but unverified belongs **here** — not left
 in the backlog carrying a 🟠 status.
-
----
-
-## 🟠 T-0696 — `[Linux]` EP-059 A3–A6: the object verbs on a card, as the Mac's
-
-**Epic:** [EP-059] (A3, A4, A5, A6) · **Status:** 🟠 Implemented - Not Verified · **Sprint:** [SP-234] (🟡 Active) →
-[`../Sprints/Sprint-SP-234.md`](../Sprints/Sprint-SP-234.md) · **Date Requested:** 2026-11-22 (user, 2026-11-22: *"close SP-233.  Lets proceed to planning A3-A6."*)
-
-**What:** on each kind's card in the Scene Inspector, the Mac's verbs (`ObjectCard.swift`, `ObjectPickerView.swift`): Add <Kind>… (every
-object of the kind, across worlds), New in place with `worldID` threaded, rename, Remove from Scene (the edge only), the unfinished-draft
-prompt at a scene boundary, and a row's thumbnail. Delete and promote are A8 / A9. Findings, questions and ACs: the Sprint.
-
-**Built:** `SceneInspector` — Add <Kind>… (`openPicker`), the in-card draft (`draftEditor`) for New and Rename (F2, Rename…), ⊖ / Remove
-from Scene, the boundary prompt (`promptUnfinishedDraft`), the derived relation type (`relationTypeToScene`), row thumbnails; every
-write on a worker (`runObjectWrite`). Details and the live pass: the Sprint.
-
 
 ---
 
