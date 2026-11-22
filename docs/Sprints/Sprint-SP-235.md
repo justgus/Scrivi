@@ -159,13 +159,16 @@ world away at open, named. Docker (Qt 6.4, non-root): ctest **884/884**, smokes 
       while edits are held, and Save writes them once the world is back.
 - [~] AC6 — Tests: a smoke through a real project window (open, edit, save, revert, guarded close, tags, image add / replace / remove,
       read-only); ctest and every smoke green in Docker; CI green. ✅ Docker: ctest **884/884**, smokes **49/49**; ⏳ CI on the push.
-- [ ] AC7 — Live pass on the Linux VM.
+- [~] AC7 — Live pass on the Linux VM. Steps 1–10 ✅ except 3 (user, 2026-11-22, on dumas-prose-timelines-history). Step 3: Return
+      in the tag field also pressed Add Image… (the dialog's default button) — fixed (`setAutoDefault(false)`), §2 checks it
+      (failed before the fix). ⏳ step 3 again, steps 11–15 (not run: that project's world is not Eskandar).
 
 ## Progress log
 
+- **2026-11-22** — Live pass: steps 1–10 pass but 3 (Return in a tag pressed Add Image…; fixed, smokes 49/49). ⏳ 3, 11–15.
 - **2026-11-22** — Built: AC1–AC5 met; AC6 green in Docker (884/884, 49/49); T-0697 → 🟠; [I-0369] filed. ⏳ AC7 live pass, CI.
 - **2026-11-22** — 🟡 **ACTIVE** (user, 2026-11-22: *"Q1-Q6 as recommended, implement SP-235"*); Q1–Q6 as recommended; T-0697 → active; [I-0368] filed (Q3).
 - **2026-11-22** — 🔵 **Created in Planning** via `next-id.py` (user, 2026-11-22: *"close SP-234, then plan B1-B4"*); carries [T-0697]
   (new). Q1–Q6 to rule.
 
-*Last Updated: 2026-11-22 (Built; ⏳ AC7 live pass, CI.)*
+*Last Updated: 2026-11-22 (Live pass 1–10; step 3 fixed; ⏳ 3, 11–15, CI.)*

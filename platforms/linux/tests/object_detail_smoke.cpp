@@ -261,6 +261,8 @@ int main(int argc, char** argv)
     QTest::keyClicks(newTag, QStringLiteral("hero"));
     QTest::keyClick(newTag, Qt::Key_Return);
     check(chips(d) == QStringList({QStringLiteral("old"), QStringLiteral("hero")}), QStringLiteral("§2 a tag added, its duplicate refused"));
+    check(d->findChild<QFileDialog*>(QStringLiteral("imageFileDialog")) == nullptr,
+          QStringLiteral("§2 Return in the tag field does not press Add Image… (SP-235 live pass)"));
     for (QToolButton* x : d->findChildren<QToolButton*>(QStringLiteral("tagRemove"))) {
         if (x->parentWidget()->property("tag").toString() == QStringLiteral("old")) { x->click(); }
     }

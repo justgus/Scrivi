@@ -323,6 +323,8 @@ ObjectDetailDialog::ObjectDetailDialog(ScriviBridge* bridge, const QString& proj
     imageRow->addWidget(imageExisting_);
     imageRow->addWidget(imageRemove_);
     imageRow->addStretch(1);
+    // A QDialog makes its first push button the default, so Return in any field would press Add Image… (SP-235 live pass).
+    for (QPushButton* b : {imageAdd_, imageExisting_, imageRemove_}) { b->setAutoDefault(false); }
     col->addLayout(imageRow);
     connect(imageAdd_, &QPushButton::clicked, this, &ObjectDetailDialog::chooseImageFile);
     connect(imageExisting_, &QPushButton::clicked, this, &ObjectDetailDialog::chooseExisting);
