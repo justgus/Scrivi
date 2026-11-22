@@ -32,6 +32,7 @@
 #include <QJsonArray>
 
 #include <cstdio>
+#include <utility>
 
 #include "InspectorLayoutStore.hpp"
 #include "ScriviBridge.hpp"
@@ -358,6 +359,91 @@ int main(int argc, char* argv[])
         // is worse. The setter must be inert against a document that never loaded.
         check(still.startsWith("{ this is not json"),
               "a corrupt layout file is left untouched for a human to inspect");
+    }
+
+    // ================================================================
+    // 5 — [SP-233] the card stacks: Apple's reads and edits, still patched
+    // ================================================================
+    {
+        const QString root = QDir(base).filePath(QStringLiteral("stacks"));
+        const QString path = writeFile(root, kAppleLayout);
+        InspectorLayoutStore store;
+        store.load(&bridge, root);
+
+        auto types = [](const QList<InspectorLayoutStore::CardEntry>& cards) {
+            QStringList out;
+            for (const auto& c : cards) { out << c.type; }
+            return out;
+        };
+        const auto abc = store.cards(QStringLiteral("scene_abc"), QStringLiteral("worldbuilding"));
+        check(types(abc) == QStringList{"objects.characters", "objects.locations"} && !abc.at(0).collapsed
+                  && abc.at(1).collapsed,
+              "a scene's own stack is read, with its collapse");
+        check(store.cards(QStringLiteral("scene_abc"), QStringLiteral("writing")).isEmpty(),
+              "a scene layout without a stack's key reads EMPTY for it (Apple's decode), not the default");
+        check(types(store.cards(QStringLiteral("scene_other"), QStringLiteral("writing")))
+                  == QStringList{"tags", "outline", "todo"},
+              "a scene with no layout falls back to defaultStacks");
+        check(store.sort(QStringLiteral("worldbuilding")) == QLatin1String("name")
+                  && store.sort(QStringLiteral("writing")) == QLatin1String("manual"),
+              "stackSort is read per stack");
+
+        store.addCard(QStringLiteral("scene_new"), QStringLiteral("worldbuilding"), QStringLiteral("objects.items"));
+        store.addCard(QStringLiteral("scene_new"), QStringLiteral("worldbuilding"), QStringLiteral("objects.items"));
+        store.setCollapsed(QStringLiteral("scene_abc"), QStringLiteral("worldbuilding"),
+                           QStringLiteral("objects.characters"), true);
+        store.removeCard(QStringLiteral("scene_abc"), QStringLiteral("worldbuilding"), QStringLiteral("objects.locations"));
+        store.setSort(QStringLiteral("writing"), QStringLiteral("recentlyAdded"));
+        store.waitForSaves();
+
+        QJsonObject after = readFile(path);
+        const QJsonObject scenes = after.value(QStringLiteral("scenes")).toObject();
+        const QJsonObject made = scenes.value(QStringLiteral("scene_new")).toObject();
+        check(made.value(QStringLiteral("worldbuilding")).toArray().size() == 1,
+              "addCard adds once (a second add of a present card is a no-op)");
+        check(made.value(QStringLiteral("writing"))
+                  == QJsonDocument::fromJson(kAppleLayout).object().value("defaultStacks")["writing"],
+              "a scene's first layout copies the OTHER stack from the defaults (Apple's setEntries)");
+        const QJsonArray abcAfter = scenes.value(QStringLiteral("scene_abc")).toObject()
+                                        .value(QStringLiteral("worldbuilding")).toArray();
+        check(abcAfter.size() == 1 && abcAfter.at(0).toObject().value(QStringLiteral("collapsed")).toBool(),
+              "setCollapsed and removeCard are written");
+        check(!scenes.value(QStringLiteral("scene_abc")).toObject().contains(QStringLiteral("writing")),
+              "an edit of one stack does not invent the scene's other key");
+        check(std::as_const(after)["stackSort"]["writing"].toString() == QLatin1String("recentlyAdded")
+                  && std::as_const(after)["stackSort"]["worldbuilding"].toString() == QLatin1String("name"),
+              "setSort writes its stack only");
+        check(after.contains(QStringLiteral("futureKeyFromANewerScrivi")), "an unknown key survives the stack edits");
+
+        store.applyStackToAllScenes(QStringLiteral("scene_abc"), QStringLiteral("worldbuilding"),
+                                    {QStringLiteral("scene_abc"), QStringLiteral("scene_new"), QStringLiteral("scene_z")});
+        store.waitForSaves();
+        after = readFile(path);
+        const QJsonArray wanted = std::as_const(after)["scenes"]["scene_abc"]["worldbuilding"].toArray();
+        check(std::as_const(after)["scenes"]["scene_new"]["worldbuilding"].toArray() == wanted
+                  && std::as_const(after)["scenes"]["scene_z"]["worldbuilding"].toArray() == wanted
+                  && std::as_const(after)["defaultStacks"]["worldbuilding"].toArray() == wanted,
+              "Apply Layout to All Scenes writes every named scene and the default");
+        check(std::as_const(after)["scenes"]["scene_new"]["writing"] == made.value(QStringLiteral("writing")),
+              "… and leaves each scene's other stack alone");
+    }
+
+    // 5b — no file: Apple's defaults, and the first stack edit creates the file
+    {
+        const QString root = QDir(base).filePath(QStringLiteral("stacksnofile"));
+        QDir().mkpath(root);
+        InspectorLayoutStore store;
+        store.load(&bridge, root);
+        check(store.cards(QStringLiteral("s1"), QStringLiteral("worldbuilding")).isEmpty()
+                  && store.cards(QStringLiteral("s1"), QStringLiteral("writing")).size() == 3
+                  && store.sort(QStringLiteral("worldbuilding")) == QLatin1String("manual"),
+              "no layout: Writing = tags, outline, todo; Worldbuilding empty; manual");
+        store.addCard(QStringLiteral("s1"), QStringLiteral("writing"), QStringLiteral("history"));
+        store.waitForSaves();
+        InspectorLayoutStore reread;
+        reread.load(&bridge, root);
+        check(reread.cards(QStringLiteral("s1"), QStringLiteral("writing")).size() == 4,
+              "the added card reads back");
     }
 
     std::fprintf(stderr, "checks: %d, failures: %d\n", checks, failures);

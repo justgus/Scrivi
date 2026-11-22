@@ -10,6 +10,11 @@
 #include "ScriviBridge.hpp"
 
 #include <QAction>
+#include <QActionGroup>
+#include <QFrame>
+#include <QHBoxLayout>
+#include <QScrollArea>
+#include <QToolButton>
 #include <QFileInfo>
 #include <QFont>
 #include <QFormLayout>
@@ -141,119 +146,309 @@ void SceneInspector::onTabChanged(int index)
 
 QWidget* SceneInspector::buildWritingTab()
 {
-    // T-0487 — the Writing stack: tags, outline, todo. Apple ships these three
-    // as the DEFAULT writing cards for a fresh project
-    // (InspectorLayoutStore.swift:81-85), so they are the right three here.
-    //
-    // ⚠️ Rendered as a plain form, NOT as Apple's collapsible card stack. Card
-    // collapse/reorder/sort is T-0491 and is user-ruled OUT of this sprint; the
-    // layout file's `stackSort` and `defaultStacks` are round-tripped untouched
-    // meanwhile, so nothing is lost by the simpler presentation.
-    auto* tab = new QWidget;
-    auto* layout = new QVBoxLayout(tab);
-    layout->setContentsMargins(12, 12, 12, 12);
-    layout->setSpacing(6);
+    // T-0487 — the Writing tools: tags, outline, to-do, and History. ✅ [SP-233] (Q1): each is a CARD in the Writing stack,
+    // as the Mac's (`WritingToolCards.swift`, `HistoryCard.swift`); the widgets are built once and moved into whichever
+    // card shows them. The default stack is Tags, Outline, To-do — History only once added with + (Q1).
+    parkedBodies_ = new QWidget(this);
+    parkedBodies_->hide();
 
-    auto boldLabel = [tab](const QString& text) {
-        auto* l = new QLabel(text, tab);
-        QFont f = l->font();
-        f.setBold(true);
-        l->setFont(f);
-        return l;
-    };
-
-    layout->addWidget(boldLabel(tr("Tags")));
-    tagsEdit_ = new QLineEdit(tab);
+    tagsEdit_ = new QLineEdit(parkedBodies_);
     tagsEdit_->setPlaceholderText(tr("comma, separated, tags"));
     // Commit on editing-finished (Return or focus-out), not per keystroke — a
     // scene note is not worth a disk write per character.
     connect(tagsEdit_, &QLineEdit::editingFinished, this, &SceneInspector::onTagsEdited);
-    layout->addWidget(tagsEdit_);
 
-    layout->addWidget(boldLabel(tr("Outline")));
-    outlineEdit_ = new QTextEdit(tab);
+    outlineEdit_ = new QTextEdit(parkedBodies_);
     outlineEdit_->setAcceptRichText(false);   // the core stores plain text
     outlineEdit_->setPlaceholderText(tr("What happens in this scene?"));
+    outlineEdit_->setMinimumHeight(120);
     // ⚠️ Commit on focus-out — see eventFilter(). QTextEdit has no
     // editingFinished, so without this the note is only saved when the scene
     // changes, and typing then clicking into the manuscript LOSES it.
     outlineEdit_->installEventFilter(this);
-    layout->addWidget(outlineEdit_, 2);
 
-    layout->addWidget(boldLabel(tr("To-do")));
-    todoEdit_ = new QTextEdit(tab);
+    todoEdit_ = new QTextEdit(parkedBodies_);
     todoEdit_->setAcceptRichText(false);
     // ⚠️ One item per line; a leading "[x] " marks it done. The core models todo
     // as {text, done} pairs, so this is a TEXT PRESENTATION of that structure —
     // the parse is explicit in onTodoEdited() rather than implied here.
     todoEdit_->setPlaceholderText(tr("One item per line.\n[x] done item"));
+    todoEdit_->setMinimumHeight(120);
     todoEdit_->installEventFilter(this);   // commit on focus-out, as above
-    layout->addWidget(todoEdit_, 2);
 
+    // EP-026 S3 ([SP-204]): the History section. Its own disclosure header is hidden: the CARD's collapse drives it.
+    historySection_ = new HistorySection(parkedBodies_);
+    historySection_->header()->hide();
+
+    writingBodies_ = {{QStringLiteral("tags"), tagsEdit_},
+                      {QStringLiteral("outline"), outlineEdit_},
+                      {QStringLiteral("todo"), todoEdit_},
+                      {QStringLiteral("history"), historySection_}};
+
+    writingStack_.stack = QStringLiteral("writing");
+    QWidget* tab = buildStack(writingStack_);
     writingStatus_ = new QLabel(tab);
     writingStatus_->setWordWrap(true);
     writingStatus_->setEnabled(false);
-    layout->addWidget(writingStatus_);
-
-    // EP-026 S3 ([SP-204] Q1): History, at the foot of the Writing tab — Apple's History card is in the Writing stack.
-    historySection_ = new HistorySection(tab);
-    layout->addWidget(historySection_);
-
+    tab->layout()->addWidget(writingStatus_);
     return tab;
 }
 
 QWidget* SceneInspector::buildWorldbuildingTab()
 {
-    // T-0489 — SP-125's object list, MOVED here unchanged. ⚠️ This is the tab it
-    // always belonged in; "Scene Entities" was never a real tab (see the header).
-    // ⚠️ NO behaviour change: same read path, same two open affordances, same
-    // four explained states.
-    auto* tab = new QWidget;
-    auto* layout = new QVBoxLayout(tab);
-    layout->setContentsMargins(12, 12, 12, 12);
-    layout->setSpacing(8);
-
-    title_ = new QLabel(tr("Objects in this scene"), tab);
-    QFont titleFont = title_->font();
-    titleFont.setBold(true);
-    title_->setFont(titleFont);
-    title_->setAlignment(Qt::AlignLeft | Qt::AlignTop);
-    layout->addWidget(title_);
-
-    tree_ = new QTreeWidget(tab);
-    tree_->setHeaderHidden(true);
-    tree_->setColumnCount(1);
-    tree_->setRootIsDecorated(true);
-    // Rows are single-line again (the label moved to the header), so uniform
-    // heights are both correct and faster.
-    tree_->setUniformRowHeights(true);
-    tree_->setSelectionMode(QAbstractItemView::SingleSelection);
-    // T-0482: the context menu is a FIRST-CLASS path to open, not a convenience
-    // duplicate of the double-click. The VNC/RDP input path carries no
-    // Shift-combos and no trackpad gestures, so every action needs a button or
-    // menu route. ⚠️ The rig does NOT retire this rule — remote passes may still
-    // drop modifiers.
-    tree_->setContextMenuPolicy(Qt::CustomContextMenu);
-    connect(tree_, &QTreeWidget::itemDoubleClicked,
-            this, &SceneInspector::onItemActivated);
-    // itemActivated covers Return/Enter — the same open, reachable with no
-    // pointer at all.
-    connect(tree_, &QTreeWidget::itemActivated,
-            this, &SceneInspector::onItemActivated);
-    connect(tree_, &QTreeWidget::customContextMenuRequested,
-            this, &SceneInspector::onContextMenuRequested);
-    layout->addWidget(tree_, 1);
+    // ✅ [SP-233]: the Worldbuilding stack — one card per kind the writer adds (Apple's ships EMPTY, Q3). Each card lists
+    // the scene's objects of its kind as SP-125's tree did: the same rows, the same three ways to open, the same states.
+    worldStack_.stack = QStringLiteral("worldbuilding");
+    QWidget* tab = buildStack(worldStack_);
 
     // ⚠️ T-0483: the panel's one explanatory line. Empty, unavailable, pending
     // and unreadable-index are DIFFERENT states and each gets its own sentence.
-    // It is never left blank while the tree is empty.
     status_ = new QLabel(tab);
     status_->setWordWrap(true);
     status_->setTextInteractionFlags(Qt::TextSelectableByMouse);
-    layout->addWidget(status_);
+    tab->layout()->addWidget(status_);
 
     setStatusLine(tr("No project open."), false);
     return tab;
+}
+
+// ---- The card stacks ([SP-233]) ----------------------------------------------------------------------------------------
+//
+// ⚠️ Every action is a BUTTON or a MENU ITEM — no gesture-only path (`project_linux_vnc_input_constraints`, T-0482).
+
+QWidget* SceneInspector::buildStack(StackUI& ui)
+{
+    auto* tab = new QWidget;
+    auto* layout = new QVBoxLayout(tab);
+    layout->setContentsMargins(8, 8, 8, 8);
+    layout->setSpacing(6);
+
+    auto* header = new QHBoxLayout;
+    ui.add = new QToolButton(tab);
+    ui.add->setObjectName(ui.stack + QStringLiteral("AddCard"));
+    ui.add->setText(QStringLiteral("+"));   // text, not a theme icon: SP-232 found theme icons that draw nothing
+    ui.add->setToolTip(tr("Add a card to this stack"));
+    ui.add->setAccessibleName(tr("Add Card"));
+    ui.add->setPopupMode(QToolButton::InstantPopup);
+    ui.add->setMenu(new QMenu(ui.add));
+    StackUI* u = &ui;
+    connect(ui.add->menu(), &QMenu::aboutToShow, this, [this, u] {
+        QMenu* menu = u->add->menu();
+        menu->clear();
+        const QList<CardInfo> cards = availableCards(u->stack);
+        if (cards.isEmpty()) {
+            menu->addAction(tr("No cards available yet"))->setEnabled(false);
+            return;
+        }
+        QSet<QString> present;
+        for (const auto& c : layout_.cards(sceneID_, u->stack)) { present.insert(c.type); }
+        for (const CardInfo& c : cards) {
+            QAction* a = menu->addAction(c.title);
+            a->setEnabled(!sceneID_.isEmpty() && !present.contains(c.type));
+            const QString type = c.type;
+            connect(a, &QAction::triggered, this, [this, u, type] {
+                layout_.addCard(sceneID_, u->stack, type);
+                rebuildStack(*u);
+            });
+        }
+    });
+    header->addWidget(ui.add);
+    header->addStretch(1);
+
+    // Sort is per-STACK, not per-card (C6): one setting for the whole column.
+    ui.options = new QToolButton(tab);
+    ui.options->setObjectName(ui.stack + QStringLiteral("StackOptions"));
+    ui.options->setText(QStringLiteral("⋯"));
+    ui.options->setToolTip(tr("Sort and layout options for this stack"));
+    ui.options->setAccessibleName(tr("Stack Options"));
+    ui.options->setPopupMode(QToolButton::InstantPopup);
+    ui.options->setMenu(new QMenu(ui.options));
+    connect(ui.options->menu(), &QMenu::aboutToShow, this, [this, u] {
+        QMenu* menu = u->options->menu();
+        menu->clear();
+        menu->addSection(tr("Sort"));
+        auto* group = new QActionGroup(menu);
+        const QString current = layout_.sort(u->stack);
+        const std::pair<const char*, QString> sorts[] = {{"manual", tr("Manual")},
+                                                         {"name", tr("Name")},
+                                                         {"recentlyAdded", tr("Recently Added")}};
+        for (const auto& [value, title] : sorts) {
+            QAction* a = menu->addAction(title);
+            a->setCheckable(true);
+            a->setChecked(current == QLatin1String(value));
+            group->addAction(a);
+            const QString v = QString::fromLatin1(value);
+            connect(a, &QAction::triggered, this, [this, u, v] {
+                layout_.setSort(u->stack, v);
+                rebuildStack(*u);
+            });
+        }
+        menu->addSeparator();
+        QAction* all = menu->addAction(tr("Apply Layout to All Scenes…"));
+        const QStringList ids = allSceneIDs_ ? allSceneIDs_() : QStringList{};
+        all->setEnabled(!sceneID_.isEmpty() && !ids.isEmpty());
+        connect(all, &QAction::triggered, this, [this, u, ids] {
+            layout_.applyStackToAllScenes(sceneID_, u->stack, ids);
+        });
+    });
+    header->addWidget(ui.options);
+    layout->addLayout(header);
+
+    auto* scroll = new QScrollArea(tab);
+    scroll->setWidgetResizable(true);
+    scroll->setFrameShape(QFrame::NoFrame);
+    ui.cardsHost = new QWidget(scroll);
+    ui.cardsHost->setObjectName(ui.stack + QStringLiteral("Cards"));
+    ui.cards = new QVBoxLayout(ui.cardsHost);
+    ui.cards->setContentsMargins(0, 0, 0, 0);
+    ui.cards->setSpacing(8);
+    ui.empty = new QLabel(ui.cardsHost);
+    ui.empty->setWordWrap(true);
+    ui.empty->setAlignment(Qt::AlignCenter);
+    ui.cards->addWidget(ui.empty);
+    ui.cards->addStretch(1);
+    scroll->setWidget(ui.cardsHost);
+    layout->addWidget(scroll, 1);
+    return tab;
+}
+
+QList<SceneInspector::CardInfo> SceneInspector::availableCards(const QString& stack) const
+{
+    QList<CardInfo> out;
+    if (stack == QLatin1String("writing")) {
+        // ⚠️ Card typeIDs, not ObjectKinds (Apple's `WritingToolCards.swift` / `HistoryCard.swift`). The Mac's Sources
+        // card is C4's, not built on Linux yet: a layout naming it shows as a card this version lacks, and is removable.
+        out = {{QStringLiteral("history"), tr("History"), {}},
+               {QStringLiteral("outline"), tr("Outline"), {}},
+               {QStringLiteral("tags"), tr("Tags"), {}},
+               {QStringLiteral("todo"), tr("To-do"), {}}};
+    } else if (bridge_ != nullptr && ObjectKindScope::isLoaded(bridge_)) {
+        // ⚠️ DERIVED (the standing rule): one card per WORLD-scoped kind the core lists, typeID `objects.<subdir>` — the
+        // Mac's own typeIDs (`objects.characters` …). `source` is project-scoped: its card is the aggregate Sources (C4).
+        for (const ObjectKindScope::KindInfo& k : ObjectKindScope::kinds(bridge_)) {
+            if (!k.isWorldScoped || k.subdir.isEmpty()) { continue; }
+            QString title = k.subdir;
+            title[0] = title[0].toUpper();
+            out.append({QStringLiteral("objects.") + k.subdir, title, k.kind});
+        }
+    }
+    std::sort(out.begin(), out.end(), [](const CardInfo& a, const CardInfo& b) {
+        return a.title.localeAwareCompare(b.title) < 0;   // the + menu by title, as the Mac's
+    });
+    return out;
+}
+
+void SceneInspector::rebuildStack(StackUI& ui)
+{
+    if (ui.cards == nullptr) { return; }
+    const bool writing = ui.stack == QLatin1String("writing");
+    // The Writing widgets outlive their cards: park them before the cards go.
+    if (writing) {
+        for (QWidget* body : std::as_const(writingBodies_)) { body->setParent(parkedBodies_); }
+    }
+    for (int i = ui.cards->count() - 1; i >= 0; --i) {
+        QWidget* w = ui.cards->itemAt(i)->widget();
+        if (w != nullptr && w != ui.empty) {
+            ui.cards->takeAt(i);
+            w->hide();
+            w->deleteLater();   // a card's own ✕ may be what is running
+        }
+    }
+
+    const bool kindsUnread = !writing && (bridge_ == nullptr || !ObjectKindScope::isLoaded(bridge_));
+    ui.add->setEnabled(!sceneID_.isEmpty() && !kindsUnread);
+    ui.options->setEnabled(!sceneID_.isEmpty());
+
+    QHash<QString, CardInfo> known;
+    for (const CardInfo& c : availableCards(ui.stack)) { known.insert(c.type, c); }
+    QList<InspectorLayoutStore::CardEntry> entries;
+    QList<InspectorLayoutStore::CardEntry> unknown;
+    if (!sceneID_.isEmpty() && !kindsUnread) {   // ⚠️ no kinds read: the status line says so; never "unknown cards"
+        for (const auto& e : layout_.cards(sceneID_, ui.stack)) {
+            (known.contains(e.type) ? entries : unknown).append(e);
+        }
+    }
+    // Apple's `applySort`: Manual keeps the stored order.
+    const QString sort = layout_.sort(ui.stack);
+    if (sort == QLatin1String("name")) {
+        std::stable_sort(entries.begin(), entries.end(), [&](const auto& a, const auto& b) {
+            return known.value(a.type).title.localeAwareCompare(known.value(b.type).title) < 0;
+        });
+    } else if (sort == QLatin1String("recentlyAdded")) {
+        std::reverse(entries.begin(), entries.end());   // appended on add, so the last is the newest
+    }
+
+    int at = 0;
+    bool historyOpen = false;
+    auto addCard = [&](const QString& type, const QString& title, bool collapsed, QWidget* body, bool isUnknown) {
+        auto* frame = new QFrame(ui.cardsHost);
+        frame->setObjectName(QStringLiteral("card:") + type);
+        frame->setFrameShape(QFrame::StyledPanel);
+        auto* v = new QVBoxLayout(frame);
+        v->setContentsMargins(6, 4, 6, 6);
+        v->setSpacing(4);
+        auto* h = new QHBoxLayout;
+        auto* toggle = new QToolButton(frame);
+        toggle->setObjectName(QStringLiteral("cardCollapse"));
+        toggle->setAutoRaise(true);
+        toggle->setArrowType(collapsed ? Qt::RightArrow : Qt::DownArrow);
+        toggle->setToolTip(collapsed ? tr("Expand this card") : tr("Collapse this card"));
+        toggle->setVisible(!isUnknown);
+        auto* label = new QLabel(title, frame);
+        QFont f = label->font();
+        f.setBold(true);
+        label->setFont(f);
+        auto* remove = new QToolButton(frame);
+        remove->setObjectName(QStringLiteral("cardRemove"));
+        remove->setAutoRaise(true);
+        remove->setText(QStringLiteral("✕"));
+        remove->setToolTip(tr("Remove this card from the scene"));
+        remove->setAccessibleName(tr("Remove %1").arg(title));
+        h->addWidget(toggle);
+        h->addWidget(label, 1);
+        h->addWidget(remove);
+        v->addLayout(h);
+        if (isUnknown) {
+            auto* why = new QLabel(tr("This card isn't available in this version."), frame);
+            why->setWordWrap(true);
+            v->addWidget(why);
+        } else if (body != nullptr) {
+            body->setParent(frame);
+            body->setVisible(!collapsed);
+            v->addWidget(body);
+        }
+        StackUI* u = &ui;
+        connect(toggle, &QToolButton::clicked, this, [this, u, type, collapsed] {
+            layout_.setCollapsed(sceneID_, u->stack, type, !collapsed);
+            rebuildStack(*u);
+        });
+        connect(remove, &QToolButton::clicked, this, [this, u, type] {
+            layout_.removeCard(sceneID_, u->stack, type);
+            rebuildStack(*u);
+        });
+        ui.cards->insertWidget(at++, frame);
+        if (writing && type == QLatin1String("history")) { historyOpen = !collapsed; }
+    };
+    for (const auto& e : entries) {
+        const CardInfo& info = known.value(e.type);
+        QWidget* body = writing ? writingBodies_.value(e.type) : objectCardBody(info.kind, info.title, ui.cardsHost);
+        addCard(e.type, info.title, e.collapsed, body, false);
+    }
+    // Apple's AC11: a card this build lacks is REPORTED and removable, never dropped.
+    for (const auto& e : unknown) { addCard(e.type, e.type, false, nullptr, true); }
+    // The card's collapse IS the History section's open state (it fetches on open); set ONCE, so a rebuild with the
+    // card open does not close and re-open it — that would re-fetch on every scene change ([I-0331]).
+    if (writing) { historySection_->header()->setChecked(historyOpen); }
+
+    QString emptyText;
+    if (sceneID_.isEmpty()) {
+        // Worldbuilding's status line already says it; the Writing stack has no other line to.
+        emptyText = writing && bridge_ != nullptr && !projectRootPath_.isEmpty() ? tr("No scene selected.") : QString();
+    } else if (at == 0 && !kindsUnread) {
+        emptyText = writing ? tr("No cards in this stack. Use + to add one.") : tr("No cards yet. Use + to add one.");
+    }
+    ui.empty->setText(emptyText);
+    ui.empty->setVisible(!emptyText.isEmpty());
 }
 
 QWidget* SceneInspector::buildPropertiesTab()
@@ -355,6 +550,7 @@ void SceneInspector::setContext(ScriviBridge* bridge, const QString& projectRoot
         tabs_->setCurrentIndex(tabIndex(layout_.selectedTab()));
     }
 
+    rebuildStack(writingStack_);
     rebuildTree();
     loadSceneNotes();
 }
@@ -372,6 +568,7 @@ void SceneInspector::setScene(const QString& sceneID)
 
     sceneID_ = sceneID;
     historySection_->setScene(sceneID);   // a re-filter only ([I-0331])
+    rebuildStack(writingStack_);          // [SP-233]: each scene has its own cards
     reload();   // ✅ SP-197: the notes come in the same read
 }
 
@@ -430,7 +627,7 @@ void SceneInspector::reload()
     const int generation = ++reloadGeneration_;
     loadingNotes_ = true;
     setWritingEnabled(false);
-    if (tree_ != nullptr) { tree_->setEnabled(false); }
+    if (worldStack_.cardsHost != nullptr) { worldStack_.cardsHost->setEnabled(false); }
     QTimer::singleShot(400, this, [this, generation] {
         if (generation == reloadGeneration_) { setReadCue(tr("Loading…")); }
     });
@@ -501,7 +698,7 @@ void SceneInspector::startRead()
             reloadAttempts_ = 0;
             ++reloadGeneration_;   // the "Loading…" cue is moot
             setReadCue({});
-            if (tree_ != nullptr) { tree_->setEnabled(true); }
+            if (worldStack_.cardsHost != nullptr) { worldStack_.cardsHost->setEnabled(true); }
             applyReload(p);
             applyNotes(p.notesResult, p.notesFailed);
             applyMetrics(p);   // the scene's Links now; the project's figures when readMetrics() lands
@@ -514,7 +711,7 @@ void SceneInspector::startRead()
             ++reloadGeneration_;
             reloadAttempts_ = 0;
             setReadCue({});
-            if (tree_ != nullptr) { tree_->setEnabled(true); }
+            if (worldStack_.cardsHost != nullptr) { worldStack_.cardsHost->setEnabled(true); }
             applyNotes({}, true, tr("This scene's notes are taking longer than expected to read — the project may be "
                                     "on a disconnected or unreachable volume. Nothing has been lost."));
             // ⚠️ HONEST, and NOT a claim about the data. The world may be
@@ -678,110 +875,90 @@ void SceneInspector::applyReload(const ReloadPayload& payload)
     rebuildTree();
 }
 
-void SceneInspector::rebuildTree()
+QWidget* SceneInspector::objectCardBody(const QString& kind, const QString& title, QWidget* parent)
 {
-    if (tree_ == nullptr) {
-        return;
-    }
-    tree_->clear();
-
-    // ⚠️ T-0480: kind order and the world-scope partition come from
-    // ObjectKindScope, which asks scrivi_list_object_kinds. NO kind name is
-    // written down in this file — a hardcoded list here would be occurrence NINE
-    // of the restated-kind-list defect, and occurrence five was in Swift, so a
-    // new platform layer is exactly where it recurs.
-    const QList<ObjectKindScope::KindInfo> kinds = ObjectKindScope::kinds(bridge_);
-
-    // Group entries by kind, then emit groups in the CORE's kind order so the
-    // panel's ordering is the model's, not this file's.
-    QHash<QString, QList<Entry>> byKind;
+    QList<Entry> rows;
     for (const Entry& e : entries_) {
-        byKind[e.kind].append(e);
+        if (e.kind == kind) { rows.append(e); }
     }
-
-    QStringList orderedKinds;
-    for (const ObjectKindScope::KindInfo& info : kinds) {
-        orderedKinds.append(info.kind);
+    if (rows.isEmpty()) {
+        // ⛔ [I-0262]: "no … in this scene yet" is a claim only a SUCCESSFUL read can make.
+        auto* none = new QLabel(loadError_.isEmpty() ? tr("No %1 in this scene yet.").arg(title.toLower()) : QString(),
+                                parent);
+        none->setWordWrap(true);
+        ThemeColours::applyTextColour(none, ThemeColours::deemphasised(none->palette()));
+        return none;
     }
-    // A kind the core did not list still gets shown rather than dropped — the
-    // panel reports what the project holds even if the two ever disagree.
-    QStringList extraKinds = byKind.keys();
-    extraKinds.sort();
-    for (const QString& k : extraKinds) {
-        if (!orderedKinds.contains(k)) {
-            orderedKinds.append(k);
-        }
-    }
-
-    int shown = 0;
-    for (const QString& kind : orderedKinds) {
-        auto it = byKind.constFind(kind);
-        if (it == byKind.constEnd() || it->isEmpty()) {
-            continue;   // a kind with nothing in this scene is simply not a row
-        }
-        QList<Entry> rows = *it;
-        // Manual order is the graph's sortIndex (Object Model §5.2) — that is what
-        // makes a writer's ordering persistent — with the name as a stable
-        // tiebreak so equal indices do not shuffle between loads.
-        std::sort(rows.begin(), rows.end(), [](const Entry& a, const Entry& b) {
-            if (a.sortIndex != b.sortIndex) {
-                return a.sortIndex < b.sortIndex;
-            }
+    // The STACK's sort, handed to every card (C6; Apple's `ObjectCardModel.sorted`). Manual is the graph's sortIndex
+    // (Object Model §5.2) with the name as a stable tiebreak; Recently Added is the edges' order reversed.
+    const QString sort = layout_.sort(QStringLiteral("worldbuilding"));
+    if (sort == QLatin1String("name")) {
+        std::stable_sort(rows.begin(), rows.end(), [](const Entry& a, const Entry& b) {
             return a.displayName.localeAwareCompare(b.displayName) < 0;
         });
+    } else if (sort == QLatin1String("recentlyAdded")) {
+        std::reverse(rows.begin(), rows.end());
+    } else {
+        std::stable_sort(rows.begin(), rows.end(), [](const Entry& a, const Entry& b) {
+            if (a.sortIndex != b.sortIndex) { return a.sortIndex < b.sortIndex; }
+            return a.displayName.localeAwareCompare(b.displayName) < 0;
+        });
+    }
 
-        auto* group = new QTreeWidgetItem(tree_);
-        group->setText(0, tr("%1 (%2)").arg(kind, QString::number(rows.size())));
-        QFont groupFont = group->font(0);
-        groupFont.setBold(true);
-        group->setFont(0, groupFont);
-        // A group row carries no objectID role, which is how the open paths tell
-        // a heading from an object.
-        group->setFlags(group->flags() & ~Qt::ItemIsSelectable);
+    auto* tree = new QTreeWidget(parent);
+    tree->setObjectName(QStringLiteral("objectRows"));
+    tree->setHeaderHidden(true);
+    tree->setColumnCount(1);
+    tree->setRootIsDecorated(false);
+    tree->setUniformRowHeights(true);
+    tree->setSelectionMode(QAbstractItemView::SingleSelection);
+    tree->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);   // the stack scrolls, not each card
+    // T-0482: the context menu is a FIRST-CLASS path to open, not a convenience duplicate of the double-click; and
+    // itemActivated covers Return/Enter — the same open with no pointer at all.
+    tree->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(tree, &QTreeWidget::itemDoubleClicked, this, &SceneInspector::onItemActivated);
+    connect(tree, &QTreeWidget::itemActivated, this, &SceneInspector::onItemActivated);
+    connect(tree, &QTreeWidget::customContextMenuRequested, this, &SceneInspector::onContextMenuRequested);
 
-        for (const Entry& e : rows) {
-            auto* item = new QTreeWidgetItem(group);
+    for (const Entry& e : rows) {
+        auto* item = new QTreeWidgetItem(tree);
 
-            // ✅ THE RELATIONSHIP LABEL IS ON EVERY ROW, as Apple renders it
-            // (`ObjectCard.swift`, name then label). ⚠️ SP-126 hoisted it to the group
-            // header on I-0180's reasoning; ✅ I-0180 was CLOSED 2026-10-03 as NOT A
-            // DEFECT and this is the revert (Apple is the reference shape). The label
-            // is the core's projection for the SCENE — "features X" — and with
-            // writer-defined relation types it is what tells rows apart.
-            const QString rowText = e.label.isEmpty()
-                                        ? e.displayName
-                                        : tr("%1 — %2").arg(e.displayName, e.label);
-            item->setText(0, rowText);
-            // ⚠️ I-0173: the panel is ~200px by default, so a row of the form
-            // "<name> — <relationship>" ELIDES to "character 1 — doc…" and the
-            // relationship — the half only the core can supply — becomes
-            // unreadable. A tooltip carries the full text so the information is
-            // reachable without widening the panel or truncating the name.
-            //
-            // ⚠️ Deliberately NOT the only route: the panel is resizable and the
-            // name (the part a writer scans by) is always the LEADING text, so
-            // this is a supplement to a readable row, not a hover-only
-            // affordance. Apple learned that one the hard way — T-0389 exists
-            // because a pending object's world appeared ONLY in a tooltip.
-            item->setToolTip(0, rowText);
-            item->setData(0, kRoleObjectID, e.objectID);
-            item->setData(0, kRoleKind,     e.kind);
-            item->setData(0, kRoleWorldID,  e.worldID);
-            item->setData(0, kRolePending,  e.pending);
-            item->setData(0, kRoleDisplayName, e.displayName);
-            if (e.pending) {
-                // ⚠️ Shown, named, and not modifiable — never hidden. The sentence
-                // in the status line below names the world; this marks the row.
-                item->setText(0, tr("⚠ %1").arg(e.displayName));
-                // Both facts, not one replacing the other: a pending row still
-                // needs its full label readable (I-0173).
-                item->setToolTip(0, tr("%1\n\nHeld pending — this object's world is %2.")
-                                        .arg(rowText, writerDescription(e.pendingStatus)));
-            }
-            ++shown;
+        // ✅ THE RELATIONSHIP LABEL IS ON EVERY ROW, as Apple renders it (`ObjectCard.swift`, name then label);
+        // I-0180 was CLOSED 2026-10-03 as NOT A DEFECT. The label is the core's projection for the SCENE, and with
+        // writer-defined relation types it is what tells rows apart.
+        const QString rowText = e.label.isEmpty()
+                                    ? e.displayName
+                                    : tr("%1 — %2").arg(e.displayName, e.label);
+        item->setText(0, rowText);
+        // ⚠️ I-0173: in a narrow panel the row ELIDES and the relationship becomes unreadable; a tooltip carries the
+        // full text. The name stays the LEADING text, so this supplements a readable row (Apple's T-0389).
+        item->setToolTip(0, rowText);
+        item->setData(0, kRoleObjectID, e.objectID);
+        item->setData(0, kRoleKind,     e.kind);
+        item->setData(0, kRoleWorldID,  e.worldID);
+        item->setData(0, kRolePending,  e.pending);
+        item->setData(0, kRoleDisplayName, e.displayName);
+        if (e.pending) {
+            // ⚠️ Shown, named, and not modifiable — never hidden. The sentence
+            // in the status line below names the world; this marks the row.
+            item->setText(0, tr("⚠ %1").arg(e.displayName));
+            // Both facts, not one replacing the other: a pending row still
+            // needs its full label readable (I-0173).
+            item->setToolTip(0, tr("%1\n\nHeld pending — this object's world is %2.")
+                                    .arg(rowText, writerDescription(e.pendingStatus)));
         }
     }
-    tree_->expandAll();
+    // Every row shown: the stack scrolls, so a card is as tall as its rows.
+    tree->setFixedHeight(tree->sizeHintForRow(0) * rows.size() + 2 * tree->frameWidth() + 2);
+    return tree;
+}
+
+void SceneInspector::rebuildTree()
+{
+    if (worldStack_.cards == nullptr) {
+        return;
+    }
+    rebuildStack(worldStack_);
 
     // ---- The explained state (T-0483) -----------------------------------
     // Four conditions, four sentences. None of them is a blank panel.
@@ -828,10 +1005,6 @@ void SceneInspector::rebuildTree()
         // as an empty scene.
         sentences << tr("The object index could not be read; "
                         "this list is unconfirmed.");
-    }
-    if (shown == 0 && !indexUnreadable_) {
-        // ⚠️ Genuinely empty — and said in a way that does not read as loss.
-        sentences << tr("No objects are linked to this scene yet.");
     }
     QStringList pendingWorlds = pendingByWorld.keys();
     std::sort(pendingWorlds.begin(), pendingWorlds.end());
@@ -1242,10 +1415,11 @@ void SceneInspector::onItemActivated(QTreeWidgetItem* item, int column)
 
 void SceneInspector::onContextMenuRequested(const QPoint& pos)
 {
-    if (tree_ == nullptr) {
+    auto* tree = qobject_cast<QTreeWidget*>(sender());
+    if (tree == nullptr) {
         return;
     }
-    QTreeWidgetItem* item = tree_->itemAt(pos);
+    QTreeWidgetItem* item = tree->itemAt(pos);
     if (item == nullptr) {
         return;
     }
@@ -1257,7 +1431,7 @@ void SceneInspector::onContextMenuRequested(const QPoint& pos)
     // ⚠️ T-0482: this is a SEPARATE route to the same outcome, and it is verified
     // separately. On Apple, AC7's two halves needed four Issues before the second
     // one worked (feedback_verify_each_half_separately).
-    QMenu menu(tree_);
+    QMenu menu(tree);
     QAction* open = menu.addAction(tr("Open Object"));
     const bool pending = item->data(0, kRolePending).toBool();
     if (pending) {
@@ -1270,9 +1444,9 @@ void SceneInspector::onContextMenuRequested(const QPoint& pos)
         why->setEnabled(false);
     }
     // Select the row the menu was raised on, so the menu and the selection agree.
-    tree_->setCurrentItem(item);
+    tree->setCurrentItem(item);
 
-    QAction* chosen = menu.exec(tree_->viewport()->mapToGlobal(pos));
+    QAction* chosen = menu.exec(tree->viewport()->mapToGlobal(pos));
     if (chosen == open && open->isEnabled()) {
         emit openObjectRequested(item->data(0, kRoleKind).toString(),
                                  objectID,

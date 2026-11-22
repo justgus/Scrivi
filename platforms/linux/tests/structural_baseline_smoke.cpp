@@ -90,6 +90,12 @@ struct Rig {
     bool load()
     {
         shell = std::make_unique<EditorShell>();
+        // ✅ [SP-233] Sized and SHOWN before the load, as the app's window is (`AppEnvironment.cpp`: show, then showEditor).
+        // Loaded hidden, the restore centred the caret in an unlaid-out view, and showing it then clamped the scroll: the
+        // checks below held only by the accident of the panels' size hints (a 26 px-wide editor), which the card stacks
+        // changed.
+        shell->resize(1200, 800);
+        shell->show();
         QEventLoop loop;
         bool ok = false;
         QObject::connect(shell.get(), &EditorShell::loadFinished, &loop, [&](bool r) { ok = r; loop.quit(); });
@@ -98,7 +104,6 @@ struct Rig {
         loop.exec();
         editor = shell->findChild<ManuscriptEditor*>();
         if (!ok || editor == nullptr) { return false; }
-        shell->show();
         shell->activateWindow();
         if (!QTest::qWaitForWindowActive(shell.get())) { return false; }   // key clicks need the window active
         editor->setFocus();
@@ -716,8 +721,8 @@ int main(int argc, char* argv[])
             ScriviBridge::workerCoreCallObserver() = nullptr;
             check(reads.load() >= 1 && reads.load() <= 4,
                   QStringLiteral("SP-197 rig: ten scene changes make one read and one for the last (%1 reads)").arg(reads.load()));
-            auto* tree = inspector->findChild<QTreeWidget*>();
-            check(tree != nullptr && tree->isEnabled(), QStringLiteral("SP-197 rig: the last scene's read landed (cards enabled)"));
+            auto* cards = inspector->findChild<QWidget*>(QStringLiteral("worldbuildingCards"));   // [SP-233]: the card stack
+            check(cards != nullptr && cards->isEnabled(), QStringLiteral("SP-197 rig: the last scene's read landed (cards enabled)"));
             // [I-0337]: the project's figures are read on their own once the cards fill, never with every scene's read.
             check(metrics.load() >= 1 && metrics.load() <= reads.load(),
                   QStringLiteral("I-0337: the project metrics are read after the cards (%1 metrics, %2 reads)")

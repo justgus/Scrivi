@@ -232,6 +232,12 @@ EditorShell::EditorShell(QWidget* parent, AppEnvironment* env)
     splitter_ = new QSplitter(Qt::Horizontal, this);
     splitter_->addWidget(navigatorPane_);   // the search field + the tree
     splitter_->addWidget(manuscript);   // the find bar + the viewport
+    // [SP-233] Apply Layout to All Scenes… — every scene in the manuscript.
+    inspector_->setAllSceneIDsProvider([this] {
+        QStringList ids;
+        for (const SceneSegment& seg : sceneDoc_.segments()) { ids << seg.sceneID; }
+        return ids;
+    });
     splitter_->addWidget(inspector_);
     splitter_->setStretchFactor(0, 0);   // navigator — fixed-ish
     splitter_->setStretchFactor(1, 1);   // viewport — takes the slack

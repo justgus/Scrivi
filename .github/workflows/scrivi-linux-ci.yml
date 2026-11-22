@@ -371,6 +371,11 @@ jobs:
           platforms/linux/tests/toolbar_smoke.sh \
             ./build/platforms/linux/scrivi_linux_toolbar_smoke
 
+      - name: Inspector card stacks smoke test
+        run: |
+          platforms/linux/tests/inspector_stack_smoke.sh \
+            ./build/platforms/linux/scrivi_linux_inspector_stack_smoke
+
       # ✅ 2026-10-10 (user: "add the missing smokes to CI too") — these eleven smokes existed but CI never ran them.
 
       # ABI parity (EP-034 / SP-121, T-0464).

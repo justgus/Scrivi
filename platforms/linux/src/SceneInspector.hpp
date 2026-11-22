@@ -5,6 +5,7 @@
 #include <QString>
 #include <QWidget>
 
+#include <functional>
 #include <optional>
 #include <utility>
 
@@ -13,6 +14,8 @@
 class QLabel;
 class QLineEdit;
 class QTabWidget;
+class QToolButton;
+class QVBoxLayout;
 class HistorySection;
 class QTextEdit;
 class QTreeWidget;
@@ -135,6 +138,9 @@ public:
     // EP-026 S3 ([SP-204]): the Writing tab's History section (the shell hands it the history and the caret).
     [[nodiscard]] HistorySection* historySection() const { return historySection_; }
 
+    // [SP-233] Apply Layout to All Scenes… needs every scene's ID; the shell owns the manuscript.
+    void setAllSceneIDsProvider(std::function<QStringList()> provider) { allSceneIDs_ = std::move(provider); }
+
     // ✅ [I-0315]: the scene the panel shows was REMOVED (a merge, an undo of a paste) — drop it WITHOUT flushing, so no
     // note is written to a scene that is gone. The next setScene() loads its successor.
     void forgetScene(const QString& sceneID);
@@ -195,6 +201,7 @@ signals:
 
 private slots:
     void onItemActivated(QTreeWidgetItem* item, int column);
+    // ⚠️ [SP-233]: one tree per kind card, so the menu is raised on the SENDER's tree.
     void onContextMenuRequested(const QPoint& pos);
 
     // Tab changed by the writer. Persists the choice at PROJECT level and loads
@@ -250,8 +257,35 @@ private:
     // when the writer clicks straight from a note into another scene.
     void flushPendingEdits();
 
-    // Rebuild the tree from `entries_`, grouped by kind in the core's kind order.
+    // Rebuild the Worldbuilding cards from `entries_`, and its explained state.
     void rebuildTree();
+
+    // ---- The card stacks ([SP-233]; Apple: `InspectorCardStackView.swift`) ----
+    // Writing and Worldbuilding are each a column of the scene's cards, read from `inspector-layout.json` (`layout_`):
+    // + adds a card, ⋯ holds the stack's sort and Apply Layout to All Scenes…, each card collapses and has ✕.
+    struct StackUI {
+        QString      stack;                 // "writing" | "worldbuilding" — the layout's keys
+        QWidget*     cardsHost = nullptr;   // the column (scrolled); objectName "<stack>Cards"
+        QVBoxLayout* cards     = nullptr;
+        QLabel*      empty     = nullptr;   // "No cards yet. Use + to add one."
+        QToolButton* add       = nullptr;
+        QToolButton* options   = nullptr;
+    };
+    StackUI writingStack_;
+    StackUI worldStack_;
+    struct CardInfo {
+        QString type;    // the card's typeID as the layout spells it (Apple's)
+        QString title;
+        QString kind;    // a Worldbuilding card's ObjectKind; empty for a Writing card
+    };
+    QWidget* buildStack(StackUI& ui);
+    void rebuildStack(StackUI& ui);
+    // The cards this build has for a stack. Worldbuilding's: one per world-scoped kind, DERIVED from the core.
+    [[nodiscard]] QList<CardInfo> availableCards(const QString& stack) const;
+    QWidget* objectCardBody(const QString& kind, const QString& title, QWidget* parent);
+    QWidget* parkedBodies_ = nullptr;          // the Writing cards' widgets while their card is not shown
+    QHash<QString, QWidget*> writingBodies_;   // typeID → the widget the card shows
+    std::function<QStringList()> allSceneIDs_;
 
     // Set the explanatory line beneath the tree. Empty text hides it.
     void setStatusLine(const QString& text, bool warning);
@@ -285,8 +319,6 @@ private:
     void setReadCue(const QString& text);
 
     QTabWidget*  tabs_    = nullptr;
-    QTreeWidget* tree_    = nullptr;   // Worldbuilding: the scene's objects
-    QLabel*      title_   = nullptr;
     QLabel*      status_  = nullptr;   // the explained empty/pending/error line
 
     // --- Writing tab widgets (T-0487) ------------------------------------

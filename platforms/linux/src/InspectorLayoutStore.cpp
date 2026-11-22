@@ -213,6 +213,126 @@ void InspectorLayoutStore::setTimelineHidden(bool hidden) { setHiddenKey("timeli
 bool InspectorLayoutStore::navigatorHidden() const { return hiddenKey("navigatorHidden"); }
 void InspectorLayoutStore::setNavigatorHidden(bool hidden) { setHiddenKey("navigatorHidden", hidden); }
 
+// ---- Card stacks ([SP-233]) — Apple's operations, on the decoded document ----
+
+QJsonArray InspectorLayoutStore::stackArray(const QString& sceneID, const QString& stack) const
+{
+    const QJsonObject scenes = document_.value(QStringLiteral("scenes")).toObject();
+    if (scenes.contains(sceneID)) {
+        return scenes.value(sceneID).toObject().value(stack).toArray();   // a missing key reads empty, as Apple
+    }
+    // Apple decodes a missing or mistyped `defaultStacks` as its defaults.
+    QJsonValue defaults = document_.value(QStringLiteral("defaultStacks"));
+    if (!defaults.isObject()) { defaults = makeDefaultDocument().value(QStringLiteral("defaultStacks")); }
+    return defaults.toObject().value(stack).toArray();
+}
+
+void InspectorLayoutStore::setStackArray(const QString& sceneID, const QString& stack, const QJsonArray& entries)
+{
+    if (!loaded_ || sceneID.isEmpty()) { return; }
+    QJsonObject scenes = document_.value(QStringLiteral("scenes")).toObject();
+    QJsonObject scene;
+    if (scenes.contains(sceneID)) {
+        scene = scenes.value(sceneID).toObject();   // ✅ keeps the other stack and any unknown key
+    } else {
+        scene.insert(QStringLiteral("writing"), stackArray(sceneID, QStringLiteral("writing")));
+        scene.insert(QStringLiteral("worldbuilding"), stackArray(sceneID, QStringLiteral("worldbuilding")));
+    }
+    scene.insert(stack, entries);
+    scenes.insert(sceneID, scene);
+    document_.insert(QStringLiteral("scenes"), scenes);
+    if (!document_.contains(QStringLiteral("schema"))) {
+        document_.insert(QStringLiteral("schema"), QLatin1String(kSchemaID));
+    }
+    save();
+}
+
+QList<InspectorLayoutStore::CardEntry> InspectorLayoutStore::cards(const QString& sceneID, const QString& stack) const
+{
+    QList<CardEntry> out;
+    for (const QJsonValue& v : stackArray(sceneID, stack)) {
+        const QJsonObject o = v.toObject();
+        const QString type = o.value(QStringLiteral("type")).toString();
+        if (!type.isEmpty()) { out.append({type, o.value(QStringLiteral("collapsed")).toBool(false)}); }
+    }
+    return out;
+}
+
+QString InspectorLayoutStore::sort(const QString& stack) const
+{
+    const QString s = document_.value(QStringLiteral("stackSort")).toObject().value(stack).toString();
+    return (s == QLatin1String("name") || s == QLatin1String("recentlyAdded")) ? s : QStringLiteral("manual");
+}
+
+void InspectorLayoutStore::setSort(const QString& stack, const QString& value)
+{
+    if (!loaded_ || sort(stack) == value) { return; }
+    QJsonObject sorts = document_.value(QStringLiteral("stackSort")).toObject();
+    sorts.insert(stack, value);
+    document_.insert(QStringLiteral("stackSort"), sorts);
+    save();
+}
+
+void InspectorLayoutStore::addCard(const QString& sceneID, const QString& stack, const QString& type)
+{
+    QJsonArray entries = stackArray(sceneID, stack);
+    for (const QJsonValue& v : entries) {
+        if (v.toObject().value(QStringLiteral("type")).toString() == type) { return; }
+    }
+    entries.append(QJsonObject{{QStringLiteral("type"), type}, {QStringLiteral("collapsed"), false}});
+    setStackArray(sceneID, stack, entries);
+}
+
+void InspectorLayoutStore::removeCard(const QString& sceneID, const QString& stack, const QString& type)
+{
+    QJsonArray kept;
+    for (const QJsonValue& v : stackArray(sceneID, stack)) {
+        if (v.toObject().value(QStringLiteral("type")).toString() != type) { kept.append(v); }
+    }
+    setStackArray(sceneID, stack, kept);
+}
+
+void InspectorLayoutStore::setCollapsed(const QString& sceneID, const QString& stack, const QString& type,
+                                        bool collapsed)
+{
+    QJsonArray entries = stackArray(sceneID, stack);
+    for (int i = 0; i < entries.size(); ++i) {
+        QJsonObject o = entries.at(i).toObject();
+        if (o.value(QStringLiteral("type")).toString() != type) { continue; }
+        if (o.value(QStringLiteral("collapsed")).toBool(false) == collapsed) { return; }
+        o.insert(QStringLiteral("collapsed"), collapsed);   // ✅ the entry's other keys stay
+        entries.replace(i, o);
+        setStackArray(sceneID, stack, entries);
+        return;
+    }
+}
+
+void InspectorLayoutStore::applyStackToAllScenes(const QString& sceneID, const QString& stack,
+                                                 const QStringList& allSceneIDs)
+{
+    if (!loaded_ || sceneID.isEmpty()) { return; }
+    const QJsonArray entries = stackArray(sceneID, stack);
+    QJsonObject scenes = document_.value(QStringLiteral("scenes")).toObject();
+    for (const QString& id : allSceneIDs) {
+        QJsonObject scene;
+        if (scenes.contains(id)) {
+            scene = scenes.value(id).toObject();
+        } else {
+            scene.insert(QStringLiteral("writing"), stackArray(id, QStringLiteral("writing")));
+            scene.insert(QStringLiteral("worldbuilding"), stackArray(id, QStringLiteral("worldbuilding")));
+        }
+        scene.insert(stack, entries);
+        scenes.insert(id, scene);
+    }
+    document_.insert(QStringLiteral("scenes"), scenes);
+    QJsonValue defaults = document_.value(QStringLiteral("defaultStacks"));
+    if (!defaults.isObject()) { defaults = makeDefaultDocument().value(QStringLiteral("defaultStacks")); }
+    QJsonObject d = defaults.toObject();
+    d.insert(stack, entries);   // scenes made later inherit it too (Apple)
+    document_.insert(QStringLiteral("defaultStacks"), d);
+    save();
+}
+
 bool InspectorLayoutStore::save() const
 {
     if (!bridge_ || projectRootPath_.isEmpty() || !loaded_) {

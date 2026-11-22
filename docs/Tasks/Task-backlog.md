@@ -1,5 +1,9 @@
 # Task Backlog
 
+*Last Updated: 2026-11-21 (**T-0695, T-0491 → active** with [SP-233]'s activation (user, 2026-11-21: *"Q1-Q4 as recommended, implement SP-233"*); built the same day → 🟠 `Task-unverified.md`.)*
+
+*Last Updated: 2026-11-21 (**T-0695 filed** — EP-059 B5+B6, carried by [SP-233] (🔵 Planning) with **T-0491** (A7) (user, 2026-11-21: *"let's begin to plan the next Sprint in EP-059"*).)*
+
 *Last Updated: 2026-11-21 (**T-0694 → active** with [SP-232]'s activation (user, 2026-11-21: *"Q1-Q5 as recommended, implement SP-232"*); built the same day → 🟠 `Task-unverified.md`.)*
 
 *Last Updated: 2026-11-21 (**T-0497, T-0693 → active** with [SP-231]'s activation (user, 2026-11-21: *"Q1-Q4 as recommended, implement SP-231"*); built the same day → 🟠 `Task-unverified.md`.)*
@@ -644,7 +648,6 @@ under the superseded SP-057 despite completing in SP-094.)*
 
 | ID | Title | Priority | Status |
 | -- | ----- | -------- | ------ |
-| **T-0491** | ⚠️ **`[Linux]` Per-stack SORT + card drag-reorder** — Apple's `InspectorSort` (manual/name/recentlyAdded) and card reordering. ⚠️ **User-ruled OUT of SP-126** as a larger surface. ⚠️ **`manual` order depends on the GRAPH's `sortIndex`, not a UI list.** ⚠️ **Drag-reorder must ALSO have a button/menu path** — `project_linux_vnc_input_constraints` is NOT retired by the RDP rig. ✅ **`stackSort` is round-tripped by T-0486 meanwhile**, so nothing is lost by deferring | **Medium** | ⚪ **Unscheduled** |
 
 ---
 

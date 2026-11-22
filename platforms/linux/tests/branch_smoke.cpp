@@ -375,7 +375,22 @@ int main(int argc, char** argv)
     // ── 4. The History section: closed by default; fetched on a history change only; a click re-primaries ──────────────
     HistorySection* section = rig.history();
     check(!section->isExpanded() && section->fetches() == 0, QStringLiteral("[SP-204] Q1: History is closed and unfetched"));
-    section->header()->click();
+    // ✅ [SP-233] History is a CARD in the Writing stack, as the Mac's: opened the writer's way — + ▸ History, then ⋯ ▸ Apply
+    // Layout to All Scenes…, so every scene the caret visits below shows it.
+    {
+        auto* inspector = rig.shell->findChild<SceneInspector*>();
+        auto choose = [inspector](const char* button, const QString& text) {
+            QMenu* menu = inspector->findChild<QToolButton*>(QLatin1String(button))->menu();
+            emit menu->aboutToShow();
+            for (QAction* a : menu->actions()) {
+                if (a->text() == text) { a->trigger(); return true; }
+            }
+            return false;
+        };
+        check(choose("writingAddCard", QStringLiteral("History")), QStringLiteral("[SP-233] + ▸ History"));
+        check(choose("writingStackOptions", QStringLiteral("Apply Layout to All Scenes…")),
+              QStringLiteral("[SP-233] ⋯ ▸ Apply Layout to All Scenes…"));
+    }
     check(waitFor([&] { return section->rows()->count() > 0; }), QStringLiteral("opened, History lists this scene's events"));
     const int fetched = section->fetches();
     rig.caretAt(QStringLiteral("Charlie three."));

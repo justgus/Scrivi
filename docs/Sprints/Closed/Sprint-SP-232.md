@@ -8,7 +8,7 @@ created: 2026-11-21
 
 # SP-232 — `[Linux]` [EP-059] F: the project window's toolbar
 
-**Status:** ✅ **CLOSED** 2026-11-21 (user, 2026-11-21: *"Close SP-232"*), with CI on `a089cee` still running (Docker: 884/884, 46/46). Was 🟡 **ACTIVE** (user, 2026-11-21: *"Q1-Q5 as recommended, implement SP-232"*); ✅ Q1–Q5 as recommended. Built 2026-11-21: AC1–AC3 met; AC4 green locally (CI on the push). AC5 ✅ — every step, step 10 on the » fix (user, 2026-11-21: *"This passes now."*). ⏳ AC4: CI on `a089cee`. Planned 2026-11-21 (user: *"Close SP-231 and plan SP-232"*).
+**Status:** ✅ **CLOSED** 2026-11-21 (user, 2026-11-21: *"Close SP-232"*), with CI on `a089cee` still running (Docker: 884/884, 46/46). Was 🟡 **ACTIVE** (user, 2026-11-21: *"Q1-Q5 as recommended, implement SP-232"*); ✅ Q1–Q5 as recommended. Built 2026-11-21: AC1–AC3 met; AC4 green locally (CI on the push). AC5 ✅ — every step, step 10 on the » fix (user, 2026-11-21: *"This passes now."*). ✅ AC4: CI on `a089cee` green after the close. Planned 2026-11-21 (user: *"Close SP-231 and plan SP-232"*).
 Created 2026-11-21 (user, 2026-11-21: *"I'd like to scan the Epic for any tasks that involve creating a menu bar of buttons across
 the top like macOS and iOS have. If missing, I'd like to make sure its added to the Epic as a new Sprint and AC."*).
 **Carries:** [T-0694].
@@ -146,11 +146,12 @@ With a project open:
       action as its menu item and enabled, disabled and checked with it; drop-downs for Navigate, New, Merge, View, Import, Export.
 - [x] AC2 — Icons and labels as Q2; the names as Q3, in the toolbar and the menus.
 - [x] AC3 — Items that do not fit go behind the overflow button; View ▸ Show Toolbar hides and shows it (Q5); none on the Landing window.
-- [~] AC4 — ✅ Docker (884/884, 46/46); ⏳ CI on `a089cee` running at the close — Linux ctest (non-root, tests on), the smokes (the new one in CI), CI green.
+- [x] AC4 — ✅ Docker (884/884, 46/46); ✅ CI on `a089cee` green after the close (run 44956857284, both jobs) — Linux ctest (non-root, tests on), the smokes (the new one in CI).
 - [x] AC5 — Live pass on the Linux VM: steps 1–9, 11, 12 (user, 2026-11-21: *"Other than that all 12 steps passed."*); step 10 on the » fix (user, 2026-11-21: *"This passes now."*).
 
 ## Progress log
 
+- **2026-11-21** — ✅ AC4: CI on `a089cee` green (run 44956857284), after the close.
 - **2026-11-21** — ✅ **CLOSED** (user, 2026-11-21: *"Close SP-232"*) while CI on `a089cee` ran; T-0694 archived.
 - **2026-11-21** — ✅ Step 10 passes (user, 2026-11-21: *"This passes now."*); AC5 met; T-0694 → ✅ Verified. ⏳ CI on `a089cee`.
 - **2026-11-21** — Step 10's first fix failed on the VM (the theme's icon is not null, it draws nothing); now the app draws a » for it. ⏳ Step 10 again.
@@ -160,6 +161,8 @@ With a project open:
 - **2026-11-21** — Planned in full (user, 2026-11-21: *"Close SP-231 and plan SP-232"*): the Mac's 13 items read, every Linux verb
   found as a menu action, two naming differences found; Q1–Q5 to rule.
 - **2026-11-21** — 🔵 **Created in Planning**, issued via `next-id.py`; carries [T-0694].
+
+*Last Updated: 2026-11-21 (✅ AC4: CI on `a089cee` green after the close.)*
 
 *Last Updated: 2026-11-21 (✅ **CLOSED**; CI on `a089cee` running at the close.)*
 

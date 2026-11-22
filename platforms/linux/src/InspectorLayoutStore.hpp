@@ -1,6 +1,9 @@
 #pragma once
 
+#include <QJsonArray>
 #include <QJsonObject>
+#include <QList>
+#include <QStringList>
 #include <QString>
 #include <QThreadPool>
 #include <QVariantMap>
@@ -36,7 +39,7 @@
 //
 // ## ⚠️ PATCH, NEVER RECONSTRUCT — still the rule
 //
-// ⚠️ Linux does not model `stackSort`, `defaultStacks` or per-scene stacks.
+// ✅ [SP-233]: Linux now reads and edits `stackSort`, `defaultStacks` and per-scene stacks — by patching them.
 // ✅ This class keeps the WHOLE decoded document and mutates only the keys it
 // understands, so everything else round-trips untouched — including keys a future
 // Scrivi adds. ⚠️ The core reinforces this (it never interprets the document), but
@@ -118,6 +121,26 @@ public:
     [[nodiscard]] bool navigatorHidden() const;
     void setNavigatorHidden(bool hidden);
 
+    // ---- Card stacks ([SP-233], T-0695 / T-0491; Apple: `InspectorLayoutStore.swift`) ----
+    //
+    // A scene's cards for a stack ("writing" | "worldbuilding"): `scenes[sceneID][stack]` when the scene has a layout,
+    // else `defaultStacks[stack]` (Apple's fallback, word for word: a scene object WITHOUT the stack key reads as empty).
+    // ✅ Still PATCHED: an edit rewrites only that scene's array, and each entry keeps keys this build does not know
+    // (`kindFilter`, anything newer). Unknown card types are returned too — the panel reports them (Apple's AC11).
+    struct CardEntry {
+        QString type;
+        bool    collapsed = false;
+    };
+    [[nodiscard]] QList<CardEntry> cards(const QString& sceneID, const QString& stack) const;
+    // "manual" | "name" | "recentlyAdded" (Apple's `InspectorSort` raw values); absent or unknown → "manual".
+    [[nodiscard]] QString sort(const QString& stack) const;
+    void setSort(const QString& stack, const QString& sort);
+    void addCard(const QString& sceneID, const QString& stack, const QString& type);
+    void removeCard(const QString& sceneID, const QString& stack, const QString& type);
+    void setCollapsed(const QString& sceneID, const QString& stack, const QString& type, bool collapsed);
+    // Apple's "Apply Layout to All Scenes…": this scene's stack to every named scene AND the project default.
+    void applyStackToAllScenes(const QString& sceneID, const QString& stack, const QStringList& allSceneIDs);
+
     // ✅ [I-0334] (SP-201, Apple's shape): writes run in order OFF the GUI thread. Blocks until they have landed — a load
     // (a project switch or close) waits for them, and so does destruction.
     void waitForSaves() const;
@@ -127,6 +150,9 @@ private:
     // One boolean key, patched in place (absent ⇒ false; no write for a no-op).
     [[nodiscard]] bool hiddenKey(const char* key) const;
     void setHiddenKey(const char* key, bool hidden);
+    // The raw array behind `cards()`, and its write-back (creating the scene's layout from the defaults, as Apple).
+    [[nodiscard]] QJsonArray stackArray(const QString& sceneID, const QString& stack) const;
+    void setStackArray(const QString& sceneID, const QString& stack, const QJsonArray& entries);
 
     // Hand the (patched) document to the core. ✅ ATOMICITY IS THE CORE'S JOB now —
     // it writes a temp and renames, the same discipline this class used to
