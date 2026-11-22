@@ -1,5 +1,7 @@
 # Issue Backlog
 
+*Last Updated: 2026-11-22 — **I-0367 filed here** ([SP-234] Q5) (user, 2026-11-22: *"Q1-Q5 as recommended, implement SP-234"*); not assigned.*
+
 *Last Updated: 2026-11-20 — **I-0366 filed here** (from [SP-229]'s Mac live pass, step 4) (user, 2026-11-20: *"yes, file the Issue"*); not assigned.*
 
 *Last Updated: 2026-11-13 — **I-0349 back here** ([SP-217] closed (user, 2026-11-13: *"Linux steps 1-5 and Mac step 6 all pass, close SP-217"*)): Part 2 ✅ verified; Part 3 (dumas' 751 ms, accessibility) open, not assigned; severity High → Medium (751 ms, accepted for AC3).*
@@ -42,6 +44,7 @@ Issues listed here are open and documented but not currently assigned to a Sprin
 | ID | Title | Severity | Sprint |
 | -- | ----- | -------- | ------ |
 | **I-0349** | `[Linux]` ⛔ **After a load the window freezes ~5.5 s — GNOME offers "Wait or Force Quit"** (user, 2026-11-04: *"It only started happening today"*). ✅ Measured: the first paint of the manuscript loads FALLBACK FONTS one by one through fontconfig (`QFontEngineMulti::ensureEngineAt` → `FT_New_Face`, main-thread stack sampled); present since at least 2026-11-02 (build 1.0.321); the dialog is likely new with today's gnome-shell upgrade. ✅ A part was mine ([SP-203]'s accessibility layer handled each of a load's thousands of events alone) — coalesced. ✅ **Part 2 (fonts) fixed and verified** ([SP-217], 2026-11-13); ⏳ Part 3: dumas still pauses ~751 ms (accessibility rebuilds the Find text for every scene at once). → [details](#i-0349) | Medium | — |
+| **I-0367** | `[Apple]` **The object cards restate the kinds: `ObjectCardKind.all` names all ten, each with its relation type** (the standing rule) → [details](#i-0367) | Low | — |
 | **I-0366** | `[Apple]` **A save panel that returns the wrong extension fails with a raw "operation not permitted": the app rewrites the URL to `.inkwyn`, a path the sandbox never granted** (New Project, Import as a New Project) | Low | — |
 | **I-0361** | `[Linux]` **The timeline's zoom buttons ◎ (`U+25CE`) and − (`U+2212`) are drawn from fallback fonts (DejaVu Sans, Noto Sans Bengali), costing ~23 ms and ~4 ms at their first layout on scrivi-vm** ([SP-217] Q2). → [details](#i-0361) | Low | — |
 | **I-0360** | `[Linux]` **`structural_baseline_smoke` failed once on its I-0348 check — after a structural edit the caret was far off screen (y=−53207, window 0–375) and the window showed scene 40 of 40 — then passed 3 of 3** (Docker Qt 6.4.2 arm64, [SP-216]'s checks, not that Sprint's code). → [details](#i-0360) | Low | — |
@@ -103,6 +106,22 @@ its advance cancelled by letter spacing (`ManuscriptPresenter::hide`, `Manuscrip
 the-river-of-time 11.6 s → **no stall**; dumas 11.0 s → **751 ms**.
 **Part 3 — open (found 2026-11-13):** dumas' remaining 751 ms is the accessibility layer rebuilding the Find presented text for
 all 1,174 scenes at once on the main thread (`ManuscriptAccessibility` → `PresentedText::refresh` → `buildScene`), sampled.
+
+---
+
+## I-0367: `[Apple]` The object cards restate the kinds
+
+**Found:** 2026-11-22, planning [SP-234] (Q5, user 2026-11-22: *"Q1-Q5 as recommended, implement SP-234"*).
+**What:** `ObjectCardKind.all` (`Scrivi/Views/Inspector/ObjectCard.swift:63`) lists the ten world-scoped kinds by name, each with a
+typeID, title, symbol and `preferredRelationType` (location → `located-at`, the rest `appears-in`). CLAUDE.md's standing rule calls a
+restated kind list a defect on sight, even when it is currently correct: a new kind, or a change of scope, would be missing from the
+Mac's cards with nothing to say so.
+**How Linux does it ([SP-234]):** the cards come from the core's kinds (`ObjectKindScope`, `objects.<subdir>`), and the relation type
+from the project's vocabulary: a type that names the kind with a scene at the other end, else one that takes any kind and has a
+scene endpoint.
+**Next:** derive the Mac's cards the same way (the symbol and title are presentation and may stay a per-kind lookup with a fallback).
+**Severity:** Low — correct today.
+**Status:** 🔵 Open.
 
 ---
 

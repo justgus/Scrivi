@@ -10,6 +10,17 @@
 #include "ScriviBridge.hpp"
 
 #include <QAction>
+#include <QComboBox>
+#include <QDialog>
+#include <QIcon>
+#include <QImage>
+#include <QKeySequence>
+#include <QMap>
+#include <QPointer>
+#include <QMessageBox>
+#include <QPushButton>
+#include <QKeyEvent>
+#include <QTimer>
 #include <QActionGroup>
 #include <QFrame>
 #include <QHBoxLayout>
@@ -69,6 +80,28 @@ constexpr int kRolePending  = Qt::UserRole + 4;
 // glued to the character's name. ✅ Carry the name as data instead of parsing
 // the presentation back apart.
 constexpr int kRoleDisplayName = Qt::UserRole + 5;
+constexpr int kRoleEdgeID      = Qt::UserRole + 6;   // [SP-234] Remove from Scene deletes this edge, only
+constexpr int kRoleImagePath   = Qt::UserRole + 7;
+constexpr int kThumb           = 20;                  // Apple's `ObjectRowThumbnail`
+
+// [SP-234] Q5: the relation type to link an object of `kind` to a scene, DERIVED from the project's live vocabulary — a
+// type that names this kind with a scene at the other end, else one that takes any kind and has a scene endpoint. No kind
+// is named here (the standing rule; the Mac's per-kind table is [I-0367]). Empty when the vocabulary has none.
+// ⚠️ Worker thread: the bridge is the worker's own.
+QString relationTypeToScene(ScriviBridge& b, const QString& root, const QString& kind)
+{
+    QString specific, general;
+    for (const QVariant& t : b.listRelationTypes(root).value(QStringLiteral("types")).toList()) {
+        const QVariantMap m = t.toMap();
+        const QString from = m.value(QStringLiteral("sourceKind")).toString();
+        const QString to   = m.value(QStringLiteral("targetKind")).toString();
+        if (from != QLatin1String("scene") && to != QLatin1String("scene")) { continue; }
+        const QString other = from == QLatin1String("scene") ? to : from;
+        if (other == kind && specific.isEmpty()) { specific = m.value(QStringLiteral("code")).toString(); }
+        if (other.isEmpty() && general.isEmpty()) { general = m.value(QStringLiteral("code")).toString(); }
+    }
+    return specific.isEmpty() ? general : specific;
+}
 } // namespace
 
 SceneInspector::SceneInspector(QWidget* parent) : QWidget(parent)
@@ -567,6 +600,15 @@ void SceneInspector::setScene(const QString& sceneID)
     flushPendingEdits();
 
     sceneID_ = sceneID;
+    // [SP-234] Q3 (Apple's I-0119): a draft left at a scene BOUNDARY asks — never while writing within a scene. Queued, so
+    // the caret move that changed the scene finishes first. An untouched draft has nothing to lose, and just closes.
+    if (draft_ && draft_->originSceneID != sceneID_) {
+        if ((draft_->isNew() && !draft_->name.trimmed().isEmpty()) || (!draft_->isNew() && draft_->hasUnsavedChanges())) {
+            QTimer::singleShot(0, this, [this] { promptUnfinishedDraft(); });
+        } else {
+            draft_.reset();
+        }
+    }
     historySection_->setScene(sceneID);   // a re-filter only ([I-0331])
     rebuildStack(writingStack_);          // [SP-233]: each scene has its own cards
     reload();   // ✅ SP-197: the notes come in the same read
@@ -781,6 +823,7 @@ void SceneInspector::applyReload(const ReloadPayload& payload)
     //     each object's world. Kind filter empty = every kind.
     QSet<QString> knownIDs;
     QHash<QString, QString> worldByObjectID;
+    QHash<QString, QString> imageByObjectID;
     indexUnreadable_ = false;
     const QVariantMap& objectsResult = payload.objectsResult;
     const bool objectsReadable = !payload.objectsFailed;
@@ -795,6 +838,7 @@ void SceneInspector::applyReload(const ReloadPayload& payload)
             }
             knownIDs.insert(objectID);
             worldByObjectID.insert(objectID, m.value(QStringLiteral("worldID")).toString());
+            imageByObjectID.insert(objectID, m.value(QStringLiteral("imagePath")).toString());
         }
     }
     // ⚠️ A failed listing is NOT fatal — the edges already carry enough to draw
@@ -810,11 +854,13 @@ void SceneInspector::applyReload(const ReloadPayload& payload)
     const QVariantMap& worldsResult = payload.worldsResult;
     if (!payload.worldsFailed) {
         worldNames_.clear();
+        worlds_.clear();
         const QVariantList worlds = worldsResult.value(QStringLiteral("worlds")).toList();
         for (const QVariant& w : worlds) {
             const QVariantMap m = w.toMap();
             const QString wid = m.value(QStringLiteral("worldID")).toString();
             worldNames_.insert(wid, m.value(QStringLiteral("displayName")).toString());
+            worlds_.append({wid, m.value(QStringLiteral("displayName")).toString(), m.value(QStringLiteral("status")).toString()});
             // ⚠️ I-0182: remember WHERE we looked, not just what it is called.
             // `lastKnownPackagePath` is carried regardless of status (T-0419), so
             // this is populated on the healthy pass and is still true later, when
@@ -868,6 +914,7 @@ void SceneInspector::applyReload(const ReloadPayload& payload)
         // world is away.
         if (known) {
             entry.worldID = worldByObjectID.value(entry.objectID, entry.worldID);
+            entry.imagePath = imageByObjectID.value(entry.objectID);
         }
         entries_.append(entry);
     }
@@ -881,14 +928,27 @@ QWidget* SceneInspector::objectCardBody(const QString& kind, const QString& titl
     for (const Entry& e : entries_) {
         if (e.kind == kind) { rows.append(e); }
     }
+    // [SP-234] The card's body: its error, its rows (or "none"), the draft, then Add <Kind>… and New (Apple's order).
+    auto* body = new QWidget(parent);
+    body->setObjectName(QStringLiteral("objectCardBody"));
+    auto* column = new QVBoxLayout(body);
+    column->setContentsMargins(0, 0, 0, 0);
+    column->setSpacing(4);
+    if (!objectError_.isEmpty() && objectErrorKind_ == kind) {
+        auto* error = new QLabel(objectError_, body);
+        error->setObjectName(QStringLiteral("objectError"));
+        error->setWordWrap(true);
+        ThemeColours::applyTextColour(error, ThemeColours::attention(error->palette()));
+        column->addWidget(error);
+    }
     if (rows.isEmpty()) {
         // ⛔ [I-0262]: "no … in this scene yet" is a claim only a SUCCESSFUL read can make.
         auto* none = new QLabel(loadError_.isEmpty() ? tr("No %1 in this scene yet.").arg(title.toLower()) : QString(),
-                                parent);
+                                body);
         none->setWordWrap(true);
         ThemeColours::applyTextColour(none, ThemeColours::deemphasised(none->palette()));
-        return none;
-    }
+        column->addWidget(none);
+    } else {
     // The STACK's sort, handed to every card (C6; Apple's `ObjectCardModel.sorted`). Manual is the graph's sortIndex
     // (Object Model §5.2) with the name as a stable tiebreak; Recently Added is the edges' order reversed.
     const QString sort = layout_.sort(QStringLiteral("worldbuilding"));
@@ -905,10 +965,14 @@ QWidget* SceneInspector::objectCardBody(const QString& kind, const QString& titl
         });
     }
 
-    auto* tree = new QTreeWidget(parent);
+    auto* tree = new QTreeWidget(body);
     tree->setObjectName(QStringLiteral("objectRows"));
     tree->setHeaderHidden(true);
-    tree->setColumnCount(1);
+    tree->setColumnCount(2);   // the row, then its ⊖ (Apple's per-row Remove from Scene)
+    tree->header()->setStretchLastSection(false);
+    tree->header()->setSectionResizeMode(0, QHeaderView::Stretch);
+    tree->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
+    tree->setIconSize(QSize(kThumb, kThumb));
     tree->setRootIsDecorated(false);
     tree->setUniformRowHeights(true);
     tree->setSelectionMode(QAbstractItemView::SingleSelection);
@@ -938,6 +1002,27 @@ QWidget* SceneInspector::objectCardBody(const QString& kind, const QString& titl
         item->setData(0, kRoleWorldID,  e.worldID);
         item->setData(0, kRolePending,  e.pending);
         item->setData(0, kRoleDisplayName, e.displayName);
+        item->setData(0, kRoleEdgeID,   e.edgeID);
+        item->setData(0, kRoleImagePath, e.imagePath);
+        // A6: the object's image when the core has one; a row without one is unchanged (no blank gap, as Apple's).
+        if (!e.imagePath.isEmpty()) {
+            if (thumbnails_.contains(e.imagePath)) {
+                item->setIcon(0, QIcon(thumbnails_.value(e.imagePath)));
+            } else {
+                loadThumbnail(e.imagePath);
+            }
+        }
+        auto* minus = new QToolButton(tree);
+        minus->setObjectName(QStringLiteral("objectRemove"));
+        minus->setAutoRaise(true);
+        minus->setText(QStringLiteral("⊖"));
+        minus->setAccessibleName(e.pending ? tr("Remove %1 from scene — unavailable").arg(e.displayName)
+                                           : tr("Remove %1 from scene").arg(e.displayName));
+        minus->setToolTip(e.pending ? tr("Held pending — this object's world is %1.").arg(writerDescription(e.pendingStatus))
+                                    : tr("Remove from scene"));
+        minus->setEnabled(!e.pending);
+        tree->setItemWidget(item, 1, minus);
+        connect(minus, &QToolButton::clicked, this, [this, item] { removeFromScene(item); });
         if (e.pending) {
             // ⚠️ Shown, named, and not modifiable — never hidden. The sentence
             // in the status line below names the world; this marks the row.
@@ -948,9 +1033,499 @@ QWidget* SceneInspector::objectCardBody(const QString& kind, const QString& titl
                                     .arg(rowText, writerDescription(e.pendingStatus)));
         }
     }
+    // Q2: Rename… is F2 on the selected row (and in the row's menu); a single click only selects.
+    tree->installEventFilter(this);   // F2 — see eventFilter
     // Every row shown: the stack scrolls, so a card is as tall as its rows.
     tree->setFixedHeight(tree->sizeHintForRow(0) * rows.size() + 2 * tree->frameWidth() + 2);
-    return tree;
+    column->addWidget(tree);
+    }
+
+    if (draft_ && draft_->kind == kind) { column->addWidget(draftEditor(body)); }
+
+    auto* buttons = new QHBoxLayout;
+    auto* add = new QToolButton(body);
+    add->setObjectName(QStringLiteral("objectAdd"));
+    add->setAutoRaise(true);
+    add->setText(tr("+ Add %1…").arg(title));
+    connect(add, &QToolButton::clicked, this, [this, kind, title] { openPicker(kind, title); });
+    buttons->addWidget(add);
+    if (!draft_) {
+        auto* create = new QToolButton(body);
+        create->setObjectName(QStringLiteral("objectNew"));
+        create->setAutoRaise(true);
+        create->setText(tr("New %1").arg(singular(title)));
+        // The writing-as author is adopted on load; until the bridge has an identity, nothing can be authored.
+        const bool ready = bridge_ != nullptr && bridge_->ready();
+        create->setEnabled(ready);
+        create->setToolTip(ready ? tr("Create a new %1 in place").arg(singular(title).toLower())
+                                 : tr("Identity is still starting up."));
+        connect(create, &QToolButton::clicked, this, [this, kind, title] { startDraft(kind, title, QString()); });
+        buttons->addWidget(create);
+    }
+    buttons->addStretch(1);
+    column->addLayout(buttons);
+    return body;
+}
+
+// ---- [SP-234] The object verbs on a card ----------------------------------------------------------------------------
+
+QString SceneInspector::singular(const QString& title)
+{
+    return title.endsWith(QLatin1Char('s')) ? title.chopped(1) : title;   // Apple's `singularTitle`
+}
+
+bool SceneInspector::kindIsWorldScoped(const QString& kind) const
+{
+    for (const auto& k : ObjectKindScope::kinds(bridge_)) {
+        if (k.kind == kind) { return k.isWorldScoped; }
+    }
+    return false;
+}
+
+QString SceneInspector::originSceneLabel() const
+{
+    // Apple's: the draft's origin, named ONLY when it is not the scene on screen (I-0119).
+    if (!draft_ || draft_->originSceneID.isEmpty() || draft_->originSceneID == sceneID_) { return {}; }
+    const QStringList all = allSceneIDs_ ? allSceneIDs_() : QStringList{};
+    const qsizetype i = all.indexOf(draft_->originSceneID);
+    return i >= 0 ? tr("Scene %1").arg(i + 1) : tr("another scene");
+}
+
+void SceneInspector::startDraft(const QString& kind, const QString& title, const QString& name)
+{
+    if (draft_ || sceneID_.isEmpty()) { return; }
+    Draft d;
+    d.kind = kind;
+    d.title = title;
+    d.name = name;
+    d.originSceneID = sceneID_;
+    if (kindIsWorldScoped(kind)) {   // Apple's `defaultWorldID`: the first AVAILABLE world
+        for (const WorldInfo& w : std::as_const(worlds_)) {
+            if (WorldStatusText::isAvailable(w.status)) { d.worldID = w.worldID; break; }
+        }
+    }
+    draft_ = d;
+    focusDraft_ = true;
+    objectError_.clear();
+    rebuildStack(worldStack_);
+}
+
+void SceneInspector::startRename(QTreeWidgetItem* item)
+{
+    if (item == nullptr || draft_ || item->data(0, kRolePending).toBool()) { return; }   // a pending row is not editable
+    const QString kind = item->data(0, kRoleKind).toString();
+    QString title;
+    for (const CardInfo& c : availableCards(QStringLiteral("worldbuilding"))) {
+        if (c.kind == kind) { title = c.title; }
+    }
+    Draft d;
+    d.kind = kind;
+    d.title = title;
+    d.objectID = item->data(0, kRoleObjectID).toString();
+    d.name = d.originalName = item->data(0, kRoleDisplayName).toString();
+    d.worldID = item->data(0, kRoleWorldID).toString();   // I-0142: the object's ACTUAL world
+    d.originSceneID = sceneID_;
+    draft_ = d;
+    focusDraft_ = true;
+    objectError_.clear();
+    rebuildStack(worldStack_);
+}
+
+QWidget* SceneInspector::draftEditor(QWidget* parent)
+{
+    // Apple's `ObjectDraftEditor`: in the card, never a dialog (§4.6).
+    auto* frame = new QFrame(parent);
+    frame->setObjectName(QStringLiteral("objectDraft"));
+    frame->setFrameShape(QFrame::StyledPanel);
+    frame->setFrameShadow(QFrame::Sunken);
+    auto* v = new QVBoxLayout(frame);
+    v->setContentsMargins(6, 6, 6, 6);
+    v->setSpacing(4);
+
+    auto* head = new QHBoxLayout;
+    auto* mode = new QLabel(draft_->isNew() ? tr("New") : tr("Editing"), frame);
+    ThemeColours::applyTextColour(mode, ThemeColours::deemphasised(mode->palette()));
+    head->addWidget(mode);
+    head->addStretch(1);
+    const QString origin = originSceneLabel();
+    if (!origin.isEmpty()) {
+        auto* forScene = new QLabel(tr("for: %1").arg(origin), frame);
+        forScene->setObjectName(QStringLiteral("draftOrigin"));
+        ThemeColours::applyTextColour(forScene, ThemeColours::attention(forScene->palette()));
+        head->addWidget(forScene);
+    }
+    v->addLayout(head);
+
+    auto* name = new QLineEdit(draft_->name, frame);
+    name->setObjectName(QStringLiteral("draftName"));
+    name->setPlaceholderText(tr("Name"));
+    v->addWidget(name);
+
+    const bool worldScoped = kindIsWorldScoped(draft_->kind);
+    QComboBox* worldBox = nullptr;
+    if (worldScoped) {
+        if (!draft_->isNew()) {
+            auto* world = new QLabel(tr("World  %1").arg(worldDisplayName(draft_->worldID)), frame);
+            world->setToolTip(tr("An object cannot be moved between worlds."));
+            v->addWidget(world);
+        } else if (worlds_.isEmpty()) {
+            auto* none = new QLabel(tr("No world yet — add one from the Worlds menu first."), frame);
+            none->setWordWrap(true);
+            v->addWidget(none);
+        } else {
+            worldBox = new QComboBox(frame);
+            worldBox->setObjectName(QStringLiteral("draftWorld"));
+            for (const WorldInfo& w : std::as_const(worlds_)) { worldBox->addItem(w.name, w.worldID); }
+            worldBox->setCurrentIndex(std::max(0, worldBox->findData(draft_->worldID)));
+            draft_->worldID = worldBox->currentData().toString();
+            connect(worldBox, &QComboBox::currentIndexChanged, this, [this, worldBox] {
+                if (draft_) { draft_->worldID = worldBox->currentData().toString(); }
+            });
+            v->addWidget(worldBox);
+        }
+    }
+
+    auto* row = new QHBoxLayout;
+    auto* commit = new QPushButton(frame);
+    commit->setObjectName(QStringLiteral("draftCommit"));
+    const QString base = draft_->isNew() ? tr("Create") : tr("Save");
+    commit->setText(origin.isEmpty() ? base : tr("%1 in %2").arg(base, origin));
+    auto* exit = new QPushButton(frame);
+    exit->setObjectName(QStringLiteral("draftExit"));
+    row->addWidget(commit);
+    row->addWidget(exit);
+    row->addStretch(1);
+    v->addLayout(row);
+
+    // The buttons follow what is typed: Create needs a name (and a world); the exit says whether work would be lost.
+    auto refresh = [this, commit, exit, worldScoped] {
+        if (!draft_) { return; }
+        const bool needsWorld = worldScoped && draft_->isNew() && draft_->worldID.isEmpty();
+        commit->setEnabled(!draft_->name.trimmed().isEmpty() && !needsWorld && bridge_ != nullptr && bridge_->ready()
+                           && !promptShown_ && !writingDraft_);
+        const bool unsaved = draft_->isNew() ? !draft_->name.trimmed().isEmpty() : draft_->hasUnsavedChanges();
+        exit->setText(unsaved ? (draft_->isNew() ? tr("Discard") : tr("Revert"))
+                              : (draft_->isNew() ? tr("Cancel") : tr("Done")));
+        exit->setToolTip(unsaved ? (draft_->isNew() ? tr("Discard this new %1 without creating it.")
+                                                          .arg(singular(draft_->title).toLower())
+                                                    : tr("Revert your changes and stop editing. The object is not deleted."))
+                                 : (draft_->isNew() ? tr("Close without creating anything.")
+                                                    : tr("Stop editing. Nothing is changed and nothing is deleted.")));
+    };
+    refresh();
+    connect(name, &QLineEdit::textEdited, this, [this, refresh](const QString& text) {
+        if (draft_) { draft_->name = text; }
+        refresh();
+    });
+    connect(name, &QLineEdit::returnPressed, commit, &QPushButton::click);
+    connect(commit, &QPushButton::clicked, this, [this] { commitDraft(); });
+    connect(exit, &QPushButton::clicked, this, [this] { discardDraft(); });
+    if (focusDraft_) {
+        focusDraft_ = false;
+        QTimer::singleShot(0, name, [name] { name->setFocus(); });
+    }
+    return frame;
+}
+
+void SceneInspector::discardDraft()
+{
+    if (writingDraft_) { return; }
+    draft_.reset();
+    objectError_.clear();   // Apple's I-0126: the notice goes with the draft
+    rebuildStack(worldStack_);
+}
+
+void SceneInspector::commitDraft()
+{
+    if (!draft_ || writingDraft_ || bridge_ == nullptr || !bridge_->ready()) { return; }
+    const Draft d = *draft_;
+    const QString name = d.name.trimmed();
+    if (name.isEmpty()) { return; }
+    const QString root = projectRootPath_;
+    // ⚠️ I-0119: the edge goes to the scene the draft STARTED in, never to the one on screen.
+    const QString toScene = d.originSceneID.isEmpty() ? sceneID_ : d.originSceneID;
+    // The draft stays until the write lands (Apple's: cleared on success only), so a failure keeps what was typed.
+    writingDraft_ = true;
+    rebuildStack(worldStack_);
+    if (d.isNew()) {
+        runObjectWrite(d.kind, [root, d, name, toScene](ScriviBridge& b) -> QString {
+            const QString type = relationTypeToScene(b, root, d.kind);
+            if (type.isEmpty()) {
+                return QObject::tr("This project has no relationship type that links a %1 to a scene.")
+                    .arg(singular(d.title).toLower());
+            }
+            const QString objectID = b.createObject(root, d.kind, name, QString(), d.worldID)
+                                         .value(QStringLiteral("objectID")).toString();
+            if (b.lastCallFailed() || objectID.isEmpty()) { return QObject::tr("“%1” could not be created.").arg(name); }
+            b.createEdge(root, objectID, toScene, type, QString());
+            if (b.lastCallFailed()) {
+                // ✅ Unlinked objects are normal: keep it, and say exactly what happened.
+                return QObject::tr("“%1” was created, but could not be added to the scene. Use Add to add it.").arg(name);
+            }
+            return {};
+        });
+    } else {
+        runObjectWrite(d.kind, [root, d, name](ScriviBridge& b) -> QString {
+            // Patch displayName in the object's own JSON, never reconstruct it: every field this build does not know
+            // about survives (Apple's `rename`).
+            const QVariantMap opened = b.openObject(root, d.kind, d.objectID, d.worldID);
+            const QString json = opened.value(QStringLiteral("objectJson")).toString();
+            QJsonObject object = QJsonDocument::fromJson(json.toUtf8()).object();
+            if (b.lastCallFailed() || object.isEmpty()) { return QObject::tr("“%1” could not be read.").arg(d.originalName); }
+            object.insert(QStringLiteral("displayName"), name);
+            b.saveObject(root, d.kind, QString::fromUtf8(QJsonDocument(object).toJson(QJsonDocument::Compact)));
+            return b.lastCallFailed() ? QObject::tr("“%1” could not be renamed.").arg(d.originalName) : QString();
+        });
+    }
+}
+
+void SceneInspector::removeFromScene(QTreeWidgetItem* item)
+{
+    if (item == nullptr || item->data(0, kRolePending).toBool()) { return; }   // the graph is frozen toward an absent world
+    const QString edgeID = item->data(0, kRoleEdgeID).toString();
+    if (edgeID.isEmpty()) { return; }
+    const QString root = projectRootPath_;
+    // ⚠️ The EDGE only: the object survives, unlinked, and Add offers it again. Never spelled "Delete".
+    runObjectWrite(item->data(0, kRoleKind).toString(), [root, edgeID](ScriviBridge& b) -> QString {
+        b.deleteEdge(root, edgeID);
+        return b.lastCallFailed() ? QObject::tr("This link could not be removed.") : QString();
+    });
+}
+
+void SceneInspector::runObjectWrite(const QString& kind, std::function<QString(ScriviBridge&)> work)
+{
+    if (bridge_ == nullptr) { return; }
+    const WorkerBridge::Handle handle = WorkerBridge::handleFor(bridge_);
+    AsyncCall::run<QString>(
+        this,
+        [handle, work]() -> QString {
+            WorkerBridge bridge(handle);
+            QString pendingWorld;   // a refusal toward an absent world reads as protection, not failure
+            QObject::connect(&*bridge, &ScriviBridge::errorOccurred, [&pendingWorld](int, const QString& message) {
+                if (message.contains(QLatin1String("worldUnavailable"))) { pendingWorld = message; }
+            });
+            const QString error = work(*bridge);
+            if (!error.isEmpty() && !pendingWorld.isEmpty()) {
+                return QObject::tr("This link is held pending — its world is unavailable. Reconnect the world to change it.");
+            }
+            return error;
+        },
+        [this, kind](const QString& error) {
+            objectError_ = error;
+            objectErrorKind_ = kind;
+            if (writingDraft_ && error.isEmpty()) { draft_.reset(); }
+            writingDraft_ = false;
+            reload();   // the cards show what the core now holds
+        },
+        [this, kind] {
+            objectError_ = tr("This change is taking longer than expected — the project may be on a slow or unreachable "
+                              "volume. It will appear when it lands.");
+            objectErrorKind_ = kind;
+            if (writingDraft_) { draft_.reset(); }   // the write is still going: committing again would make a second
+            writingDraft_ = false;
+            rebuildStack(worldStack_);
+        }, AsyncCall::kProjectOpenTimeoutMs);
+}
+
+void SceneInspector::promptUnfinishedDraft()
+{
+    if (!draft_ || promptShown_) { return; }
+    promptShown_ = true;
+    const Draft d = *draft_;
+    const QString name = d.name.trimmed();
+    const QString kindWord = singular(d.title).toLower();
+    const QString label = name.isEmpty() ? tr("This %1").arg(kindWord) : tr("“%1”").arg(name);
+    auto* box = new QMessageBox(this);
+    box->setObjectName(QStringLiteral("unfinishedDraftPrompt"));
+    box->setAttribute(Qt::WA_DeleteOnClose);
+    box->setIcon(QMessageBox::Question);
+    box->setWindowTitle(tr("Unfinished %1").arg(kindWord));
+    box->setText(tr("Unfinished %1").arg(kindWord));
+    box->setInformativeText(d.isNew()
+        ? tr("%1 hasn't been created yet. Creating it now files it against the scene you were just in, not the one you're "
+             "viewing. Discarding makes it disappear — no %2 and no link are saved.").arg(label, kindWord)
+        : tr("%1 has unsaved changes. Reverting undoes your edits; the %2 itself stays exactly as it was.")
+              .arg(label, kindWord));
+    QPushButton* commit = box->addButton(d.isNew() ? tr("Create in Previous Scene") : tr("Save Changes"),
+                                         QMessageBox::AcceptRole);
+    QPushButton* keep = box->addButton(tr("Keep Editing"), QMessageBox::RejectRole);
+    QPushButton* discard = box->addButton(d.isNew() ? tr("Discard New %1").arg(singular(d.title)) : tr("Revert Changes"),
+                                          QMessageBox::DestructiveRole);
+    box->setDefaultButton(keep);
+    box->setEscapeButton(keep);
+    connect(box, &QMessageBox::buttonClicked, this, [this, commit, discard](QAbstractButton* clicked) {
+        promptShown_ = false;
+        if (clicked == commit) {
+            commitDraft();
+        } else if (clicked == discard) {
+            discardDraft();
+        } else {
+            focusDraft_ = true;
+            rebuildStack(worldStack_);   // Keep Editing: the draft, naming the scene it will be filed in
+        }
+    });
+    box->open();
+    rebuildStack(worldStack_);   // the editor's own Create is disabled while the prompt is up (I-0119)
+}
+
+void SceneInspector::openPicker(const QString& kind, const QString& title)
+{
+    if (bridge_ == nullptr || projectRootPath_.isEmpty() || sceneID_.isEmpty()) { return; }
+    // Apple's `ObjectPickerView`: every object of the kind, across every world, grouped by world; those already in the
+    // scene ticked and disabled; Create new… hands what was typed to the in-card draft.
+    QSet<QString> already;
+    for (const Entry& e : std::as_const(entries_)) {
+        if (e.kind == kind) { already.insert(e.objectID); }
+    }
+    auto* dialog = new QDialog(this);
+    dialog->setObjectName(QStringLiteral("objectPicker"));
+    dialog->setAttribute(Qt::WA_DeleteOnClose);
+    dialog->setWindowTitle(tr("Add %1").arg(title));
+    auto* v = new QVBoxLayout(dialog);
+    auto* search = new QLineEdit(dialog);
+    search->setObjectName(QStringLiteral("pickerSearch"));
+    search->setPlaceholderText(tr("Search all worlds…"));
+    v->addWidget(search);
+    QStringList names = worldNames_.values();
+    std::sort(names.begin(), names.end());
+    auto* scope = new QLabel(!kindIsWorldScoped(kind) ? tr("%1 belong to this project, not to a world.").arg(title)
+                             : names.isEmpty()        ? tr("%1 live in a world — add one from the Worlds menu.").arg(title)
+                                                      : tr("%1 live in a world: %2.").arg(title, names.join(QStringLiteral(", "))),
+                             dialog);
+    scope->setWordWrap(true);
+    ThemeColours::applyTextColour(scope, ThemeColours::deemphasised(scope->palette()));
+    v->addWidget(scope);
+    auto* list = new QTreeWidget(dialog);
+    list->setObjectName(QStringLiteral("pickerList"));
+    list->setHeaderHidden(true);
+    list->setRootIsDecorated(false);
+    list->setMinimumHeight(180);
+    v->addWidget(list);
+    auto* status = new QLabel(tr("Loading…"), dialog);
+    status->setObjectName(QStringLiteral("pickerStatus"));
+    ThemeColours::applyTextColour(status, ThemeColours::deemphasised(status->palette()));
+    v->addWidget(status);
+    auto* create = new QPushButton(tr("Create new…"), dialog);
+    create->setObjectName(QStringLiteral("pickerCreateNew"));
+    v->addWidget(create, 0, Qt::AlignLeft);
+    auto objects = std::make_shared<QVariantList>();
+
+    auto fill = [this, list, status, search, objects, already, title] {
+        list->clear();
+        const QString q = search->text().trimmed();
+        QMap<QString, QList<QVariantMap>> byWorld;   // "" (the project's own) sorts first
+        for (const QVariant& o : std::as_const(*objects)) {
+            const QVariantMap m = o.toMap();
+            if (q.isEmpty() || m.value(QStringLiteral("displayName")).toString().contains(q, Qt::CaseInsensitive)) {
+                byWorld[m.value(QStringLiteral("worldID")).toString()].append(m);
+            }
+        }
+        for (auto it = byWorld.begin(); it != byWorld.end(); ++it) {
+            if (!it.key().isEmpty()) {
+                auto* head = new QTreeWidgetItem(list, {worldDisplayName(it.key())});
+                head->setFlags(Qt::NoItemFlags);
+                QFont f = head->font(0);
+                f.setBold(true);
+                head->setFont(0, f);
+            }
+            std::sort(it->begin(), it->end(), [](const QVariantMap& a, const QVariantMap& b) {
+                return a.value(QStringLiteral("displayName")).toString()
+                           .localeAwareCompare(b.value(QStringLiteral("displayName")).toString()) < 0;
+            });
+            for (const QVariantMap& m : std::as_const(*it)) {
+                const QString id = m.value(QStringLiteral("objectID")).toString();
+                const bool linked = already.contains(id);
+                // Adding it again would be refused as a duplicate by the core (AC21): say so before the click.
+                auto* item = new QTreeWidgetItem(list, {linked ? tr("%1  ✓").arg(m.value(QStringLiteral("displayName")).toString())
+                                                               : m.value(QStringLiteral("displayName")).toString()});
+                item->setData(0, kRoleObjectID, id);
+                if (linked) {
+                    item->setFlags(Qt::NoItemFlags);
+                    item->setToolTip(0, tr("Already in this scene."));
+                }
+            }
+        }
+        status->setText(byWorld.isEmpty() ? (objects->isEmpty() ? tr("No %1 in this project yet.").arg(title.toLower())
+                                                                 : tr("No match."))
+                                          : QString());
+        status->setVisible(!status->text().isEmpty());
+    };
+    connect(search, &QLineEdit::textChanged, dialog, [fill, search, create] {
+        const QString typed = search->text().trimmed();
+        create->setText(typed.isEmpty() ? QObject::tr("Create new…") : QObject::tr("Create “%1”…").arg(typed));
+        fill();
+    });
+    connect(create, &QPushButton::clicked, dialog, [this, dialog, search, kind, title] {
+        const QString typed = search->text().trimmed();
+        dialog->close();
+        startDraft(kind, title, typed);   // never creates anything itself (§4.6)
+    });
+    const QString root = projectRootPath_;
+    const QString scene = sceneID_;
+    auto pick = [this, dialog, kind, root, scene](QTreeWidgetItem* item) {
+        if (item == nullptr || !(item->flags() & Qt::ItemIsEnabled)) { return; }
+        const QString objectID = item->data(0, kRoleObjectID).toString();
+        if (objectID.isEmpty()) { return; }
+        dialog->close();
+        runObjectWrite(kind, [root, scene, kind, objectID](ScriviBridge& b) -> QString {
+            const QString type = relationTypeToScene(b, root, kind);
+            if (type.isEmpty()) { return QObject::tr("This project has no relationship type that links this kind to a scene."); }
+            // ⚠️ One edge, never two: the inverse is a read-time label (Object Model §5.2).
+            b.createEdge(root, objectID, scene, type, QString());
+            return b.lastCallFailed() ? QObject::tr("It could not be added to the scene.") : QString();
+        });
+    };
+    connect(list, &QTreeWidget::itemClicked, dialog, pick);
+    connect(list, &QTreeWidget::itemActivated, dialog, pick);
+
+    const WorkerBridge::Handle handle = WorkerBridge::handleFor(bridge_);
+    QPointer<QDialog> guard(dialog);
+    AsyncCall::run<QVariantList>(
+        this,
+        [handle, root, kind]() -> QVariantList {
+            WorkerBridge bridge(handle);
+            return bridge->listObjects(root, kind).value(QStringLiteral("objects")).toList();
+        },
+        [guard, objects, fill](const QVariantList& listed) {
+            if (guard.isNull()) { return; }
+            *objects = listed;
+            fill();
+        },
+        [guard, status] {
+            if (!guard.isNull()) { status->setText(QObject::tr("The objects are taking longer than expected to read — a world "
+                                                               "may be on a disconnected or unreachable volume.")); }
+        }, AsyncCall::kProjectOpenTimeoutMs);
+    dialog->resize(340, 380);
+    dialog->open();
+    search->setFocus();
+}
+
+void SceneInspector::loadThumbnail(const QString& path)
+{
+    if (thumbnailsLoading_.contains(path)) { return; }
+    thumbnailsLoading_.insert(path);
+    // Decoded on a worker (Apple's `Task.detached`): an image read can touch a slow volume.
+    AsyncCall::run<QImage>(
+        this,
+        [path]() -> QImage {
+            const QImage image(path);
+            return image.isNull() ? QImage{}
+                                  : image.scaled(kThumb, kThumb, Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation)
+                                        .copy(0, 0, kThumb, kThumb);
+        },
+        [this, path](const QImage& image) {
+            thumbnailsLoading_.remove(path);
+            if (image.isNull()) { return; }   // no file, or not an image: the row stays as it is
+            thumbnails_.insert(path, QPixmap::fromImage(image));
+            // Set on the rows already drawn — a rebuild would take the focus from a draft being typed.
+            for (QTreeWidget* tree : findChildren<QTreeWidget*>(QStringLiteral("objectRows"))) {
+                for (int i = 0; i < tree->topLevelItemCount(); ++i) {
+                    QTreeWidgetItem* item = tree->topLevelItem(i);
+                    if (item->data(0, kRoleImagePath).toString() == path) { item->setIcon(0, QIcon(thumbnails_.value(path))); }
+                }
+            }
+        },
+        [this, path] { thumbnailsLoading_.remove(path); });
 }
 
 void SceneInspector::rebuildTree()
@@ -1117,6 +1692,13 @@ bool SceneInspector::eventFilter(QObject* watched, QEvent* event)
             onOutlineEdited();
         } else if (watched == todoEdit_) {
             onTodoEdited();
+        }
+    }
+    // [SP-234] Q2: F2 renames the selected row. A key filter, not a QShortcut: it needs no active window to match.
+    if (event != nullptr && event->type() == QEvent::KeyPress && static_cast<QKeyEvent*>(event)->key() == Qt::Key_F2) {
+        if (auto* tree = qobject_cast<QTreeWidget*>(watched); tree != nullptr && tree->objectName() == QLatin1String("objectRows")) {
+            startRename(tree->currentItem());
+            return true;
         }
     }
     return QWidget::eventFilter(watched, event);
@@ -1443,10 +2025,25 @@ void SceneInspector::onContextMenuRequested(const QPoint& pos)
         QAction* why = menu.addAction(tr("Held pending — its world is unavailable"));
         why->setEnabled(false);
     }
+    // [SP-234] Q2: Rename… (F2) and Remove from Scene, as Apple's row menu; a pending row's are disabled, as above.
+    menu.addSeparator();
+    QAction* rename = menu.addAction(tr("Rename…"));
+    rename->setShortcut(QKeySequence(Qt::Key_F2));
+    rename->setEnabled(!pending && !draft_);
+    QAction* remove = menu.addAction(tr("Remove from Scene"));
+    remove->setEnabled(!pending);
     // Select the row the menu was raised on, so the menu and the selection agree.
     tree->setCurrentItem(item);
 
     QAction* chosen = menu.exec(tree->viewport()->mapToGlobal(pos));
+    if (chosen == rename && rename->isEnabled()) {
+        startRename(item);
+        return;
+    }
+    if (chosen == remove && remove->isEnabled()) {
+        removeFromScene(item);
+        return;
+    }
     if (chosen == open && open->isEnabled()) {
         emit openObjectRequested(item->data(0, kRoleKind).toString(),
                                  objectID,

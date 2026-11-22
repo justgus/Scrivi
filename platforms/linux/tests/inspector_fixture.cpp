@@ -14,6 +14,9 @@
 //
 //   argv[1] = project dir to create
 #include <QCoreApplication>
+#include <QImage>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QVariantList>
 #include <QVariantMap>
 #include <cstdio>
@@ -29,9 +32,9 @@ int main(int argc, char* argv[])
 
     ScriviBridge bridge;
     bridge.bootstrap(QStringLiteral("Fixture Builder"), appSupport);
-    bridge.createProject(projectPath, appSupport,
+    const QString projectID = bridge.createProject(projectPath, appSupport,
                          QStringLiteral("Tintagael Live Pass"),
-                         QStringLiteral("tintagael-live"));
+                         QStringLiteral("tintagael-live")).value("projectID").toString();
     const QVariantMap opened = bridge.openProject(projectPath, appSupport);
     const QString sceneID = opened.value("scenes").toList().at(0).toMap()
                                 .value("sceneID").toString();
@@ -47,6 +50,7 @@ int main(int argc, char* argv[])
     std::fprintf(stderr, "world: %s\n",
                  worldID.isEmpty() ? "(none)" : worldID.toUtf8().constData());
 
+    bool imaged = false;   // [SP-234] A6: the first world object gets an image (Linux cannot import one until B2)
     for (const ObjectKindScope::KindInfo& k : ObjectKindScope::kinds(&bridge)) {
         // ⚠️ worldID is threaded from the kind's OWN scope, read from the core —
         // EMPTY for a project-scoped kind, the world's ID for a world-scoped one.
@@ -68,6 +72,20 @@ int main(int argc, char* argv[])
                               QStringLiteral("cites"), QString());
             std::fprintf(stderr, "related %s (%s)\n",
                          name.toUtf8().constData(), k.kind.toUtf8().constData());
+            if (!imaged && k.isWorldScoped) {
+                const QString png = projectPath + QStringLiteral(".worlds/fixture-image.png");
+                QImage image(64, 64, QImage::Format_ARGB32);
+                image.fill(QColor(30, 120, 140));
+                image.save(png);
+                const QString assetID = bridge.importAsset(projectPath, png, QStringLiteral("image"), name, worldID, projectID)
+                                            .value("assetID").toString();
+                QJsonObject json = QJsonDocument::fromJson(bridge.openObject(projectPath, k.kind, objectID, worldID)
+                                                               .value("objectJson").toString().toUtf8()).object();
+                json.insert(QStringLiteral("image"), QJsonObject{{QStringLiteral("assetID"), assetID}});
+                bridge.saveObject(projectPath, k.kind, QString::fromUtf8(QJsonDocument(json).toJson(QJsonDocument::Compact)));
+                std::fprintf(stderr, "  image on %s\n", name.toUtf8().constData());
+                imaged = !assetID.isEmpty();
+            }
         }
     }
     std::fprintf(stderr, "scene: %s\n", sceneID.toUtf8().constData());

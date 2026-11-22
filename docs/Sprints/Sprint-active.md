@@ -1,5 +1,13 @@
 # Active Sprints
 
+*Last Updated: 2026-11-22 (**SP-234 built** — AC1–AC6 met, AC7 green locally (CI on the push); T-0696 → 🟠. ⏳ AC8 live pass.)*
+
+*Last Updated: 2026-11-22 (**SP-234 → 🟡 ACTIVE** (user, 2026-11-22: *"Q1-Q5 as recommended, implement SP-234"*) → [`Sprint-SP-234.md`](Sprint-SP-234.md); Q1–Q5 as recommended; T-0696 → active.)*
+
+*Last Updated: 2026-11-22 (**SP-233 → ✅ CLOSED** (user, 2026-11-22: *"close SP-233.  Lets proceed to planning A3-A6."*) → `Closed/Sprint-SP-233.md`; T-0695, T-0491 ✅ Verified. No Sprint is active.)*
+
+*Last Updated: 2026-11-22 (**SP-233 AC6 ✅** (user, 2026-11-22: *"All 15 steps passed."*)); T-0695, T-0491 → ✅ Verified. ✅ CI on `c6cea5e` green. Close awaits approval.)*
+
 *Last Updated: 2026-11-21 (**SP-233 → 🟡 ACTIVE** (user, 2026-11-21: *"Q1-Q4 as recommended, implement SP-233"*) → [`Sprint-SP-233.md`](Sprint-SP-233.md); Q1–Q4 as recommended. Built — AC1–AC4 met, AC5 green locally (CI on the push); T-0695, T-0491 → 🟠. ⏳ AC6 live pass.)*
 
 *Last Updated: 2026-11-21 (**SP-232 → ✅ CLOSED** (user, 2026-11-21: *"Close SP-232"*) → `Closed/Sprint-SP-232.md`; T-0694 ✅ Verified. No Sprint is active.)*

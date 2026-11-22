@@ -1,5 +1,9 @@
 # Task Backlog
 
+*Last Updated: 2026-11-22 (**T-0696 → active** with [SP-234]'s activation (user, 2026-11-22: *"Q1-Q5 as recommended, implement SP-234"*).)*
+
+*Last Updated: 2026-11-22 (**T-0696 filed** — EP-059 A3–A6, carried by [SP-234] (🔵 Planning) (user, 2026-11-22: *"close SP-233.  Lets proceed to planning A3-A6."*).)*
+
 *Last Updated: 2026-11-21 (**T-0695, T-0491 → active** with [SP-233]'s activation (user, 2026-11-21: *"Q1-Q4 as recommended, implement SP-233"*); built the same day → 🟠 `Task-unverified.md`.)*
 
 *Last Updated: 2026-11-21 (**T-0695 filed** — EP-059 B5+B6, carried by [SP-233] (🔵 Planning) with **T-0491** (A7) (user, 2026-11-21: *"let's begin to plan the next Sprint in EP-059"*).)*

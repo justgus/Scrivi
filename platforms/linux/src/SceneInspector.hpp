@@ -1,6 +1,8 @@
 #pragma once
 
 #include <QHash>
+#include <QPixmap>
+#include <QSet>
 #include <QList>
 #include <QString>
 #include <QWidget>
@@ -231,6 +233,7 @@ private:
         QString worldID;      // "" = project-scoped
         bool    pending = false;
         QString pendingStatus;  // core's WorldStatus name when pending
+        QString imagePath;      // [SP-234] A6: the core's thumbnail (or image) path; empty = none
     };
 
     HistorySection* historySection_ = nullptr;
@@ -283,6 +286,47 @@ private:
     // The cards this build has for a stack. Worldbuilding's: one per world-scoped kind, DERIVED from the core.
     [[nodiscard]] QList<CardInfo> availableCards(const QString& stack) const;
     QWidget* objectCardBody(const QString& kind, const QString& title, QWidget* parent);
+
+    // ---- The object verbs on a card ([SP-234], EP-059 A3–A6; Apple: `ObjectCard.swift`, `ObjectPickerView.swift`) ----
+    // A card under construction or under edit. App-side ONLY until committed (§4.6): nothing is written before Create.
+    // ⚠️ It belongs to the PANEL, not the card's widgets: a card is rebuilt on every read, and the draft outlives a scene
+    // change (I-0119), so it carries the scene it was STARTED in.
+    struct Draft {
+        QString kind;
+        QString title;          // the card's ("Characters")
+        QString objectID;       // empty = a new object
+        QString name;
+        QString originalName;
+        QString worldID;
+        QString originSceneID;
+        [[nodiscard]] bool isNew() const { return objectID.isEmpty(); }
+        [[nodiscard]] bool hasUnsavedChanges() const { return name.trimmed() != originalName.trimmed(); }
+    };
+    std::optional<Draft> draft_;
+    bool focusDraft_ = false;       // the editor takes focus once, when the draft opens
+    bool promptShown_ = false;
+    bool writingDraft_ = false;     // the draft's Create / Save is out; it clears when it lands
+    QString objectError_;           // the last failed write, shown on its card until the next commit or discard
+    QString objectErrorKind_;
+    struct WorldInfo { QString worldID; QString name; QString status; };
+    QList<WorldInfo> worlds_;       // from the scene's read (status for the New draft's default)
+    QHash<QString, QPixmap> thumbnails_;   // path → 20 × 20, decoded off the UI thread
+    QSet<QString> thumbnailsLoading_;
+
+    QWidget* draftEditor(QWidget* parent);
+    void startDraft(const QString& kind, const QString& title, const QString& name);
+    void startRename(QTreeWidgetItem* item);
+    void commitDraft();
+    void discardDraft();
+    void promptUnfinishedDraft();
+    void openPicker(const QString& kind, const QString& title);
+    void removeFromScene(QTreeWidgetItem* item);
+    // Runs a write on a worker (the main thread is for UI only); `work` returns an error for the card, or empty.
+    void runObjectWrite(const QString& kind, std::function<QString(ScriviBridge&)> work);
+    void loadThumbnail(const QString& path);
+    [[nodiscard]] bool kindIsWorldScoped(const QString& kind) const;
+    [[nodiscard]] QString originSceneLabel() const;
+    static QString singular(const QString& title);
     QWidget* parkedBodies_ = nullptr;          // the Writing cards' widgets while their card is not shown
     QHash<QString, QWidget*> writingBodies_;   // typeID → the widget the card shows
     std::function<QStringList()> allSceneIDs_;

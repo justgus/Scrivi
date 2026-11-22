@@ -1,5 +1,11 @@
 # Unverified Tasks
 
+*Last Updated: 2026-11-22 (**T-0696 → 🟠 Implemented - Not Verified** ([SP-234] built); the live pass is the user's.)*
+
+*Last Updated: 2026-11-22 (**T-0695, T-0491 archived** → `Verified/` ([SP-233] closed).)*
+
+*Last Updated: 2026-11-22 (**T-0695, T-0491 → ✅ Verified** (user, 2026-11-22: *"All 15 steps passed."*); archived when SP-233 closes.)*
+
 *Last Updated: 2026-11-21 (**T-0695, T-0491 → 🟠 Implemented - Not Verified** ([SP-233] built); the live pass is the user's.)*
 
 *Last Updated: 2026-11-21 (**T-0694 archived** → `Verified/` ([SP-232] closed).)*
@@ -152,26 +158,19 @@ in the backlog carrying a 🟠 status.
 
 ---
 
-## 🟠 T-0695 — `[Linux]` EP-059 B5+B6: the Scene Inspector's card stacks, as the Mac's
+## 🟠 T-0696 — `[Linux]` EP-059 A3–A6: the object verbs on a card, as the Mac's
 
-**Epic:** [EP-059] (B5, B6) · **Status:** 🟠 Implemented - Not Verified · **Sprint:** [SP-233] (🟡 Active) →
-[`../Sprints/Sprint-SP-233.md`](../Sprints/Sprint-SP-233.md) · **Date Requested:** 2026-11-21 (user: *"let's begin to plan the next
-Sprint in EP-059"*; *"Stack first"*)
+**Epic:** [EP-059] (A3, A4, A5, A6) · **Status:** 🟠 Implemented - Not Verified · **Sprint:** [SP-234] (🟡 Active) →
+[`../Sprints/Sprint-SP-234.md`](../Sprints/Sprint-SP-234.md) · **Date Requested:** 2026-11-22 (user, 2026-11-22: *"close SP-233.  Lets proceed to planning A3-A6."*)
 
-**What:** Linux's Writing and Worldbuilding tabs become the Mac's card stacks, read from and written to `inspector-layout.json` per
-scene. **Built:** `InspectorLayoutStore` (Apple's stack operations, patched); `SceneInspector::buildStack` / `rebuildStack` (+, ⋯,
-collapsible cards with ✕, unknown cards reported); Worldbuilding's cards derived from the core. Details and the live pass: the Sprint.
+**What:** on each kind's card in the Scene Inspector, the Mac's verbs (`ObjectCard.swift`, `ObjectPickerView.swift`): Add <Kind>… (every
+object of the kind, across worlds), New in place with `worldID` threaded, rename, Remove from Scene (the edge only), the unfinished-draft
+prompt at a scene boundary, and a row's thumbnail. Delete and promote are A8 / A9. Findings, questions and ACs: the Sprint.
 
----
+**Built:** `SceneInspector` — Add <Kind>… (`openPicker`), the in-card draft (`draftEditor`) for New and Rename (F2, Rename…), ⊖ / Remove
+from Scene, the boundary prompt (`promptUnfinishedDraft`), the derived relation type (`relationTypeToScene`), row thumbnails; every
+write on a worker (`runObjectWrite`). Details and the live pass: the Sprint.
 
-## 🟠 T-0491 — `[Linux]` Per-stack sort (EP-059 A7)
-
-**Epic:** [EP-059] (A7) · **Status:** 🟠 Implemented - Not Verified · **Sprint:** [SP-233] (🟡 Active) →
-[`../Sprints/Sprint-SP-233.md`](../Sprints/Sprint-SP-233.md) · **Date Requested:** 2026-08-30 (SP-126 scope ruling)
-
-**What:** Apple's per-stack sort (Manual / Name / Recently Added), ordering the cards and each object card's rows, and Apply Layout to
-All Scenes…, each by menu. ✅ Card reorder dropped as the Mac has none ([SP-233] Q2, 2026-11-21). **Built:** the ⋯ menu
-(`SceneInspector::buildStack`), `InspectorLayoutStore::setSort`. Details: the Sprint.
 
 ---
 

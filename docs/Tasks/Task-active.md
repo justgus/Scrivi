@@ -1,5 +1,9 @@
 # Active Tasks
 
+*Last Updated: 2026-11-22 (**T-0696 → 🟠** ([SP-234] built) → `Task-unverified.md`.)*
+
+*Last Updated: 2026-11-22 (**T-0696 → active** with [SP-234]'s activation.)*
+
 *Last Updated: 2026-11-21 (**T-0695, T-0491 → active** with [SP-233]'s activation; built the same day → 🟠 `Task-unverified.md`.)*
 
 *Last Updated: 2026-11-21 (**T-0694 → active** with [SP-232]'s activation; built the same day → 🟠 `Task-unverified.md`.)*

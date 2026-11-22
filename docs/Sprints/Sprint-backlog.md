@@ -1,5 +1,9 @@
 # Sprint Backlog
 
+*Last Updated: 2026-11-22 (**SP-234 removed** — activated 2026-11-22.)*
+
+*Last Updated: 2026-11-22 (**SP-234 created in 🔵 Planning** — EP-059 part A, the object verbs on a card (A3–A6) (user, 2026-11-22: *"close SP-233.  Lets proceed to planning A3-A6."*); Q1–Q5 to rule.)*
+
 *Last Updated: 2026-11-21 (**SP-233 removed** — activated 2026-11-21.)*
 
 *Last Updated: 2026-11-21 (**SP-233 created in 🔵 Planning** — EP-059 part A, first: the card stacks (user, 2026-11-21: *"let's begin to plan the next Sprint in EP-059"*); Q1–Q4 to rule.)*

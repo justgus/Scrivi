@@ -8,9 +8,9 @@ created: 2026-11-21
 
 # SP-233 — `[Linux]` [EP-059] A, first: the Scene Inspector's card stacks
 
-**Status:** 🟡 **ACTIVE** 2026-11-21 (user, 2026-11-21: *"Q1-Q4 as recommended, implement SP-233"*); ✅ Q1–Q4 as recommended. Built 2026-11-21: AC1–AC4 met; AC5 green locally (CI on the push). ⏳ AC6 live pass. Created 2026-11-21 (user, 2026-11-21: *"let's begin to plan the next Sprint in EP-059"*).
+**Status:** ✅ **CLOSED** 2026-11-22 (user, 2026-11-22: *"close SP-233.  Lets proceed to planning A3-A6."*). Was 🟡 **ACTIVE** 2026-11-21 (user, 2026-11-21: *"Q1-Q4 as recommended, implement SP-233"*); ✅ Q1–Q4 as recommended. Built 2026-11-21: AC1–AC4 met; AC5 green locally (CI on the push). AC6 ✅ (user, 2026-11-22: *"All 15 steps passed."*). ✅ AC5: CI on `c6cea5e` green (run 45060350237). Created 2026-11-21 (user, 2026-11-21: *"let's begin to plan the next Sprint in EP-059"*).
 **Carries:** [T-0695] (B5, B6), [T-0491] (A7).
-**Epic:** [EP-059] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md) — the first Sprint of part **A**, with B5 and B6 brought
+**Epic:** [EP-059] → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md) — the first Sprint of part **A**, with B5 and B6 brought
 forward (user, 2026-11-21: *"Stack first"*; see below).
 **Size:** M — a new surface for both stacks; every read and write it needs already exists.
 
@@ -136,17 +136,20 @@ Build on the VM (`git pull`, then build as §9 of the rig doc). For a project wi
       All Scenes…; each reachable by menu.
 - [x] AC4 — A kind's card lists the scene's objects of that kind as today's tree did (labels, pending, open three ways), or says there
       are none.
-- [~] AC5 — ✅ Docker (Qt 6.4, non-root): ctest **884/884**, smokes **47/47** (the new one in CI); ⏳ CI on the push.
-- [ ] AC6 — Live pass on the Linux VM.
+- [x] AC5 — ✅ Docker (Qt 6.4, non-root): ctest **884/884**, smokes **47/47** (the new one in CI); ✅ CI on `c6cea5e` green (run 45060350237).
+- [x] AC6 — Live pass on the Linux VM: all 15 steps (user, 2026-11-22: *"All 15 steps passed."*).
 
 ## Progress log
 
+- **2026-11-22** — ✅ **CLOSED** (user, 2026-11-22: *"close SP-233.  Lets proceed to planning A3-A6."*); T-0695, T-0491 archived.
+- **2026-11-22** — ✅ AC5: CI on `c6cea5e` green (run 45060350237). Every AC met.
+- **2026-11-22** — ✅ AC6: all 15 steps pass on the VM (user, 2026-11-22: *"All 15 steps passed."*); T-0695, T-0491 → ✅ Verified. ⏳ CI on `c6cea5e` (run 45060350237).
 - **2026-11-21** — Built: AC1–AC4 met; AC5 green locally (884/884, 47/47); two smokes' rigs corrected (see Tests); T-0695, T-0491 → 🟠. ⏳ AC6 live pass, CI.
 - **2026-11-21** — 🟡 **ACTIVE** (user, 2026-11-21: *"Q1-Q4 as recommended, implement SP-233"*); Q1–Q4 as recommended; T-0695, T-0491 → active.
 - **2026-11-21** — 🔵 **Created in Planning**, issued via `next-id.py`; carries [T-0695] (new) and [T-0491]. Stack first and delete /
   promote on every platform ruled (user, 2026-11-21); Q1–Q4 to rule.
 
-*Last Updated: 2026-11-21 (Built; ⏳ AC6 live pass, CI.)*
+*Last Updated: 2026-11-22 (✅ CLOSED.)*
 
 *Last Updated: 2026-11-21 (🟡 **ACTIVE**; Q1–Q4 as recommended.)*
 
