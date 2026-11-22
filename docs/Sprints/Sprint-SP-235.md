@@ -1,6 +1,6 @@
 # Sprint SP-235 — `[Linux]` [EP-059] B: the object detail view and its image (B1–B4)
 
-**Status:** 🟡 **ACTIVE** 2026-11-22 (user, 2026-11-22: *"Q1-Q6 as recommended, implement SP-235"*); ✅ Q1–Q6 as recommended. Built 2026-11-22: AC1–AC5 met; AC6 green in Docker (CI on the push). ⏳ AC7 live pass. Created 2026-11-22 (user, 2026-11-22: *"close SP-234, then plan B1-B4"*).
+**Status:** ✅ **COMPLETE** 2026-11-22 — awaiting close approval (live pass: user, 2026-11-22: *"Steps 11-18 pass.  I saw all the banners and they appeared and disappeared at the proper times."*). 🟡 Activated 2026-11-22 (user, 2026-11-22: *"Q1-Q6 as recommended, implement SP-235"*); ✅ Q1–Q6 as recommended. Built 2026-11-22: AC1–AC5 met; AC6 green in Docker (CI on the push). ⏳ AC7 live pass. Created 2026-11-22 (user, 2026-11-22: *"close SP-234, then plan B1-B4"*).
 **Carries:** [T-0697] (B1–B4).
 **Epic:** [EP-059] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md) — part **B**, on [SP-233]'s stacks and [SP-234]'s card verbs.
 **Size:** L — one new surface. Every endpoint it needs is already bridged (`openObject`, `saveObject`, `listObjects`, `importAsset`,
@@ -133,18 +133,21 @@ world away at open, named. Docker (Qt 6.4, non-root): ctest **884/884**, smokes 
 9. Choose Existing…. "Images in this world" lists the picture now on character 2, ticked and greyed, and character 1's teal square.
    Click the teal one: character 2 now shows it.
 10. Remove. "No image."; close the window (no question). Double-click character 1: its teal square is still there.
-11. In character 1, type `Held.` in Notes; don't save. In a terminal:
-    `mv ~/DetailPass.inkwyn.worlds/Eskandar.inkwynworld ~/Eskandar-away`, then click back into Inkwyn's detail window. A grey banner
-    says Eskandar is not available, so the object is read-only; an orange one says the unsaved changes are held only here. "Held." is
-    still in Notes; the fields cannot be typed in; Save, Add Image… and Choose Existing… are greyed; the chips have no ✕.
-12. `mv ~/Eskandar-away ~/DetailPass.inkwyn.worlds/Eskandar.inkwynworld`, click back into Inkwyn. The banners go, "Held." is still
-    there, Save is enabled. Ctrl+S → "Changes saved". Close.
-13. Move the world away again (step 11's `mv`) and click back into Inkwyn: the rows show ⚠. Double-click character 1: the window
-    says "character 1", "“Eskandar” is …." and "Its details will appear when the world is available again." Close it, and move the
-    world back (step 12's `mv`).
-14. Right-click character 2: the menu reads **View Detail** (not Open Object). Choose it: the detail window opens. Close it.
-15. Ctrl+Q, reopen. Character 2 has its subtitle, notes, the brave tag and no image; character 1 has "Held." in Notes and its teal
-    square.
+11–15 rewritten 2026-11-22 for the VM's own project (user: *"Create a set of test steps that I can execute on Linux using an
+existing project in the ScriviLinux/projects folder"*): `dumas-prose-timelines-history`, world `Dumas-Characters-Places`, in
+`/mnt/scrivi-net/projects/Scrivi-Dumas-Fixture`. The world is renamed WITHOUT its extension, so nothing can re-find it.
+
+11. In a terminal: `cd /mnt/scrivi-net/projects/Scrivi-Dumas-Fixture`. In Inkwyn, double-click Abbé Faria; add `Held.` at the end
+    of Notes; don't save. In the terminal: `mv Dumas-Characters-Places.inkwynworld Dumas-away`, then click back into the detail
+    window. A grey banner says the world is not available; an orange one says the unsaved changes are held only here; "Held." is
+    still there; the fields cannot be typed in; Save is greyed.
+12. `mv Dumas-away Dumas-Characters-Places.inkwynworld`, click back into Inkwyn. The banners go; "Held." is still there; Save is
+    enabled. Ctrl+S → "Changes saved". Close.
+13. `mv Dumas-Characters-Places.inkwynworld Dumas-away`, click back into Inkwyn: the rows show ⚠. Double-click Abbé Faria: the
+    window says "Abbé Faria", "“Dumas-Characters-Places” is …." and "Its details will appear when the world is available again."
+    Close it. `mv Dumas-away Dumas-Characters-Places.inkwynworld`, click back into Inkwyn: the ⚠ goes.
+14. Right-click Abbé Faria: the menu reads **View Detail**. Choose it: the window opens.
+15. Ctrl+Q, reopen the project, open Abbé Faria: "Held." is in Notes. Delete it, Ctrl+S, close (puts the fixture back).
 
 ## Acceptance criteria
 
@@ -157,18 +160,19 @@ world away at open, named. Docker (Qt 6.4, non-root): ctest **884/884**, smokes 
       and explained, never an error code.
 - [x] AC5 — (B4) A world going away while the dialog is open loses nothing: the fields stay, turn read-only, the at-risk banner shows
       while edits are held, and Save writes them once the world is back.
-- [~] AC6 — Tests: a smoke through a real project window (open, edit, save, revert, guarded close, tags, image add / replace / remove,
-      read-only); ctest and every smoke green in Docker; CI green. ✅ Docker: ctest **884/884**, smokes **49/49**; ⏳ CI on the push.
-- [~] AC7 — Live pass on the Linux VM. Steps 1–10 ✅ except 3 (user, 2026-11-22, on dumas-prose-timelines-history). Step 3: Return
-      in the tag field also pressed Add Image… (the dialog's default button) — fixed (`setAutoDefault(false)`), §2 checks it
-      (failed before the fix). ⏳ step 3 again, steps 11–15 (not run: that project's world is not Eskandar).
+- [x] AC6 — Tests: a smoke through a real project window (open, edit, save, revert, guarded close, tags, image add / replace / remove,
+      read-only); ctest and every smoke green in Docker; CI green. ✅ Docker: ctest **884/884**, smokes **49/49**; ✅ CI green (run 45082162548, with the step-3 fix).
+- [x] AC7 — Live pass on the Linux VM, on `dumas-prose-timelines-history`: steps 1–10 (user, 2026-11-22); step 3 failed (Return in
+      the tag field pressed Add Image…), fixed (`setAutoDefault(false)`, smoke §2 checks it) and passed; steps 11–18 (user, 2026-11-22:
+      *"Steps 11-18 pass.  I saw all the banners and they appeared and disappeared at the proper times."*).
 
 ## Progress log
 
+- **2026-11-22** — ✅ **Complete**: live pass 11–18 (user: *"Steps 11-18 pass.  I saw all the banners and they appeared and disappeared at the proper times."*); CI green; T-0697 ✅ Verified. Awaiting close approval.
 - **2026-11-22** — Live pass: steps 1–10 pass but 3 (Return in a tag pressed Add Image…; fixed, smokes 49/49). ⏳ 3, 11–15.
 - **2026-11-22** — Built: AC1–AC5 met; AC6 green in Docker (884/884, 49/49); T-0697 → 🟠; [I-0369] filed. ⏳ AC7 live pass, CI.
 - **2026-11-22** — 🟡 **ACTIVE** (user, 2026-11-22: *"Q1-Q6 as recommended, implement SP-235"*); Q1–Q6 as recommended; T-0697 → active; [I-0368] filed (Q3).
 - **2026-11-22** — 🔵 **Created in Planning** via `next-id.py` (user, 2026-11-22: *"close SP-234, then plan B1-B4"*); carries [T-0697]
   (new). Q1–Q6 to rule.
 
-*Last Updated: 2026-11-22 (Live pass 1–10; step 3 fixed; ⏳ 3, 11–15, CI.)*
+*Last Updated: 2026-11-22 (✅ Complete; awaiting close approval.)*

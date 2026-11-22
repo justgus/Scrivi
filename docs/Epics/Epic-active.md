@@ -1,5 +1,7 @@
 # Active Epics
 
+*Last Updated: 2026-11-22 (**EP-059:** [SP-235] ✅ Complete — live pass passed; B1–B4 [x]; awaiting close approval.)*
+
 *Last Updated: 2026-11-22 (**EP-059:** [SP-235] 🟡 ACTIVE (user, 2026-11-22: *"Q1-Q6 as recommended, implement SP-235"*), built (B1–B4); ⏳ its live pass.)*
 
 *Last Updated: 2026-11-22 (**EP-059:** [SP-235] 🔵 Planning — the object detail view and its image (B1–B4, [T-0697]); Q1–Q6 to rule.)*
@@ -175,7 +177,7 @@
 
 ## EP-059: `[Linux]` **Linux catches up with the Mac** — every capability gap, one Epic
 
-**Status:** 🟡 **ACTIVE** 2026-11-20 (user, 2026-11-20: *"Nope.  Can't archive yet.  We need to do the Linux gap epic first."*); part E = [SP-230] ✅ closed 2026-11-21; part D = [SP-231] ✅ closed 2026-11-21; part F (toolbar) = [SP-232] ✅ closed 2026-11-21; part A's first Sprint = [SP-233] ✅ closed 2026-11-22; its second = [SP-234] ✅ closed 2026-11-22; part B (B1–B4) = [SP-235] 🟡 Active, built. Created 2026-11-20 (user, 2026-11-20: *"yes, file G1–G9 as an Epic (include everything here, so it is all tracked at once."*). ✅ It **supersedes [EP-035], [EP-036] and [EP-037]**
+**Status:** 🟡 **ACTIVE** 2026-11-20 (user, 2026-11-20: *"Nope.  Can't archive yet.  We need to do the Linux gap epic first."*); part E = [SP-230] ✅ closed 2026-11-21; part D = [SP-231] ✅ closed 2026-11-21; part F (toolbar) = [SP-232] ✅ closed 2026-11-21; part A's first Sprint = [SP-233] ✅ closed 2026-11-22; its second = [SP-234] ✅ closed 2026-11-22; part B (B1–B4) = [SP-235] ✅ Complete 2026-11-22, awaiting close approval. Created 2026-11-20 (user, 2026-11-20: *"yes, file G1–G9 as an Epic (include everything here, so it is all tracked at once."*). ✅ It **supersedes [EP-035], [EP-036] and [EP-037]**
 (user, 2026-11-20: *"One Epic for all"*), which are closed into it: their ACs are carried below by reference, verified ones kept.
 **Source:** [`../Scrivi_Linux_Capability_Gap_Review_v0_1.md`](../Scrivi_Linux_Capability_Gap_Review_v0_1.md) (G1–G9, read from the code
 2026-11-20). The core is at parity; every gap is a Linux surface.
@@ -203,11 +205,11 @@ on the Mac.
 - [ ] **A9** — Delete Object and Promote on Linux, in the shape A8 sets. ⛔ **Blocked by A8's Sprint.** Not yet created
 
 *B. The detail sheet and media — from [EP-036] ([`Closed/Epic-EP-036.md`](Closed/Epic-EP-036.md)):*
-- [ ] **B1** (EP-036 AC1; **G1**, [T-0697] → [SP-235]) — the object detail view, in place of today's "not built yet" message (`EditorShell.cpp:4503`):
+- [x] **B1** (EP-036 AC1; **G1**, [T-0697] → [SP-235]) — the object detail view, in place of today's "not built yet" message (`EditorShell.cpp:4503`):
       views and edits name, subtitle, notes, tags; edits persist
-- [ ] **B2** (EP-036 AC2, [T-0697] → [SP-235]) — an image imported, shown, replaced, removed
-- [ ] **B3** (EP-036 AC3, [T-0697] → [SP-235]) — a pending object opens read-only, explained, never written
-- [ ] **B4** (EP-036 AC4, [T-0697] → [SP-235]) — a world going away while the sheet is open loses no data
+- [x] **B2** (EP-036 AC2, [T-0697] → [SP-235]) — an image imported, shown, replaced, removed
+- [x] **B3** (EP-036 AC3, [T-0697] → [SP-235]) — a pending object opens read-only, explained, never written
+- [x] **B4** (EP-036 AC4, [T-0697] → [SP-235]) — a world going away while the sheet is open loses no data
 - [x] **B5** ✅ [SP-233] (EP-036 AC4a; **G4**) — the writer's card stack is honoured, read from `inspector-layout.json` → [SP-233], brought
       forward: A5's verbs live on a kind's card, and Linux has none
 - [x] **B6** ✅ [SP-233] (EP-036 AC4b; **G4**) — the stack picker: add and remove cards on a stack (depends on B5) → [SP-233]
