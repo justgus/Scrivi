@@ -1967,32 +1967,10 @@ void SceneInspector::onItemActivated(QTreeWidgetItem* item, int column)
         return;
     }
 
-    // ⚠️ A PENDING object cannot be opened — its world is away, so `openObject`
-    // fails at the core and the writer gets a raw error naming a world UUID.
-    //
-    // ⚠️ THE CONTEXT MENU ALREADY GUARDED THIS AND DOUBLE-CLICK DID NOT — the two
-    // halves of T-0482 disagreed, which is exactly the split
-    // `feedback_verify_each_half_separately` warns about: I verified both
-    // affordances OPENED an object and never verified both REFUSED one.
-    // (Reported by the user 2026-08-30.)
-    //
-    // ✅ Explain in the panel, where the writer is already looking, rather than
-    // firing a call we know will fail.
-    if (item->data(0, kRolePending).toBool()) {
-        const QString worldID = item->data(0, kRoleWorldID).toString();
-        const QString name = worldDisplayName(worldID);
-        setStatusLine(tr("“%1” can't be opened yet — %2 is unavailable. "
-                         "Its links are held; nothing has been lost.")
-                          .arg(item->data(0, kRoleDisplayName).toString(),
-                               name.isEmpty() ? tr("its world")
-                                              : tr("world “%1”").arg(name)),
-                      true);
-        return;
-    }
-
-    emit openObjectRequested(item->data(0, kRoleKind).toString(),
-                             objectID,
-                             item->data(0, kRoleWorldID).toString());
+    // [SP-235] B3: a PENDING row opens too. The detail view names the object and explains its world is away, and it does
+    // not call the core for it (the read would wait on a dead volume) — this replaces the status-line refusal (T-0482).
+    emit openObjectRequested(item->data(0, kRoleKind).toString(), objectID, item->data(0, kRoleWorldID).toString(),
+                             item->data(0, kRoleDisplayName).toString(), item->data(0, kRolePending).toBool());
 }
 
 void SceneInspector::onContextMenuRequested(const QPoint& pos)
@@ -2014,13 +1992,10 @@ void SceneInspector::onContextMenuRequested(const QPoint& pos)
     // separately. On Apple, AC7's two halves needed four Issues before the second
     // one worked (feedback_verify_each_half_separately).
     QMenu menu(tree);
-    QAction* open = menu.addAction(tr("Open Object"));
+    QAction* open = menu.addAction(tr("View Detail"));   // [SP-235] Q6: Apple's word; a pending row opens read-only (B3)
     const bool pending = item->data(0, kRolePending).toBool();
     if (pending) {
-        // The graph is frozen toward an unavailable world. Disabled AND
-        // EXPLAINED — never silently inert.
-        open->setEnabled(false);
-        open->setToolTip(tr("This object's world is unavailable."));
+        // The graph is frozen toward an unavailable world: the link verbs are disabled AND EXPLAINED.
         menu.addSeparator();
         QAction* why = menu.addAction(tr("Held pending — its world is unavailable"));
         why->setEnabled(false);
@@ -2045,8 +2020,7 @@ void SceneInspector::onContextMenuRequested(const QPoint& pos)
         return;
     }
     if (chosen == open && open->isEnabled()) {
-        emit openObjectRequested(item->data(0, kRoleKind).toString(),
-                                 objectID,
-                                 item->data(0, kRoleWorldID).toString());
+        emit openObjectRequested(item->data(0, kRoleKind).toString(), objectID, item->data(0, kRoleWorldID).toString(),
+                                 item->data(0, kRoleDisplayName).toString(), pending);
     }
 }

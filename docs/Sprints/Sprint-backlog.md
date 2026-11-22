@@ -1,5 +1,7 @@
 # Sprint Backlog
 
+*Last Updated: 2026-11-22 (**SP-235 removed** — activated 2026-11-22.)*
+
 *Last Updated: 2026-11-22 (**SP-235 created in 🔵 Planning** — EP-059 part B, the object detail view and its image (B1–B4) (user, 2026-11-22: *"close SP-234, then plan B1-B4"*); Q1–Q6 to rule.)*
 
 *Last Updated: 2026-11-22 (**SP-234 removed** — activated 2026-11-22.)*
@@ -139,7 +141,6 @@ Sprints listed here are in 🔵 Planning status — defined and ready to activat
 | Sprint | Title | Epic | Doc |
 | ------ | ----- | ---- | --- |
 | **SP-228** | `[Apple]` **[EP-055] S8** — TestFlight for iPad, iPhone and the Mac (T-0690) | EP-055 | [`Sprint-SP-228.md`](Sprint-SP-228.md) |
-| **SP-235** | `[Linux]` **[EP-059] B** — the object detail view and its image (T-0697) | EP-059 | [`Sprint-SP-235.md`](Sprint-SP-235.md) |
 
 ---
 

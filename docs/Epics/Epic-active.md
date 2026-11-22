@@ -1,5 +1,7 @@
 # Active Epics
 
+*Last Updated: 2026-11-22 (**EP-059:** [SP-235] 🟡 ACTIVE (user, 2026-11-22: *"Q1-Q6 as recommended, implement SP-235"*), built (B1–B4); ⏳ its live pass.)*
+
 *Last Updated: 2026-11-22 (**EP-059:** [SP-235] 🔵 Planning — the object detail view and its image (B1–B4, [T-0697]); Q1–Q6 to rule.)*
 
 *Last Updated: 2026-11-22 (**EP-059:** [SP-234] ✅ closed (user, 2026-11-22: *"close SP-234, then plan B1-B4"*); A3–A6 ticked.)*
@@ -173,7 +175,7 @@
 
 ## EP-059: `[Linux]` **Linux catches up with the Mac** — every capability gap, one Epic
 
-**Status:** 🟡 **ACTIVE** 2026-11-20 (user, 2026-11-20: *"Nope.  Can't archive yet.  We need to do the Linux gap epic first."*); part E = [SP-230] ✅ closed 2026-11-21; part D = [SP-231] ✅ closed 2026-11-21; part F (toolbar) = [SP-232] ✅ closed 2026-11-21; part A's first Sprint = [SP-233] ✅ closed 2026-11-22; its second = [SP-234] ✅ closed 2026-11-22; part B (B1–B4) = [SP-235] 🔵 Planning. Created 2026-11-20 (user, 2026-11-20: *"yes, file G1–G9 as an Epic (include everything here, so it is all tracked at once."*). ✅ It **supersedes [EP-035], [EP-036] and [EP-037]**
+**Status:** 🟡 **ACTIVE** 2026-11-20 (user, 2026-11-20: *"Nope.  Can't archive yet.  We need to do the Linux gap epic first."*); part E = [SP-230] ✅ closed 2026-11-21; part D = [SP-231] ✅ closed 2026-11-21; part F (toolbar) = [SP-232] ✅ closed 2026-11-21; part A's first Sprint = [SP-233] ✅ closed 2026-11-22; its second = [SP-234] ✅ closed 2026-11-22; part B (B1–B4) = [SP-235] 🟡 Active, built. Created 2026-11-20 (user, 2026-11-20: *"yes, file G1–G9 as an Epic (include everything here, so it is all tracked at once."*). ✅ It **supersedes [EP-035], [EP-036] and [EP-037]**
 (user, 2026-11-20: *"One Epic for all"*), which are closed into it: their ACs are carried below by reference, verified ones kept.
 **Source:** [`../Scrivi_Linux_Capability_Gap_Review_v0_1.md`](../Scrivi_Linux_Capability_Gap_Review_v0_1.md) (G1–G9, read from the code
 2026-11-20). The core is at parity; every gap is a Linux surface.

@@ -35,6 +35,7 @@ class QMenu;
 class BufferService;
 class ManuscriptPresenter;
 class SceneInspector;
+class ObjectDetailDialog;
 class TimelinePanel;
 
 // EditorShell — the Linux editor screen (SP-061 T-0235/0236, SP-062 T-0238…).
@@ -438,16 +439,15 @@ private slots:
     // or by its context menu. Both routes land here; the panel does not decide
     // what "open" means.
     //
-    // ⚠️ The object DETAIL SHEET is EP-036, not this Epic. Until it exists this
-    // reports what was opened rather than doing nothing: a dead affordance reads
-    // to a writer as a broken app, and a silent one is worse than an honest
-    // "not built yet".
+    // [SP-235] B1: opens the object detail view (`ObjectDetailDialog`) over this window.
     //
     // ⚠️ `worldID` is EMPTY for a project-scoped object and must be threaded
     // through unchanged into every call that follows (SP-104).
     void onOpenObjectRequested(const QString& objectKind,
                                const QString& objectID,
-                               const QString& worldID);
+                               const QString& worldID,
+                               const QString& displayName,
+                               bool pending);
 
     // --- EP-025 story structure (SP-081, T-0330/0331/0332) ----------------
     // Band borders re-proportioned (TimelinePanel::bandProportionsChanged): apply the
@@ -715,6 +715,7 @@ private:
     QTimer*             saveTimer_ = nullptr;   // idle-save debounce (~1.5s)
     QSplitter*          splitter_  = nullptr;   // navigator | viewport | inspector
     SceneInspector*     inspector_ = nullptr;   // EP-024 right-side panel
+    QPointer<ObjectDetailDialog> detailDialog_;   // [SP-235] the open object detail view, if any
     // World display names, cached from every SUCCESSFUL listWorlds (I-0193).
     //
     // ⚠️ WHY THIS EXISTS: writerFacingError() used to call listWorlds() to

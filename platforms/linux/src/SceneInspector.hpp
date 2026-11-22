@@ -186,9 +186,13 @@ signals:
     // ⚠️ `worldID` is EMPTY for a project-scoped object and MUST be threaded
     // through every subsequent call — omitting it is how SP-104 blocked object
     // creation outright.
+    // [SP-235]: the row's name and whether its world is away travel with it, so the detail view can NAME an object it
+    // cannot read (I-0166) without calling into a dead volume.
     void openObjectRequested(const QString& objectKind,
                              const QString& objectID,
-                             const QString& worldID);
+                             const QString& worldID,
+                             const QString& displayName,
+                             bool pending);
 
     // The bound worlds' display names, emitted after every SUCCESSFUL world read
     // (I-0193). ⚠️ EditorShell needs them to NAME a world in an error message

@@ -63,6 +63,7 @@
 #include "ManuscriptPresenter.hpp"
 #include "NavigatorTree.hpp"
 #include "SceneInspector.hpp"
+#include "ObjectDetailDialog.hpp"
 #include "WorldsDialog.hpp"
 #include "WorldStatusText.hpp"
 #include "WorldWarningStrip.hpp"
@@ -4046,6 +4047,10 @@ void EditorShell::refreshWorlds()
             if (inspector_ != nullptr) {
                 inspector_->reload();
             }
+            // [SP-235] B4 (Apple: the sheet's `worldRevision`, I-0162): an open detail view re-reads, and keeps what it has.
+            if (detailDialog_ != nullptr) {
+                detailDialog_->reload();
+            }
             settle();
         },
         [this, settle]() {
@@ -4462,47 +4467,31 @@ QString EditorShell::writerFacingError(int code, const QString& message) const
 
 void EditorShell::onOpenObjectRequested(const QString& objectKind,
                                        const QString& objectID,
-                                       const QString& worldID)
+                                       const QString& worldID,
+                                       const QString& displayName,
+                                       bool pending)
 {
-    if (objectID.isEmpty()) {
+    if (objectID.isEmpty() || bridge_ == nullptr) {
         return;
     }
-
-    // ⚠️ Confirm the object is actually READABLE before claiming anything about
-    // it. openObject threads worldID through unchanged — EMPTY for a
-    // project-scoped object, the world's ID for a world-scoped one. Omitting it
-    // is what blocked object creation outright in SP-104, and this is the first
-    // Linux call site that has to get it right.
-    const QVariantMap opened =
-        bridge_->openObject(projectPath_, objectKind, objectID, worldID);
-    if (bridge_->lastCallFailed()) {
-        // The bridge already surfaced the reason through errorOccurred; do not
-        // paper over it with a second, vaguer message.
-        return;
+    // [SP-235] B1: the detail view, over this window (Q1). It reads on its own worker, so a world away at open is NAMED
+    // and explained there (I-0166) rather than through this window's error line.
+    // ⚠️ `worldID` is threaded through unchanged — EMPTY for a project-scoped object (SP-104).
+    if (detailDialog_ != nullptr) {
+        return;   // window-modal: a second request cannot reach here while one is open
     }
-
-    // ⚠️ The object DETAIL SHEET is EP-036's deliverable, not this sprint's. The
-    // affordance is wired end-to-end and the object is genuinely read here — what
-    // is missing is the surface to show it in. Say exactly that: a dead
-    // double-click reads to a writer as a broken app, and inventing a partial
-    // sheet here would be building EP-036 badly and early.
-    // ⚠️ The open envelope carries {objectJson, path} only — there is no
-    // displayName key at this boundary. The name lives INSIDE the object's own
-    // JSON, which is also the form EP-036 will have to patch rather than
-    // reconstruct (T-0436/T-0437).
-    const QString objectJson = opened.value(QStringLiteral("objectJson")).toString();
-    const QString displayName =
-        QJsonDocument::fromJson(objectJson.toUtf8())
-            .object()
-            .value(QStringLiteral("displayName"))
-            .toString();
-    QMessageBox::information(
-        this,
-        tr("Open Object"),
-        tr("“%1” opened successfully (%2).\n\n"
-           "The object detail view is not built yet — it is the next Epic's work. "
-           "Nothing about this object has been changed.")
-            .arg(displayName.isEmpty() ? objectID : displayName, objectKind));
+    ObjectDetailDialog::Entry entry;
+    entry.kind = objectKind;
+    entry.objectID = objectID;
+    entry.worldID = worldID;
+    entry.displayName = displayName;
+    entry.pending = pending;
+    detailDialog_ = new ObjectDetailDialog(bridge_, projectPath_, projectID_, entry, this);
+    // I-0155: a save here must reach the Inspector, which shows the same object's name beside it.
+    connect(detailDialog_, &ObjectDetailDialog::saved, this, [this] {
+        if (inspector_ != nullptr) { inspector_->reload(); }
+    });
+    detailDialog_->open();
 }
 
 void EditorShell::onSetTimeDeltaRequested(const QString& sceneID)

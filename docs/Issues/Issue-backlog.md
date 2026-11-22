@@ -1,5 +1,9 @@
 # Issue Backlog
 
+*Last Updated: 2026-11-22 — **I-0369 filed here** (found building [SP-235] B2); not assigned.*
+
+*Last Updated: 2026-11-22 — **I-0368 filed here** ([SP-235] Q3) (user, 2026-11-22: *"Q1-Q6 as recommended, implement SP-235"*); not assigned.*
+
 *Last Updated: 2026-11-22 — **I-0367 filed here** ([SP-234] Q5) (user, 2026-11-22: *"Q1-Q5 as recommended, implement SP-234"*); not assigned.*
 
 *Last Updated: 2026-11-20 — **I-0366 filed here** (from [SP-229]'s Mac live pass, step 4) (user, 2026-11-20: *"yes, file the Issue"*); not assigned.*
@@ -44,6 +48,8 @@ Issues listed here are open and documented but not currently assigned to a Sprin
 | ID | Title | Severity | Sprint |
 | -- | ----- | -------- | ------ |
 | **I-0349** | `[Linux]` ⛔ **After a load the window freezes ~5.5 s — GNOME offers "Wait or Force Quit"** (user, 2026-11-04: *"It only started happening today"*). ✅ Measured: the first paint of the manuscript loads FALLBACK FONTS one by one through fontconfig (`QFontEngineMulti::ensureEngineAt` → `FT_New_Face`, main-thread stack sampled); present since at least 2026-11-02 (build 1.0.321); the dialog is likely new with today's gnome-shell upgrade. ✅ A part was mine ([SP-203]'s accessibility layer handled each of a load's thousands of events alone) — coalesced. ✅ **Part 2 (fonts) fixed and verified** ([SP-217], 2026-11-13); ⏳ Part 3: dumas still pauses ~751 ms (accessibility rebuilds the Find text for every scene at once). → [details](#i-0349) | Medium | — |
+| **I-0369** | `[Apple]` **Replace… and Remove delete an image another object still shows** (Choose Existing… lets two objects share one) → [details](#i-0369) | Medium | — |
+| **I-0368** | `[Linux]` **The scene's Tags card is a comma field, where the Mac's is chips** (a tag cannot hold a comma) → [details](#i-0368) | Low | — |
 | **I-0367** | `[Apple]` **The object cards restate the kinds: `ObjectCardKind.all` names all ten, each with its relation type** (the standing rule) → [details](#i-0367) | Low | — |
 | **I-0366** | `[Apple]` **A save panel that returns the wrong extension fails with a raw "operation not permitted": the app rewrites the URL to `.inkwyn`, a path the sandbox never granted** (New Project, Import as a New Project) | Low | — |
 | **I-0361** | `[Linux]` **The timeline's zoom buttons ◎ (`U+25CE`) and − (`U+2212`) are drawn from fallback fonts (DejaVu Sans, Noto Sans Bengali), costing ~23 ms and ~4 ms at their first layout on scrivi-vm** ([SP-217] Q2). → [details](#i-0361) | Low | — |
@@ -108,6 +114,35 @@ the-river-of-time 11.6 s → **no stall**; dumas 11.0 s → **751 ms**.
 all 1,174 scenes at once on the main thread (`ManuscriptAccessibility` → `PresentedText::refresh` → `buildScene`), sampled.
 
 ---
+
+## I-0369: `[Apple]` Replace… and Remove delete an image another object still shows
+
+**Found:** 2026-11-22, building [SP-235] B2 on Linux from the Mac's `ObjectImageSection.swift`. Not reproduced on the Mac; read from
+the code.
+**What:** Choose Existing… points an object at an asset already in the world without copying it, so two objects can share one image
+(the Mac's own comment at `ObjectImageSection.swift:294`: *"nothing stops two objects referencing one image"*). But **Replace…**
+(`importImage`, `:276`) and **Remove** (`removeImage`, `:321`) call `removeAsset` on the old asset unconditionally, so the other
+object loses its image's bytes and shows "This object's image is in a world that is unavailable." — a damaged-looking state for a
+deliberate edit, and the image is gone.
+**Repro (expected):** give A an image; on B, Choose Existing… → A's image; on B, Remove. A's image is gone.
+**How Linux does it ([SP-235]):** `removeAssetIfUnshared` (`platforms/linux/src/ObjectDetailDialog.cpp`) deletes the asset only when
+no other object's `imagePath` (from `listObjects`) is the same file, and keeps it when it cannot tell. Tested:
+`object_detail_smoke` §5.
+**Next:** the same guard on the Mac and iOS.
+**Severity:** Medium — data loss from an ordinary edit, but only after Choose Existing… has shared an image.
+**Status:** 🔵 Open.
+
+## I-0368: `[Linux]` The scene's Tags card is a comma field, where the Mac's is chips
+
+**Found:** 2026-11-22, planning [SP-235] (Q3, (user, 2026-11-22: *"Q1-Q6 as recommended, implement SP-235"*)).
+**What:** Linux's scene Tags card is one line edit, "comma, separated, tags" (`platforms/linux/src/SceneInspector.cpp:188`). The Mac's
+scene Tags card is chips with a ✕ and an add field (`WritingToolCards.swift`, `TagChip`). On Linux a tag cannot hold a comma, and the
+shape differs from the Mac's, which Linux adopts.
+**How the object detail view does it ([SP-235]):** chips with ✕ and "Add a tag…", duplicates and blanks refused
+(`ObjectDetailDialog::rebuildTags`, its `FlowLayout`).
+**Next:** give the scene Tags card the same chips.
+**Severity:** Low — a tag with a comma is rare.
+**Status:** 🔵 Open.
 
 ## I-0367: `[Apple]` The object cards restate the kinds
 

@@ -381,6 +381,11 @@ jobs:
           platforms/linux/tests/inspector_objects_smoke.sh \
             ./build/platforms/linux/scrivi_linux_inspector_objects_smoke
 
+      - name: Object detail view smoke test
+        run: |
+          platforms/linux/tests/object_detail_smoke.sh \
+            ./build/platforms/linux/scrivi_linux_object_detail_smoke
+
       # ✅ 2026-10-10 (user: "add the missing smokes to CI too") — these eleven smokes existed but CI never ran them.
 
       # ABI parity (EP-034 / SP-121, T-0464).
