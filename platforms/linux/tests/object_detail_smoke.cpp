@@ -17,6 +17,8 @@
 //   `ObjectSourcesSection`, `SourcesCard`):
 //   §8  C1/C2: Related groups by the core's label; Relate… offers only types that fit and the objects they can point at,
 //       creates the edge, and the other object reads it from its own end;
+//   §8b [SP-238] C5: New Type… makes a type over the picker (From = the object's kind) and returns with it chosen; usable at
+//       once, read from both ends; once in use its form greys the kinds and Same both ways, with the reason;
 //   §9  C3: a related object opens in the same window; Back returns, named; Back with changes asks Save · Discard (no
 //       Cancel); opening another with changes asks Save · Discard · Cancel; a scene row asks for the scene; Remove;
 //   §10 C4: New Source… creates a source documenting the object; the citation shows its fields and who cites it; Cite…
@@ -31,6 +33,7 @@
 #include "EditorShell.hpp"
 #include "ManuscriptTypography.hpp"
 #include "ObjectDetailDialog.hpp"
+#include "RelationTypes.hpp"
 #include "ObjectKindScope.hpp"
 #include "SceneInspector.hpp"
 #include "ScriviBridge.hpp"
@@ -55,6 +58,7 @@
 #include <QPushButton>
 #include <QMenu>
 #include <QSignalSpy>
+#include <QCheckBox>
 #include <QComboBox>
 #include <QTabWidget>
 #include <QTest>
@@ -550,6 +554,67 @@ int main(int argc, char** argv)
         if (m.value("otherID").toString() == caraID && m.value("label").toString() == QStringLiteral("sibling of")) { fromDov = true; }
     }
     check(fromDov, QStringLiteral("§8 … and Dov reads it from his end (C2)"));
+
+    // ── §8b [SP-238] C5: Relate… ▸ New Type… ───────────────────────────────────────────────────────────────────────
+    QTest::qWait(100);   // the first picker's deleteLater
+    part<QPushButton>(d, "detailRelate")->click();
+    picker = nullptr;
+    check(waitFor([&] {
+              picker = d->findChild<QDialog*>(QStringLiteral("relatePicker"));
+              return picker != nullptr && picker->isVisible();
+          }),
+          QStringLiteral("§8b Relate… opens the picker again"));
+    auto* newType = picker != nullptr ? picker->findChild<QPushButton*>(QStringLiteral("relateNewType")) : nullptr;
+    check(newType != nullptr, QStringLiteral("§8b the picker has New Type…"));
+    if (newType != nullptr) { newType->click(); }
+    RelationTypeDialog* typeForm = picker != nullptr ? picker->findChild<RelationTypeDialog*>() : nullptr;
+    check(typeForm != nullptr && typeForm->isVisible() && typeForm->fromBox()->currentData().toString() == QStringLiteral("character"),
+          QStringLiteral("§8b New Type… opens the form over the picker, From set to Cara's kind"));
+    if (typeForm != nullptr) {
+        typeForm->forwardField()->setText(QStringLiteral("mentor of"));
+        typeForm->inverseField()->setText(QStringLiteral("mentored by"));
+        typeForm->toBox()->setCurrentIndex(typeForm->toBox()->findData(QStringLiteral("character")));
+        typeForm->saveButton()->click();
+    }
+    QComboBox* chosen = nullptr;
+    check(waitFor([&] {
+              picker = d->findChild<QDialog*>(QStringLiteral("relatePicker"));
+              chosen = picker != nullptr && picker->isVisible() ? picker->findChild<QComboBox*>(QStringLiteral("relateType")) : nullptr;
+              return chosen != nullptr && chosen->currentData().toString() == QStringLiteral("mentor-of");
+          }),
+          QStringLiteral("§8b Save brings the picker back with the new type chosen"));
+    // Dov is already Cara's sibling (offered greyed), so the first object still free.
+    list = picker != nullptr ? picker->findChild<QListWidget*>(QStringLiteral("relateList")) : nullptr;
+    QString menteeID;
+    for (int i = 0; list != nullptr && i < list->count(); ++i) {
+        if ((list->item(i)->flags() & Qt::ItemIsEnabled) && !list->item(i)->data(Qt::UserRole).toString().isEmpty()) {
+            menteeID = list->item(i)->data(Qt::UserRole).toString();
+            emit list->itemClicked(list->item(i));
+            break;
+        }
+    }
+    check(!menteeID.isEmpty(), QStringLiteral("§8b a character is offered for “mentor of”"));
+    check(waitFor([&] { return relation(d, QStringLiteral("mentor of"), QString()) != nullptr; }),
+          QStringLiteral("§8b the new type is usable at once: Related lists “mentor of”"));
+    bool mentoredBy = false;
+    for (const QVariant& v : bridge.listEdgesFor(dir, menteeID).value(QStringLiteral("edges")).toList()) {
+        const QVariantMap m = v.toMap();
+        if (m.value("otherID").toString() == caraID && m.value("label").toString() == QStringLiteral("mentored by")) { mentoredBy = true; }
+    }
+    check(mentoredBy, QStringLiteral("§8b … and the other end reads “mentored by”"));
+    // Now in use: its form greys the kinds and Same both ways, and says why (the core refuses the change too: C6).
+    QVariantMap mentor;
+    for (const QVariant& v : bridge.listRelationTypes(dir).value(QStringLiteral("types")).toList()) {
+        if (v.toMap().value("code").toString() == QStringLiteral("mentor-of")) { mentor = v.toMap(); }
+    }
+    check(mentor.value("inUse").toBool() && !mentor.value("builtIn").toBool(), QStringLiteral("§8b the list reports it in use, not built in"));
+    {
+        RelationTypeDialog locked(&bridge, dir, mentor, QString(), nullptr);
+        locked.setAttribute(Qt::WA_DeleteOnClose, false);
+        check(!locked.symmetricBox()->isEnabled() && !locked.fromBox()->isEnabled() && !locked.toBox()->isEnabled()
+                  && locked.findChild<QLabel*>(QStringLiteral("relationTypeLocked")) != nullptr && locked.forwardField()->isEnabled(),
+              QStringLiteral("§8b in use: kinds and Same both ways greyed with the reason; labels still editable"));
+    }
 
     // ── §9 C3: in-window navigation ──────────────────────────────────────────────────────────────────────────────
     QSignalSpy sceneAsked(d.data(), &ObjectDetailDialog::showSceneRequested);

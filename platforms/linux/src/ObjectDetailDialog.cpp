@@ -1,4 +1,5 @@
 #include "ObjectDetailDialog.hpp"
+#include "RelationTypes.hpp"
 
 #include "AsyncCall.hpp"
 #include "ScriviBridge.hpp"
@@ -442,7 +443,7 @@ ObjectDetailDialog::ObjectDetailDialog(ScriviBridge* bridge, const QString& proj
     relate_ = sectionButton(tr("Relate…"), "detailRelate", content);
     relatedHead->addWidget(relate_);
     col->addLayout(relatedHead);
-    connect(relate_, &QPushButton::clicked, this, &ObjectDetailDialog::chooseRelation);
+    connect(relate_, &QPushButton::clicked, this, [this] { chooseRelation(); });
     relationsError_ = warning("detailRelationsError", content);
     col->addWidget(relationsError_);
     noRelations_ = new QLabel(tr("Not related to anything yet."), content);
@@ -1499,7 +1500,7 @@ void ObjectDetailDialog::runGraphWrite(QLabel* errorLabel, std::function<QString
         AsyncCall::kProjectOpenTimeoutMs);
 }
 
-void ObjectDetailDialog::chooseRelation()
+void ObjectDetailDialog::chooseRelation(const QString& selectCode)
 {
     if (bridge_ == nullptr) { return; }
     struct Obj {
@@ -1540,7 +1541,7 @@ void ObjectDetailDialog::chooseRelation()
             l.failed = l.failed || bridge->lastCallFailed();
             return l;
         },
-        [this](const Listed& listed) {
+        [this, selectCode](const Listed& listed) {
             refreshState();
             const QString scene = QStringLiteral("scene");
             QList<Type> usable;   // Apple: `ObjectRelationPicker.usableTypes` — from this kind, to an object
@@ -1569,16 +1570,35 @@ void ObjectDetailDialog::chooseRelation()
                 col->addWidget(why);
             }
             QComboBox* typeBox = nullptr;
+            auto* typeRow = new QHBoxLayout;
             if (usable.size() > 1) {
                 typeBox = new QComboBox(picker);
                 typeBox->setObjectName(QStringLiteral("relateType"));
                 for (const Type& t : usable) { typeBox->addItem(t.label, t.code); }
-                col->addWidget(typeBox);
+                typeBox->setCurrentIndex(std::max(0, typeBox->findData(selectCode)));
+                typeRow->addWidget(typeBox, 1);
             } else if (usable.size() == 1) {
                 auto* only = new QLabel(usable.first().label, picker);
                 only->setObjectName(QStringLiteral("relateTypeLabel"));
-                col->addWidget(only);
+                typeRow->addWidget(only, 1);
+            } else {
+                typeRow->addStretch(1);
             }
+            // [SP-238] (EP-059 C5): the Mac's New Type… — the form over the picker, From set to this object's kind; the
+            // picker comes back with the new type chosen.
+            auto* newType = new QPushButton(tr("New Type…"), picker);
+            newType->setObjectName(QStringLiteral("relateNewType"));
+            typeRow->addWidget(newType);
+            col->addLayout(typeRow);
+            connect(newType, &QPushButton::clicked, picker, [this, picker] {
+                auto* form = new RelationTypeDialog(bridge_, root_, {}, entry_.kind, picker);
+                connect(form, &QDialog::accepted, this, [this, picker, form] {
+                    const QString code = form->savedCode();
+                    picker->close();
+                    chooseRelation(code);
+                });
+                form->open();
+            });
             auto* search = new QLineEdit(picker);
             search->setObjectName(QStringLiteral("relateSearch"));
             search->setPlaceholderText(tr("Search all worlds…"));

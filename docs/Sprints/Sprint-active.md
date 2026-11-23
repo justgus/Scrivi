@@ -1,6 +1,8 @@
 # Active Sprints
 
-*Last Updated: 2026-11-23 (**SP-237** → [`Sprint-SP-237.md`](Sprint-SP-237.md): ✅ all ACs met — live pass on the Mac, iPad and iPhone; CI green. Awaiting close approval.)*
+*Last Updated: 2026-11-23 (**SP-238 → 🟡 ACTIVE** (user, 2026-11-23: *"Q1-Q3 as recommended, implement SP-238"*) → [`Sprint-SP-238.md`](Sprint-SP-238.md); Q1–Q3 as recommended. Built — AC1–AC2 met, AC3 green in Docker (CI on the push); T-0472 → 🟠. ⏳ AC4 live pass.)*
+
+*Last Updated: 2026-11-23 (**SP-237 → ✅ CLOSED** (user, 2026-11-23: *"Close SP-237."*) → `Closed/Sprint-SP-237.md`; T-0700 ✅ Verified, archived. No Sprint is active.)*
 
 *Last Updated: 2026-11-22 (**SP-236 → ✅ CLOSED** (user, 2026-11-22: *"Step 2 passes.  Close SP-236."*) → `Closed/Sprint-SP-236.md`; T-0698, T-0699 ✅ Verified, archived. No Sprint is active.)*
 

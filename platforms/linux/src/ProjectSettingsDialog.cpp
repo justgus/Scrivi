@@ -19,6 +19,7 @@
 #include "AuthorshipDialogs.hpp"
 #include "ManuscriptTypography.hpp"
 #include "ProjectPreferences.hpp"
+#include "RelationTypes.hpp"
 #include "ScriviBridge.hpp"
 
 ProjectSettingsDialog::ProjectSettingsDialog(ProjectPreferences* prefs, QWidget* parent)
@@ -45,6 +46,8 @@ ProjectSettingsDialog::ProjectSettingsDialog(ProjectPreferences* prefs, QWidget*
         connect(authors, &AuthorsBox::writingAsChanged, this,
                 [bridge](const QString& id, const QString& name) { bridge->adoptWritingAs(id, name); });
         layout->addWidget(authors);
+        // ── Relationship Types ([SP-238]; Apple's section, after Authors) ──
+        layout->addWidget(new RelationTypesBox(bridge, prefs->projectRootPath(), this));
     }
 
     // ── Writing Surface ([SP-184]; Apple's section, label and place) ──

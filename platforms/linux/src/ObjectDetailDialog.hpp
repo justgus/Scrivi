@@ -138,7 +138,8 @@ private:
     void relationMenu(const QPoint& pos);
     void sourceMenu(const QPoint& pos);
     void runGraphWrite(QLabel* errorLabel, std::function<QString(ScriviBridge&)> work);
-    void chooseRelation();
+    // `selectCode`: the type to choose when it fits (New Type… reopens the picker with the type it made).
+    void chooseRelation(const QString& selectCode = QString());
     void chooseSource();
     void newSource();
     void citeOf(const Edge& edge);

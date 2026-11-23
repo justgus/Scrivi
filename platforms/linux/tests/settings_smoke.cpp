@@ -19,6 +19,8 @@
 //   §6 [SP-215] File ▸ Copy as HTML, Import ▸ and Export ▸ in the Mac's order; the formats as submenus (AC7), a chapter's
 //      without ePub; Current Chapter enabled at a chapter, and its PDF… straight to the save dialog.
 //   §7 [SP-216] the start window's menu bar is the project window's, item by item, with only Q3's items live; Ctrl+, there.
+//   §8 [SP-238] Relationship Types: the four built-ins marked Built in, with no Edit…; New Relationship Type… makes one, saved
+//      to `objects/relation-types.json` under a code the core made; Edit… changes its kinds; Same both ways hides the other end.
 // ⚠️ NOT covered (live pass only): how the faces LOOK, GNOME's bindings, the rig's Qt 6.10.
 //
 //   argv[1] = a scratch directory for the projects; $XDG_DATA_HOME drives appSupportRoot; Qt offscreen.
@@ -33,6 +35,7 @@
 #include "ManuscriptTypography.hpp"
 #include "ProjectPreferences.hpp"
 #include "ProjectSettingsDialog.hpp"
+#include "RelationTypes.hpp"
 #include "ScriviBridge.hpp"
 #include "LandingWindow.hpp"
 #include "ScriviWindow.hpp"
@@ -40,6 +43,7 @@
 #include <QAction>
 #include <QApplication>
 #include <QClipboard>
+#include <QCheckBox>
 #include <QComboBox>
 #include <QDateTime>
 #include <QDir>
@@ -50,7 +54,9 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QLabel>
 #include <QLineEdit>
+#include <QPushButton>
 #include <QMenu>
 #include <QMenuBar>
 #include <QMessageBox>
@@ -593,6 +599,90 @@ int main(int argc, char** argv)
         settle();
         check(settingsOpened, QStringLiteral("§7 Ctrl+, opens Settings… over the start window"));
         landing.hide();
+    }
+
+    // ── §8 [SP-238] Project Settings ▸ Relationship Types ────────────────────────────────────────────────────────────────
+    {
+        const auto waitFor = [](const std::function<bool()>& cond) {
+            for (int i = 0; i < 500 && !cond(); ++i) { QTest::qWait(10); }
+            return cond();
+        };
+        const auto rows = [](RelationTypesBox* box) { return box->findChildren<QWidget*>(QStringLiteral("relationTypeRow")); };
+        const auto rowOf = [&rows](RelationTypesBox* box, const QString& code) -> QWidget* {
+            for (QWidget* r : rows(box)) {
+                if (r->property("code").toString() == code) { return r; }
+            }
+            return nullptr;
+        };
+        const auto typesOnDisk = [&A]() {
+            QFile f(A.dir + QStringLiteral("/objects/relation-types.json"));
+            return f.open(QIODevice::ReadOnly) ? QJsonDocument::fromJson(f.readAll()).object().value(QStringLiteral("types")).toArray()
+                                               : QJsonArray();
+        };
+        QString made;
+        withDialog(wa, [&](ProjectSettingsDialog* d) {
+            auto* box = d->findChild<RelationTypesBox*>();
+            check(box != nullptr, QStringLiteral("§8 Project Settings has Relationship Types"));
+            if (box == nullptr) { return; }
+            check(waitFor([&] { return rows(box).size() == 4; }), QStringLiteral("§8 it lists the four built-in types (%1)").arg(rows(box).size()));
+            bool allBuiltIn = true;
+            for (QWidget* r : rows(box)) {
+                allBuiltIn = allBuiltIn && r->findChild<QLabel*>(QStringLiteral("relationTypeBuiltIn")) != nullptr
+                             && r->findChild<QPushButton*>(QStringLiteral("relationTypeEdit")) == nullptr;
+            }
+            check(allBuiltIn, QStringLiteral("§8 each is marked Built in, with no Edit…"));
+            QWidget* sibling = rowOf(box, QStringLiteral("sibling-of"));
+            check(sibling != nullptr && sibling->findChild<QLabel*>(QStringLiteral("relationTypeEnds"))->text() == QStringLiteral("Between Character"),
+                  QStringLiteral("§8 sibling of reads Between Character"));
+
+            box->findChild<QPushButton*>(QStringLiteral("relationTypeNew"))->click();
+            RelationTypeDialog* form = box->openForm();
+            check(form != nullptr && form->windowTitle() == QStringLiteral("New Relationship Type"), QStringLiteral("§8 New Relationship Type… opens the form"));
+            if (form == nullptr) { return; }
+            check(!form->saveButton()->isEnabled(), QStringLiteral("§8 Save is off until both labels are typed"));
+            form->forwardField()->setText(QStringLiteral("mentor of"));
+            check(!form->saveButton()->isEnabled(), QStringLiteral("§8 … still off with one"));
+            form->inverseField()->setText(QStringLiteral("mentored by"));
+            form->fromBox()->setCurrentIndex(form->fromBox()->findData(QStringLiteral("character")));
+            form->toBox()->setCurrentIndex(form->toBox()->findData(QStringLiteral("character")));
+            check(form->fromBox()->count() > 2 && form->fromBox()->itemData(1).toString() == QStringLiteral("scene")
+                      && form->fromBox()->findData(QStringLiteral("world")) < 0,
+                  QStringLiteral("§8 From offers Any kind, Scene and the core's kinds, never world"));
+            form->symmetricBox()->setChecked(true);
+            check(form->inverseField()->isHidden() && form->toBox()->isHidden(), QStringLiteral("§8 Same both ways hides the other end and To"));
+            form->symmetricBox()->setChecked(false);
+            form->saveButton()->click();
+            check(waitFor([&] { return box->openForm() == nullptr && rows(box).size() == 5; }), QStringLiteral("§8 Save adds the type to the list"));
+            QWidget* row = rowOf(box, QStringLiteral("mentor-of"));
+            check(row != nullptr, QStringLiteral("§8 the core made its code from the label (mentor-of)"));
+            if (row == nullptr) { return; }
+            made = row->property("code").toString();
+            check(row->findChild<QLabel*>(QStringLiteral("relationTypeLabels"))->text() == QStringLiteral("mentor of · mentored by")
+                      && row->findChild<QLabel*>(QStringLiteral("relationTypeEnds"))->text() == QStringLiteral("Character → Character"),
+                  QStringLiteral("§8 its row reads mentor of · mentored by, Character → Character"));
+
+            row->findChild<QPushButton*>(QStringLiteral("relationTypeEdit"))->click();
+            form = box->openForm();
+            check(form != nullptr && form->windowTitle() == QStringLiteral("Edit Relationship Type") && form->symmetricBox()->isEnabled(),
+                  QStringLiteral("§8 Edit… opens the form, unlocked (no relationship uses it)"));
+            if (form == nullptr) { return; }
+            check(form->forwardField()->text() == QStringLiteral("mentor of"), QStringLiteral("§8 … filled with the type"));
+            form->toBox()->setCurrentIndex(form->toBox()->findData(QStringLiteral("location")));
+            form->saveButton()->click();
+            check(waitFor([&] {
+                      QWidget* r = rowOf(box, QStringLiteral("mentor-of"));
+                      return box->openForm() == nullptr && r != nullptr
+                             && r->findChild<QLabel*>(QStringLiteral("relationTypeEnds"))->text() == QStringLiteral("Character → Location");
+                  }),
+                  QStringLiteral("§8 Edit… changes its kinds: Character → Location"));
+            check(rows(box).size() == 5, QStringLiteral("§8 … the same type, not a second one"));
+        });
+        bool onDisk = false;
+        for (const QJsonValue& v : typesOnDisk()) {
+            const QJsonObject t = v.toObject();
+            onDisk = onDisk || (t.value(QStringLiteral("code")).toString() == made && t.value(QStringLiteral("targetKind")).toString() == QStringLiteral("location"));
+        }
+        check(onDisk, QStringLiteral("§8 objects/relation-types.json holds it, as edited"));
     }
 
     env.quitApplication();

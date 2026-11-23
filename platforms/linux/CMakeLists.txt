@@ -137,6 +137,8 @@ qt_add_executable(scrivi_linux
     src/SceneInspector.cpp
     src/ObjectDetailDialog.cpp
     src/ObjectDetailDialog.hpp
+    src/RelationTypes.cpp
+    src/RelationTypes.hpp
     src/HistorySection.cpp
     src/HistorySection.hpp
     src/SceneInspector.hpp
@@ -1143,6 +1145,8 @@ qt_add_executable(scrivi_linux_dumas_world_fixture
     src/SceneInspector.cpp
     src/ObjectDetailDialog.cpp
     src/ObjectDetailDialog.hpp
+    src/RelationTypes.cpp
+    src/RelationTypes.hpp
     src/HistorySection.cpp
     src/HistorySection.hpp
     src/SceneInspector.hpp
@@ -1238,6 +1242,8 @@ qt_add_executable(scrivi_linux_open_progress_smoke
     src/SceneInspector.cpp
     src/ObjectDetailDialog.cpp
     src/ObjectDetailDialog.hpp
+    src/RelationTypes.cpp
+    src/RelationTypes.hpp
     src/HistorySection.cpp
     src/HistorySection.hpp
     src/SceneInspector.hpp
@@ -1329,6 +1335,8 @@ qt_add_executable(scrivi_linux_undo_smoke
     src/SceneInspector.cpp
     src/ObjectDetailDialog.cpp
     src/ObjectDetailDialog.hpp
+    src/RelationTypes.cpp
+    src/RelationTypes.hpp
     src/HistorySection.cpp
     src/HistorySection.hpp
     src/SceneInspector.hpp
@@ -1421,6 +1429,8 @@ qt_add_executable(scrivi_linux_structured_paste_smoke
     src/SceneInspector.cpp
     src/ObjectDetailDialog.cpp
     src/ObjectDetailDialog.hpp
+    src/RelationTypes.cpp
+    src/RelationTypes.hpp
     src/HistorySection.cpp
     src/HistorySection.hpp
     src/SceneInspector.hpp
@@ -1512,6 +1522,8 @@ qt_add_executable(scrivi_linux_structural_baseline_smoke
     src/SceneInspector.cpp
     src/ObjectDetailDialog.cpp
     src/ObjectDetailDialog.hpp
+    src/RelationTypes.cpp
+    src/RelationTypes.hpp
     src/HistorySection.cpp
     src/HistorySection.hpp
     src/SceneInspector.hpp
@@ -1603,6 +1615,8 @@ qt_add_executable(scrivi_linux_replace_smoke
     src/SceneInspector.cpp
     src/ObjectDetailDialog.cpp
     src/ObjectDetailDialog.hpp
+    src/RelationTypes.cpp
+    src/RelationTypes.hpp
     src/HistorySection.cpp
     src/HistorySection.hpp
     src/SceneInspector.hpp
@@ -1705,6 +1719,8 @@ qt_add_executable(scrivi_linux_buffers_smoke
     src/SceneInspector.cpp
     src/ObjectDetailDialog.cpp
     src/ObjectDetailDialog.hpp
+    src/RelationTypes.cpp
+    src/RelationTypes.hpp
     src/HistorySection.cpp
     src/HistorySection.hpp
     src/SceneInspector.hpp
@@ -1808,6 +1824,8 @@ qt_add_executable(scrivi_linux_background_wait_smoke
     src/SceneInspector.cpp
     src/ObjectDetailDialog.cpp
     src/ObjectDetailDialog.hpp
+    src/RelationTypes.cpp
+    src/RelationTypes.hpp
     src/HistorySection.cpp
     src/HistorySection.hpp
     src/SceneInspector.hpp
@@ -1909,6 +1927,8 @@ qt_add_executable(scrivi_linux_settings_smoke
     src/SceneInspector.cpp
     src/ObjectDetailDialog.cpp
     src/ObjectDetailDialog.hpp
+    src/RelationTypes.cpp
+    src/RelationTypes.hpp
     src/HistorySection.cpp
     src/HistorySection.hpp
     src/SceneInspector.hpp
@@ -2010,6 +2030,8 @@ qt_add_executable(scrivi_linux_authorship_smoke
     src/SceneInspector.cpp
     src/ObjectDetailDialog.cpp
     src/ObjectDetailDialog.hpp
+    src/RelationTypes.cpp
+    src/RelationTypes.hpp
     src/HistorySection.cpp
     src/HistorySection.hpp
     src/SceneInspector.hpp
@@ -2111,6 +2133,8 @@ qt_add_executable(scrivi_linux_branch_smoke
     src/SceneInspector.cpp
     src/ObjectDetailDialog.cpp
     src/ObjectDetailDialog.hpp
+    src/RelationTypes.cpp
+    src/RelationTypes.hpp
     src/HistorySection.cpp
     src/HistorySection.hpp
     src/SceneInspector.hpp
@@ -2213,6 +2237,8 @@ qt_add_executable(scrivi_linux_indent_smoke
     src/SceneInspector.cpp
     src/ObjectDetailDialog.cpp
     src/ObjectDetailDialog.hpp
+    src/RelationTypes.cpp
+    src/RelationTypes.hpp
     src/HistorySection.cpp
     src/HistorySection.hpp
     src/SceneInspector.hpp
@@ -2315,6 +2341,8 @@ qt_add_executable(scrivi_linux_chapter_titles_smoke
     src/SceneInspector.cpp
     src/ObjectDetailDialog.cpp
     src/ObjectDetailDialog.hpp
+    src/RelationTypes.cpp
+    src/RelationTypes.hpp
     src/HistorySection.cpp
     src/HistorySection.hpp
     src/SceneInspector.hpp
@@ -2416,6 +2444,8 @@ qt_add_executable(scrivi_linux_navigator_search_smoke
     src/SceneInspector.cpp
     src/ObjectDetailDialog.cpp
     src/ObjectDetailDialog.hpp
+    src/RelationTypes.cpp
+    src/RelationTypes.hpp
     src/HistorySection.cpp
     src/HistorySection.hpp
     src/SceneInspector.hpp
@@ -2517,6 +2547,8 @@ qt_add_executable(scrivi_linux_world_warning_smoke
     src/SceneInspector.cpp
     src/ObjectDetailDialog.cpp
     src/ObjectDetailDialog.hpp
+    src/RelationTypes.cpp
+    src/RelationTypes.hpp
     src/HistorySection.cpp
     src/HistorySection.hpp
     src/SceneInspector.hpp
@@ -2618,6 +2650,8 @@ qt_add_executable(scrivi_linux_toolbar_smoke
     src/SceneInspector.cpp
     src/ObjectDetailDialog.cpp
     src/ObjectDetailDialog.hpp
+    src/RelationTypes.cpp
+    src/RelationTypes.hpp
     src/HistorySection.cpp
     src/HistorySection.hpp
     src/SceneInspector.hpp
@@ -2719,6 +2753,8 @@ qt_add_executable(scrivi_linux_inspector_stack_smoke
     src/SceneInspector.cpp
     src/ObjectDetailDialog.cpp
     src/ObjectDetailDialog.hpp
+    src/RelationTypes.cpp
+    src/RelationTypes.hpp
     src/HistorySection.cpp
     src/HistorySection.hpp
     src/SceneInspector.hpp
@@ -2820,6 +2856,8 @@ qt_add_executable(scrivi_linux_inspector_objects_smoke
     src/SceneInspector.cpp
     src/ObjectDetailDialog.cpp
     src/ObjectDetailDialog.hpp
+    src/RelationTypes.cpp
+    src/RelationTypes.hpp
     src/HistorySection.cpp
     src/HistorySection.hpp
     src/SceneInspector.hpp
@@ -2920,6 +2958,8 @@ qt_add_executable(scrivi_linux_object_detail_smoke
     src/SceneInspector.cpp
     src/ObjectDetailDialog.cpp
     src/ObjectDetailDialog.hpp
+    src/RelationTypes.cpp
+    src/RelationTypes.hpp
     src/HistorySection.cpp
     src/HistorySection.hpp
     src/SceneInspector.hpp

@@ -1,6 +1,8 @@
 # Unverified Tasks
 
-*Last Updated: 2026-11-23 (**T-0700 → ✅ Verified** (user, 2026-11-23); archived when [SP-237] closes.)*
+*Last Updated: 2026-11-23 (**T-0472 → 🟠 Implemented - Not Verified** ([SP-238] built); the live pass is the user's.)*
+
+*Last Updated: 2026-11-23 (**T-0700 archived** → `Verified/Task-verified-0700.md` — [SP-237] closed (user, 2026-11-23: *"Close SP-237."*).)*
 
 *Last Updated: 2026-11-22 (**T-0698, T-0699 → ✅ Verified** (user, 2026-11-22: *"Step 2 passes.  Close SP-236."*); archived.)*
 
@@ -172,20 +174,43 @@ in the backlog carrying a 🟠 status.
 
 ---
 
-## 🟠 T-0700 — `[Apple]` EP-059 C5/C6: custom relationship types on the Mac and iOS; the upsert endpoint's C ABI test and fixes
+## 🟠 T-0472 — `[Linux]` EP-059 C5: custom relationship types on Linux, as the Mac's
 
-**Epic:** [EP-059] (C5, C6) · **Status:** ✅ Verified (user, 2026-11-23: live pass on the Mac, iPad and iPhone) · **Sprint:** [SP-237] (🟡 Active) →
-[`../Sprints/Sprint-SP-237.md`](../Sprints/Sprint-SP-237.md) · **Date Requested:** 2026-11-22 (user, 2026-11-22: *"plan C5-C6"*)
+**Epic:** [EP-059] (C5) · **Status:** 🟠 Implemented - Not Verified · **Sprint:** [SP-238] (🟡 Active) →
+[`../Sprints/Sprint-SP-238.md`](../Sprints/Sprint-SP-238.md) · **Date Requested:** 2026-08-25 (EP-034 close / SP-121's ABI gap audit)
 
-**What:** a surface for `scrivi_upsert_relation_type`, which no platform had: Project Settings ▸ Relationship Types and New Type… in
-Relate…, on the Mac and iOS; the endpoint's C ABI test; the endpoint made to refuse what it saved silently. Findings, questions and ACs: the Sprint.
+**What:** the Mac's surface ([SP-237]) on Linux: Project Settings ▸ Relationship Types (built-in types marked Built in, Edit… on
+the writer's own, New Relationship Type…), the form, and New Type… in Relate….
 
-**Built:** core — `scrivi_upsert_relation_type` refuses unknown kinds and `world`, an empty code is a new unique type;
-`RelationTypeStore::upsert` refuses seeded codes and shape changes to used types; the list reports `builtIn`, `inUse`;
-`objectKindFromName` derived. Swift — `ScriviEngine.upsertRelationType`, `RelationTypeForm.swift` (the form and the settings section),
-`ProjectSettingsSheet.swift`, `ObjectRelationPicker.swift`. Details and the live pass: the Sprint.
+**Built:** `RelationTypes.cpp/.hpp` (new): `RelationTypeDialog`, `RelationTypesBox`; `ProjectSettingsDialog.cpp` (the box after
+Authors); `ObjectDetailDialog::chooseRelation` (New Type…, the picker reopened with the new type chosen). Details and the live
+pass: the Sprint.
+
+<details><summary>Original backlog entry</summary>
+
+**Epic:** **EP-059** C5 (EP-037 superseded 2026-11-20; ⚠️ **was EP-035 — moved by the 2026-08-25 three-way split**) · **Ruled:** 2026-08-25 (user)
+**Origin:** EP-034 close / SP-121's ABI gap audit
+
+⚠️ **`scrivi_upsert_relation_type` is fully implemented and has zero callers on ANY platform.** The core
+writes custom relationship types into the project; `ProjectCreator` seeds the defaults
+(`RelationTypeStore::seedTypes()`); `scrivi_list_relation_types` READS them and the app uses it.
+⚠️ **Nothing can ADD one** — the write half has never been surfaced.
+
+✅ **User ruling: this is a REAL FEATURE owed a UI, not speculative code.** Custom relationship vocabulary
+is a legitimate worldbuilding capability — a DM wanting `sworn-enemy-of` or `liege-of` beyond the seeded
+set.
+
+⚠️ **Assigned to EP-037**, the Epic that builds Linux relationships — ⚠️ **it was EP-035 until the
+2026-08-25 split moved relationship work into EP-037.** ⚠️ **It is BACKLOG, not scheduled.**
+
+⚠️ **Also owed: a C ABI test.** `scrivi_upsert_relation_type` has **no ScriviCore test at the boundary**
+(`feedback_boundary_tests_not_facade` — a facade test cannot see a boundary gap; that is how I-0113
+shipped green).
+
+</details>
 
 ---
+
 
 ## 🟠 T-0656 — `[Linux]` Landing: a warm grey background with a little depth
 

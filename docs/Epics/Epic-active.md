@@ -1,5 +1,9 @@
 # Active Epics
 
+*Last Updated: 2026-11-23 (**EP-059:** [SP-238] 🟡 ACTIVE (user, 2026-11-23: *"Q1-Q3 as recommended, implement SP-238"*), built (C5 on Linux); ⏳ its live pass.)*
+
+*Last Updated: 2026-11-23 (**EP-059:** [SP-237] ✅ closed (user, 2026-11-23: *"Close SP-237."*); C6 [x]; C5 done on the Mac and iOS, Linux = [SP-238], unblocked.)*
+
 *Last Updated: 2026-11-22 (**EP-059:** [SP-237] 🟡 ACTIVE (user, 2026-11-22: *"Q1-Q7 as recommended, implement SP-237"*), built (C5 on Apple, C6); ⏳ its live pass.)*
 
 *Last Updated: 2026-11-22 (**EP-059:** C5/C6 planned (user, 2026-11-22: *"plan C5-C6"*) — [SP-237] the Mac and iOS + the endpoint (T-0700), [SP-238] Linux (T-0472), blocked by it; Q1–Q7 to rule.)*
@@ -231,8 +235,8 @@ on the Mac.
 - [x] **C4** (EP-037 AC4; **G3**, [T-0699] → [SP-236]) — sources created from the object they document, with citation detail
       (shown, not edited — the Mac has no editor, [I-0370]; footnote text is [EP-032]'s; [SP-236] Q4); a scene shows the sources its
       objects cite (Apple: `SourcesCard.swift`)
-- [ ] **C5** (EP-037 AC5, [T-0700] → [SP-237] the Mac and iOS, then [T-0472] → [SP-238] Linux, blocked by it — no platform has a surface) — a surface for custom relation types (`scrivi_upsert_relation_type`)
-- [ ] **C6** (EP-037 AC6, [T-0700] → [SP-237]) — a C ABI test for `scrivi_upsert_relation_type`
+- [ ] **C5** (EP-037 AC5, [T-0700] → [SP-237] the Mac and iOS ✅, then [T-0472] → [SP-238] Linux, open) — a surface for custom relation types (`scrivi_upsert_relation_type`)
+- [x] **C6** (EP-037 AC6, [T-0700] → [SP-237] ✅) — a C ABI test for `scrivi_upsert_relation_type`
 
 *D. Worlds — new 2026-11-20:*
 - [x] **D1** ✅ [SP-231] (**G5**, [T-0497]; [SP-231]) — a world can be created from Manage Worlds…, so a Linux-only writer with no world can proceed
