@@ -1,7 +1,7 @@
 # Sprint SP-237 — `[Apple]` [EP-059] C5/C6: custom relationship types on the Mac and iOS, and the endpoint's C ABI test
 
-**Status:** 🟡 **ACTIVE** 2026-11-22 (user, 2026-11-22: *"Q1-Q7 as recommended, implement SP-237"*); ✅ Q1–Q7 as recommended. Built 2026-11-22: AC1–AC4 met; AC5 green locally (CI on the push).
-⏳ AC6 live pass. Created 2026-11-22 (user, 2026-11-22: *"plan C5-C6"*).
+**Status:** 🟡 **ACTIVE** 2026-11-22 (user, 2026-11-22: *"Q1-Q7 as recommended, implement SP-237"*); ✅ Q1–Q7 as recommended. Built 2026-11-22: AC1–AC4 met; ✅ **All ACs met** (AC6: user, 2026-11-23: *"all the tests pass on iOS as well (both iPad and iPhone)"*); CI green on `af6f71e`; awaiting close approval.
+ Created 2026-11-22 (user, 2026-11-22: *"plan C5-C6"*).
 **Carries:** [T-0700] (C5 on Apple, C6).
 **Epic:** [EP-059] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md) — part **C**: C5, C6. ⛔ [SP-238] (C5 on Linux) is blocked by this Sprint.
 **Size:** M — one core fix with its ABI tests, one settings section and one form, shared by the Mac and iOS.
@@ -117,14 +117,17 @@
       creates one; editing obeys Q4 with the reason shown.
 - [x] AC3 — Relate… offers New Type…; the new type is selected and usable at once.
 - [x] AC4 — The same on iOS.
-- [~] AC5 — ctest, the interop tests and the iOS tests green; CI green. ✅ macOS 881/881, interop 353/353, iOS 38/38, Linux 886/886
-      and 49/49; ⏳ CI on the push.
-- [ ] AC6 — Live pass on the Mac and iOS.
+- [x] AC5 — ctest, the interop tests and the iOS tests green; CI green. ✅ macOS 881/881, interop 353/353, iOS 38/38, Linux 886/886
+      and 49/49; CI green on `af6f71e`.
+- [x] AC6 — Live pass on the Mac and iOS.
 
 ## Progress log
 
+- **2026-11-23** — ✅ **AC5, AC6 met**: iOS step 10 passes on the iPad and Remus after the old Scrivi app was removed (user, 2026-11-23: *"all the tests pass on iOS as well (both iPad and iPhone)"*); CI green on `af6f71e` (ScriviCore, Apple, Linux). T-0700 ✅ Verified. Awaiting close approval.
+- **2026-11-23** — Mac steps 1–9 pass (user, 2026-11-23: *"All 10 steps passed on Mac."*). ⚠️ iOS step 10 blocked: *"I was not able to open any inkwyn file on iOS."* No Swift or plist change touches the iOS open path since SP-229's iOS pass (2026-11-20); symptom requested.
+  **Cause (user: *"the only files available … were .scrivi files"*):** not code. `devicectl` shows the pre-rename app `com.caposoft.scrivi` ("Scrivi" 1.0.410) still on the iPad beside Inkwyn 1.0.431, and on Remus ONLY Scrivi 1.0.412 (no Inkwyn). The old app exports the same type IDs with `.scrivi`, so iOS resolves `com.caposoft.scrivi.project` to `.scrivi` — the [I-0366] cause, on iOS. Remedy: delete the old Scrivi app; install Inkwyn on Remus.
 - **2026-11-22** — Built: AC1–AC4 met; AC5 green locally; T-0700 → 🟠. ⏳ AC6 live pass, CI.
 - **2026-11-22** — 🟡 **ACTIVE** (user, 2026-11-22: *"Q1-Q7 as recommended, implement SP-237"*); Q1–Q7 as recommended; T-0700 → active.
 - **2026-11-22** — 🔵 **Created in Planning** via `next-id.py` (user, 2026-11-22: *"plan C5-C6"*); carries [T-0700] (new); [T-0701] filed for Q5. Q1–Q7 to rule.
 
-*Last Updated: 2026-11-22 (Built; ⏳ AC6 live pass, CI.)*
+*Last Updated: 2026-11-23 (All ACs met; awaiting close approval.)*

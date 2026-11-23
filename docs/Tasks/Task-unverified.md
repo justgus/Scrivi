@@ -1,6 +1,6 @@
 # Unverified Tasks
 
-*Last Updated: 2026-11-22 (**T-0700 → 🟠 Implemented - Not Verified** ([SP-237] built); the live pass is the user's.)*
+*Last Updated: 2026-11-23 (**T-0700 → ✅ Verified** (user, 2026-11-23); archived when [SP-237] closes.)*
 
 *Last Updated: 2026-11-22 (**T-0698, T-0699 → ✅ Verified** (user, 2026-11-22: *"Step 2 passes.  Close SP-236."*); archived.)*
 
@@ -174,7 +174,7 @@ in the backlog carrying a 🟠 status.
 
 ## 🟠 T-0700 — `[Apple]` EP-059 C5/C6: custom relationship types on the Mac and iOS; the upsert endpoint's C ABI test and fixes
 
-**Epic:** [EP-059] (C5, C6) · **Status:** 🟠 Implemented - Not Verified · **Sprint:** [SP-237] (🟡 Active) →
+**Epic:** [EP-059] (C5, C6) · **Status:** ✅ Verified (user, 2026-11-23: live pass on the Mac, iPad and iPhone) · **Sprint:** [SP-237] (🟡 Active) →
 [`../Sprints/Sprint-SP-237.md`](../Sprints/Sprint-SP-237.md) · **Date Requested:** 2026-11-22 (user, 2026-11-22: *"plan C5-C6"*)
 
 **What:** a surface for `scrivi_upsert_relation_type`, which no platform had: Project Settings ▸ Relationship Types and New Type… in
