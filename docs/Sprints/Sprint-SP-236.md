@@ -178,6 +178,7 @@ On `dumas-prose-timelines-history` (world Dumas-Characters-Places), with Abbé F
 ## Progress log
 
 - **2026-11-22** — Built: AC1–AC5 met; AC6 green in Docker (884/884, 49/49); T-0698, T-0699 → 🟠; [I-0370] filed (Q4). ⏳ AC7 live pass, CI.
+- **2026-11-22** — Live pass 1: steps 1, 3–15 pass. ⚠️ Step 2: every scene under "appears in" read "Untitled scene" — the Dumas scenes have no stored title, so the core's name is empty, and Linux skipped Apple's fallback to the Navigator's name (`ObjectRelationsSection.swift` `displayName(for:)`). Fixed: the shell hands the window its `sceneName` (`EditorShell.cpp` `onOpenObjectRequested`, `ObjectDetailDialog::edgeName`); §8's fixture scene is now untitled and checks the name (fails without the fix). 884/884, 49/49. ⏳ step 2 again.
 - **2026-11-22** — 🟡 **ACTIVE** (user, 2026-11-22: *"Q1-Q6 as recommended, implement SP-236"*); Q1–Q6 as recommended; T-0698, T-0699 → active.
 - **2026-11-22** — 🔵 **Created in Planning** via `next-id.py` (user, 2026-11-22: *"close SP-235, then plan C1-C4"*); carries [T-0698],
   [T-0699] (new). Q1–Q6 to rule.

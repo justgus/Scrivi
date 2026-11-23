@@ -58,6 +58,9 @@ public:
     // C3: open another object in this window. Unsaved changes ask Save · Discard · Cancel first (the close prompt).
     void navigateTo(const Entry& entry);
 
+    // A scene the core has no title for is named as the Navigator names it (Apple's `sceneNames`, SP-118).
+    std::function<QString(const QString& sceneID)> sceneNamer;
+
     // C4: a source's citation record — the fields that are set, who cites it — in a small window over `parent`.
     // `citingName` non-empty: "Cited by <citingName>, and by <others>" is read; empty: `attribution` is shown as given.
     static void showCitation(QWidget* parent, ScriviBridge* bridge, const QString& root, const QString& sourceID,

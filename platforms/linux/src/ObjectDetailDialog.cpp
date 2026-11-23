@@ -1324,6 +1324,9 @@ QString ObjectDetailDialog::edgeName(const Edge& edge) const
 {
     const QString name = edge.otherName.trimmed();
     if (!name.isEmpty()) { return name; }
+    if (edge.otherKind.isEmpty() && sceneNamer) {
+        if (const QString scene = sceneNamer(edge.otherID); !scene.isEmpty()) { return scene; }
+    }
     return edge.otherKind.isEmpty() ? tr("Untitled scene") : tr("Untitled %1").arg(edge.otherKind);
 }
 

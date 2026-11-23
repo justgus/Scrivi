@@ -213,8 +213,10 @@ int main(int argc, char** argv)
     const QString dir = scratch + QStringLiteral("/detail.inkwyn");
     const QString projectID = bridge.createProject(dir, appSupport, QStringLiteral("Detail"), QStringLiteral("detail"))
                                   .value(QStringLiteral("projectID")).toString();
-    const QString sceneA = bridge.openProject(dir, appSupport).value(QStringLiteral("scenes")).toList().at(0).toMap()
-                               .value(QStringLiteral("sceneID")).toString();
+    const QVariantMap firstScene = bridge.openProject(dir, appSupport).value(QStringLiteral("scenes")).toList().at(0).toMap();
+    const QString sceneA = firstScene.value(QStringLiteral("sceneID")).toString();
+    // Untitled, as the Dumas scenes are: Related must name it as the Navigator does (SP-236 live pass, step 2).
+    bridge.renameScene(dir, firstScene.value(QStringLiteral("metadataPath")).toString(), QString());
     const QString worldPath = scratch + QStringLiteral("/W.inkwynworld");
     const QString worldID = bridge.createWorld(dir, worldPath, QStringLiteral("Westmarch"), QStringLiteral("AE"))
                                 .value(QStringLiteral("worldID")).toString();
@@ -508,6 +510,8 @@ int main(int argc, char** argv)
     if (d == nullptr) { return 1; }
     check(waitFor([&] { return relation(d, QStringLiteral("appears in"), QString()) != nullptr; }),
           QStringLiteral("§8 Related groups the scene under the core's label, “appears in”"));
+    check(relation(d, QStringLiteral("appears in"), QStringLiteral("Untitled")) == nullptr,
+          QStringLiteral("§8 an untitled scene is named as the Navigator names it, not “Untitled scene”"));
     check(!action(d, "detailBack")->isVisible(), QStringLiteral("§8 no Back at the first object"));
     part<QPushButton>(d, "detailRelate")->click();
     QDialog* picker = nullptr;

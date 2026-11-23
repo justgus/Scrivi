@@ -4487,6 +4487,10 @@ void EditorShell::onOpenObjectRequested(const QString& objectKind,
     entry.displayName = displayName;
     entry.pending = pending;
     detailDialog_ = new ObjectDetailDialog(bridge_, projectPath_, projectID_, entry, this);
+    detailDialog_->sceneNamer = [this](const QString& sceneID) {
+        const int idx = sceneDoc_.sceneIndexForScene(sceneID);
+        return idx >= 0 ? sceneName(idx) : QString();
+    };
     // I-0155: a save here must reach the Inspector, which shows the same object's name beside it.
     connect(detailDialog_, &ObjectDetailDialog::saved, this, [this] {
         if (inspector_ != nullptr) { inspector_->reload(); }
