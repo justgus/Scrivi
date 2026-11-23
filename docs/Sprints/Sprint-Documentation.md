@@ -501,7 +501,8 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-230** | `[Linux]` **[EP-059] E** — untitled-scene titles, Go To, Navigator search (T-0692, T-0249) | EP-059 | 2026-11-20 | 2026-11-21 | ✅ **CLOSED** → [`Closed/Sprint-SP-230.md`](Closed/Sprint-SP-230.md) |
 | **SP-231** | `[Linux]` **[EP-059] D** — create a world, Reconnect Worlds, the world-warning strip (T-0497, T-0693) | EP-059 | 2026-11-21 | 2026-11-21 | ✅ **CLOSED** → [`Closed/Sprint-SP-231.md`](Closed/Sprint-SP-231.md) |
 | **SP-232** | `[Linux]` **[EP-059] F** — the project window's toolbar (T-0694) | EP-059 | 2026-11-21 | 2026-11-21 | ✅ **CLOSED** → [`Closed/Sprint-SP-232.md`](Closed/Sprint-SP-232.md) |
-| **SP-235** | `[Linux]` **[EP-059] B** — the object detail view and its image (T-0697) | EP-059 | 2026-11-22 | — | ✅ **COMPLETE** (awaiting close) → [`Sprint-SP-235.md`](Sprint-SP-235.md) |
+| **SP-236** | `[Linux]` **[EP-059] C** — relationships, sources and navigation in the detail view (T-0698, T-0699) | EP-059 | 2026-11-22 | — | 🟡 **ACTIVE** → [`Sprint-SP-236.md`](Sprint-SP-236.md) |
+| **SP-235** | `[Linux]` **[EP-059] B** — the object detail view and its image (T-0697) | EP-059 | 2026-11-22 | 2026-11-22 | ✅ **CLOSED** → [`Closed/Sprint-SP-235.md`](Closed/Sprint-SP-235.md) |
 | **SP-234** | `[Linux]` **[EP-059] A** — the object verbs on a card (T-0696) | EP-059 | 2026-11-22 | 2026-11-22 | ✅ **CLOSED** → [`Closed/Sprint-SP-234.md`](Closed/Sprint-SP-234.md) |
 | **SP-233** | `[Linux]` **[EP-059] A** — the Scene Inspector's card stacks (T-0695, T-0491) | EP-059 | 2026-11-21 | 2026-11-22 | ✅ **CLOSED** → [`Closed/Sprint-SP-233.md`](Closed/Sprint-SP-233.md) |
 | **SP-160** | `[Linux]` **[EP-049] S1** — Linux writes Apple's manuscript format: escaping, paste/copy, pair deletion, Return/⌫, shared corpus (T-0586); + I-0276 | EP-049 | 2026-10-04 | 2026-10-04 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-160.md) |
@@ -1259,3 +1260,9 @@ scene/chapter
 T-0250–T-0253 all Verified over VNC & archived to `Tasks/Verified/Task-verified-0250-0253.md`; delivered
 EP-023 **AC1 + AC2**; Docker build + 8 headless smokes green; no ScriviCore work (`scrivi.h` untouched).
 Closed count 60→61, Active 1→0. **EP-023 stays 🟡 Active** — SP-066 rename is next. `Closed/Sprint-SP-065.md`.)*
+
+*Last Updated: 2026-11-22 (**SP-235 → ✅ CLOSED** (user, 2026-11-22: *"close SP-235, then plan C1-C4"*).)*
+
+*Last Updated: 2026-11-22 (**SP-236 created in 🔵 Planning** — EP-059 part C.)*
+
+*Last Updated: 2026-11-22 (**SP-236 → 🟡 ACTIVE**.)*

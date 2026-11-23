@@ -15,6 +15,8 @@
 
 class QLabel;
 class QLineEdit;
+class QListWidget;
+class QTimer;
 class QTabWidget;
 class QToolButton;
 class QVBoxLayout;
@@ -331,6 +333,18 @@ private:
     [[nodiscard]] bool kindIsWorldScoped(const QString& kind) const;
     [[nodiscard]] QString originSceneLabel() const;
     static QString singular(const QString& title);
+    // ---- [SP-236] C4: the Sources card (Apple: `SourcesCard.swift`) — the sources this scene's OBJECTS cite, read-only ----
+    struct SourceRow { QString sourceID; QString name; QStringList via; };
+    QList<SourceRow> sourceRows_;
+    QWidget* sourcesBody_ = nullptr;
+    QListWidget* sourcesList_ = nullptr;
+    QLabel* sourcesEmpty_ = nullptr;
+    QTimer* sourceClick_ = nullptr;   // a click waits out the double-click interval: one gesture, one action
+    int sourceClickRow_ = -1;
+    [[nodiscard]] bool wantsCitations() const;
+    void applySources(const ReloadPayload& payload);
+    void showSourceCitation(int row);
+    void openSource(int row);
     QWidget* parkedBodies_ = nullptr;          // the Writing cards' widgets while their card is not shown
     QHash<QString, QWidget*> writingBodies_;   // typeID → the widget the card shows
     std::function<QStringList()> allSceneIDs_;

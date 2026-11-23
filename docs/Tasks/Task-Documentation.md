@@ -837,7 +837,9 @@ archive files reconstructed after the fact from secondary sources.
 | T-0694 | `[Linux]` EP-059 F1: the project window's toolbar, as the Mac's | ✅ SP-232 | **EP-059** | ✅ Verified | [`Verified/Task-verified-0694.md`](Verified/Task-verified-0694.md) |
 | T-0695 | `[Linux]` EP-059 B5+B6: the Scene Inspector's card stacks, as the Mac's | ✅ SP-233 | **EP-059** | ✅ Verified | [`Verified/Task-verified-0695.md`](Verified/Task-verified-0695.md) |
 | T-0696 | `[Linux]` EP-059 A3–A6: the object verbs on a card, as the Mac's | ✅ SP-234 | **EP-059** | ✅ Verified | [`Verified/Task-verified-0696.md`](Verified/Task-verified-0696.md) |
-| T-0697 | `[Linux]` EP-059 B1–B4: the object detail view and its image, as the Mac's | 🟡 SP-235 | **EP-059** | ✅ Verified 2026-11-22 | [`Verified/Task-verified-0697.md`](Verified/Task-verified-0697.md) |
+| T-0697 | `[Linux]` EP-059 B1–B4: the object detail view and its image, as the Mac's | ✅ SP-235 | **EP-059** | ✅ Verified 2026-11-22 | [`Verified/Task-verified-0697.md`](Verified/Task-verified-0697.md) |
+| T-0698 | `[Linux]` EP-059 C1–C3: relationships and navigation in the detail view, as the Mac's | 🟡 SP-236 | **EP-059** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
+| T-0699 | `[Linux]` EP-059 C4: sources in the detail view and the scene's Sources card, as the Mac's | 🟡 SP-236 | **EP-059** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
 | T-0685 | `[Apple]` EP-055 S3a: undo/redo, structural edits, cross-scene clipboard on iOS | ✅ SP-222 | **EP-055** | ✅ Verified | [`Verified/Task-verified-0685.md`](Verified/Task-verified-0685.md) |
 | T-0690 | `[Apple]` EP-055 S8: TestFlight for iPad, iPhone and the Mac | 🔵 SP-228 | **EP-055** | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
 | T-0689 | `[Apple]` EP-055 S7: the whole app at iPhone width | ✅ SP-227 | **EP-055** | ✅ Verified | [`Verified/Task-verified-0689.md`](Verified/Task-verified-0689.md) |
@@ -1381,3 +1383,7 @@ verification.** Prior note follows.)*
 fixing them** (cured by D5 in SP-116). Next available Task: **T-0425**. Prior note follows.)*
 
 *Last Updated: 2026-08-19 (audit remediation — R-06, R-18, R-25, R-26, R-27; **T-0418 assigned** + T-0419 opened; then 🟡 **SP-100 ACTIVATED** — T-0390 Active, T-0418/T-0391 assigned. Counts re-derived, 418 IDs.)*
+
+*Last Updated: 2026-11-22 (**T-0698, T-0699 filed** ([SP-236], 🔵 Planning).)*
+
+*Last Updated: 2026-11-22 (**T-0698, T-0699 → 🟠** ([SP-236] built).)*

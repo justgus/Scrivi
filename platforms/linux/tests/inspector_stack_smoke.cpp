@@ -171,6 +171,7 @@ int main(int argc, char** argv)
     const QString tC = QStringLiteral("objects.") + kC.subdir;
 
     // The layout as the Mac writes it: this scene's Writing stack with a card Linux lacks, and a key Linux does not model.
+    // ([SP-236] built `sources`, which this used to be: the unknown card is now one from a newer Inkwyn.)
     QJsonObject entryTags{{QStringLiteral("type"), QStringLiteral("tags")}, {QStringLiteral("collapsed"), false},
                           {QStringLiteral("futureEntryKey"), 7}};
     const QJsonObject doc{
@@ -184,7 +185,7 @@ int main(int argc, char** argv)
         {QStringLiteral("scenes"), QJsonObject{{sceneID, QJsonObject{
             {QStringLiteral("writing"), QJsonArray{entryTags,
                                                    QJsonObject{{QStringLiteral("type"), QStringLiteral("todo")}},
-                                                   QJsonObject{{QStringLiteral("type"), QStringLiteral("sources")}}}},
+                                                   QJsonObject{{QStringLiteral("type"), QStringLiteral("futureCard")}}}},
             {QStringLiteral("worldbuilding"), QJsonArray{}}}}}},
         {QStringLiteral("futureKeyFromANewerScrivi"), true}};
     bridge.putInspectorLayout(dir, QString::fromUtf8(QJsonDocument(doc).toJson(QJsonDocument::Compact)));
@@ -204,9 +205,9 @@ int main(int argc, char** argv)
     QTest::qWait(100);
 
     // ── §1 the layout's cards ─────────────────────────────────────────────────────────────────────────────────────────
-    check(cardTypes(inspector, QStringLiteral("writing")) == QStringList{"tags", "todo", "sources"},
+    check(cardTypes(inspector, QStringLiteral("writing")) == QStringList{"tags", "todo", "futureCard"},
           QStringLiteral("§1 Writing shows the layout's cards in order: %1").arg(cardTypes(inspector, "writing").join(", ")));
-    QFrame* unknown = card(inspector, QStringLiteral("writing"), QStringLiteral("sources"));
+    QFrame* unknown = card(inspector, QStringLiteral("writing"), QStringLiteral("futureCard"));
     bool explained = false;
     for (QLabel* l : unknown != nullptr ? unknown->findChildren<QLabel*>() : QList<QLabel*>{}) {
         explained = explained || l->text() == QStringLiteral("This card isn't available in this version.");

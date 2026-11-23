@@ -4,11 +4,16 @@
 #include "ScriviBridge.hpp"
 #include "WorldStatusText.hpp"
 
+#include <QApplication>
 #include <QCloseEvent>
+#include <QComboBox>
+#include <QDialogButtonBox>
 #include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QFormLayout>
 #include <QFrame>
+#include <QHeaderView>
 #include <QHBoxLayout>
 #include <QIcon>
 #include <QJsonArray>
@@ -18,6 +23,7 @@
 #include <QLayout>
 #include <QLineEdit>
 #include <QListWidget>
+#include <QMenu>
 #include <QMessageBox>
 #include <QPlainTextEdit>
 #include <QPixmap>
@@ -26,9 +32,12 @@
 #include <QSignalBlocker>
 #include <QSizePolicy>
 #include <QStackedWidget>
+#include <QSet>
 #include <QStyle>
+#include <QTimer>
 #include <QToolBar>
 #include <QToolButton>
+#include <QTreeWidget>
 #include <QVBoxLayout>
 
 #include <algorithm>
@@ -39,6 +48,38 @@ namespace {
 constexpr int kContentPage = 0;
 constexpr int kMessagePage = 1;
 const QSize kPreviewBound(480, 220);   // Apple: scaled to fit, at most 220 high
+// Apple's `SourcesCardModel.citesType` / `.sourceKind`: the citation edge, and the one project-scoped kind it comes from.
+const QString kCites = QStringLiteral("cites");
+const QString kSourceKind = QStringLiteral("source");
+
+// I-0159: a list inside the dialog's own scroll area takes the height of its rows — one scroll region, never a capped
+// inner one whose hidden rows read as work missing.
+void fitToRows(QAbstractItemView* view, int rows)
+{
+    const int row = std::max(view->sizeHintForRow(0), view->fontMetrics().height() + 6);
+    view->setFixedHeight(rows * row + 2 * view->style()->pixelMetric(QStyle::PM_DefaultFrameWidth) + 2);
+}
+
+QString capitalised(const QString& s) { return s.isEmpty() ? s : s.left(1).toUpper() + s.mid(1); }
+
+QPushButton* sectionButton(const QString& text, const char* name, QWidget* parent)
+{
+    auto* b = new QPushButton(text, parent);
+    b->setObjectName(QString::fromLatin1(name));
+    b->setAutoDefault(false);   // Return in a field must not press it (SP-235 live pass)
+    b->setFlat(true);
+    return b;
+}
+
+QLabel* warning(const char* name, QWidget* parent)
+{
+    auto* label = new QLabel(parent);
+    label->setObjectName(QString::fromLatin1(name));
+    label->setWordWrap(true);
+    label->setStyleSheet(QStringLiteral("QLabel { color: #b35c00; }"));
+    label->hide();
+    return label;
+}
 
 // A refusal toward an absent world, in the core's words (the same match as `SceneInspector::runObjectWrite` and
 // `EditorShell::writerFacingError`): fail-safe — an unmatched message is reported as a failure, never hidden.
@@ -206,6 +247,14 @@ ObjectDetailDialog::ObjectDetailDialog(ScriviBridge* bridge, const QString& proj
     auto* bar = new QToolBar(this);
     bar->setObjectName(QStringLiteral("detailToolbar"));
     bar->setToolButtonStyle(Qt::ToolButtonIconOnly);
+    // C3: Back at the leading end, as the platform's chevron (Apple's `NavigationStack`); shown once there is somewhere to go.
+    backAction_ = bar->addAction(QIcon::fromTheme(QStringLiteral("go-previous"), style()->standardIcon(QStyle::SP_ArrowLeft)),
+                                 tr("Back"));
+    backAction_->setObjectName(QStringLiteral("detailBack"));
+    backAction_->setShortcut(QKeySequence::Back);
+    backAction_->setVisible(false);
+    addAction(backAction_);
+    connect(backAction_, &QAction::triggered, this, &ObjectDetailDialog::goBack);
     auto* spacer = new QWidget(bar);
     spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
     bar->addWidget(spacer);
@@ -336,10 +385,88 @@ ObjectDetailDialog::ObjectDetailDialog(ScriviBridge* bridge, const QString& proj
     imageError_->hide();
     col->addWidget(imageError_);
 
-    auto* rule2 = new QFrame(content);
-    rule2->setFrameShape(QFrame::HLine);
-    rule2->setFrameShadow(QFrame::Sunken);
-    col->addWidget(rule2);
+    auto divider = [content, col] {
+        auto* r = new QFrame(content);
+        r->setFrameShape(QFrame::HLine);
+        r->setFrameShadow(QFrame::Sunken);
+        col->addWidget(r);
+    };
+
+    // C4: Sources — between what the object IS and what it is connected to (Apple: `ObjectSourcesSection`, its own section,
+    // not a row among the relationships, because a citation is attribution).
+    divider();
+    auto* sourcesHead = new QHBoxLayout;
+    sourcesHead->addWidget(caption(tr("Sources"), content));
+    sourcesHead->addStretch(1);
+    cite_ = sectionButton(tr("Cite…"), "detailCite", content);
+    newSource_ = sectionButton(tr("New Source…"), "detailNewSource", content);
+    sourcesHead->addWidget(cite_);
+    sourcesHead->addWidget(newSource_);
+    col->addLayout(sourcesHead);
+    connect(cite_, &QPushButton::clicked, this, &ObjectDetailDialog::chooseSource);
+    connect(newSource_, &QPushButton::clicked, this, &ObjectDetailDialog::newSource);
+    sourcesError_ = warning("detailSourcesError", content);
+    col->addWidget(sourcesError_);
+    noSources_ = new QLabel(content);
+    noSources_->setObjectName(QStringLiteral("detailNoSources"));
+    noSources_->setForegroundRole(QPalette::PlaceholderText);
+    col->addWidget(noSources_);
+    sources_ = new QListWidget(content);
+    sources_->setObjectName(QStringLiteral("detailSources"));
+    sources_->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    sources_->setContextMenuPolicy(Qt::CustomContextMenu);
+    col->addWidget(sources_);
+    sourceClick_ = new QTimer(this);
+    sourceClick_->setSingleShot(true);
+    sourceClick_->setInterval(QApplication::doubleClickInterval());
+    // A click shows the citation; a double-click (or Return) opens the source. The click waits out the double-click
+    // interval so one gesture does one thing.
+    connect(sources_, &QListWidget::itemClicked, this, [this](QListWidgetItem* item) {
+        sourceClickEdge_ = item->data(Qt::UserRole).toString();
+        sourceClick_->start();
+    });
+    connect(sourceClick_, &QTimer::timeout, this, [this] {
+        if (const Edge* e = edgeFor(sourceClickEdge_)) { citeOf(*e); }
+    });
+    connect(sources_, &QListWidget::itemActivated, this, [this](QListWidgetItem* item) {
+        sourceClick_->stop();
+        if (const Edge* e = edgeFor(item->data(Qt::UserRole).toString())) { activateEdge(*e); }
+    });
+    connect(sources_, &QListWidget::customContextMenuRequested, this, &ObjectDetailDialog::sourceMenu);
+
+    // C1: Related (Apple: `ObjectRelationsSection`).
+    divider();
+    auto* relatedHead = new QHBoxLayout;
+    relatedHead->addWidget(caption(tr("Related"), content));
+    relatedHead->addStretch(1);
+    relate_ = sectionButton(tr("Relate…"), "detailRelate", content);
+    relatedHead->addWidget(relate_);
+    col->addLayout(relatedHead);
+    connect(relate_, &QPushButton::clicked, this, &ObjectDetailDialog::chooseRelation);
+    relationsError_ = warning("detailRelationsError", content);
+    col->addWidget(relationsError_);
+    noRelations_ = new QLabel(tr("Not related to anything yet."), content);
+    noRelations_->setObjectName(QStringLiteral("detailNoRelations"));
+    noRelations_->setForegroundRole(QPalette::PlaceholderText);
+    col->addWidget(noRelations_);
+    relations_ = new QTreeWidget(content);
+    relations_->setObjectName(QStringLiteral("detailRelations"));
+    relations_->setColumnCount(2);
+    relations_->setHeaderHidden(true);
+    relations_->setRootIsDecorated(false);
+    relations_->setUniformRowHeights(true);
+    relations_->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    relations_->setContextMenuPolicy(Qt::CustomContextMenu);
+    relations_->header()->setSectionResizeMode(0, QHeaderView::Stretch);
+    relations_->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
+    relations_->header()->setStretchLastSection(false);
+    col->addWidget(relations_);
+    connect(relations_, &QTreeWidget::itemActivated, this, [this](QTreeWidgetItem* item) {
+        if (const Edge* e = edgeFor(item->data(0, Qt::UserRole).toString())) { activateEdge(*e); }
+    });
+    connect(relations_, &QTreeWidget::customContextMenuRequested, this, &ObjectDetailDialog::relationMenu);
+
+    divider();
     metadata_ = new QLabel(content);
     metadata_->setObjectName(QStringLiteral("detailMetadata"));
     metadata_->setForegroundRole(QPalette::PlaceholderText);
@@ -452,6 +579,23 @@ void ObjectDetailDialog::reload()
                 return r;
             }
             r.opened = true;
+            // C1/C4: one read of the graph from THIS end — each edge's label is the core's, projected for this endpoint.
+            const QVariantList edges = bridge->listEdgesFor(root, entry.objectID).value(QStringLiteral("edges")).toList();
+            r.edgesRead = !bridge->lastCallFailed();
+            for (const QVariant& v : edges) {
+                const QVariantMap m = v.toMap();
+                Edge e;
+                e.edgeID = m.value(QStringLiteral("edgeID")).toString();
+                e.relationType = m.value(QStringLiteral("relationType")).toString();
+                e.label = m.value(QStringLiteral("label")).toString();
+                e.otherID = m.value(QStringLiteral("otherID")).toString();
+                e.otherName = m.value(QStringLiteral("otherDisplayName")).toString();
+                e.otherKind = m.value(QStringLiteral("otherKind")).toString();   // I-0124: on the edge, so a pending one is named
+                e.otherWorldID = m.value(QStringLiteral("otherWorldID")).toString();
+                e.otherWorldStatus = m.value(QStringLiteral("otherWorldStatus")).toString();
+                e.pending = m.value(QStringLiteral("otherPending")).toBool();
+                r.edges.append(e);
+            }
             // The path is the CORE's, from the listing (T-0446) — never a walk of the assets directory here.
             for (const QVariant& v : bridge->listObjects(root, entry.kind).value(QStringLiteral("objects")).toList()) {
                 const QVariantMap m = v.toMap();
@@ -503,6 +647,8 @@ void ObjectDetailDialog::applyRead(const Read& read)
         hasDetail_ = true;
         imagePath_ = read.imagePath;
         image_ = read.image;
+        edges_ = read.edges;
+        edgesRead_ = read.edgesRead;
         pages_->setCurrentIndex(kContentPage);
     } else if (hasDetail_) {
         // I-0165: losing the ability to re-read is not having nothing to show. Keep the fields; the banner says why.
@@ -526,6 +672,7 @@ void ObjectDetailDialog::applyRead(const Read& read)
         pages_->setCurrentIndex(kMessagePage);
     }
     rebuildTags();
+    rebuildGraph();
     refreshState();
 }
 
@@ -623,6 +770,22 @@ void ObjectDetailDialog::refreshState()
     imageRemove_->setEnabled(!readOnly && !imageWorking_);
     imageRemove_->setToolTip(readOnly ? tr("This object's world is unavailable, so its image cannot be removed.")
                                       : tr("Remove this image from the object"));
+
+    // C1/C4: the graph is frozen toward an unavailable world in both directions (Doc 3 §4.6 rule 1).
+    const QString frozen = tr("This object's world is unavailable, so its relationships are frozen.");
+    const QString citationsFrozen = tr("This object's world is unavailable, so its citations are frozen.");
+    for (QPushButton* b : {cite_, newSource_, relate_}) { b->setEnabled(hasDetail_ && !readOnly && !graphWorking_); }
+    cite_->setToolTip(readOnly ? citationsFrozen : tr("Cite a source that already exists in this project"));
+    newSource_->setToolTip(readOnly ? citationsFrozen
+                                    : tr("Create a source documenting “%1”").arg(detail_.displayName));
+    relate_->setToolTip(readOnly ? frozen : tr("Relate this object to another object"));
+    noSources_->setText(readOnly ? tr("No sources cited.") : tr("No sources cited yet."));
+    backAction_->setVisible(!back_.isEmpty());
+    backAction_->setEnabled(!saving_);
+    if (!back_.isEmpty()) {
+        const QString to = back_.last().displayName.isEmpty() ? tr("the previous object") : back_.last().displayName;
+        backAction_->setToolTip(tr("Back to %1 (Alt+Left)").arg(to));
+    }
 
     QStringList meta;
     if (!entry_.kind.isEmpty()) { meta << entry_.kind.left(1).toUpper() + entry_.kind.mid(1); }
@@ -741,6 +904,7 @@ void ObjectDetailDialog::save()
                 // B4: the world went away under the dialog. Keep the drafts; the banners say what is held and why.
                 awayLatched_ = true;
                 closeAfterSave_ = false;
+                afterSave_ = nullptr;
                 saveError_->hide();
                 rebuildTags();
                 refreshState();
@@ -748,6 +912,7 @@ void ObjectDetailDialog::save()
             }
             if (!s.write.error.isEmpty()) {
                 closeAfterSave_ = false;   // a failed save never closes: her typing is not thrown away
+                afterSave_ = nullptr;      // … and never navigates away from it
                 saveError_->setText(s.write.error);
                 saveError_->show();
                 refreshState();
@@ -771,11 +936,16 @@ void ObjectDetailDialog::save()
                 finishClose();
                 return;
             }
+            if (afterSave_) {
+                std::exchange(afterSave_, nullptr)();   // the navigation the prompt asked to save before
+                return;
+            }
             reload();
         },
         [this] {
             saving_ = false;
             closeAfterSave_ = false;
+            afterSave_ = nullptr;
             saveError_->setText(tr("Saving is taking longer than expected — the project may be on a slow or unreachable "
                                    "volume. Your changes are still here."));
             saveError_->show();
@@ -1035,4 +1205,725 @@ void ObjectDetailDialog::removeImage()
         removeAssetIfUnshared(b, root, assetID, assetPath, entry.objectID, entry.worldID, projectID);
         return {};
     });
+}
+
+// ── C3: navigation inside the window ───────────────────────────────────────────────────────────────────────────
+
+void ObjectDetailDialog::showEntry(const Entry& entry)
+{
+    entry_ = entry;
+    ++readGeneration_;   // a read of the object we left must not land on this one
+    hasDetail_ = false;
+    detail_ = Detail();
+    {
+        const QSignalBlocker b1(name_), b2(subtitle_), b3(notes_);
+        name_->clear();
+        subtitle_->clear();
+        notes_->clear();
+    }
+    tags_.clear();
+    imagePath_.clear();
+    image_ = QImage();
+    awayLatched_ = false;
+    edges_.clear();
+    edgesRead_ = false;
+    for (QLabel* l : {saveError_, imageError_, sourcesError_, relationsError_}) { l->hide(); }
+    setStatus({});
+    setWindowTitle(entry_.displayName.isEmpty() ? tr("Object") : entry_.displayName);
+    messageTitle_->setText(entry_.displayName);
+    messageText_->setText(tr("Loading…"));
+    messageHint_->clear();
+    pages_->setCurrentIndex(kMessagePage);
+    rebuildTags();
+    rebuildGraph();
+    refreshState();
+    reload();
+}
+
+void ObjectDetailDialog::navigateTo(const Entry& entry)
+{
+    if (entry.objectID.isEmpty() || entry.objectID == entry_.objectID || saving_) { return; }   // a re-visit is a no-op
+    auto push = [this, entry] {
+        Entry here = entry_;
+        if (hasDetail_ && !detail_.displayName.isEmpty()) { here.displayName = detail_.displayName; }
+        back_.append(here);
+        showEntry(entry);
+    };
+    if (!hasChanges() || isReadOnly()) {
+        push();
+        return;
+    }
+    if (findChild<QMessageBox*>(QStringLiteral("saveChangesPrompt")) != nullptr) { return; }
+    auto* box = new QMessageBox(this);
+    box->setObjectName(QStringLiteral("saveChangesPrompt"));
+    box->setAttribute(Qt::WA_DeleteOnClose);
+    box->setIcon(QMessageBox::Question);
+    box->setWindowTitle(tr("Save your changes?"));
+    box->setText(tr("Save your changes?"));
+    box->setInformativeText(tr("You have unsaved changes to “%1”. Opening “%2” without saving will discard them.")
+                                .arg(detail_.displayName, entry.displayName));
+    QPushButton* saveButton = box->addButton(tr("Save"), QMessageBox::AcceptRole);
+    QPushButton* discard = box->addButton(tr("Discard"), QMessageBox::DestructiveRole);
+    QPushButton* cancel = box->addButton(tr("Cancel"), QMessageBox::RejectRole);
+    box->setDefaultButton(saveButton);
+    box->setEscapeButton(cancel);
+    connect(box, &QMessageBox::finished, this, [this, box, saveButton, discard, push] {
+        if (box->clickedButton() == saveButton) {
+            afterSave_ = push;
+            save();
+        } else if (box->clickedButton() == discard) {
+            push();
+        }
+    });
+    box->open();
+}
+
+void ObjectDetailDialog::goBack()
+{
+    if (back_.isEmpty() || saving_) { return; }
+    auto pop = [this] { showEntry(back_.takeLast()); };
+    if (!hasChanges() || isReadOnly()) {
+        pop();
+        return;
+    }
+    if (findChild<QMessageBox*>(QStringLiteral("backPrompt")) != nullptr) { return; }
+    // ⚠️ Save or Discard, never Cancel: the user's ruling on the Mac, 2026-09-23 — *"This confirmation dialog shouldn't
+    // attempt to 'Cancel' the navigation … rather it should require either a save or a revert."*
+    auto* box = new QMessageBox(this);
+    box->setObjectName(QStringLiteral("backPrompt"));
+    box->setAttribute(Qt::WA_DeleteOnClose);
+    box->setIcon(QMessageBox::Question);
+    box->setWindowTitle(tr("Save your changes?"));
+    box->setText(tr("Save your changes to “%1”?").arg(detail_.displayName));
+    box->setInformativeText(tr("Going back without saving will discard them."));
+    QPushButton* saveButton = box->addButton(tr("Save"), QMessageBox::AcceptRole);
+    QPushButton* discard = box->addButton(tr("Discard"), QMessageBox::DestructiveRole);
+    box->setDefaultButton(saveButton);
+    connect(box, &QMessageBox::finished, this, [this, box, saveButton, discard, pop] {
+        if (box->clickedButton() == saveButton) {
+            afterSave_ = pop;
+            save();
+        } else if (box->clickedButton() == discard) {
+            pop();
+        }
+    });
+    box->open();
+}
+
+// ── C1 / C4: the graph ───────────────────────────────────────────────────────────────────────────────────────
+
+const ObjectDetailDialog::Edge* ObjectDetailDialog::edgeFor(const QString& edgeID) const
+{
+    for (const Edge& e : edges_) {
+        if (e.edgeID == edgeID) { return &e; }
+    }
+    return nullptr;
+}
+
+QString ObjectDetailDialog::edgeName(const Edge& edge) const
+{
+    const QString name = edge.otherName.trimmed();
+    if (!name.isEmpty()) { return name; }
+    return edge.otherKind.isEmpty() ? tr("Untitled scene") : tr("Untitled %1").arg(edge.otherKind);
+}
+
+QString ObjectDetailDialog::pendingSentence(const Edge& edge) const
+{
+    const auto it = worlds_.constFind(edge.otherWorldID);
+    const QString subject = (it == worlds_.constEnd() || it->name.isEmpty()) ? tr("its world") : tr("“%1”").arg(it->name);
+    return tr("Held pending — %1 is %2.").arg(subject, WorldStatusText::writerDescription(edge.otherWorldStatus));
+}
+
+void ObjectDetailDialog::rebuildGraph()
+{
+    const bool failed = hasDetail_ && !edgesRead_;
+
+    // Sources: the `cites` edges whose other end is a source (Apple: `ObjectSourcesSection.load`).
+    sources_->clear();
+    for (const Edge& e : edges_) {
+        if (e.relationType != kCites || e.otherKind != kSourceKind || e.otherID == entry_.objectID) { continue; }
+        auto* item = new QListWidgetItem(edgeName(e), sources_);
+        item->setData(Qt::UserRole, e.edgeID);
+        item->setToolTip(tr("Click to show the citation; double-click to show the source"));
+    }
+    // A read failure is said here; a write's own error (runGraphWrite) is left standing until the next write.
+    auto readFailure = [failed](QLabel* label, const QString& text) {
+        if (failed) {
+            label->setText(text);
+            label->show();
+        } else if (label->text() == text) {
+            label->hide();
+        }
+    };
+    readFailure(sourcesError_, tr("This object's sources could not be read."));
+    noSources_->setVisible(hasDetail_ && !failed && sources_->count() == 0);
+    sources_->setVisible(sources_->count() > 0);
+    if (sources_->count() > 0) { fitToRows(sources_, sources_->count()); }
+
+    // Related: grouped by the label the CORE gives from this end — never recomputed (C1). Groups and rows by name.
+    relations_->clear();
+    QMap<QString, QList<const Edge*>> groups;
+    for (const Edge& e : edges_) { groups[e.label].append(&e); }
+    QStringList labels = groups.keys();
+    std::sort(labels.begin(), labels.end(), [](const QString& a, const QString& b) { return a.localeAwareCompare(b) < 0; });
+    int rows = 0;
+    for (const QString& label : labels) {
+        auto* group = new QTreeWidgetItem(relations_, {label});
+        QFont f = group->font(0);
+        f.setBold(true);
+        group->setFont(0, f);
+        group->setFlags(Qt::ItemIsEnabled);
+        group->setForeground(0, palette().brush(QPalette::PlaceholderText));
+        QList<const Edge*> list = groups.value(label);
+        std::sort(list.begin(), list.end(),
+                  [this](const Edge* a, const Edge* b) { return edgeName(*a).localeAwareCompare(edgeName(*b)) < 0; });
+        ++rows;
+        for (const Edge* e : list) {
+            // A pending far end stays listed, named and explained (Doc 3: absence is never deletion).
+            auto* item = new QTreeWidgetItem(group, {e->pending ? QStringLiteral("⚠ ") + edgeName(*e) : edgeName(*e),
+                                                     e->pending ? pendingSentence(*e) : capitalised(e->otherKind)});
+            item->setData(0, Qt::UserRole, e->edgeID);
+            item->setForeground(1, palette().brush(QPalette::PlaceholderText));
+            item->setToolTip(0, e->pending ? pendingSentence(*e) : tr("Double-click to show %1").arg(edgeName(*e)));
+            if (e->pending) { item->setForeground(0, palette().brush(QPalette::PlaceholderText)); }
+            ++rows;
+        }
+    }
+    relations_->expandAll();
+    readFailure(relationsError_, tr("This object's relationships could not be read."));
+    noRelations_->setVisible(hasDetail_ && !failed && edges_.isEmpty());
+    relations_->setVisible(rows > 0);
+    if (rows > 0) { fitToRows(relations_, rows); }
+}
+
+void ObjectDetailDialog::activateEdge(const Edge& edge)
+{
+    if (edge.pending) { return; }   // its world is away: there is nothing to open
+    if (edge.otherKind.isEmpty()) {
+        emit showSceneRequested(edge.otherID);   // a scene has no detail view (I-0151): the manuscript goes there
+        return;
+    }
+    Entry next;
+    next.kind = edge.otherKind;
+    next.objectID = edge.otherID;
+    next.worldID = edge.otherKind == kSourceKind ? QString() : edge.otherWorldID;
+    next.displayName = edgeName(edge);
+    navigateTo(next);
+}
+
+void ObjectDetailDialog::relationMenu(const QPoint& pos)
+{
+    QTreeWidgetItem* item = relations_->itemAt(pos);
+    const Edge* edge = item != nullptr ? edgeFor(item->data(0, Qt::UserRole).toString()) : nullptr;
+    if (edge == nullptr) { return; }
+    relations_->setCurrentItem(item);   // the row a right-click targets is the row selected (I-0158)
+    const Edge e = *edge;
+    auto* menu = new QMenu(this);
+    menu->setObjectName(QStringLiteral("relationMenu"));
+    menu->setAttribute(Qt::WA_DeleteOnClose);
+    menu->addAction(tr("Show"), this, [this, e] { activateEdge(e); })->setEnabled(!e.pending);
+    QAction* remove = menu->addAction(tr("Remove Relationship"), this, [this, e] {
+        const QString root = root_, edgeID = e.edgeID;
+        runGraphWrite(relationsError_, [root, edgeID](ScriviBridge& b) {
+            b.deleteEdge(root, edgeID);
+            return b.lastCallFailed() ? QObject::tr("The relationship could not be removed.") : QString();
+        });
+    });
+    remove->setEnabled(!e.pending && !isReadOnly() && !graphWorking_);
+    menu->popup(relations_->viewport()->mapToGlobal(pos));
+}
+
+void ObjectDetailDialog::sourceMenu(const QPoint& pos)
+{
+    QListWidgetItem* item = sources_->itemAt(pos);
+    const Edge* edge = item != nullptr ? edgeFor(item->data(Qt::UserRole).toString()) : nullptr;
+    if (edge == nullptr) { return; }
+    sources_->setCurrentItem(item);
+    const Edge e = *edge;
+    auto* menu = new QMenu(this);
+    menu->setObjectName(QStringLiteral("sourceMenu"));
+    menu->setAttribute(Qt::WA_DeleteOnClose);
+    menu->addAction(tr("Show Citation"), this, [this, e] { citeOf(e); });
+    menu->addAction(tr("Show Source"), this, [this, e] { activateEdge(e); });
+    menu->addSeparator();
+    QAction* remove = menu->addAction(tr("Remove Citation"), this, [this, e] {
+        const QString root = root_, edgeID = e.edgeID;
+        runGraphWrite(sourcesError_, [root, edgeID](ScriviBridge& b) {
+            b.deleteEdge(root, edgeID);
+            return b.lastCallFailed() ? QObject::tr("The citation could not be removed.") : QString();
+        });
+    });
+    remove->setEnabled(!isReadOnly() && !graphWorking_);
+    menu->popup(sources_->viewport()->mapToGlobal(pos));
+}
+
+void ObjectDetailDialog::runGraphWrite(QLabel* errorLabel, std::function<QString(ScriviBridge&)> work)
+{
+    if (bridge_ == nullptr || graphWorking_) { return; }
+    graphWorking_ = true;
+    errorLabel->hide();
+    refreshState();
+    const WorkerBridge::Handle handle = WorkerBridge::handleFor(bridge_);
+    AsyncCall::run<Write>(
+        this,
+        [handle, work]() -> Write {
+            WorkerBridge bridge(handle);
+            Write w;
+            QObject::connect(&*bridge, &ScriviBridge::errorOccurred, [&w](int, const QString& message) {
+                if (isWorldAwayMessage(message)) { w.worldAway = true; }
+            });
+            w.error = work(*bridge);
+            return w;
+        },
+        [this, errorLabel](const Write& w) {
+            graphWorking_ = false;
+            if (!w.error.isEmpty()) {
+                if (w.worldAway) { awayLatched_ = true; }
+                errorLabel->setText(w.worldAway ? tr("This object's world is unavailable, so its relationships are frozen.")
+                                                : w.error);
+                errorLabel->show();
+            }
+            emit saved();   // the graph may have changed even on a partial failure: the Inspector reads the same edges
+            reload();
+        },
+        [this, errorLabel] {
+            graphWorking_ = false;
+            errorLabel->setText(tr("This is taking longer than expected — the project may be on a slow or unreachable "
+                                   "volume. It will appear when it lands."));
+            errorLabel->show();
+            refreshState();
+        },
+        AsyncCall::kProjectOpenTimeoutMs);
+}
+
+void ObjectDetailDialog::chooseRelation()
+{
+    if (bridge_ == nullptr) { return; }
+    struct Obj {
+        QString id, name, kind, worldID;
+    };
+    struct Type {
+        QString code, label, sourceKind, targetKind;
+    };
+    struct Listed {
+        QList<Obj> objects;
+        QList<Type> types;
+        QMap<QString, QString> worldNames;
+        bool failed = false;
+    };
+    const WorkerBridge::Handle handle = WorkerBridge::handleFor(bridge_);
+    const QString root = root_;
+    relate_->setEnabled(false);
+    AsyncCall::run<Listed>(
+        this,
+        [handle, root]() -> Listed {
+            WorkerBridge bridge(handle);
+            Listed l;
+            for (const QVariant& v : bridge->listObjects(root, QString()).value(QStringLiteral("objects")).toList()) {
+                const QVariantMap m = v.toMap();
+                l.objects.append({m.value(QStringLiteral("objectID")).toString(), m.value(QStringLiteral("displayName")).toString(),
+                                  m.value(QStringLiteral("kind")).toString(), m.value(QStringLiteral("worldID")).toString()});
+            }
+            l.failed = bridge->lastCallFailed();
+            for (const QVariant& v : bridge->listWorlds(root).value(QStringLiteral("worlds")).toList()) {
+                const QVariantMap m = v.toMap();
+                l.worldNames.insert(m.value(QStringLiteral("worldID")).toString(), m.value(QStringLiteral("displayName")).toString());
+            }
+            for (const QVariant& v : bridge->listRelationTypes(root).value(QStringLiteral("types")).toList()) {
+                const QVariantMap m = v.toMap();
+                l.types.append({m.value(QStringLiteral("code")).toString(), m.value(QStringLiteral("forwardLabel")).toString(),
+                                m.value(QStringLiteral("sourceKind")).toString(), m.value(QStringLiteral("targetKind")).toString()});
+            }
+            l.failed = l.failed || bridge->lastCallFailed();
+            return l;
+        },
+        [this](const Listed& listed) {
+            refreshState();
+            const QString scene = QStringLiteral("scene");
+            QList<Type> usable;   // Apple: `ObjectRelationPicker.usableTypes` — from this kind, to an object
+            for (const Type& t : listed.types) {
+                if ((t.sourceKind.isEmpty() || t.sourceKind == entry_.kind) && t.sourceKind != scene && t.targetKind != scene) {
+                    usable.append(t);
+                }
+            }
+            QSet<QString> related;
+            for (const Edge& e : edges_) { related.insert(e.otherID); }
+
+            auto* picker = new QDialog(this);
+            picker->setObjectName(QStringLiteral("relatePicker"));
+            picker->setAttribute(Qt::WA_DeleteOnClose);
+            picker->setWindowTitle(tr("Relate to…"));
+            auto* col = new QVBoxLayout(picker);
+            auto* title = new QLabel(tr("Relate to…"), picker);
+            QFont f = title->font();
+            f.setBold(true);
+            title->setFont(f);
+            col->addWidget(title);
+            if (listed.failed) {
+                QLabel* why = warning("relateError", picker);
+                why->setText(tr("This project's objects could not all be read."));
+                why->show();
+                col->addWidget(why);
+            }
+            QComboBox* typeBox = nullptr;
+            if (usable.size() > 1) {
+                typeBox = new QComboBox(picker);
+                typeBox->setObjectName(QStringLiteral("relateType"));
+                for (const Type& t : usable) { typeBox->addItem(t.label, t.code); }
+                col->addWidget(typeBox);
+            } else if (usable.size() == 1) {
+                auto* only = new QLabel(usable.first().label, picker);
+                only->setObjectName(QStringLiteral("relateTypeLabel"));
+                col->addWidget(only);
+            }
+            auto* search = new QLineEdit(picker);
+            search->setObjectName(QStringLiteral("relateSearch"));
+            search->setPlaceholderText(tr("Search all worlds…"));
+            col->addWidget(search);
+            auto* hint = new QLabel(tr("Objects from every world in this project are listed."), picker);
+            hint->setForegroundRole(QPalette::PlaceholderText);
+            col->addWidget(hint);
+            auto* empty = new QLabel(picker);
+            empty->setObjectName(QStringLiteral("relateEmpty"));
+            empty->setWordWrap(true);
+            empty->setForegroundRole(QPalette::PlaceholderText);
+            col->addWidget(empty);
+            auto* list = new QListWidget(picker);
+            list->setObjectName(QStringLiteral("relateList"));
+            col->addWidget(list, 1);
+
+            const QList<Obj> objects = listed.objects;
+            const QMap<QString, QString> worldNames = listed.worldNames;
+            const QString self = entry_.objectID;
+            auto selectedType = [typeBox, usable]() -> Type {
+                if (usable.isEmpty()) { return {}; }
+                return typeBox != nullptr ? usable.value(typeBox->currentIndex()) : usable.first();
+            };
+            auto fill = [list, empty, search, objects, worldNames, self, related, usable, selectedType] {
+                list->clear();
+                const QString q = search->text().trimmed();
+                QMap<QString, QList<Obj>> byWorld;   // "" = project-scoped, which sorts first
+                for (const Obj& o : objects) {
+                    if (o.id == self || (!q.isEmpty() && !o.name.contains(q, Qt::CaseInsensitive))) { continue; }
+                    byWorld[o.worldID].append(o);
+                }
+                const Type type = selectedType();
+                for (auto it = byWorld.begin(); it != byWorld.end(); ++it) {
+                    if (!it.key().isEmpty()) {
+                        auto* header = new QListWidgetItem(worldNames.value(it.key(), it.key()), list);
+                        header->setFlags(Qt::NoItemFlags);
+                        QFont hf = header->font();
+                        hf.setBold(true);
+                        header->setFont(hf);
+                    }
+                    QList<Obj> group = it.value();
+                    std::sort(group.begin(), group.end(),
+                              [](const Obj& a, const Obj& b) { return a.name.localeAwareCompare(b.name) < 0; });
+                    for (const Obj& o : group) {
+                        const bool already = related.contains(o.id);
+                        const bool accepted = type.targetKind.isEmpty() || type.targetKind == o.kind;
+                        auto* item = new QListWidgetItem(
+                            already ? tr("%1  ·  %2  ✓").arg(o.name, capitalised(o.kind)) : tr("%1  ·  %2").arg(o.name, capitalised(o.kind)),
+                            list);
+                        item->setData(Qt::UserRole, o.id);
+                        item->setToolTip(already ? tr("Already related.")
+                                                 : accepted ? tr("Relate to %1").arg(o.name)
+                                                            : tr("“%1” cannot point at a %2.").arg(type.label, o.kind));
+                        if (already || !accepted) { item->setFlags(item->flags() & ~Qt::ItemIsEnabled); }
+                    }
+                }
+                const bool none = list->count() == 0;
+                empty->setText(usable.isEmpty() ? tr("This project has no relation type that can link two objects.")
+                               : objects.size() <= 1 ? tr("There are no other objects in this project yet.")
+                                                     : tr("No match."));
+                empty->setVisible(usable.isEmpty() || none);
+                list->setVisible(!usable.isEmpty() && !none);
+            };
+            fill();
+            connect(search, &QLineEdit::textChanged, picker, fill);
+            if (typeBox != nullptr) { connect(typeBox, &QComboBox::currentIndexChanged, picker, fill); }
+            auto pick = [this, picker, selectedType](QListWidgetItem* item) {
+                if (item == nullptr || !(item->flags() & Qt::ItemIsEnabled)) { return; }
+                const QString target = item->data(Qt::UserRole).toString(), code = selectedType().code;
+                if (target.isEmpty() || code.isEmpty()) { return; }
+                picker->accept();
+                const QString root = root_, from = entry_.objectID;
+                runGraphWrite(relationsError_, [root, from, target, code](ScriviBridge& b) {
+                    b.createEdge(root, from, target, code, QString());
+                    return b.lastCallFailed() ? QObject::tr("The relationship could not be created.") : QString();
+                });
+            };
+            connect(list, &QListWidget::itemClicked, picker, pick);
+            connect(list, &QListWidget::itemActivated, picker, pick);
+            picker->resize(360, 420);
+            picker->open();
+        },
+        [this] {
+            refreshState();
+            relationsError_->setText(tr("This project's objects are taking longer than expected to read."));
+            relationsError_->show();
+        },
+        AsyncCall::kProjectOpenTimeoutMs);
+}
+
+void ObjectDetailDialog::chooseSource()
+{
+    if (bridge_ == nullptr) { return; }
+    struct Listed {
+        QList<QPair<QString, QString>> sources;   // id, name
+        bool failed = false;
+    };
+    const WorkerBridge::Handle handle = WorkerBridge::handleFor(bridge_);
+    const QString root = root_;
+    cite_->setEnabled(false);
+    AsyncCall::run<Listed>(
+        this,
+        [handle, root]() -> Listed {
+            WorkerBridge bridge(handle);
+            Listed l;
+            for (const QVariant& v : bridge->listObjects(root, kSourceKind).value(QStringLiteral("objects")).toList()) {
+                const QVariantMap m = v.toMap();
+                l.sources.append({m.value(QStringLiteral("objectID")).toString(), m.value(QStringLiteral("displayName")).toString()});
+            }
+            l.failed = bridge->lastCallFailed();
+            return l;
+        },
+        [this](const Listed& listed) {
+            refreshState();
+            QSet<QString> cited;
+            for (const Edge& e : edges_) {
+                if (e.relationType == kCites) { cited.insert(e.otherID); }
+            }
+            auto* picker = new QDialog(this);
+            picker->setObjectName(QStringLiteral("citePicker"));
+            picker->setAttribute(Qt::WA_DeleteOnClose);
+            picker->setWindowTitle(tr("Cite an existing source"));
+            auto* col = new QVBoxLayout(picker);
+            auto* title = new QLabel(tr("Cite an existing source"), picker);
+            QFont f = title->font();
+            f.setBold(true);
+            title->setFont(f);
+            col->addWidget(title);
+            if (listed.failed) {
+                QLabel* why = warning("citeError", picker);
+                why->setText(tr("This project's sources could not be read."));
+                why->show();
+                col->addWidget(why);
+            }
+            auto* search = new QLineEdit(picker);
+            search->setObjectName(QStringLiteral("citeSearch"));
+            search->setPlaceholderText(tr("Search sources…"));
+            col->addWidget(search);
+            auto* empty = new QLabel(picker);
+            empty->setObjectName(QStringLiteral("citeEmpty"));
+            empty->setWordWrap(true);
+            empty->setForegroundRole(QPalette::PlaceholderText);
+            col->addWidget(empty);
+            auto* list = new QListWidget(picker);
+            list->setObjectName(QStringLiteral("citeList"));
+            col->addWidget(list, 1);
+            const auto sources = listed.sources;
+            auto fill = [list, empty, search, sources, cited] {
+                list->clear();
+                const QString q = search->text().trimmed();
+                for (const auto& [id, name] : sources) {
+                    if (!q.isEmpty() && !name.contains(q, Qt::CaseInsensitive)) { continue; }
+                    const bool already = cited.contains(id);
+                    auto* item = new QListWidgetItem(already ? tr("%1 — Already cited here").arg(name) : name, list);
+                    item->setData(Qt::UserRole, id);
+                    item->setToolTip(already ? tr("“%1” is already cited by this object.").arg(name) : tr("Cite “%1”").arg(name));
+                    if (already) { item->setFlags(item->flags() & ~Qt::ItemIsEnabled); }
+                }
+                empty->setText(sources.isEmpty() ? tr("This project has no sources yet. Use “New Source…” to create one.")
+                                                 : tr("No match."));
+                empty->setVisible(list->count() == 0);
+                list->setVisible(list->count() > 0);
+            };
+            fill();
+            connect(search, &QLineEdit::textChanged, picker, fill);
+            auto pick = [this, picker](QListWidgetItem* item) {
+                if (item == nullptr || !(item->flags() & Qt::ItemIsEnabled)) { return; }
+                const QString sourceID = item->data(Qt::UserRole).toString();
+                picker->accept();
+                const QString root = root_, objectID = entry_.objectID;
+                runGraphWrite(sourcesError_, [root, sourceID, objectID](ScriviBridge& b) {
+                    b.createEdge(root, sourceID, objectID, kCites, QString());   // source —cites→ object
+                    return b.lastCallFailed() ? QObject::tr("The source could not be cited.") : QString();
+                });
+            };
+            connect(list, &QListWidget::itemClicked, picker, pick);
+            connect(list, &QListWidget::itemActivated, picker, pick);
+            picker->resize(340, 380);
+            picker->open();
+        },
+        [this] {
+            refreshState();
+            sourcesError_->setText(tr("This project's sources are taking longer than expected to read."));
+            sourcesError_->show();
+        },
+        AsyncCall::kProjectOpenTimeoutMs);
+}
+
+void ObjectDetailDialog::newSource()
+{
+    const QString documenting = detail_.displayName;
+    auto* form = new QDialog(this);
+    form->setObjectName(QStringLiteral("newSourceDialog"));
+    form->setAttribute(Qt::WA_DeleteOnClose);
+    form->setWindowTitle(tr("New source"));
+    auto* col = new QVBoxLayout(form);
+    auto* title = new QLabel(tr("New source"), form);
+    QFont f = title->font();
+    f.setBold(true);
+    title->setFont(f);
+    col->addWidget(title);
+    auto* what = new QLabel(tr("Documenting “%1”.").arg(documenting), form);
+    what->setForegroundRole(QPalette::PlaceholderText);
+    col->addWidget(what);
+    auto* field = new QLineEdit(form);
+    field->setObjectName(QStringLiteral("newSourceTitle"));
+    field->setPlaceholderText(tr("Title of the work"));
+    field->setMinimumWidth(260);
+    col->addWidget(field);
+    // ⚠️ Not the Mac's sentence: it says the rest is "edited on the source itself", and nothing edits it yet ([SP-236] Q4).
+    auto* hint = new QLabel(tr("Author, year and the rest are shown in the citation once they are set."), form);
+    hint->setWordWrap(true);
+    hint->setForegroundRole(QPalette::PlaceholderText);
+    col->addWidget(hint);
+    auto* buttons = new QDialogButtonBox(form);
+    QPushButton* create = buttons->addButton(tr("Create"), QDialogButtonBox::AcceptRole);
+    create->setObjectName(QStringLiteral("newSourceCreate"));
+    buttons->addButton(QDialogButtonBox::Cancel);
+    create->setDefault(true);
+    create->setEnabled(false);
+    col->addWidget(buttons);
+    connect(field, &QLineEdit::textChanged, form, [create](const QString& t) { create->setEnabled(!t.trimmed().isEmpty()); });
+    connect(buttons, &QDialogButtonBox::rejected, form, &QDialog::reject);
+    connect(buttons, &QDialogButtonBox::accepted, form, [this, form, field, documenting] {
+        const QString name = field->text().trimmed();
+        if (name.isEmpty()) { return; }
+        form->accept();
+        const QString root = root_, objectID = entry_.objectID;
+        runGraphWrite(sourcesError_, [root, objectID, name, documenting](ScriviBridge& b) -> QString {
+            // `source` is the one project-scoped kind: no worldID (SP-104).
+            const QString sourceID = b.createObject(root, kSourceKind, name, QString(), QString())
+                                         .value(QStringLiteral("objectID")).toString();
+            if (b.lastCallFailed() || sourceID.isEmpty()) { return QObject::tr("The source could not be created."); }
+            b.createEdge(root, sourceID, objectID, kCites, QString());
+            if (b.lastCallFailed()) {   // the source is kept: it is the writer's work, and Cite… can attach it
+                return QObject::tr("“%1” was created, but could not be attached to “%2”. The source is saved — use “Cite…” "
+                                   "to attach it.").arg(name, documenting);
+            }
+            return {};
+        });
+    });
+    form->open();
+}
+
+void ObjectDetailDialog::citeOf(const Edge& edge)
+{
+    showCitation(this, bridge_, root_, edge.otherID, edgeName(edge), entry_.objectID, detail_.displayName, QString());
+}
+
+void ObjectDetailDialog::showCitation(QWidget* parent, ScriviBridge* bridge, const QString& root, const QString& sourceID,
+                                      const QString& displayName, const QString& citingObjectID, const QString& citingName,
+                                      const QString& attribution)
+{
+    if (bridge == nullptr || parent == nullptr) { return; }
+    struct Record {
+        QString name, subtitle, notes, attribution;
+        QList<QPair<QString, QString>> fields;
+    };
+    const WorkerBridge::Handle handle = WorkerBridge::handleFor(bridge);
+    AsyncCall::run<Record>(
+        parent,
+        [handle, root, sourceID, displayName, citingObjectID, citingName, attribution]() -> Record {
+            WorkerBridge b(handle);
+            Record r;
+            r.name = displayName;
+            r.attribution = attribution;
+            const QJsonObject json = QJsonDocument::fromJson(b->openObject(root, kSourceKind, sourceID, QString())
+                                                                 .value(QStringLiteral("objectJson")).toString().toUtf8())
+                                         .object();
+            if (!json.isEmpty()) {
+                r.name = json.value(QStringLiteral("displayName")).toString(displayName);
+                r.subtitle = json.value(QStringLiteral("subtitle")).toString();
+                r.notes = json.value(QStringLiteral("notes")).toString();
+                // T-0453: `attributes` is an ARRAY of {"k","v"}, not an object.
+                QMap<QString, QString> attrs;
+                for (const QJsonValue& v : json.value(QStringLiteral("attributes")).toArray()) {
+                    attrs.insert(v.toObject().value(QStringLiteral("k")).toString(), v.toObject().value(QStringLiteral("v")).toString());
+                }
+                // Apple's `CitationField`, in its order and words.
+                const QList<QPair<QString, QString>> known{{QStringLiteral("author"), QObject::tr("Author")},
+                                                           {QStringLiteral("year"), QObject::tr("Year")},
+                                                           {QStringLiteral("publisher"), QObject::tr("Publisher")},
+                                                           {QStringLiteral("page"), QObject::tr("Page")},
+                                                           {QStringLiteral("url"), QObject::tr("URL")},
+                                                           {QStringLiteral("accessed"), QObject::tr("Accessed")}};
+                for (const auto& [key, label] : known) {
+                    const QString value = attrs.value(key).trimmed();
+                    if (!value.isEmpty()) { r.fields.append({label, value}); }
+                }
+            }
+            if (!citingObjectID.isEmpty()) {
+                QStringList others;
+                for (const QVariant& v : b->listEdgesFor(root, sourceID).value(QStringLiteral("edges")).toList()) {
+                    const QVariantMap m = v.toMap();
+                    const QString other = m.value(QStringLiteral("otherID")).toString();
+                    const QString name = m.value(QStringLiteral("otherDisplayName")).toString();
+                    if (m.value(QStringLiteral("relationType")).toString() == kCites && other != sourceID && other != citingObjectID
+                        && !name.isEmpty() && !others.contains(name)) {
+                        others << name;
+                    }
+                }
+                r.attribution = others.isEmpty() ? QObject::tr("Cited by %1").arg(citingName)
+                                                 : QObject::tr("Cited by %1, and by %2").arg(citingName, others.join(QStringLiteral(", ")));
+            }
+            return r;
+        },
+        [parent](const Record& r) {
+            auto* popup = new QDialog(parent);
+            popup->setObjectName(QStringLiteral("citationPopup"));
+            popup->setAttribute(Qt::WA_DeleteOnClose);
+            popup->setWindowTitle(r.name);
+            auto* col = new QVBoxLayout(popup);
+            auto* name = new QLabel(r.name, popup);
+            name->setObjectName(QStringLiteral("citationName"));
+            QFont f = name->font();
+            f.setBold(true);
+            name->setFont(f);
+            col->addWidget(name);
+            if (!r.subtitle.isEmpty()) { col->addWidget(new QLabel(r.subtitle, popup)); }
+            auto* by = new QLabel(r.attribution, popup);
+            by->setObjectName(QStringLiteral("citationAttribution"));
+            by->setWordWrap(true);
+            by->setForegroundRole(QPalette::PlaceholderText);
+            col->addWidget(by);
+            if (!r.fields.isEmpty()) {
+                auto* fields = new QWidget(popup);
+                fields->setObjectName(QStringLiteral("citationFields"));
+                auto* form = new QFormLayout(fields);
+                form->setContentsMargins(0, 4, 0, 4);
+                for (const auto& [label, value] : r.fields) {
+                    auto* v = new QLabel(value, fields);
+                    v->setTextInteractionFlags(Qt::TextSelectableByMouse);
+                    v->setWordWrap(true);
+                    form->addRow(label, v);
+                }
+                col->addWidget(fields);
+            }
+            if (!r.notes.isEmpty()) {
+                auto* notes = new QLabel(r.notes, popup);
+                notes->setWordWrap(true);
+                col->addWidget(notes);
+            }
+            auto* buttons = new QDialogButtonBox(QDialogButtonBox::Close, popup);
+            QObject::connect(buttons, &QDialogButtonBox::rejected, popup, &QDialog::reject);
+            col->addWidget(buttons);
+            popup->setMinimumWidth(300);
+            popup->open();
+        },
+        [] {},
+        AsyncCall::kProjectOpenTimeoutMs);
 }

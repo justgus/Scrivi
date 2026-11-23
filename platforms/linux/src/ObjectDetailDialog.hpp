@@ -6,6 +6,10 @@
 // object as it is on disk now, merged per field (I-0155); a re-read keeps what the writer edited (I-0165b); an object whose world
 // is away is shown read-only and explained, never written (R9); a world going away while open loses nothing (I-0165, T-0450).
 // ⚠️ It reads nothing from its host (Apple's S8): everything arrives as a parameter, and every read and write runs on a worker.
+//
+// [SP-236] EP-059 C1–C4 — Sources and Related below the image (`ObjectSourcesSection`, `ObjectRelationsSection`), and
+// navigation inside the window: a related object or source opens in place, Back returns (Apple's `NavigationStack`; no
+// Forward, user ruling 2026-09-23).
 
 #include <QDialog>
 #include <QImage>
@@ -18,9 +22,14 @@
 class QAction;
 class QLabel;
 class QLineEdit;
+class QListWidget;
+class QListWidgetItem;
 class QPlainTextEdit;
 class QPushButton;
 class QStackedWidget;
+class QTimer;
+class QTreeWidget;
+class QTreeWidgetItem;
 class QWidget;
 class ScriviBridge;
 
@@ -46,13 +55,24 @@ public:
     [[nodiscard]] bool hasChanges() const;
     [[nodiscard]] bool isReadOnly() const;
 
+    // C3: open another object in this window. Unsaved changes ask Save · Discard · Cancel first (the close prompt).
+    void navigateTo(const Entry& entry);
+
+    // C4: a source's citation record — the fields that are set, who cites it — in a small window over `parent`.
+    // `citingName` non-empty: "Cited by <citingName>, and by <others>" is read; empty: `attribution` is shown as given.
+    static void showCitation(QWidget* parent, ScriviBridge* bridge, const QString& root, const QString& sourceID,
+                             const QString& displayName, const QString& citingObjectID, const QString& citingName,
+                             const QString& attribution);
+
 public slots:
     void save();
     void revert();
     void requestClose();   // every exit: ✕, Esc, the title bar — asks when there are unsaved changes (T-0452)
+    void goBack();         // C3: with unsaved changes asks Save · Discard — no Cancel (user ruling, 2026-09-23)
 
 signals:
     void saved();   // a write landed: the host refreshes the Inspector (I-0155)
+    void showSceneRequested(const QString& sceneID);   // a related SCENE: it has no detail view; the manuscript goes there
 
 protected:
     void reject() override;
@@ -67,6 +87,10 @@ private:
     struct World {
         QString name, status, reason;
     };
+    struct Edge {
+        QString edgeID, relationType, label, otherID, otherName, otherKind, otherWorldID, otherWorldStatus;
+        bool pending = false;
+    };
     struct Read {
         bool opened = false;
         bool worldAway = false;
@@ -76,6 +100,8 @@ private:
         QString imagePath;
         QImage image;
         QMap<QString, World> worlds;
+        QList<Edge> edges;
+        bool edgesRead = false;
     };
     struct Write {
         QString error;
@@ -100,6 +126,21 @@ private:
     void removeImage();
     void finishClose();
 
+    // C1–C4.
+    void showEntry(const Entry& entry);   // the trail moved: start over on `entry`
+    void rebuildGraph();
+    QString edgeName(const Edge& edge) const;
+    QString pendingSentence(const Edge& edge) const;
+    void activateEdge(const Edge& edge);
+    void relationMenu(const QPoint& pos);
+    void sourceMenu(const QPoint& pos);
+    void runGraphWrite(QLabel* errorLabel, std::function<QString(ScriviBridge&)> work);
+    void chooseRelation();
+    void chooseSource();
+    void newSource();
+    void citeOf(const Edge& edge);
+    [[nodiscard]] const Edge* edgeFor(const QString& edgeID) const;
+
     ScriviBridge* bridge_;
     QString root_;
     QString projectID_;
@@ -115,9 +156,16 @@ private:
     QImage image_;
     bool saving_ = false;
     bool imageWorking_ = false;
+    bool graphWorking_ = false;
     bool closeAfterSave_ = false;
     bool closing_ = false;
     int readGeneration_ = 0;
+    QList<Entry> back_;   // C3: the objects behind this one, oldest first
+    std::function<void()> afterSave_;   // a navigation waiting on the save its prompt asked for
+    QList<Edge> edges_;
+    bool edgesRead_ = false;
+    QTimer* sourceClick_ = nullptr;   // a click waits out the double-click interval: one gesture, one action
+    QString sourceClickEdge_;
 
     QStackedWidget* pages_ = nullptr;
     QWidget* messagePage_ = nullptr;
@@ -140,6 +188,16 @@ private:
     QPushButton* imageExisting_ = nullptr;
     QPushButton* imageRemove_ = nullptr;
     QLabel* imageError_ = nullptr;
+    QPushButton* cite_ = nullptr;
+    QPushButton* newSource_ = nullptr;
+    QListWidget* sources_ = nullptr;
+    QLabel* noSources_ = nullptr;
+    QLabel* sourcesError_ = nullptr;
+    QPushButton* relate_ = nullptr;
+    QTreeWidget* relations_ = nullptr;
+    QLabel* noRelations_ = nullptr;
+    QLabel* relationsError_ = nullptr;
+    QAction* backAction_ = nullptr;
     QLabel* metadata_ = nullptr;
     QLabel* status_ = nullptr;
     QAction* saveAction_ = nullptr;

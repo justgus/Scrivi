@@ -1,5 +1,9 @@
 # Sprint Backlog
 
+*Last Updated: 2026-11-22 (**SP-236 removed** — activated 2026-11-22.)*
+
+*Last Updated: 2026-11-22 (**SP-236 created in 🔵 Planning** — EP-059 part C, relationships, sources and navigation in the detail view (C1–C4) (user, 2026-11-22: *"close SP-235, then plan C1-C4"*); Q1–Q6 to rule.)*
+
 *Last Updated: 2026-11-22 (**SP-235 removed** — activated 2026-11-22.)*
 
 *Last Updated: 2026-11-22 (**SP-235 created in 🔵 Planning** — EP-059 part B, the object detail view and its image (B1–B4) (user, 2026-11-22: *"close SP-234, then plan B1-B4"*); Q1–Q6 to rule.)*

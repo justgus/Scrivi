@@ -8,8 +8,8 @@
 
 ## ✅ T-0697 — `[Linux]` EP-059 B1–B4: the object detail view and its image, as the Mac's
 
-**Epic:** [EP-059] (B1, B2, B3, B4) · **Status:** ✅ Verified 2026-11-22 (user, 2026-11-22: *"Steps 11-18 pass.  I saw all the banners and they appeared and disappeared at the proper times."*) · **Sprint:** [SP-235] (🟡 Active) →
-[`../../Sprints/Sprint-SP-235.md`](../../Sprints/Sprint-SP-235.md) · **Date Requested:** 2026-11-22 (user, 2026-11-22: *"close SP-234, then plan B1-B4"*)
+**Epic:** [EP-059] (B1, B2, B3, B4) · **Status:** ✅ Verified 2026-11-22 (user, 2026-11-22: *"Steps 11-18 pass.  I saw all the banners and they appeared and disappeared at the proper times."*) · **Sprint:** [SP-235] (✅ Closed) →
+[`../../Sprints/Closed/Sprint-SP-235.md`](../../Sprints/Closed/Sprint-SP-235.md) · **Date Requested:** 2026-11-22 (user, 2026-11-22: *"close SP-234, then plan B1-B4"*)
 
 **What:** the Mac's object detail sheet (`ObjectDetailSheet.swift`, `ObjectImageSection.swift`) on Linux, in place of the "not built
 yet" message (`EditorShell.cpp:4503`): Name, Subtitle, Notes, Tags, edited and saved by patch; the image added, replaced, chosen from

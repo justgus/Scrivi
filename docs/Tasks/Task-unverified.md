@@ -1,5 +1,7 @@
 # Unverified Tasks
 
+*Last Updated: 2026-11-22 (**T-0698, T-0699 → 🟠 Implemented - Not Verified** ([SP-236] built); the live pass is the user's.)*
+
 *Last Updated: 2026-11-22 (**T-0697 → ✅ Verified** (user, 2026-11-22: *"Steps 11-18 pass.  I saw all the banners and they appeared and disappeared at the proper times."*) → `Verified/Task-verified-0697.md`.)*
 
 *Last Updated: 2026-11-22 (**T-0697 → 🟠 Implemented - Not Verified** ([SP-235] built); the live pass is the user's.)*
@@ -163,6 +165,35 @@ Tasks that are **implemented and awaiting user verification** before being archi
 ⚠️ This file must not disagree with [`Task-active.md`](Task-active.md) or
 [`Task-backlog.md`](Task-backlog.md). A Task implemented but unverified belongs **here** — not left
 in the backlog carrying a 🟠 status.
+
+---
+
+## 🟠 T-0698 — `[Linux]` EP-059 C1–C3: relationships and navigation in the detail view, as the Mac's
+
+**Epic:** [EP-059] (C1, C2, C3) · **Status:** 🟠 Implemented - Not Verified · **Sprint:** [SP-236] (🟡 Active) →
+[`../Sprints/Sprint-SP-236.md`](../Sprints/Sprint-SP-236.md) · **Date Requested:** 2026-11-22 (user, 2026-11-22: *"close SP-235, then plan C1-C4"*)
+
+**What:** the Mac's Related section (`ObjectRelationsSection.swift`) and relation picker (`ObjectRelationPicker.swift`) in Linux's
+`ObjectDetailDialog`, and navigation inside it: a related object opens in the same window, with Back. Findings, questions and ACs:
+the Sprint.
+
+**Built:** `ObjectDetailDialog` — navigation in place (`navigateTo`, `showEntry`, Back with Alt+Left, the two prompts), the Related
+section (grouped by the core's label, pending rows explained, Show, Remove Relationship, a scene row shows the scene), and Relate…
+(`relatePicker`). Details and the live pass: the Sprint.
+
+---
+
+## 🟠 T-0699 — `[Linux]` EP-059 C4: sources in the detail view and the scene's Sources card, as the Mac's
+
+**Epic:** [EP-059] (C4) · **Status:** 🟠 Implemented - Not Verified · **Sprint:** [SP-236] (🟡 Active) →
+[`../Sprints/Sprint-SP-236.md`](../Sprints/Sprint-SP-236.md) · **Date Requested:** 2026-11-22 (user, 2026-11-22: *"close SP-235, then plan C1-C4"*)
+
+**What:** the Mac's Sources section (`ObjectSourcesSection.swift`: Cite…, New Source…, the citation popover, Remove Citation) in
+`ObjectDetailDialog`, and the scene's Sources card (`SourcesCard.swift`) in the Writing stack. Findings, questions and ACs: the Sprint.
+
+**Built:** `ObjectDetailDialog` — the Sources section (Cite…, New Source…, Show Source, Remove Citation) and the citation window
+(`showCitation`, shared); `SceneInspector` — the Sources card in the Writing stack, its citations read with the scene only when the
+card is there. Details and the live pass: the Sprint.
 
 ---
 

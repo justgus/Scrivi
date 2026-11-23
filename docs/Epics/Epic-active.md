@@ -1,5 +1,9 @@
 # Active Epics
 
+*Last Updated: 2026-11-22 (**EP-059:** [SP-236] 🟡 ACTIVE (user, 2026-11-22: *"Q1-Q6 as recommended, implement SP-236"*), built (C1–C4); C3, C4 reworded (Q2, Q4); ⏳ its live pass.)*
+
+*Last Updated: 2026-11-22 (**EP-059:** [SP-235] ✅ closed (user, 2026-11-22: *"close SP-235, then plan C1-C4"*); [SP-236] 🔵 Planning — C1–C4 ([T-0698], [T-0699]); Q1–Q6 to rule.)*
+
 *Last Updated: 2026-11-22 (**EP-059:** [SP-235] ✅ Complete — live pass passed; B1–B4 [x]; awaiting close approval.)*
 
 *Last Updated: 2026-11-22 (**EP-059:** [SP-235] 🟡 ACTIVE (user, 2026-11-22: *"Q1-Q6 as recommended, implement SP-235"*), built (B1–B4); ⏳ its live pass.)*
@@ -177,7 +181,7 @@
 
 ## EP-059: `[Linux]` **Linux catches up with the Mac** — every capability gap, one Epic
 
-**Status:** 🟡 **ACTIVE** 2026-11-20 (user, 2026-11-20: *"Nope.  Can't archive yet.  We need to do the Linux gap epic first."*); part E = [SP-230] ✅ closed 2026-11-21; part D = [SP-231] ✅ closed 2026-11-21; part F (toolbar) = [SP-232] ✅ closed 2026-11-21; part A's first Sprint = [SP-233] ✅ closed 2026-11-22; its second = [SP-234] ✅ closed 2026-11-22; part B (B1–B4) = [SP-235] ✅ Complete 2026-11-22, awaiting close approval. Created 2026-11-20 (user, 2026-11-20: *"yes, file G1–G9 as an Epic (include everything here, so it is all tracked at once."*). ✅ It **supersedes [EP-035], [EP-036] and [EP-037]**
+**Status:** 🟡 **ACTIVE** 2026-11-20 (user, 2026-11-20: *"Nope.  Can't archive yet.  We need to do the Linux gap epic first."*); part E = [SP-230] ✅ closed 2026-11-21; part D = [SP-231] ✅ closed 2026-11-21; part F (toolbar) = [SP-232] ✅ closed 2026-11-21; part A's first Sprint = [SP-233] ✅ closed 2026-11-22; its second = [SP-234] ✅ closed 2026-11-22; part B (B1–B4) = [SP-235] ✅ closed 2026-11-22; part C (C1–C4) = [SP-236] 🟡 Active, built. Created 2026-11-20 (user, 2026-11-20: *"yes, file G1–G9 as an Epic (include everything here, so it is all tracked at once."*). ✅ It **supersedes [EP-035], [EP-036] and [EP-037]**
 (user, 2026-11-20: *"One Epic for all"*), which are closed into it: their ACs are carried below by reference, verified ones kept.
 **Source:** [`../Scrivi_Linux_Capability_Gap_Review_v0_1.md`](../Scrivi_Linux_Capability_Gap_Review_v0_1.md) (G1–G9, read from the code
 2026-11-20). The core is at parity; every gap is a Linux surface.
@@ -215,11 +219,12 @@ on the Mac.
 - [x] **B6** ✅ [SP-233] (EP-036 AC4b; **G4**) — the stack picker: add and remove cards on a stack (depends on B5) → [SP-233]
 
 *C. Relationships and sources — from [EP-037] ([`Closed/Epic-EP-037.md`](Closed/Epic-EP-037.md)):*
-- [ ] **C1** (EP-037 AC1) — the related-objects section, labels read from the right endpoint
-- [ ] **C2** (EP-037 AC2) — a relationship created from the sheet, shown from both ends
-- [ ] **C3** (EP-037 AC3) — push-navigation to a related object, with back and forward
-- [ ] **C4** (EP-037 AC4; **G3**) — sources created from the object they document, with citation detail and footnote text; a
-      scene cites the project's sources (Apple: `SourcesCard.swift`)
+- [ ] **C1** (EP-037 AC1, [T-0698] → [SP-236]) — the related-objects section, labels read from the right endpoint
+- [ ] **C2** (EP-037 AC2, [T-0698] → [SP-236]) — a relationship created from the sheet, shown from both ends
+- [ ] **C3** (EP-037 AC3, [T-0698] → [SP-236]) — push-navigation to a related object, with Back (✅ no Forward, as the Mac — user ruling 2026-09-23; [SP-236] Q2)
+- [ ] **C4** (EP-037 AC4; **G3**, [T-0699] → [SP-236]) — sources created from the object they document, with citation detail
+      (shown, not edited — the Mac has no editor, [I-0370]; footnote text is [EP-032]'s; [SP-236] Q4); a scene shows the sources its
+      objects cite (Apple: `SourcesCard.swift`)
 - [ ] **C5** (EP-037 AC5, [T-0472]) — a surface for custom relation types (`scrivi_upsert_relation_type`)
 - [ ] **C6** (EP-037 AC6) — a C ABI test for `scrivi_upsert_relation_type`
 

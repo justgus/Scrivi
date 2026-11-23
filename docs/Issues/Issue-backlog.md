@@ -1,5 +1,7 @@
 # Issue Backlog
 
+*Last Updated: 2026-11-22 — **I-0370 filed here** ([SP-236] Q4) (user, 2026-11-22: *"Q1-Q6 as recommended, implement SP-236"*); not assigned.*
+
 *Last Updated: 2026-11-22 — **I-0369 filed here** (found building [SP-235] B2); not assigned.*
 
 *Last Updated: 2026-11-22 — **I-0368 filed here** ([SP-235] Q3) (user, 2026-11-22: *"Q1-Q6 as recommended, implement SP-235"*); not assigned.*
@@ -48,6 +50,7 @@ Issues listed here are open and documented but not currently assigned to a Sprin
 | ID | Title | Severity | Sprint |
 | -- | ----- | -------- | ------ |
 | **I-0349** | `[Linux]` ⛔ **After a load the window freezes ~5.5 s — GNOME offers "Wait or Force Quit"** (user, 2026-11-04: *"It only started happening today"*). ✅ Measured: the first paint of the manuscript loads FALLBACK FONTS one by one through fontconfig (`QFontEngineMulti::ensureEngineAt` → `FT_New_Face`, main-thread stack sampled); present since at least 2026-11-02 (build 1.0.321); the dialog is likely new with today's gnome-shell upgrade. ✅ A part was mine ([SP-203]'s accessibility layer handled each of a load's thousands of events alone) — coalesced. ✅ **Part 2 (fonts) fixed and verified** ([SP-217], 2026-11-13); ⏳ Part 3: dumas still pauses ~751 ms (accessibility rebuilds the Find text for every scene at once). → [details](#i-0349) | Medium | — |
+| **I-0370** | `[Apple]` **A source's citation fields can't be entered, and New Source… says they can** → [details](#i-0370) | Medium | — |
 | **I-0369** | `[Apple]` **Replace… and Remove delete an image another object still shows** (Choose Existing… lets two objects share one) → [details](#i-0369) | Medium | — |
 | **I-0368** | `[Linux]` **The scene's Tags card is a comma field, where the Mac's is chips** (a tag cannot hold a comma) → [details](#i-0368) | Low | — |
 | **I-0367** | `[Apple]` **The object cards restate the kinds: `ObjectCardKind.all` names all ten, each with its relation type** (the standing rule) → [details](#i-0367) | Low | — |
@@ -114,6 +117,21 @@ the-river-of-time 11.6 s → **no stall**; dumas 11.0 s → **751 ms**.
 all 1,174 scenes at once on the main thread (`ManuscriptAccessibility` → `PresentedText::refresh` → `buildScene`), sampled.
 
 ---
+
+## I-0370: `[Apple]` A source's citation fields can't be entered, and New Source… says they can
+
+**Found:** 2026-11-22, planning [SP-236] C4 (Q4, (user, 2026-11-22: *"Q1-Q6 as recommended, implement SP-236"*)). Read from the code.
+**What:** the citation popover (`SourcesCard.swift`, `ObjectSourcesSection.swift`) shows Author, Year, Publisher, Page, URL and
+Accessed from a source's `attributes` (`CitationField`, `Scrivi/Views/Detail/Citation.swift`), but nothing in the app writes them:
+the detail sheet has no field for them, and `git log -S` finds no editor ever. New Source…'s form says *"Author, year and the rest are
+edited on the source itself — double-click it once it appears."* — the sheet that opens has no such fields. A writer can create a
+source and never record who wrote it.
+**How Linux does it ([SP-236]):** shows the fields that are set, read-only, as the Mac; its New Source… form does not repeat the
+sentence.
+**Next:** a citation section in the detail sheet when the object is a source (Mac and iOS first, then Linux); see also [T-0459]
+(`page` belongs on the edge).
+**Severity:** Medium — a documented capability with no surface, and the app tells the writer it exists.
+**Status:** 🔵 Open.
 
 ## I-0369: `[Apple]` Replace… and Remove delete an image another object still shows
 

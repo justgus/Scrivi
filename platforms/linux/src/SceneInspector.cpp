@@ -6,6 +6,7 @@
 #include "ThemeColours.hpp"
 #include "WorldStatusText.hpp"
 
+#include "ObjectDetailDialog.hpp"   // [SP-236]: the citation window, shared with the detail view
 #include "ObjectKindScope.hpp"
 #include "ScriviBridge.hpp"
 
@@ -35,7 +36,9 @@
 #include <QJsonObject>
 #include <QLabel>
 #include <optional>
+#include <QApplication>
 #include <QLineEdit>
+#include <QListWidget>
 #include <QLocale>
 #include <QMenu>
 #include <QSet>
@@ -213,10 +216,52 @@ QWidget* SceneInspector::buildWritingTab()
     historySection_ = new HistorySection(parkedBodies_);
     historySection_->header()->hide();
 
+    // [SP-236] C4: the Sources card — the sources reached through this scene's objects (scene → objects → cites →
+    // source), one row per source with the objects that cite it (Apple: `SourcesCard.swift`). Read-only.
+    sourcesBody_ = new QWidget(parkedBodies_);
+    sourcesBody_->setObjectName(QStringLiteral("sourcesCard"));
+    auto* sourcesCol = new QVBoxLayout(sourcesBody_);
+    sourcesCol->setContentsMargins(0, 0, 0, 0);
+    sourcesEmpty_ = new QLabel(sourcesBody_);
+    sourcesEmpty_->setObjectName(QStringLiteral("sourcesEmpty"));
+    sourcesEmpty_->setWordWrap(true);
+    sourcesEmpty_->setEnabled(false);
+    sourcesCol->addWidget(sourcesEmpty_);
+    sourcesList_ = new QListWidget(sourcesBody_);
+    sourcesList_->setObjectName(QStringLiteral("sourcesList"));
+    sourcesList_->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    sourcesList_->setContextMenuPolicy(Qt::CustomContextMenu);
+    sourcesCol->addWidget(sourcesList_);
+    sourceClick_ = new QTimer(this);
+    sourceClick_->setSingleShot(true);
+    sourceClick_->setInterval(QApplication::doubleClickInterval());
+    connect(sourcesList_, &QListWidget::itemClicked, this, [this](QListWidgetItem* item) {
+        sourceClickRow_ = sourcesList_->row(item);
+        sourceClick_->start();
+    });
+    connect(sourceClick_, &QTimer::timeout, this, [this] { showSourceCitation(sourceClickRow_); });
+    connect(sourcesList_, &QListWidget::itemActivated, this, [this](QListWidgetItem* item) {
+        sourceClick_->stop();
+        openSource(sourcesList_->row(item));
+    });
+    connect(sourcesList_, &QListWidget::customContextMenuRequested, this, [this](const QPoint& pos) {
+        QListWidgetItem* item = sourcesList_->itemAt(pos);
+        if (item == nullptr) { return; }
+        sourcesList_->setCurrentItem(item);
+        const int row = sourcesList_->row(item);
+        auto* menu = new QMenu(this);
+        menu->setObjectName(QStringLiteral("sourcesCardMenu"));
+        menu->setAttribute(Qt::WA_DeleteOnClose);
+        menu->addAction(tr("View Detail"), this, [this, row] { openSource(row); });
+        menu->addAction(tr("Show Citation"), this, [this, row] { showSourceCitation(row); });
+        menu->popup(sourcesList_->viewport()->mapToGlobal(pos));
+    });
+
     writingBodies_ = {{QStringLiteral("tags"), tagsEdit_},
                       {QStringLiteral("outline"), outlineEdit_},
                       {QStringLiteral("todo"), todoEdit_},
-                      {QStringLiteral("history"), historySection_}};
+                      {QStringLiteral("history"), historySection_},
+                      {QStringLiteral("sources"), sourcesBody_}};
 
     writingStack_.stack = QStringLiteral("writing");
     QWidget* tab = buildStack(writingStack_);
@@ -282,6 +327,7 @@ QWidget* SceneInspector::buildStack(StackUI& ui)
             connect(a, &QAction::triggered, this, [this, u, type] {
                 layout_.addCard(sceneID_, u->stack, type);
                 rebuildStack(*u);
+                if (type == QLatin1String("sources")) { reload(); }   // its citations ride the scene's read only when wanted
             });
         }
     });
@@ -349,10 +395,10 @@ QList<SceneInspector::CardInfo> SceneInspector::availableCards(const QString& st
 {
     QList<CardInfo> out;
     if (stack == QLatin1String("writing")) {
-        // ⚠️ Card typeIDs, not ObjectKinds (Apple's `WritingToolCards.swift` / `HistoryCard.swift`). The Mac's Sources
-        // card is C4's, not built on Linux yet: a layout naming it shows as a card this version lacks, and is removable.
+        // ⚠️ Card typeIDs, not ObjectKinds (Apple's `WritingToolCards.swift` / `HistoryCard.swift` / `SourcesCard.swift`).
         out = {{QStringLiteral("history"), tr("History"), {}},
                {QStringLiteral("outline"), tr("Outline"), {}},
+               {QStringLiteral("sources"), tr("Sources"), {}},
                {QStringLiteral("tags"), tr("Tags"), {}},
                {QStringLiteral("todo"), tr("To-do"), {}}};
     } else if (bridge_ != nullptr && ObjectKindScope::isLoaded(bridge_)) {
@@ -641,6 +687,8 @@ struct SceneInspector::ReloadPayload {
     QVariantMap worldsResult;
     QVariantMap notesResult;
     QVariantMap metricsResult;   // T-0647; empty when the call failed (the last figures stay)
+    QVariantMap citationsResult;   // [SP-236]: only when the Sources card is in the scene's Writing stack
+    bool citationsFailed = true;
     bool edgesFailed   = true;
     bool objectsFailed = true;
     bool worldsFailed  = true;
@@ -699,6 +747,7 @@ void SceneInspector::startRead()
     const QString root   = projectRootPath_;
     const QString scene  = sceneID_;
     const int generation = reloadGeneration_;
+    const bool citations = wantsCitations();
     // A slow read is waited for, never abandoned: the writer is told, and the cards fill when it lands.
     QTimer::singleShot(AsyncCall::kDefaultTimeoutMs, this, [this, generation] {
         if (readInFlight_ && generation == reloadGeneration_) {
@@ -708,10 +757,10 @@ void SceneInspector::startRead()
 
     AsyncCall::run<ReloadPayload>(
         this,
-        [bridgeHandle, root, scene]() -> ReloadPayload {
+        [bridgeHandle, root, scene, citations]() -> ReloadPayload {
             WorkerBridge bridge(bridgeHandle);
             ReloadPayload p;
-            const QVariantMap all = bridge->loadSceneInspector(root, scene, false);
+            const QVariantMap all = bridge->loadSceneInspector(root, scene, citations);
             if (bridge->lastCallFailed()) { return p; }   // every part failed
             p.revision = bridge->lastRevision();
             auto part = [&all](const char* key, QVariantMap& out, bool& failed) {
@@ -722,6 +771,7 @@ void SceneInspector::startRead()
             part("objects", p.objectsResult, p.objectsFailed);
             part("worlds",  p.worldsResult,  p.worldsFailed);
             part("notes",   p.notesResult,   p.notesFailed);
+            if (citations) { part("citations", p.citationsResult, p.citationsFailed); }
             return p;
         },
         [this, scene, root, generation](const ReloadPayload& p) {
@@ -742,6 +792,7 @@ void SceneInspector::startRead()
             setReadCue({});
             if (worldStack_.cardsHost != nullptr) { worldStack_.cardsHost->setEnabled(true); }
             applyReload(p);
+            applySources(p);
             applyNotes(p.notesResult, p.notesFailed);
             applyMetrics(p);   // the scene's Links now; the project's figures when readMetrics() lands
             readMetrics();
@@ -2023,4 +2074,80 @@ void SceneInspector::onContextMenuRequested(const QPoint& pos)
         emit openObjectRequested(item->data(0, kRoleKind).toString(), objectID, item->data(0, kRoleWorldID).toString(),
                                  item->data(0, kRoleDisplayName).toString(), pending);
     }
+}
+
+// ── [SP-236] C4: the Sources card ─────────────────────────────────────────────────────────────────────────────
+
+bool SceneInspector::wantsCitations() const
+{
+    if (sceneID_.isEmpty()) { return false; }
+    for (const auto& e : layout_.cards(sceneID_, QStringLiteral("writing"))) {
+        if (e.type == QLatin1String("sources")) { return true; }
+    }
+    return false;
+}
+
+void SceneInspector::applySources(const ReloadPayload& p)
+{
+    if (sourcesList_ == nullptr || !wantsCitations()) { return; }
+    sourceRows_.clear();
+    sourcesList_->clear();
+    const bool failed = p.edgesFailed || p.citationsFailed;
+    if (!failed) {
+        QHash<QString, QVariantList> citationsOf;
+        for (const QVariant& v : p.citationsResult.value(QStringLiteral("objects")).toList()) {
+            const QVariantMap m = v.toMap();
+            citationsOf.insert(m.value(QStringLiteral("objectID")).toString(), m.value(QStringLiteral("edges")).toList());
+        }
+        // Apple's `SourcesCardModel.apply`: a source reached through two objects appears ONCE, naming both.
+        for (const QVariant& v : p.edgesResult.value(QStringLiteral("edges")).toList()) {
+            const QVariantMap objectEdge = v.toMap();
+            if (objectEdge.value(QStringLiteral("otherPending")).toBool()) { continue; }   // its edges cannot be read
+            const QString objectID = objectEdge.value(QStringLiteral("otherID")).toString();
+            const QString objectName = objectEdge.value(QStringLiteral("otherDisplayName")).toString();
+            for (const QVariant& c : citationsOf.value(objectID)) {
+                const QVariantMap cite = c.toMap();
+                const QString farID = cite.value(QStringLiteral("otherID")).toString();
+                if (cite.value(QStringLiteral("relationType")).toString() != QLatin1String("cites") || farID == objectID
+                    || cite.value(QStringLiteral("otherKind")).toString() != QLatin1String("source")) {
+                    continue;
+                }
+                auto it = std::find_if(sourceRows_.begin(), sourceRows_.end(), [&](const SourceRow& r) { return r.sourceID == farID; });
+                if (it == sourceRows_.end()) {
+                    sourceRows_.append({farID, cite.value(QStringLiteral("otherDisplayName")).toString(), {}});
+                    it = sourceRows_.end() - 1;
+                }
+                if (!it->via.contains(objectName)) { it->via.append(objectName); }
+            }
+        }
+    }
+    for (const SourceRow& r : std::as_const(sourceRows_)) {
+        auto* item = new QListWidgetItem(r.name + QLatin1Char('\n') + tr("via %1").arg(r.via.join(QStringLiteral(", "))),
+                                         sourcesList_);
+        item->setToolTip(tr("Click to show the citation; double-click to show the source"));
+    }
+    sourcesEmpty_->setText(failed ? tr("This scene's sources could not be read.")
+                                  : tr("No sources cited by this scene's objects."));
+    sourcesEmpty_->setVisible(sourceRows_.isEmpty());
+    sourcesList_->setVisible(!sourceRows_.isEmpty());
+    if (!sourceRows_.isEmpty()) {   // the card takes its rows' height: one scroll region (I-0159)
+        int h = 2 * sourcesList_->frameWidth() + 2;
+        for (int i = 0; i < sourcesList_->count(); ++i) { h += sourcesList_->sizeHintForRow(i); }
+        sourcesList_->setFixedHeight(h);
+    }
+}
+
+void SceneInspector::showSourceCitation(int row)
+{
+    if (row < 0 || row >= sourceRows_.size()) { return; }
+    const SourceRow& r = sourceRows_.at(row);
+    ObjectDetailDialog::showCitation(this, bridge_, projectRootPath_, r.sourceID, r.name, QString(), QString(),
+                                     tr("via %1").arg(r.via.join(QStringLiteral(", "))));
+}
+
+void SceneInspector::openSource(int row)
+{
+    if (row < 0 || row >= sourceRows_.size()) { return; }
+    const SourceRow& r = sourceRows_.at(row);
+    emit openObjectRequested(QStringLiteral("source"), r.sourceID, QString(), r.name, false);   // project-scoped: no world
 }

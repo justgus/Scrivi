@@ -1,5 +1,9 @@
 # Task Backlog
 
+*Last Updated: 2026-11-22 (**T-0698, T-0699 → active** with [SP-236]'s activation (user, 2026-11-22: *"Q1-Q6 as recommended, implement SP-236"*); built the same day → 🟠 `Task-unverified.md`.)*
+
+*Last Updated: 2026-11-22 (**T-0698, T-0699 filed** — EP-059 C1–C4, carried by [SP-236] (🔵 Planning) (user, 2026-11-22: *"close SP-235, then plan C1-C4"*).)*
+
 *Last Updated: 2026-11-22 (**T-0697 → active** with [SP-235]'s activation (user, 2026-11-22: *"Q1-Q6 as recommended, implement SP-235"*); built the same day → 🟠 `Task-unverified.md`.)*
 
 *Last Updated: 2026-11-22 (**T-0697 filed** — EP-059 B1–B4, carried by [SP-235] (🔵 Planning) (user, 2026-11-22: *"close SP-234, then plan B1-B4"*).)*

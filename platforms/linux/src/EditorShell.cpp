@@ -4491,6 +4491,14 @@ void EditorShell::onOpenObjectRequested(const QString& objectKind,
     connect(detailDialog_, &ObjectDetailDialog::saved, this, [this] {
         if (inspector_ != nullptr) { inspector_->reload(); }
     });
+    // [SP-236] C3: a related SCENE has no detail view — the manuscript goes there, as the navigator click does (I-0151).
+    connect(detailDialog_, &ObjectDetailDialog::showSceneRequested, this, [this](const QString& sceneID) {
+        const int idx = sceneDoc_.sceneIndexForScene(sceneID);
+        if (idx >= 0) {
+            moveCaretToSegment(idx);
+            selectNavigatorScene(sceneID);
+        }
+    });
     detailDialog_->open();
 }
 

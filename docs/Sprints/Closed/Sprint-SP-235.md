@@ -1,8 +1,8 @@
 # Sprint SP-235 — `[Linux]` [EP-059] B: the object detail view and its image (B1–B4)
 
-**Status:** ✅ **COMPLETE** 2026-11-22 — awaiting close approval (live pass: user, 2026-11-22: *"Steps 11-18 pass.  I saw all the banners and they appeared and disappeared at the proper times."*). 🟡 Activated 2026-11-22 (user, 2026-11-22: *"Q1-Q6 as recommended, implement SP-235"*); ✅ Q1–Q6 as recommended. Built 2026-11-22: AC1–AC5 met; AC6 green in Docker (CI on the push). ⏳ AC7 live pass. Created 2026-11-22 (user, 2026-11-22: *"close SP-234, then plan B1-B4"*).
+**Status:** ✅ **CLOSED** 2026-11-22 (user, 2026-11-22: *"close SP-235, then plan C1-C4"*). Live pass: user, 2026-11-22: *"Steps 11-18 pass.  I saw all the banners and they appeared and disappeared at the proper times."*. 🟡 Activated 2026-11-22 (user, 2026-11-22: *"Q1-Q6 as recommended, implement SP-235"*); ✅ Q1–Q6 as recommended. Built 2026-11-22; AC1–AC7 met (CI green). Created 2026-11-22 (user, 2026-11-22: *"close SP-234, then plan B1-B4"*).
 **Carries:** [T-0697] (B1–B4).
-**Epic:** [EP-059] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md) — part **B**, on [SP-233]'s stacks and [SP-234]'s card verbs.
+**Epic:** [EP-059] → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md) — part **B**, on [SP-233]'s stacks and [SP-234]'s card verbs.
 **Size:** L — one new surface. Every endpoint it needs is already bridged (`openObject`, `saveObject`, `listObjects`, `importAsset`,
 `listAssets`, `removeAsset`, `listWorlds` in `ScriviBridge.hpp`); none of the asset ones has a Linux caller yet.
 
@@ -168,6 +168,7 @@ existing project in the ScriviLinux/projects folder"*): `dumas-prose-timelines-h
 
 ## Progress log
 
+- **2026-11-22** — ✅ **CLOSED** (user, 2026-11-22: *"close SP-235, then plan C1-C4"*).
 - **2026-11-22** — ✅ **Complete**: live pass 11–18 (user: *"Steps 11-18 pass.  I saw all the banners and they appeared and disappeared at the proper times."*); CI green; T-0697 ✅ Verified. Awaiting close approval.
 - **2026-11-22** — Live pass: steps 1–10 pass but 3 (Return in a tag pressed Add Image…; fixed, smokes 49/49). ⏳ 3, 11–15.
 - **2026-11-22** — Built: AC1–AC5 met; AC6 green in Docker (884/884, 49/49); T-0697 → 🟠; [I-0369] filed. ⏳ AC7 live pass, CI.
@@ -175,4 +176,4 @@ existing project in the ScriviLinux/projects folder"*): `dumas-prose-timelines-h
 - **2026-11-22** — 🔵 **Created in Planning** via `next-id.py` (user, 2026-11-22: *"close SP-234, then plan B1-B4"*); carries [T-0697]
   (new). Q1–Q6 to rule.
 
-*Last Updated: 2026-11-22 (✅ Complete; awaiting close approval.)*
+*Last Updated: 2026-11-22 (✅ Closed.)*

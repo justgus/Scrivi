@@ -1,5 +1,9 @@
 # Active Sprints
 
+*Last Updated: 2026-11-22 (**SP-236 → 🟡 ACTIVE** (user, 2026-11-22: *"Q1-Q6 as recommended, implement SP-236"*) → [`Sprint-SP-236.md`](Sprint-SP-236.md); Q1–Q6 as recommended. Built — AC1–AC5 met, AC6 green in Docker (CI on the push); T-0698, T-0699 → 🟠. ⏳ AC7 live pass.)*
+
+*Last Updated: 2026-11-22 (**SP-235 → ✅ CLOSED** (user, 2026-11-22: *"close SP-235, then plan C1-C4"*) → `Closed/Sprint-SP-235.md`; T-0697 ✅ Verified, archived. No Sprint is active.)*
+
 *Last Updated: 2026-11-22 (**SP-235 ✅ Complete** — live pass passed, CI green; awaiting close approval.)*
 
 *Last Updated: 2026-11-22 (**SP-235 → 🟡 ACTIVE** (user, 2026-11-22: *"Q1-Q6 as recommended, implement SP-235"*) → [`Sprint-SP-235.md`](Sprint-SP-235.md); Q1–Q6 as recommended. Built — AC1–AC5 met, AC6 green in Docker (CI on the push); T-0697 → 🟠. ⏳ AC7 live pass.)*
