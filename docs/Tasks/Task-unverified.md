@@ -1,5 +1,7 @@
 # Unverified Tasks
 
+*Last Updated: 2026-11-23 (**T-0472 → ✅ Verified** (user, 2026-11-23: *"All steps pass on the Linux VM."*); archived when [SP-238] closes.)*
+
 *Last Updated: 2026-11-23 (**T-0472 → 🟠 Implemented - Not Verified** ([SP-238] built); the live pass is the user's.)*
 
 *Last Updated: 2026-11-23 (**T-0700 archived** → `Verified/Task-verified-0700.md` — [SP-237] closed (user, 2026-11-23: *"Close SP-237."*).)*
@@ -176,7 +178,7 @@ in the backlog carrying a 🟠 status.
 
 ## 🟠 T-0472 — `[Linux]` EP-059 C5: custom relationship types on Linux, as the Mac's
 
-**Epic:** [EP-059] (C5) · **Status:** 🟠 Implemented - Not Verified · **Sprint:** [SP-238] (🟡 Active) →
+**Epic:** [EP-059] (C5) · **Status:** ✅ Verified (user, 2026-11-23: *"All steps pass on the Linux VM."*) · **Sprint:** [SP-238] (🟡 Active) →
 [`../Sprints/Sprint-SP-238.md`](../Sprints/Sprint-SP-238.md) · **Date Requested:** 2026-08-25 (EP-034 close / SP-121's ABI gap audit)
 
 **What:** the Mac's surface ([SP-237]) on Linux: Project Settings ▸ Relationship Types (built-in types marked Built in, Edit… on

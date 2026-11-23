@@ -1,7 +1,7 @@
 # Sprint SP-238 — `[Linux]` [EP-059] C5: custom relationship types on Linux, as the Mac's
 
-**Status:** 🟡 **ACTIVE** 2026-11-23 (user, 2026-11-23: *"Q1-Q3 as recommended, implement SP-238"*); ✅ Q1–Q3 as recommended. Built 2026-11-23: AC1–AC2 met; AC3 green in Docker (CI on the
-push). ⏳ AC4 live pass. Created 2026-11-22 (user, 2026-11-22: *"plan C5-C6"*).
+**Status:** 🟡 **ACTIVE** 2026-11-23 (user, 2026-11-23: *"Q1-Q3 as recommended, implement SP-238"*); ✅ Q1–Q3 as recommended. Built 2026-11-23: AC1–AC2 met; AC3 green in Docker; ✅ AC4 live pass (user, 2026-11-23: *"All steps pass on the Linux VM."*).
+✅ **All ACs met**; CI green on `c748b08`; awaiting close approval. Created 2026-11-22 (user, 2026-11-22: *"plan C5-C6"*).
 **Carries:** [T-0472] (C5 on Linux; filed 2026-08-25).
 **Epic:** [EP-059] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md) — part **C**: C5.
 **Size:** S — the endpoint is bridged (`ScriviBridge::upsertRelationType`); one settings section and one form, in the shape [SP-237] sets.
@@ -90,15 +90,16 @@ project: there is no delete yet ([T-0701]).
 
 - [x] AC1 — Linux's Project Settings lists and edits relationship types as the Mac's.
 - [x] AC2 — Relate… offers New Type…; the new type is selected and usable at once.
-- [~] AC3 — A smoke through a real project window; ctest and every smoke green in Docker; CI green. ✅ 886/886, 49/49; ⏳ CI.
-- [ ] AC4 — Live pass on the Linux VM, on an existing project there.
+- [x] AC3 — A smoke through a real project window; ctest and every smoke green in Docker; CI green. ✅ 886/886, 49/49; CI green on `c748b08`.
+- [x] AC4 — Live pass on the Linux VM, on an existing project there. ✅ `the-river-of-time` (user, 2026-11-23: *"All steps pass on the Linux VM."*)
 
 ## Progress log
 
+- **2026-11-23** — ✅ **AC4 met**: every live-pass step passes on the VM (user, 2026-11-23: *"All steps pass on the Linux VM."*). T-0472 ✅ Verified. CI green on `c748b08` (Linux App CI; the only workflow the push touched). Awaiting close approval.
 - **2026-11-23** — Built: AC1, AC2 met; AC3 green in Docker; T-0472 → 🟠. ⏳ AC4 live pass, CI.
 - **2026-11-23** — 🟡 **ACTIVE** (user, 2026-11-23: *"Q1-Q3 as recommended, implement SP-238"*); Q1–Q3 as recommended; T-0472 → active.
 - **2026-11-23** — Planned (user, 2026-11-23: *"plan SP-238"*): findings 1–5, Q1–Q3 to rule.
 - **2026-11-23** — ✅ Unblocked: [SP-237] closed (user, 2026-11-23: *"Close SP-237."*).
 - **2026-11-22** — 🔵 **Created in Planning** via `next-id.py` (user, 2026-11-22: *"plan C5-C6"*); carries [T-0472] (existing). ⛔ Blocked by [SP-237].
 
-*Last Updated: 2026-11-23 (Built; ⏳ AC4 live pass, CI.)*
+*Last Updated: 2026-11-23 (All ACs met; awaiting close approval.)*
