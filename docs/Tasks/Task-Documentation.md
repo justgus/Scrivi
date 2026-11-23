@@ -725,7 +725,7 @@ archive files reconstructed after the fact from secondary sources.
 | T-0469 | ⚠️ **THE LIVE-USE PASS** — ✅ **user ran it, CLEAN** | SP-122 | EP-034 | ✅ **Implemented - Verified** | [`Verified/Task-verified-0466-0471.md`](Verified/Task-verified-0466-0471.md) | — |
 | T-0470 | ⚠️ **Re-verify AC1–AC10 against their own triggers** — ✅ **no failures** | SP-122 | EP-034 | ✅ **Implemented - Verified** | [`Verified/Task-verified-0466-0471.md`](Verified/Task-verified-0466-0471.md) | — |
 | T-0471 | **EP-034 close prep** — ✅ **Audit Check RUN**; summary drafted | SP-122 | EP-034 | ✅ **Implemented - Verified** | [`Verified/Task-verified-0466-0471.md`](Verified/Task-verified-0466-0471.md) | — |
-| T-0472 | ⚠️ **`[Linux]` Surface for custom relationship types** — `scrivi_upsert_relation_type` has NEVER had a caller | 🟡 SP-238 | **EP-059** C5 (was EP-037) | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) | — |
+| T-0472 | ⚠️ **`[Linux]` Surface for custom relationship types** — `scrivi_upsert_relation_type` has NEVER had a caller | ✅ SP-238 | **EP-059** C5 (was EP-037) | ✅ Verified 2026-11-23 | [`Verified/Task-verified-0472.md`](Verified/Task-verified-0472.md) | — |
 | T-0473 | ⚠️ **`[Apple]` Timeline endpoint parity** — 3 endpoints unreached on Apple | — | ⚠️ **None** | 🔵 Backlog | — | — |
 | T-0474 | ⚠️ **Account + SSH + reachability** — ⚠️ **USER, physical access**; gates EP-038 | SP-123 | **EP-038** | ⚠️ **Blocked — user** | — | — |
 | T-0475 | **Toolchain + deps** — ⚠️ **Qt ≥ 6.4 confirmed**; real desktop, ⚠️ **not xvfb** | SP-123 | **EP-038** | ⚪ Blocked | — | — |
@@ -842,6 +842,8 @@ archive files reconstructed after the fact from secondary sources.
 | T-0699 | `[Linux]` EP-059 C4: sources in the detail view and the scene's Sources card, as the Mac's | ✅ SP-236 | **EP-059** | ✅ Verified 2026-11-22 | [`Verified/Task-verified-0699.md`](Verified/Task-verified-0699.md) |
 | T-0700 | `[Apple]` EP-059 C5/C6: custom relationship types on the Mac and iOS; the upsert endpoint's C ABI test and fixes | ✅ SP-237 | **EP-059** | ✅ Verified 2026-11-23 | [`Verified/Task-verified-0700.md`](Verified/Task-verified-0700.md) |
 | T-0701 | `[Cross]` Delete a relationship type no edge uses | — | — | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
+| T-0702 | `[Apple]` EP-059 A8: Delete and Change Kind for objects on the Mac and iOS | 🟡 SP-239 | **EP-059** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
+| T-0703 | `[Linux]` EP-059 A9: Delete and Change Kind for objects on Linux, as the Mac's | 🔵 SP-240 | **EP-059** | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
 | T-0685 | `[Apple]` EP-055 S3a: undo/redo, structural edits, cross-scene clipboard on iOS | ✅ SP-222 | **EP-055** | ✅ Verified | [`Verified/Task-verified-0685.md`](Verified/Task-verified-0685.md) |
 | T-0690 | `[Apple]` EP-055 S8: TestFlight for iPad, iPhone and the Mac | 🔵 SP-228 | **EP-055** | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
 | T-0689 | `[Apple]` EP-055 S7: the whole app at iPhone width | ✅ SP-227 | **EP-055** | ✅ Verified | [`Verified/Task-verified-0689.md`](Verified/Task-verified-0689.md) |
@@ -892,6 +894,12 @@ archive files reconstructed after the fact from secondary sources.
 ⚠️ **This index ended at `T-0485 (next available)` until 2026-09-10 — ✅ that was STALE.** ⚠️ **T-0485–T-0498 had all been taken**, and T-0485–T-0490/T-0492–T-0496 are archived as Verified. ⚠️ **Rows for T-0486–T-0497 are NOT reconstructed here** — ✅ **their Sprints' closed records are authoritative** (`feedback_archive_on_close`).
 
 ---
+
+*Last Updated: 2026-11-23 (**T-0702 → 🟠** ([SP-239] built).)*
+
+*Last Updated: 2026-11-23 (**T-0702, T-0703 filed** ([SP-239], [SP-240], 🔵 Planning).)*
+
+*Last Updated: 2026-11-23 (**T-0472 → ✅ Verified**, archived ([SP-238] closed).)*
 
 *Last Updated: 2026-11-23 (**T-0472 → 🟠** ([SP-238] built).)*
 

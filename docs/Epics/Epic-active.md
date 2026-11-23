@@ -1,5 +1,11 @@
 # Active Epics
 
+*Last Updated: 2026-11-23 (**EP-059:** [SP-239] 🟡 ACTIVE (user, 2026-11-23: *"Q1-Q5 as recommended, implement SP-239"*), built (A8); ⏳ its live pass.)*
+
+*Last Updated: 2026-11-23 (**EP-059:** A8/A9 planned (user, 2026-11-23: *"plan A8"*) — [SP-239] the Mac and iOS (T-0702), [SP-240] Linux (T-0703), blocked by it; Q1–Q5 to rule.)*
+
+*Last Updated: 2026-11-23 (**EP-059:** [SP-238] ✅ closed (user, 2026-11-23: *"close SP-238"*); C5 [x] — part C complete.)*
+
 *Last Updated: 2026-11-23 (**EP-059:** [SP-238] 🟡 ACTIVE (user, 2026-11-23: *"Q1-Q3 as recommended, implement SP-238"*), built (C5 on Linux); ⏳ its live pass.)*
 
 *Last Updated: 2026-11-23 (**EP-059:** [SP-237] ✅ closed (user, 2026-11-23: *"Close SP-237."*); C6 [x]; C5 done on the Mac and iOS, Linux = [SP-238], unblocked.)*
@@ -215,8 +221,8 @@ on the Mac.
       reorder — `moveCards` has no caller; [SP-233] Q2)
 - [ ] **A8** `[Apple]` — Delete Object and Promote on the Mac and iOS, which have neither today (the core has both). New 2026-11-21
       (user, 2026-11-21: *"Build them on Linux and Mac and iOS (will require two Sprints.  One for Linux and one for MacOS/iOS).  The
-      Linux sprint should block on the MacOS/iOS sprint's completion."*) — its own Sprint, not yet created
-- [ ] **A9** — Delete Object and Promote on Linux, in the shape A8 sets. ⛔ **Blocked by A8's Sprint.** Not yet created
+      Linux sprint should block on the MacOS/iOS sprint's completion."*) — [T-0702] → [SP-239] (🟡 Active)
+- [ ] **A9** — Delete Object and Promote on Linux, in the shape A8 sets. ⛔ **Blocked by A8's Sprint.** [T-0703] → [SP-240] (Planning)
 
 *B. The detail sheet and media — from [EP-036] ([`Closed/Epic-EP-036.md`](Closed/Epic-EP-036.md)):*
 - [x] **B1** (EP-036 AC1; **G1**, [T-0697] → [SP-235]) — the object detail view, in place of today's "not built yet" message (`EditorShell.cpp:4503`):
@@ -235,7 +241,7 @@ on the Mac.
 - [x] **C4** (EP-037 AC4; **G3**, [T-0699] → [SP-236]) — sources created from the object they document, with citation detail
       (shown, not edited — the Mac has no editor, [I-0370]; footnote text is [EP-032]'s; [SP-236] Q4); a scene shows the sources its
       objects cite (Apple: `SourcesCard.swift`)
-- [ ] **C5** (EP-037 AC5, [T-0700] → [SP-237] the Mac and iOS ✅, then [T-0472] → [SP-238] Linux, open) — a surface for custom relation types (`scrivi_upsert_relation_type`)
+- [x] **C5** (EP-037 AC5, [T-0700] → [SP-237] the Mac and iOS ✅, then [T-0472] → [SP-238] Linux ✅) — a surface for custom relation types (`scrivi_upsert_relation_type`)
 - [x] **C6** (EP-037 AC6, [T-0700] → [SP-237] ✅) — a C ABI test for `scrivi_upsert_relation_type`
 
 *D. Worlds — new 2026-11-20:*

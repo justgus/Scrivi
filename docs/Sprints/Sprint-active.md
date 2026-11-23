@@ -1,6 +1,8 @@
 # Active Sprints
 
-*Last Updated: 2026-11-23 (**SP-238**: ✅ all ACs met — VM live pass (user, 2026-11-23: *"All steps pass on the Linux VM."*), CI green on `c748b08`. Awaiting close approval.)*
+*Last Updated: 2026-11-23 (**SP-239 → 🟡 ACTIVE** (user, 2026-11-23: *"Q1-Q5 as recommended, implement SP-239"*) → [`Sprint-SP-239.md`](Sprint-SP-239.md); Q1–Q5 as recommended. Built — AC1–AC4 met, AC5 green locally (CI on the push); T-0702 → 🟠. ⏳ AC6 live pass.)*
+
+*Last Updated: 2026-11-23 (**SP-238 → ✅ CLOSED** (user, 2026-11-23: *"close SP-238"*) → `Closed/Sprint-SP-238.md`; T-0472 ✅ Verified, archived. No Sprint is active.)*
 
 *Last Updated: 2026-11-23 (**SP-238 → 🟡 ACTIVE** (user, 2026-11-23: *"Q1-Q3 as recommended, implement SP-238"*) → [`Sprint-SP-238.md`](Sprint-SP-238.md); Q1–Q3 as recommended. Built — AC1–AC2 met, AC3 green in Docker (CI on the push); T-0472 → 🟠. ⏳ AC4 live pass.)*
 

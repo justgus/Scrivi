@@ -1050,6 +1050,28 @@ TEST_CASE("promoting to the kind an object already has is refused",
                 .getString("detail") == "sameKind");
 }
 
+TEST_CASE("[SP-239] only an item and an artifact change into each other; any other pair is refused and changes nothing",
+          "[integration][SP-239]") {
+    CApiFixture fix;
+    const auto hero = fix.makeObject("character", "Hero");
+    const auto key  = fix.makeObject("item", "Brass Key");
+    const auto src  = fix.makeObject("source", "A Letter");
+    REQUIRE(errorOf(scrivi_promote_object(fix.root(), hero.c_str(), "map", fix.defaultWorldID.c_str()))
+                .getString("detail") == "notPromotable");
+    REQUIRE(errorOf(scrivi_promote_object(fix.root(), key.c_str(), "location", fix.defaultWorldID.c_str()))
+                .getString("detail") == "notPromotable");
+    REQUIRE(errorOf(scrivi_promote_object(fix.root(), src.c_str(), "item", fix.defaultWorldID.c_str()))
+                .getString("detail") == "notPromotable");
+    REQUIRE(objectIDsIn(okResult(scrivi_list_objects(fix.root(), "character"))) == std::vector<std::string>{hero});
+    REQUIRE(objectIDsIn(okResult(scrivi_list_objects(fix.root(), "item"))) == std::vector<std::string>{key});
+    REQUIRE(objectIDsIn(okResult(scrivi_list_objects(fix.root(), "map"))).empty());
+    // The pair itself still works, both ways.
+    REQUIRE(okResult(scrivi_promote_object(fix.root(), key.c_str(), "artifact", fix.defaultWorldID.c_str()))
+                .getString("kind") == "artifact");
+    REQUIRE(okResult(scrivi_promote_object(fix.root(), key.c_str(), "item", fix.defaultWorldID.c_str()))
+                .getString("kind") == "item");
+}
+
 // ---------------------------------------------------------------------------
 // T-0406 — the `source` object kind (closes EP-031 AC1)
 //

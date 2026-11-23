@@ -505,6 +505,19 @@ ObjectStore::promote(const AbsolutePath& projectRoot,
              .detail  = "sameKind"});
     }
 
+    // [SP-239] Q4 — only an item and an artifact change into each other (§3.1). Any other pair would leave the
+    // object's kind-specific fields describing the kind it no longer is.
+    const bool itemArtifact = (sourceKind == ObjectKind::item && targetKind == ObjectKind::artifact)
+                           || (sourceKind == ObjectKind::artifact && targetKind == ObjectKind::item);
+    if (!itemArtifact) {
+        return Result<PromoteResult>::failure(
+            {.code    = ErrorCode::invalidArgument,
+             .message = "only an item and an artifact can change into each other, not '" +
+                        objectKindName(sourceKind) + "' into '" + objectKindName(targetKind) + "'",
+             .path    = {},
+             .detail  = "notPromotable"});
+    }
+
     // The target's scope decides which worldID applies: promotion needs one,
     // demotion clears it.
     const bool targetIsWorld = objectKindIsWorldScoped(targetKind);

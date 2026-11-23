@@ -117,6 +117,8 @@ struct ObjectDetailSheet: View {
         case navigatedAway(from: ObjectDetailHistory.Entry)
     }
     @State private var isSaving = false
+    /// [SP-239] Delete <Kind>…'s alert is up.
+    @State private var confirmingDelete = false
 
     /// ⚠️ [I-0246] — WHAT JUST HAPPENED, because the sheet no longer closes to say it.
     ///
@@ -340,6 +342,12 @@ struct ObjectDetailSheet: View {
         // ⛔ NOT a timed auto-hide: a banner that vanishes on its own is missed by a
         // writer who looked away, and one that lingers past new typing is the confusion
         // this rule exists to prevent.
+        .alert("Delete “\(detail?.displayName ?? "this object")”?", isPresented: $confirmingDelete) {
+            Button("Delete", role: .destructive) { deleteCurrent() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(deleteMessage)
+        }
         .onChange(of: hasChanges) { _, changed in
             if changed { actionStatus = nil }
         }
@@ -462,6 +470,8 @@ struct ObjectDetailSheet: View {
             }
             .disabled(isSaving || !hasChanges)
             .help("Undo Changes — discard your edits and return to the saved version")
+
+            moreMenu
         }
 
         // ⚠️ **CLOSE IS THE CONFIRMATION ACTION** — it is what dismisses the sheet.
@@ -1116,6 +1126,81 @@ struct ObjectDetailSheet: View {
                     loadError = error.localizedDescription
                 }
             }
+        }
+    }
+
+    // MARK: — [SP-239] (EP-059 A8): Delete and Change Kind
+
+    /// Only an item and an artifact change into each other (Object Model v0.2 §3.1; the core refuses any other pair).
+    private func otherKind(_ kind: String) -> String? {
+        switch kind {
+        case "item":     "artifact"
+        case "artifact": "item"
+        default:         nil
+        }
+    }
+
+    /// More (⋯), after Undo Changes: Change to Artifact / Item, then Delete <Kind>…. Greyed while the world is away.
+    private var moreMenu: some View {
+        Menu {
+            if let detail, let target = otherKind(detail.kind) {
+                let change = Button("Change to \(target.capitalized)") { changeKind(to: target) }.disabled(hasChanges)
+                if hasChanges {
+                    Section("Save your changes first") { change }
+                } else {
+                    change
+                }
+            }
+            Button("Delete \(detail?.kind.capitalized ?? "Object")…", role: .destructive) { confirmingDelete = true }
+        } label: {
+            Image(systemName: "ellipsis.circle")
+        }
+        .disabled(detail == nil || isSaving || isReadOnlyNow)
+        .help("More")
+    }
+
+    private var deleteMessage: String {
+        guard let detail else { return "" }
+        let name = detail.displayName
+        let unsaved = hasChanges ? " Your unsaved changes are discarded." : ""
+        if detail.worldID.isEmpty {
+            return "“\(name)” will be removed from this project, with its citations and relationships. "
+                 + "This can't be undone.\(unsaved)"
+        }
+        return "“\(name)” will be removed from the world “\(worldName(for: detail.worldID))” and from every project that "
+             + "uses it, with its relationships in this project. This can't be undone.\(unsaved)"
+    }
+
+    private func deleteCurrent() {
+        guard let detail, !isReadOnly(detail) else { return }
+        do {
+            _ = try engine.deleteObject(projectRootPath: projectRootPath, objectKind: detail.kind,
+                                        objectID: detail.objectID, worldID: detail.worldID)
+        } catch {
+            saveError = (error as? ScriviError)?.message ?? error.localizedDescription
+            return
+        }
+        self.detail = nil   // nothing left to save: no prompt on the way out
+        onDidSave()         // the inspector's cards drop it
+        if path.isEmpty {
+            onClose()
+        } else {
+            path.removeLast()   // Back: `sheetObservers` trims the trail and loads the previous object
+        }
+    }
+
+    private func changeKind(to target: String) {
+        guard let detail, let entry = currentEntry, !isReadOnly(detail), !hasChanges else { return }
+        do {
+            let moved = try engine.promoteObject(projectRootPath: projectRootPath, objectID: detail.objectID,
+                                                 targetKind: target, worldID: detail.worldID)
+            self.detail = nil   // adopt the object under its new kind wholesale
+            trail[trail.count - 1] = .init(objectID: entry.objectID, kind: moved.kind, worldID: moved.worldID,
+                                           displayName: entry.displayName)   // `currentEntry` changes: load()
+            if trail.count == 1 { history.visit(trail[0]) }
+            onDidSave()         // it moves from one card to the other
+        } catch {
+            saveError = (error as? ScriviError)?.message ?? error.localizedDescription
         }
     }
 

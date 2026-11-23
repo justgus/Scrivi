@@ -2,6 +2,10 @@
 
 *Last Updated: 2026-11-22 (**T-0700 → active** with [SP-237]'s activation (user, 2026-11-22: *"Q1-Q7 as recommended, implement SP-237"*); built the same day → 🟠 `Task-unverified.md`. T-0701 kept (Q5 as recommended).)*
 
+*Last Updated: 2026-11-23 (**T-0702 removed** → `Task-unverified.md` ([SP-239] built) (user, 2026-11-23: *"Q1-Q5 as recommended, implement SP-239"*).)*
+
+*Last Updated: 2026-11-23 (**T-0702, T-0703 filed** — EP-059 A8 ([SP-239]) and A9 ([SP-240], blocked by it) (user, 2026-11-23: *"plan A8"*).)*
+
 *Last Updated: 2026-11-23 (**T-0472 removed** → `Task-unverified.md` ([SP-238] built) (user, 2026-11-23: *"Q1-Q3 as recommended, implement SP-238"*).)*
 
 *Last Updated: 2026-11-22 (**T-0700, T-0701 filed** — EP-059 C5/C6 ([SP-237], 🔵 Planning) and SP-237 Q5's delete; **T-0472 → [SP-238]** (blocked by SP-237) (user, 2026-11-22: *"plan C5-C6"*).)*
@@ -183,6 +187,7 @@ status changes on its own layer.
 | ---- | ----- | ---- | ------ |
 | T-0690 | `[Apple]` EP-055 S8: TestFlight for iPad, iPhone and the Mac | EP-055 | 🔵 Backlog — [SP-228] |
 | T-0701 | `[Cross]` Delete a relationship type no edge uses (a new endpoint, every platform) | ⚠️ None yet | 🔵 Backlog — [SP-237] Q5 (ruled 2026-11-22) |
+| T-0703 | `[Linux]` EP-059 A9: Delete and Change Kind for objects on Linux, as the Mac's | [SP-240] (⛔ blocked by SP-239) | 🔵 Backlog — Planning |
 | T-0118 | Scroll bar fidelity — per-scene character-ratio thumb position and size | EP-011 | 🔵 Backlog |
 | T-0197 | Enable Core Spotlight donation on iOS/iPadOS (+ iOS deep-link/bookmark consumer); visionOS when backend links | EP-017 (deferred from T-0190) | 🔵 Backlog |
 | **T-0459** | ⚠️ **`[Cross]` Per-citation reference markers on the `cites` EDGE** — surface the edge `note`, and ⚠️ **move `page` off the source object** | **EP-032** | 🔵 **Backlog** — ⚠️ **found by live use, SP-120** |

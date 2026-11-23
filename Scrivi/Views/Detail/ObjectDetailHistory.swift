@@ -70,8 +70,9 @@ final class ObjectDetailHistory {
     /// no-op, which is what stops a double-click stacking duplicates (the shape of
     /// [I-0132], where a re-selection wrote an unchanged value and the update was
     /// coalesced away).
+    /// [SP-239]: the same object under a new kind (Change to Artifact) is a new entry — the sheet must open it as that kind.
     func visit(_ entry: Entry) {
-        guard current?.objectID != entry.objectID else { return }
+        guard current != entry else { return }
         current = entry
     }
 

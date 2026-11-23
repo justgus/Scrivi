@@ -1060,8 +1060,8 @@
 					Security,
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.caposoft.inkwyn--INKWYN-TEST-HOST-ID-SUFFIX-";
-				"PRODUCT_BUNDLE_IDENTIFIER[sdk=macosx*]" = com.caposoft.inkwyn;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.caposoft.inkwyn$(SCRIVI_TEST_HOST_ID_SUFFIX)";
+				"PRODUCT_BUNDLE_IDENTIFIER[sdk=macosx*]" = "com.caposoft.inkwyn$(SCRIVI_TEST_HOST_ID_SUFFIX)";
 				PRODUCT_MODULE_NAME = ScriviApp;
 				PRODUCT_NAME = Inkwyn;
 				RUNTIME_EXCEPTION_ALLOW_DYLD_ENVIRONMENT_VARIABLES = NO;
@@ -1118,8 +1118,8 @@
 					Security,
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.caposoft.inkwyn--INKWYN-TEST-HOST-ID-SUFFIX-";
-				"PRODUCT_BUNDLE_IDENTIFIER[sdk=macosx*]" = com.caposoft.inkwyn;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.caposoft.inkwyn$(SCRIVI_TEST_HOST_ID_SUFFIX)";
+				"PRODUCT_BUNDLE_IDENTIFIER[sdk=macosx*]" = "com.caposoft.inkwyn$(SCRIVI_TEST_HOST_ID_SUFFIX)";
 				PRODUCT_MODULE_NAME = ScriviApp;
 				PRODUCT_NAME = Inkwyn;
 				RUNTIME_EXCEPTION_ALLOW_DYLD_ENVIRONMENT_VARIABLES = NO;

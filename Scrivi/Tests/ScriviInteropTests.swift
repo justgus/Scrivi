@@ -1934,6 +1934,27 @@ struct ScriviGraphInteropTests {
         }
     }
 
+    @Test("[SP-239] an item changes to an artifact and back, keeping its relationships; other pairs are refused; delete prunes")
+    func changeKindAndDeleteThroughTheEngine() throws {
+        let f = try makeFixture()
+        let hero = try makeCharacter(f, "Hero")
+        let key = try f.engine.createObject(projectRootPath: f.root, objectKind: "item", displayName: "Brass Key",
+                                            authorshipRef: f.ref, worldID: f.worldID).objectID
+        _ = try f.engine.createEdge(projectRootPath: f.root, fromID: hero, toID: key, relationTypeCode: "cites")
+
+        let moved = try f.engine.promoteObject(projectRootPath: f.root, objectID: key, targetKind: "artifact", worldID: f.worldID)
+        #expect(moved.objectID == key && moved.kind == "artifact")
+        #expect(try f.engine.listEdgesFor(projectRootPath: f.root, endpointID: key).edges.count == 1)
+        #expect(try f.engine.promoteObject(projectRootPath: f.root, objectID: key, targetKind: "item", worldID: f.worldID).kind == "item")
+        #expect(throws: ScriviError.self) {
+            try f.engine.promoteObject(projectRootPath: f.root, objectID: hero, targetKind: "map", worldID: f.worldID)
+        }
+
+        _ = try f.engine.deleteObject(projectRootPath: f.root, objectKind: "item", objectID: key, worldID: f.worldID)
+        #expect(try f.engine.listObjects(projectRootPath: f.root).objects.allSatisfy { $0.objectID != key })
+        #expect(try f.engine.listEdgesFor(projectRootPath: f.root, endpointID: hero).edges.isEmpty)
+    }
+
     @Test("an unconstrained relation type decodes nil kinds, meaning ANY kind")
     func citesIsUnconstrainedOnBothEnds() throws {
         let f = try makeFixture()
