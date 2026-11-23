@@ -1,9 +1,9 @@
 # Sprint SP-236 — `[Linux]` [EP-059] C: relationships, sources and navigation in the detail view (C1–C4)
 
-**Status:** 🟡 **ACTIVE** 2026-11-22 (user, 2026-11-22: *"Q1-Q6 as recommended, implement SP-236"*); ✅ Q1–Q6 as recommended. Built 2026-11-22: AC1–AC5 met; AC6
-green in Docker (CI on the push). ⏳ AC7 live pass. Created 2026-11-22 (user, 2026-11-22: *"close SP-235, then plan C1-C4"*).
+**Status:** ✅ **CLOSED** 2026-11-22 (user, 2026-11-22: *"Step 2 passes.  Close SP-236."*). Live pass: steps 1, 3–15 passed first time; step 2 after the scene-name fix. 🟡 Activated
+2026-11-22 (user, 2026-11-22: *"Q1-Q6 as recommended, implement SP-236"*); ✅ Q1–Q6 as recommended. Created 2026-11-22 (user, 2026-11-22: *"close SP-235, then plan C1-C4"*).
 **Carries:** [T-0698] (C1–C3), [T-0699] (C4).
-**Epic:** [EP-059] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md) — part **C**, on [SP-235]'s detail view.
+**Epic:** [EP-059] → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md) — part **C**, on [SP-235]'s detail view.
 **Size:** L — two sections, three pickers and a stack in an existing dialog, and one card. Every endpoint is bridged (`listEdgesFor`,
 `listRelationTypes`, `createEdge`, `deleteEdge`, `createObject`, `listObjects`, `openObject` in `ScriviBridge.hpp`).
 
@@ -171,16 +171,17 @@ On `dumas-prose-timelines-history` (world Dumas-Characters-Places), with Abbé F
 - [x] AC4 — **C4:** New Source… creates a source documenting the object; Cite… cites an existing one; the citation popover shows the
       fields that are set and who else cites it; Remove Citation; the scene's Sources card lists the sources its objects cite.
 - [x] AC5 — Read-only (its world away): Relate…, Cite…, New Source… and Remove are off, with the reason.
-- [~] AC6 — Tests: a smoke through a real project window for AC1–AC5; ctest and every smoke green in Docker; CI green. ✅ Docker:
-      ctest **884/884**, smokes **49/49**; ⏳ CI on the push.
-- [ ] AC7 — Live pass on the Linux VM, on an existing project there.
+- [x] AC6 — Tests: a smoke through a real project window for AC1–AC5; ctest and every smoke green in Docker; CI green. ✅ Docker:
+      ctest **884/884**, smokes **49/49**; ✅ CI green on `2640388` (run 45103996428).
+- [x] AC7 — Live pass on the Linux VM, on an existing project there. ✅ `dumas-prose-timelines-history` (user, 2026-11-22: *"Step 2 passes.  Close SP-236."*)
 
 ## Progress log
 
+- **2026-11-22** — ✅ **CLOSED** (user, 2026-11-22: *"Step 2 passes.  Close SP-236."*): step 2 passes after the fix; T-0698, T-0699 ✅ Verified, archived.
 - **2026-11-22** — Built: AC1–AC5 met; AC6 green in Docker (884/884, 49/49); T-0698, T-0699 → 🟠; [I-0370] filed (Q4). ⏳ AC7 live pass, CI.
 - **2026-11-22** — Live pass 1: steps 1, 3–15 pass. ⚠️ Step 2: every scene under "appears in" read "Untitled scene" — the Dumas scenes have no stored title, so the core's name is empty, and Linux skipped Apple's fallback to the Navigator's name (`ObjectRelationsSection.swift` `displayName(for:)`). Fixed: the shell hands the window its `sceneName` (`EditorShell.cpp` `onOpenObjectRequested`, `ObjectDetailDialog::edgeName`); §8's fixture scene is now untitled and checks the name (fails without the fix). 884/884, 49/49. ⏳ step 2 again.
 - **2026-11-22** — 🟡 **ACTIVE** (user, 2026-11-22: *"Q1-Q6 as recommended, implement SP-236"*); Q1–Q6 as recommended; T-0698, T-0699 → active.
 - **2026-11-22** — 🔵 **Created in Planning** via `next-id.py` (user, 2026-11-22: *"close SP-235, then plan C1-C4"*); carries [T-0698],
   [T-0699] (new). Q1–Q6 to rule.
 
-*Last Updated: 2026-11-22 (Built; ⏳ AC7 live pass, CI.)*
+*Last Updated: 2026-11-22 (✅ CLOSED.)*

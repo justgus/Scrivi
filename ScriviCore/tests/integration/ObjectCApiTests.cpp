@@ -1392,3 +1392,88 @@ TEST_CASE("[T-0647] project metrics: scenes, chapters, links, world kinds and hi
     check(okResult(scrivi_get_project_metrics(fix.root())), true);
     fix.reattachWorld("Default");
 }
+
+// ---------------------------------------------------------------------------
+// SP-237 / EP-059 C6 — scrivi_upsert_relation_type AT THE C ABI (it had no test, and no caller).
+// ---------------------------------------------------------------------------
+
+namespace {
+
+JsonDoc relationType(const CApiFixture& fix, const std::string& code) {
+    auto listed = okResult(scrivi_list_relation_types(fix.root()));
+    for (std::size_t i = 0; i < listed.arraySize("types"); ++i) {
+        if (auto t = listed.arrayItem("types", i); t.getString("code") == code) { return t; }
+    }
+    return JsonDoc{};
+}
+
+} // namespace
+
+TEST_CASE("C ABI: a custom relation type is created, listed, used from both ends and relabelled",
+          "[integration][SP-237]") {
+    CApiFixture fix;
+    // An empty code is a NEW type: the core makes the code, so a new type never replaces another.
+    auto saved = okResult(scrivi_upsert_relation_type(fix.root(),
+        R"({"code":"","forwardLabel":"mentor of","inverseLabel":"mentored by","sourceKind":"character","targetKind":"character"})"));
+    const std::string code = saved.getString("code");
+    REQUIRE(code == "mentor-of");
+    auto listed = relationType(fix, code);
+    REQUIRE(listed.getString("inverseLabel") == "mentored by");
+    REQUIRE(listed.getString("sourceKind") == "character");
+    REQUIRE_FALSE(listed.getBool("builtIn"));
+    REQUIRE_FALSE(listed.getBool("inUse"));
+    REQUIRE(relationType(fix, "cites").getBool("builtIn"));
+
+    // A second new type with the same label gets its own code.
+    auto again = okResult(scrivi_upsert_relation_type(fix.root(),
+        R"({"code":"","forwardLabel":"mentor of","inverseLabel":"mentored by"})"));
+    REQUIRE(again.getString("code") == "mentor-of-2");
+    REQUIRE(relationType(fix, code).getString("sourceKind") == "character");   // the first is untouched
+    // Unused, so its kinds may still change.
+    okResult(scrivi_upsert_relation_type(fix.root(),
+        R"({"code":"mentor-of-2","forwardLabel":"mentor of","inverseLabel":"mentored by","targetKind":"faction"})"));
+    REQUIRE(relationType(fix, "mentor-of-2").getString("targetKind") == "faction");
+
+    const auto faria  = fix.makeObject("character", "Faria");
+    const auto dantes = fix.makeObject("character", "Dantès");
+    okResult(scrivi_create_edge(fix.root(), faria.c_str(), dantes.c_str(), code.c_str(), ""));
+    REQUIRE(relationType(fix, code).getBool("inUse"));
+    REQUIRE(okResult(scrivi_list_edges_for(fix.root(), faria.c_str())).arrayItem("edges", 0).getString("label") == "mentor of");
+    REQUIRE(okResult(scrivi_list_edges_for(fix.root(), dantes.c_str())).arrayItem("edges", 0).getString("label") == "mentored by");
+
+    // Labels may change while it is used: every edge reads the new label at once (§5.2).
+    okResult(scrivi_upsert_relation_type(fix.root(), (R"({"code":")" + code
+        + R"(","forwardLabel":"teacher of","inverseLabel":"pupil of","sourceKind":"character","targetKind":"character"})").c_str()));
+    REQUIRE(okResult(scrivi_list_edges_for(fix.root(), dantes.c_str())).arrayItem("edges", 0).getString("label") == "pupil of");
+}
+
+TEST_CASE("C ABI: upsert_relation_type refuses what it used to save silently", "[integration][SP-237]") {
+    CApiFixture fix;
+    const auto before = okResult(scrivi_list_relation_types(fix.root())).arraySize("types");
+
+    // A misspelled kind was read as "any kind" and reported saved.
+    errorOf(scrivi_upsert_relation_type(fix.root(),
+        R"({"code":"","forwardLabel":"rides","inverseLabel":"ridden by","sourceKind":"charcter"})"));
+    // A world is a container, never an endpoint.
+    errorOf(scrivi_upsert_relation_type(fix.root(),
+        R"({"code":"","forwardLabel":"rules","inverseLabel":"ruled by","targetKind":"world"})"));
+    // A seeded type was "saved", then reverted by the next read.
+    errorOf(scrivi_upsert_relation_type(fix.root(),
+        R"({"code":"cites","forwardLabel":"references","inverseLabel":"referenced by"})"));
+    REQUIRE(relationType(fix, "cites").getString("forwardLabel") == "cites");
+    REQUIRE(okResult(scrivi_list_relation_types(fix.root())).arraySize("types") == before);
+
+    // A used type keeps its kinds and its symmetry.
+    const std::string code = okResult(scrivi_upsert_relation_type(fix.root(),
+        R"({"code":"","forwardLabel":"rival of","inverseLabel":"rival of","sourceKind":"character","targetKind":"character","canonicalDirection":"lexical","symmetric":true})"))
+        .getString("code");
+    const auto a = fix.makeObject("character", "Albert");
+    const auto b = fix.makeObject("character", "Fernand");
+    okResult(scrivi_create_edge(fix.root(), a.c_str(), b.c_str(), code.c_str(), ""));
+    errorOf(scrivi_upsert_relation_type(fix.root(), (R"({"code":")" + code
+        + R"(","forwardLabel":"rival of","inverseLabel":"rival of","canonicalDirection":"lexical","symmetric":true})").c_str()));
+    errorOf(scrivi_upsert_relation_type(fix.root(), (R"({"code":")" + code
+        + R"(","forwardLabel":"rival of","inverseLabel":"rivalled by","sourceKind":"character","targetKind":"character"})").c_str()));
+    REQUIRE(relationType(fix, code).getString("sourceKind") == "character");
+    REQUIRE(relationType(fix, code).getBool("symmetric"));
+}

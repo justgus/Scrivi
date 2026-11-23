@@ -50,8 +50,26 @@ struct ObjectRelationPicker: View {
     @State private var selectedType: String = ""
     @State private var sourceKind: String = ""
     @State private var loadError: String?
+    /// [SP-237] New Type…: the popover shows the form in place of the list, then returns with the new type chosen.
+    @State private var creatingType = false
 
     var body: some View {
+        if creatingType {
+            NavigationStack {
+                RelationTypeForm(engine: engine, projectRootPath: projectRootPath, editing: nil,
+                                 initialSourceKind: sourceKind) { code in
+                    creatingType = false
+                    load()
+                    if let code, usableTypes.contains(where: { $0.code == code }) { selectedType = code }
+                }
+            }
+            .frame(width: 380, height: 380)
+        } else {
+            list
+        }
+    }
+
+    private var list: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Relate to…")
                 .font(.headline)
@@ -62,7 +80,14 @@ struct ObjectRelationPicker: View {
                     .foregroundStyle(.orange)
             }
 
-            typePicker
+            HStack {
+                typePicker
+                Spacer(minLength: 4)
+                Button("New Type…") { creatingType = true }
+                    .buttonStyle(.borderless)
+                    .font(.callout)
+                    .help("Make a relationship type of your own")
+            }
 
             TextField("Search all worlds…", text: $query)
                 .textFieldStyle(.roundedBorder)

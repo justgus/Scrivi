@@ -2231,6 +2231,7 @@ public final class ScriviEngine: @unchecked Sendable {
     public func relinkWorld(projectRootPath: String, worldID: String, newPackagePath: String) throws -> RelinkWorldResult { try unavailable() }
     public func removeWorldReference(projectRootPath: String, worldID: String) throws -> RemoveWorldReferenceResult { try unavailable() }
     public func listRelationTypes(projectRootPath: String) throws -> ListRelationTypesResult { try unavailable() }
+    public func upsertRelationType(projectRootPath: String, code: String, forwardLabel: String, inverseLabel: String, sourceKind: String, targetKind: String, symmetric: Bool) throws -> UpsertRelationTypeResult { try unavailable() }
 }
 
 #endif

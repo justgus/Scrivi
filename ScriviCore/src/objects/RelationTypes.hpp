@@ -78,8 +78,15 @@ public:
 
     // Adds or replaces by `code`. Rejects declarations that would make §5.3's
     // duplicate rule unsound — see validate().
-    [[nodiscard]] Result<void> upsert(const AbsolutePath& projectRoot,
-                                      const RelationType& type) const;
+    //
+    // [SP-237] (C5, Q3/Q4): an EMPTY `code` creates a new type, its code made from the forward label and unique, so a new
+    // type never replaces another. A seeded code is refused (load() would silently revert it). A type that edges use keeps
+    // its kinds, symmetry and direction: changing them would leave stored edges violating the type or non-canonical (§5.3).
+    // Labels may always change — an edge's label is projected at read time (§5.2). Returns the type as saved.
+    [[nodiscard]] Result<RelationType> upsert(const AbsolutePath& projectRoot,
+                                              const RelationType& type) const;
+
+    [[nodiscard]] static bool isSeeded(std::string_view code);
 
     [[nodiscard]] Result<RelationType> find(const AbsolutePath& projectRoot,
                                             const std::string& code) const;

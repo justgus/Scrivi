@@ -2680,10 +2680,19 @@ const char* scrivi_list_relation_types(const char* projectRootPath)
     auto r = store.load(S(projectRootPath));
     if (!r.ok()) return heap(errorEnvelope(r.error()));
 
+    // [SP-237] Q4: which types edges use, so a surface can say why their kinds are locked.
+    scrivi::objects::RelationshipStore edgeStore{svc};
+    auto edgesR = edgeStore.load(S(projectRootPath));
+    if (!edgesR.ok()) return heap(errorEnvelope(edgesR.error()));
+    std::set<std::string> used;
+    for (const auto& e : edgesR.value()) { used.insert(e.relationType); }
+
     scrivi::util::JsonDoc doc;
     for (const auto& t : r.value()) {
         scrivi::util::JsonDoc item;
         item.setString("code",         t.code);
+        item.setBool("builtIn", scrivi::objects::RelationTypeStore::isSeeded(t.code));
+        item.setBool("inUse",   used.contains(t.code));
         item.setString("forwardLabel", t.forwardLabel);
         item.setString("inverseLabel", t.inverseLabel);
         // Absent key = any kind (never an explicit null — see RelationTypes.cpp).
@@ -2710,17 +2719,24 @@ const char* scrivi_upsert_relation_type(
     const auto& d = parsedR.value();
 
     scrivi::objects::RelationType t;
-    t.code         = d.getString("code");
+    t.code         = d.getString("code");   // empty = a new type; the core makes its code ([SP-237] Q3)
     t.forwardLabel = d.getString("forwardLabel");
     t.inverseLabel = d.getString("inverseLabel");
 
-    const std::string src = d.getString("sourceKind");
-    t.sourceIsScene = (src == "scene");
-    t.sourceKind    = t.sourceIsScene ? std::nullopt : scrivi::objectKindFromName(src);
-
-    const std::string tgt = d.getString("targetKind");
-    t.targetIsScene = (tgt == "scene");
-    t.targetKind    = t.targetIsScene ? std::nullopt : scrivi::objectKindFromName(tgt);
+    // [SP-237] Q6: absent/empty = any kind; "scene"; or a storable kind. Anything else is REFUSED — `nullopt` from
+    // objectKindFromName means "unrecognised", and reading it as "any kind" silently widened a misspelling.
+    auto readEnd = [&](const char* key, std::optional<scrivi::ObjectKind>& kind, bool& isScene) {
+        const std::string name = d.getString(key);
+        isScene = (name == "scene");
+        if (name.empty() || isScene) { return true; }
+        kind = scrivi::objectKindFromName(name);
+        return kind.has_value() && *kind != scrivi::ObjectKind::world;
+    };
+    if (!readEnd("sourceKind", t.sourceKind, t.sourceIsScene) || !readEnd("targetKind", t.targetKind, t.targetIsScene)) {
+        return heap(errorEnvelope({.code = scrivi::ErrorCode::invalidArgument,
+                                   .message = "unknown kind: sourceKind '" + d.getString("sourceKind")
+                                              + "', targetKind '" + d.getString("targetKind") + "'"}));
+    }
 
     t.canonicalDirection = d.getString("canonicalDirection") == "lexical"
         ? scrivi::objects::CanonicalDirection::lexical
@@ -2733,7 +2749,7 @@ const char* scrivi_upsert_relation_type(
     if (!r.ok()) return heap(errorEnvelope(r.error()));
 
     scrivi::util::JsonDoc doc;
-    doc.setString("code", t.code);
+    doc.setString("code", r.value().code);
     doc.setBool("saved",  true);
     return heap(okEnvelope(std::move(doc)));
 }

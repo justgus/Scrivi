@@ -280,6 +280,24 @@ public extension ScriviEngine {
         }
         return try decodeC(raw)
     }
+
+    /// [SP-237] Creates (`code` empty — the core makes a unique code from the label) or edits a writer's relation type.
+    /// An empty kind is "any kind". Same both ways is symmetric, and therefore lexical (§5.3). The core refuses a built-in
+    /// code, an unknown kind, and a kind or symmetry change to a type that edges use.
+    func upsertRelationType(projectRootPath: String, code: String, forwardLabel: String, inverseLabel: String,
+                            sourceKind: String, targetKind: String, symmetric: Bool) throws -> UpsertRelationTypeResult {
+        var type: [String: Any] = [
+            "code": code, "forwardLabel": forwardLabel, "inverseLabel": inverseLabel, "symmetric": symmetric,
+            "canonicalDirection": symmetric ? "lexical" : "source-to-target",
+        ]
+        if !sourceKind.isEmpty { type["sourceKind"] = sourceKind }   // absent = any kind
+        if !targetKind.isEmpty { type["targetKind"] = targetKind }
+        let json = String(decoding: try JSONSerialization.data(withJSONObject: type), as: UTF8.self)
+        let raw = projectRootPath.withCString { prp in
+            json.withCString { scrivi_upsert_relation_type(prp, $0) }
+        }
+        return try decodeC(raw)
+    }
 }
 
 #endif
@@ -739,6 +757,10 @@ public struct RelationTypeEntry: Decodable, Sendable, Identifiable {
     public let targetKind:         String?
     public let canonicalDirection: String
     public let symmetric:          Bool
+    /// [SP-237] One of the four every project is seeded with: not editable (the core restores them on every read).
+    public let builtIn:            Bool
+    /// [SP-237] Edges use it, so its kinds and symmetry are fixed; its labels may still change.
+    public let inUse:              Bool
 
     public var id: String { code }
 
@@ -782,6 +804,11 @@ public struct RelationTypeEntry: Decodable, Sendable, Identifiable {
     public var sourceIsScene: Bool {
         sourceKind == Self.sceneToken
     }
+}
+
+public struct UpsertRelationTypeResult: Decodable, Sendable {
+    public let code:  String
+    public let saved: Bool
 }
 
 public struct ListRelationTypesResult: Decodable, Sendable {

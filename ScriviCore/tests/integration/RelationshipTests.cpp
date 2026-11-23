@@ -593,16 +593,19 @@ TEST_CASE("⚠️ ACCEPTED CONSEQUENCE — an edited SEEDED type is overwritten 
     // writer whose relabelled `cites` quietly reverted: the alternative — never
     // touching a modified seeded type — leaves a hand-edited `appears-in` broken
     // forever with no explanation, which is I-0125's live symptom.
+    // [SP-237]: upsert now REFUSES a seeded code, so the edit is made as a writer would by hand — in the file.
     RelationType edited;
     edited.code = "cites";
     edited.forwardLabel = "references";
     edited.inverseLabel = "referenced by";
-    REQUIRE(store.upsert(fix.root(), edited).ok());
+    REQUIRE_FALSE(store.upsert(fix.root(), edited).ok());
 
-    // upsert() writes AFTER load(), so her edit is on disk right now …
+    auto all = store.load(fix.root()).value();
+    for (auto& t : all) { if (t.code == "cites") { t = edited; } }
+    REQUIRE(store.write(fix.root(), all).ok());
+
+    // The edit is on disk now, and gone the moment anything reads the vocabulary again.
     REQUIRE(store.find(fix.root(), "cites").value().forwardLabel == "cites");
-    // … and gone the moment anything reads the vocabulary again. `find()` itself
-    // goes through load(), so the line above already reconciled it back.
     REQUIRE(store.find(fix.root(), "cites").value().inverseLabel == "documented by");
 }
 

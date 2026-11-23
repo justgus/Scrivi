@@ -1,9 +1,12 @@
 #include "objects/RelationTypes.hpp"
 
+#include "objects/RelationshipStore.hpp"
+
 #include "util/Json.hpp"
 #include "util/PathUtils.hpp"
 
 #include <algorithm>
+#include <cctype>
 
 namespace scrivi::objects {
 
@@ -283,19 +286,72 @@ Result<void> RelationTypeStore::write(const AbsolutePath& projectRoot,
     return fs.atomicWriteTextFile(path(projectRoot), root.dump());
 }
 
-Result<void> RelationTypeStore::upsert(const AbsolutePath& projectRoot,
-                                        const RelationType& type) const {
-    if (auto r = validate(type); !r.ok()) { return r; }
+bool RelationTypeStore::isSeeded(std::string_view code) {
+    const auto seeds = seedTypes();
+    return std::any_of(seeds.begin(), seeds.end(), [&](const RelationType& t) { return t.code == code; });
+}
+
+namespace {
+
+// A code from a label: lowercase ASCII letters and digits, anything else one hyphen. "type" when nothing is left.
+std::string codeFromLabel(std::string_view label) {
+    std::string out;
+    for (const unsigned char c : label) {
+        if (std::isalnum(c) != 0 && c < 0x80) { out += static_cast<char>(std::tolower(c)); }
+        else if (!out.empty() && out.back() != '-') { out += '-'; }
+    }
+    while (!out.empty() && out.back() == '-') { out.pop_back(); }
+    return out.empty() ? std::string("type") : out;
+}
+
+} // namespace
+
+Result<RelationType> RelationTypeStore::upsert(const AbsolutePath& projectRoot,
+                                               const RelationType& type) const {
+    auto fail = [](std::string message) {
+        return Result<RelationType>::failure({.code = ErrorCode::invalidArgument, .message = std::move(message)});
+    };
 
     auto loadedR = load(projectRoot);
-    if (!loadedR.ok()) { return Result<void>::failure(loadedR.error()); }
-
+    if (!loadedR.ok()) { return Result<RelationType>::failure(loadedR.error()); }
     auto types = std::move(loadedR.value());
-    auto it = std::find_if(types.begin(), types.end(),
-                           [&](const RelationType& t) { return t.code == type.code; });
-    if (it != types.end()) { *it = type; } else { types.push_back(type); }
+    auto has = [&](const std::string& code) {
+        return std::any_of(types.begin(), types.end(), [&](const RelationType& t) { return t.code == code; });
+    };
 
-    return write(projectRoot, types);
+    RelationType saved = type;
+    if (saved.code.empty()) {
+        const std::string base = codeFromLabel(saved.forwardLabel);
+        saved.code = base;
+        for (int n = 2; has(saved.code) || isSeeded(saved.code); ++n) { saved.code = base + "-" + std::to_string(n); }
+    } else if (isSeeded(saved.code)) {
+        return fail("the built-in relationship type '" + saved.code + "' cannot be changed");
+    }
+    if (auto r = validate(saved); !r.ok()) { return Result<RelationType>::failure(r.error()); }
+
+    auto it = std::find_if(types.begin(), types.end(),
+                           [&](const RelationType& t) { return t.code == saved.code; });
+    if (it != types.end()) {
+        const bool shapeChanged = it->sourceKind != saved.sourceKind || it->targetKind != saved.targetKind
+                               || it->sourceIsScene != saved.sourceIsScene || it->targetIsScene != saved.targetIsScene
+                               || it->symmetric != saved.symmetric || it->canonicalDirection != saved.canonicalDirection;
+        if (shapeChanged) {
+            RelationshipStore edges{services_};
+            auto edgesR = edges.load(projectRoot);
+            if (!edgesR.ok()) { return Result<RelationType>::failure(edgesR.error()); }
+            const auto& all = edgesR.value();
+            if (std::any_of(all.begin(), all.end(), [&](const Edge& e) { return e.relationType == saved.code; })) {
+                return fail("relationship type '" + saved.forwardLabel
+                            + "' is in use, so its kinds and whether it reads the same both ways cannot change");
+            }
+        }
+        *it = saved;
+    } else {
+        types.push_back(saved);
+    }
+
+    if (auto w = write(projectRoot, types); !w.ok()) { return Result<RelationType>::failure(w.error()); }
+    return Result<RelationType>::success(std::move(saved));
 }
 
 Result<RelationType> RelationTypeStore::find(const AbsolutePath& projectRoot,

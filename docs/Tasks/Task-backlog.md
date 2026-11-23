@@ -1,5 +1,9 @@
 # Task Backlog
 
+*Last Updated: 2026-11-22 (**T-0700 → active** with [SP-237]'s activation (user, 2026-11-22: *"Q1-Q7 as recommended, implement SP-237"*); built the same day → 🟠 `Task-unverified.md`. T-0701 kept (Q5 as recommended).)*
+
+*Last Updated: 2026-11-22 (**T-0700, T-0701 filed** — EP-059 C5/C6 ([SP-237], 🔵 Planning) and SP-237 Q5's delete; **T-0472 → [SP-238]** (blocked by SP-237) (user, 2026-11-22: *"plan C5-C6"*).)*
+
 *Last Updated: 2026-11-22 (**T-0698, T-0699 → active** with [SP-236]'s activation (user, 2026-11-22: *"Q1-Q6 as recommended, implement SP-236"*); built the same day → 🟠 `Task-unverified.md`.)*
 
 *Last Updated: 2026-11-22 (**T-0698, T-0699 filed** — EP-059 C1–C4, carried by [SP-236] (🔵 Planning) (user, 2026-11-22: *"close SP-235, then plan C1-C4"*).)*
@@ -176,10 +180,11 @@ status changes on its own layer.
 | Task | Title | Epic | Status |
 | ---- | ----- | ---- | ------ |
 | T-0690 | `[Apple]` EP-055 S8: TestFlight for iPad, iPhone and the Mac | EP-055 | 🔵 Backlog — [SP-228] |
+| T-0701 | `[Cross]` Delete a relationship type no edge uses (a new endpoint, every platform) | ⚠️ None yet | 🔵 Backlog — [SP-237] Q5 (ruled 2026-11-22) |
 | T-0118 | Scroll bar fidelity — per-scene character-ratio thumb position and size | EP-011 | 🔵 Backlog |
 | T-0197 | Enable Core Spotlight donation on iOS/iPadOS (+ iOS deep-link/bookmark consumer); visionOS when backend links | EP-017 (deferred from T-0190) | 🔵 Backlog |
 | **T-0459** | ⚠️ **`[Cross]` Per-citation reference markers on the `cites` EDGE** — surface the edge `note`, and ⚠️ **move `page` off the source object** | **EP-032** | 🔵 **Backlog** — ⚠️ **found by live use, SP-120** |
-| **T-0472** | ⚠️ **`[Linux]` Surface for custom relationship types** — build the UI that calls `scrivi_upsert_relation_type`. ⚠️ **The endpoint is fully implemented and has NEVER had a caller on any platform** | **EP-059** C5 (was EP-037) | 🔵 **Backlog** — ⚠️ **user ruling 2026-08-25: a REAL FEATURE owed a surface, not dead code**; ⚠️ **moved EP-035 → EP-037 by the three-way split** |
+| **T-0472** | ⚠️ **`[Linux]` Surface for custom relationship types** — build the UI that calls `scrivi_upsert_relation_type`. ⚠️ **The endpoint is fully implemented and has NEVER had a caller on any platform** | **EP-059** C5 (was EP-037) | 🔵 **Backlog — [SP-238]**, ⛔ blocked by [SP-237] (the Mac has no surface either) — ⚠️ **user ruling 2026-08-25: a REAL FEATURE owed a surface, not dead code**; ⚠️ **moved EP-035 → EP-037 by the three-way split** |
 | **T-0473** | ⚠️ **`[Apple]` Timeline endpoint parity** — reach `resolve_timeline_project_times`, `set_timeline_epoch_offset`, `set_world_epoch_offset`. ⚠️ **Unreached on Apple; bridged on Linux by SP-121** | ⚠️ **None — no Epic** | 🔵 **Backlog** — ⚠️ **user ruling 2026-08-25: tracked, NOT scheduled** |
 | T-0621 | `[Cross]` Explore a whole-manuscript history view (a tree, or a branching timeline) | ⚠️ None yet | 🔵 Backlog — exploration |
 | T-0628 | `[Cross]` EP-052: keep a held queue on local disk and push it when the project returns | EP-052 (unscheduled) | 🔵 Backlog |

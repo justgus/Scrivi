@@ -124,13 +124,12 @@ inline std::string objectKindName(ObjectKind kind) {
 
 // Parses a singular kind name (the boundary spelling). Returns nullopt for
 // anything unrecognised — callers must never silently substitute a default.
+// Derived from kAllStorableKinds, plus `world` (a container, not storable) — never restated ([SP-237] Q7).
 inline std::optional<ObjectKind> objectKindFromName(std::string_view name) {
-    for (auto k : {ObjectKind::character, ObjectKind::location,  ObjectKind::item,
-                   ObjectKind::building,  ObjectKind::vehicle,   ObjectKind::map,
-                   ObjectKind::source,    ObjectKind::rule,      ObjectKind::artifact,
-                   ObjectKind::chronicle, ObjectKind::faction,   ObjectKind::world}) {
+    for (auto k : kAllStorableKinds) {
         if (objectKindName(k) == name) { return k; }
     }
+    if (objectKindName(ObjectKind::world) == name) { return ObjectKind::world; }
     return std::nullopt;
 }
 

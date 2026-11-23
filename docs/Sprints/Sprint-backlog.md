@@ -1,5 +1,9 @@
 # Sprint Backlog
 
+*Last Updated: 2026-11-22 (**SP-237 removed** — activated 2026-11-22.)*
+
+*Last Updated: 2026-11-22 (**SP-237, SP-238 created in 🔵 Planning** — EP-059 C5/C6: the Mac and iOS first, Linux blocked by it (user, 2026-11-22: *"plan C5-C6"*); Q1–Q7 to rule.)*
+
 *Last Updated: 2026-11-22 (**SP-236 removed** — activated 2026-11-22.)*
 
 *Last Updated: 2026-11-22 (**SP-236 created in 🔵 Planning** — EP-059 part C, relationships, sources and navigation in the detail view (C1–C4) (user, 2026-11-22: *"close SP-235, then plan C1-C4"*); Q1–Q6 to rule.)*
@@ -144,6 +148,7 @@ Sprints listed here are in 🔵 Planning status — defined and ready to activat
 
 | Sprint | Title | Epic | Doc |
 | ------ | ----- | ---- | --- |
+| **SP-238** | `[Linux]` **[EP-059] C5** — custom relationship types on Linux (T-0472) — ⛔ blocked by SP-237 | EP-059 | [`Sprint-SP-238.md`](Sprint-SP-238.md) |
 | **SP-228** | `[Apple]` **[EP-055] S8** — TestFlight for iPad, iPhone and the Mac (T-0690) | EP-055 | [`Sprint-SP-228.md`](Sprint-SP-228.md) |
 
 ---

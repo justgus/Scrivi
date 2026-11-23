@@ -32,6 +32,8 @@ struct ProjectSettingsSheet: View {
                 // EP-058 S2 (SP-210): who wrote this project, and who this machine writes as.
                 if let root = session.projectRootPath {
                     AuthorsSection(rootPath: root, onWritingAs: session.adoptWritingAs)
+                    // [SP-237] (EP-059 C5): the project's relationship types.
+                    RelationTypesSection(engine: env.engine, rootPath: root)
                 }
                 Section("Writing Surface") {
                     Toggle("Show chapter titles in manuscript", isOn: Bindable(prefs).showChapterTitles)

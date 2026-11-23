@@ -1916,6 +1916,24 @@ struct ScriviGraphInteropTests {
         #expect(siblingOf.canonicalDirection == "lexical")
     }
 
+    @Test("[SP-237] a custom relation type is created, listed and refused a built-in code through the engine")
+    func customRelationTypeRoundTrips() throws {
+        let f = try makeFixture()
+        let saved = try f.engine.upsertRelationType(projectRootPath: f.root, code: "", forwardLabel: "rival of",
+                                                    inverseLabel: "rival of", sourceKind: "character",
+                                                    targetKind: "character", symmetric: true)
+        #expect(saved.code == "rival-of")
+        let types = try f.engine.listRelationTypes(projectRootPath: f.root).types
+        let rival = try #require(types.first { $0.code == saved.code })
+        #expect(rival.symmetric && rival.canonicalDirection == "lexical")
+        #expect(rival.sourceKind == "character" && !rival.builtIn && !rival.inUse)
+        #expect(try #require(types.first { $0.code == "cites" }).builtIn)
+        #expect(throws: ScriviError.self) {
+            try f.engine.upsertRelationType(projectRootPath: f.root, code: "cites", forwardLabel: "references",
+                                            inverseLabel: "referenced by", sourceKind: "", targetKind: "", symmetric: false)
+        }
+    }
+
     @Test("an unconstrained relation type decodes nil kinds, meaning ANY kind")
     func citesIsUnconstrainedOnBothEnds() throws {
         let f = try makeFixture()
