@@ -1,9 +1,9 @@
 # Sprint SP-239 — `[Apple]` [EP-059] A8: Delete and Change Kind for objects on the Mac and iOS
 
-**Status:** 🟡 **ACTIVE** 2026-11-23 (user, 2026-11-23: *"Q1-Q5 as recommended, implement SP-239"*); ✅ Q1–Q5 as recommended. Built 2026-11-23: AC1–AC4 met; AC5 green locally (CI on the
+**Status:** ✅ **CLOSED** 2026-11-23 (user, 2026-11-23: *"you may close SP-239"*). Was 🟡 **ACTIVE** 2026-11-23 (user, 2026-11-23: *"Q1-Q5 as recommended, implement SP-239"*); ✅ Q1–Q5 as recommended. Built 2026-11-23: AC1–AC4 met; AC5 green locally (CI on the
 push). ⏳ AC6 live pass. Created 2026-11-23 (user, 2026-11-23: *"plan A8"*).
 **Carries:** [T-0702] (A8).
-**Epic:** [EP-059] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md) — part **A**: A8. ⛔ [SP-240] (A9, Linux) is blocked by this Sprint
+**Epic:** [EP-059] → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md) — part **A**: A8. ⛔ [SP-240] (A9, Linux) is blocked by this Sprint
 (user, 2026-11-21: *"The Linux sprint should block on the MacOS/iOS sprint's completion."*).
 **Size:** S–M — both endpoints exist and are bridged in Swift with no caller; one menu, one confirmation, one core guard.
 
@@ -104,15 +104,25 @@ On `dumas-prose-timelines-history` (iCloud Drive ▸ Scrivi ▸ projects ▸ Scr
 - [x] AC2 — Change to Artifact / Change to Item on items and artifacts only, keeping relationships; greyed while unsaved.
 - [x] AC3 — Both greyed while the object's world is away.
 - [x] AC4 — The core refuses a promote other than item ↔ artifact, tested through `scrivi_*`.
-- [~] AC5 — ctest, the interop tests and the iOS tests green; CI green. ✅ 882/882, 354/354, 38/38; ⏳ CI.
+- [x] AC5 — ctest, the interop tests and the iOS tests green; CI green. ✅ 882/882, 354/354, 38/38; CI: Apple and Linux green on `2aae842` and `5ac4e35`; ScriviCore's macOS sanitizers job was never given a runner on `2aae842` (no steps ran) — re-run requested at close, Claude checks it.
 - [x] AC6 — Live pass on the Mac and iOS. ✅ Mac, iPad and iPhone (user, 2026-11-23: *"Steps 3 through 11 also pass.  On all three platforms (mac, iPad, and iPhone)"*), after [I-0371].
+
+## Retrospective
+
+- The live pass found what no test could: on macOS the sheet's bottom bar shows ONE view per placement, so a `ToolbarItemGroup`
+  (and then three separate items) dropped Undo Changes and ⋯ silently. Undo Changes had been missing since some OS change after
+  SP-137, unnoticed. Fix: one item holding an `HStack` ([I-0371]).
+- My first diagnosis assumed a top toolbar; the user corrected it (a bottom button bar). Two guesses before the fix — next time ask
+  for a screenshot after the first miss.
+- The interop test host's bundle ID (SP-229 regression) was found by running the tests with Inkwyn open.
 
 ## Progress log
 
+- **2026-11-23** — ✅ **CLOSED** (user, 2026-11-23: *"you may close SP-239"*). T-0702 and I-0371 archived. [SP-240] unblocked.
 - **2026-11-23** — ✅ AC6: live pass steps 2–11 pass on the Mac, iPad and iPhone (user, 2026-11-23: *"Steps 3 through 11 also pass.  On all three platforms (mac, iPad, and iPhone)"*); I-0371 and T-0702 → ✅ Verified. ⏳ AC5 CI on the next push; close is the user's.
 - **2026-11-23** — Live pass, Mac step 2: only Save and Close showed. Filed [I-0371] ; separate items failed the same way (user: "Only disk and X"); now one item holding an HStack; macOS build green. ⏳ re-run from step 2.
 - **2026-11-23** — Built: AC1–AC4 met; AC5 green locally; T-0702 → 🟠. Fixed the interop test host's bundle ID (SP-229 regression). ⏳ AC6 live pass, CI.
 - **2026-11-23** — 🟡 **ACTIVE** (user, 2026-11-23: *"Q1-Q5 as recommended, implement SP-239"*); Q1–Q5 as recommended; T-0702 → active.
 - **2026-11-23** — 🔵 **Created in Planning** via `next-id.py` (user, 2026-11-23: *"plan A8"*); carries [T-0702] (new). Q1–Q5 to rule.
 
-*Last Updated: 2026-11-23 (Built; ⏳ AC6 live pass, CI.)*
+*Last Updated: 2026-11-23 (✅ Closed.)*

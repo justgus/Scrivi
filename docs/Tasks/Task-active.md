@@ -1,5 +1,7 @@
 # Active Tasks
 
+*Last Updated: 2026-11-23 (**T-0702 removed** — ✅ Verified, archived with [SP-239]'s close.)*
+
 *Last Updated: 2026-11-23 (**T-0702 → active** with [SP-239]'s activation; built the same day → 🟠 `Task-unverified.md`.)*
 
 *Last Updated: 2026-11-23 (**T-0472 → active** with [SP-238]'s activation; built the same day → 🟠 `Task-unverified.md`.)*

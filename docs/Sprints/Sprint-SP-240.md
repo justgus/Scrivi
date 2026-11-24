@@ -1,6 +1,6 @@
 # Sprint SP-240 — `[Linux]` [EP-059] A9: Delete and Change Kind for objects on Linux, as the Mac's
 
-**Status:** 🔵 **PLANNING** — created 2026-11-23 (user, 2026-11-23: *"plan A8"*). ⛔ **Blocked by [SP-239]** (the Mac's shape, which
+**Status:** 🔵 **PLANNING** — created 2026-11-23 (user, 2026-11-23: *"plan A8"*). ✅ **Unblocked 2026-11-23** ([SP-239] closed); was blocked by it (the Mac's shape, which
 this one adopts, and its core guard).
 **Carries:** [T-0703] (A9).
 **Epic:** [EP-059] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md) — part **A**: A9.

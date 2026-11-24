@@ -504,8 +504,8 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-236** | `[Linux]` **[EP-059] C** — relationships, sources and navigation in the detail view (T-0698, T-0699) | EP-059 | 2026-11-22 | 2026-11-22 | ✅ **CLOSED** → [`Closed/Sprint-SP-236.md`](Closed/Sprint-SP-236.md) |
 | **SP-237** | `[Apple]` **[EP-059] C5/C6** — custom relationship types on the Mac and iOS; the endpoint's C ABI test (T-0700) | EP-059 | 2026-11-22 | 2026-11-23 | ✅ **CLOSED** → [`Closed/Sprint-SP-237.md`](Closed/Sprint-SP-237.md) |
 | **SP-238** | `[Linux]` **[EP-059] C5** — custom relationship types on Linux (T-0472) | EP-059 | 2026-11-23 | 2026-11-23 | ✅ **CLOSED** → [`Closed/Sprint-SP-238.md`](Closed/Sprint-SP-238.md) |
-| **SP-239** | `[Apple]` **[EP-059] A8** — Delete and Change Kind for objects on the Mac and iOS (T-0702) | EP-059 | 2026-11-23 | — | 🟡 **ACTIVE** → [`Sprint-SP-239.md`](Sprint-SP-239.md) |
-| **SP-240** | `[Linux]` **[EP-059] A9** — Delete and Change Kind for objects on Linux (T-0703) | EP-059 | — | — | 🔵 **PLANNING** — ⛔ blocked by SP-239 → [`Sprint-SP-240.md`](Sprint-SP-240.md) |
+| **SP-239** | `[Apple]` **[EP-059] A8** — Delete and Change Kind for objects on the Mac and iOS (T-0702) | EP-059 | 2026-11-23 | 2026-11-23 | ✅ **CLOSED** → [`Closed/Sprint-SP-239.md`](Closed/Sprint-SP-239.md) |
+| **SP-240** | `[Linux]` **[EP-059] A9** — Delete and Change Kind for objects on Linux (T-0703) | EP-059 | — | — | 🔵 **PLANNING** (unblocked) → [`Sprint-SP-240.md`](Sprint-SP-240.md) |
 | **SP-235** | `[Linux]` **[EP-059] B** — the object detail view and its image (T-0697) | EP-059 | 2026-11-22 | 2026-11-22 | ✅ **CLOSED** → [`Closed/Sprint-SP-235.md`](Closed/Sprint-SP-235.md) |
 | **SP-234** | `[Linux]` **[EP-059] A** — the object verbs on a card (T-0696) | EP-059 | 2026-11-22 | 2026-11-22 | ✅ **CLOSED** → [`Closed/Sprint-SP-234.md`](Closed/Sprint-SP-234.md) |
 | **SP-233** | `[Linux]` **[EP-059] A** — the Scene Inspector's card stacks (T-0695, T-0491) | EP-059 | 2026-11-21 | 2026-11-22 | ✅ **CLOSED** → [`Closed/Sprint-SP-233.md`](Closed/Sprint-SP-233.md) |
@@ -548,6 +548,8 @@ by status, read the table.**
 > on neither time. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-11-23 (**SP-239 → ✅ CLOSED** (user, 2026-11-23: *"you may close SP-239"*); SP-240 unblocked.)*
 
 *Last Updated: 2026-11-22 (**SP-234 → 🟡 ACTIVE**.)*
 

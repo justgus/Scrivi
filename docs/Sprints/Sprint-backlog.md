@@ -1,5 +1,7 @@
 # Sprint Backlog
 
+*Last Updated: 2026-11-23 (**SP-240 unblocked** — [SP-239] closed.)*
+
 *Last Updated: 2026-11-23 (**SP-239 removed** — activated 2026-11-23.)*
 
 *Last Updated: 2026-11-23 (**SP-239, SP-240 created in 🔵 Planning** — EP-059 A8/A9: the Mac and iOS first, Linux blocked by it (user, 2026-11-23: *"plan A8"*); Q1–Q5 to rule.)*
@@ -157,7 +159,7 @@ Sprints listed here are in 🔵 Planning status — defined and ready to activat
 | Sprint | Title | Epic | Doc |
 | ------ | ----- | ---- | --- |
 | **SP-228** | `[Apple]` **[EP-055] S8** — TestFlight for iPad, iPhone and the Mac (T-0690) | EP-055 | [`Sprint-SP-228.md`](Sprint-SP-228.md) |
-| **SP-240** | `[Linux]` **[EP-059] A9** — Delete and Change Kind for objects on Linux (T-0703) — ⛔ blocked by SP-239 | EP-059 | [`Sprint-SP-240.md`](Sprint-SP-240.md) |
+| **SP-240** | `[Linux]` **[EP-059] A9** — Delete and Change Kind for objects on Linux (T-0703) | EP-059 | [`Sprint-SP-240.md`](Sprint-SP-240.md) |
 
 ---
 
