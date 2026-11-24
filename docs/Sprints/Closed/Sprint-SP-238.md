@@ -1,7 +1,7 @@
 # Sprint SP-238 — `[Linux]` [EP-059] C5: custom relationship types on Linux, as the Mac's
 
 **Status:** ✅ **CLOSED 2026-11-23** (user, 2026-11-23: *"close SP-238"*). Was 🟡 **ACTIVE** 2026-11-23 (user, 2026-11-23: *"Q1-Q3 as recommended, implement SP-238"*); ✅ Q1–Q3 as recommended. Built 2026-11-23: AC1–AC2 met; AC3 green in Docker; ✅ AC4 live pass (user, 2026-11-23: *"All steps pass on the Linux VM."*).
-✅ **All ACs met**; CI green on `c748b08`; awaiting close approval. Created 2026-11-22 (user, 2026-11-22: *"plan C5-C6"*).
+✅ **All ACs met**; CI green on `c748b08`; closed on approval. Created 2026-11-22 (user, 2026-11-22: *"plan C5-C6"*).
 **Carries:** [T-0472] (C5 on Linux; filed 2026-08-25).
 **Epic:** [EP-059] → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md) — part **C**: C5.
 **Size:** S — the endpoint is bridged (`ScriviBridge::upsertRelationType`); one settings section and one form, in the shape [SP-237] sets.

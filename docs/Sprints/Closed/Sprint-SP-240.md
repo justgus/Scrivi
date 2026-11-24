@@ -1,6 +1,6 @@
 # Sprint SP-240 — `[Linux]` [EP-059] A9: Delete and Change Kind for objects on Linux, as the Mac's
 
-**Status:** ✅ **CLOSED** 2026-11-23 (user, 2026-11-23: *"Step 2 passes now, close SP-240"*). Was 🟡 **ACTIVE** 2026-11-23 (user, 2026-11-23: *"Q1-Q4 as recommended.  Implement SP-240"*); ✅ Q1–Q4 as recommended. Built 2026-11-23: AC1–AC2 met; AC3 green locally (CI on the push). ⏳ AC4 live pass. Created 2026-11-23 (user, 2026-11-23: *"plan A8"*). ✅ **Unblocked 2026-11-23** ([SP-239] closed); was blocked by it (the Mac's shape, which
+**Status:** ✅ **CLOSED** 2026-11-23 (user, 2026-11-23: *"Step 2 passes now, close SP-240"*). Was 🟡 **ACTIVE** 2026-11-23 (user, 2026-11-23: *"Q1-Q4 as recommended.  Implement SP-240"*); ✅ Q1–Q4 as recommended. Built 2026-11-23: AC1–AC2 met; AC3 green locally (CI on the push); AC4 live pass ✅ (with [I-0372]). Created 2026-11-23 (user, 2026-11-23: *"plan A8"*). ✅ **Unblocked 2026-11-23** ([SP-239] closed); was blocked by it (the Mac's shape, which
 this one adopts, and its core guard).
 **Carries:** [T-0703] (A9).
 **Epic:** [EP-059] → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md) — part **A**: A9.
@@ -101,6 +101,8 @@ On `/mnt/scrivi-net/projects/the-river-of-time.inkwyn` (world Eskandar).
 - **2026-11-23** — 🟡 **ACTIVE** (user, 2026-11-23: *"Q1-Q4 as recommended.  Implement SP-240"*); Q1–Q4 as recommended; T-0703 → active.
 - **2026-11-23** — Planned (user, 2026-11-23: *"Next is SP-230 planning"* — SP-230 is closed; read as SP-240): findings 1–5, Q1–Q4 to rule.
 - **2026-11-23** — 🔵 **Created in Planning** via `next-id.py` (user, 2026-11-23: *"plan A8"*); carries [T-0703] (new). ⛔ Blocked by [SP-239].
+
+*Last Updated: 2026-11-23 (✅ Closed; EP-059 Audit Check F2: stale pending text removed.)*
 
 *Last Updated: 2026-11-23 (Built; ⏳ AC4 live pass, ctest, CI.)*
 

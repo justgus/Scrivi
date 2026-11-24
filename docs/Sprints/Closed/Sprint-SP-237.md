@@ -1,6 +1,6 @@
 # Sprint SP-237 — `[Apple]` [EP-059] C5/C6: custom relationship types on the Mac and iOS, and the endpoint's C ABI test
 
-**Status:** ✅ **CLOSED 2026-11-23** (user, 2026-11-23: *"Close SP-237."*). Was 🟡 **ACTIVE** 2026-11-22 (user, 2026-11-22: *"Q1-Q7 as recommended, implement SP-237"*); ✅ Q1–Q7 as recommended. Built 2026-11-22: AC1–AC4 met; ✅ **All ACs met** (AC6: user, 2026-11-23: *"all the tests pass on iOS as well (both iPad and iPhone)"*); CI green on `af6f71e`; awaiting close approval.
+**Status:** ✅ **CLOSED 2026-11-23** (user, 2026-11-23: *"Close SP-237."*). Was 🟡 **ACTIVE** 2026-11-22 (user, 2026-11-22: *"Q1-Q7 as recommended, implement SP-237"*); ✅ Q1–Q7 as recommended. Built 2026-11-22: AC1–AC4 met; ✅ **All ACs met** (AC6: user, 2026-11-23: *"all the tests pass on iOS as well (both iPad and iPhone)"*); CI green on `af6f71e`; closed on approval.
  Created 2026-11-22 (user, 2026-11-22: *"plan C5-C6"*).
 **Carries:** [T-0700] (C5 on Apple, C6).
 **Epic:** [EP-059] → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md) — part **C**: C5, C6. ⛔ [SP-238] (C5 on Linux) is blocked by this Sprint.

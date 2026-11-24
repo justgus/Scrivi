@@ -1,7 +1,7 @@
 # Sprint SP-239 — `[Apple]` [EP-059] A8: Delete and Change Kind for objects on the Mac and iOS
 
 **Status:** ✅ **CLOSED** 2026-11-23 (user, 2026-11-23: *"you may close SP-239"*). Was 🟡 **ACTIVE** 2026-11-23 (user, 2026-11-23: *"Q1-Q5 as recommended, implement SP-239"*); ✅ Q1–Q5 as recommended. Built 2026-11-23: AC1–AC4 met; AC5 green locally (CI on the
-push). ⏳ AC6 live pass. Created 2026-11-23 (user, 2026-11-23: *"plan A8"*).
+push); AC6 live pass ✅ (with [I-0371]). Created 2026-11-23 (user, 2026-11-23: *"plan A8"*).
 **Carries:** [T-0702] (A8).
 **Epic:** [EP-059] → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md) — part **A**: A8. ⛔ [SP-240] (A9, Linux) is blocked by this Sprint
 (user, 2026-11-21: *"The Linux sprint should block on the MacOS/iOS sprint's completion."*).

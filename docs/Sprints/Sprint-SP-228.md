@@ -8,7 +8,7 @@ created: 2026-11-20
 
 # SP-228 — `[Apple]` [EP-055] S8: TestFlight for iPad, iPhone and the Mac
 
-**Status:** 🔵 **Planning** — ⏸ **waits until [EP-059] is done** (user, 2026-11-20: *"Nope.  Can't archive yet.  We need to do the Linux gap epic first."*). Was (user, 2026-11-20: *"Let's to AC9 on EP-055"*). ✅ Q1–Q3, Q5 ruled as recommended; ⏸ Q4 and the Sprint wait on [T-0684] (the rename), which the user takes first (2026-11-20).
+**Status:** 🔵 **Planning** — ✅ **[EP-059] closed 2026-11-23** — it waited for that; ⏸ was: **waits until [EP-059] is done** (user, 2026-11-20: *"Nope.  Can't archive yet.  We need to do the Linux gap epic first."*). Was (user, 2026-11-20: *"Let's to AC9 on EP-055"*). ✅ Q1–Q3, Q5 ruled as recommended; ⏸ Q4 and the Sprint wait on [T-0684] (the rename), which the user takes first (2026-11-20).
 **Carries:** [T-0690].
 **Epic:** [EP-055] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md) — **AC9**, the last open AC: TestFlight builds for iPad/iPhone
 **and the Mac** (Q9), installable by external testers. Q5 (2026-10-24): *"yes, I am all setup for testflight."* Builds are Debug.
@@ -90,6 +90,8 @@ your builds do. Each build in TestFlight names its commit.
 - **2026-11-20** — 🔵 **Created in Planning** (user, 2026-11-20: *"Let's to AC9 on EP-055"*), issued via `next-id.py`; carries
   [T-0690]. Q1–Q5 to rule.
 - **2026-11-20** — ✅ **Q1–Q3, Q5 as recommended**; ⏸ **Q4 waits on [T-0684]** (user, 2026-11-20: *"with respect to the SP-228 questions.  Q1-Q3, and Q5 as recommended.  For Q4 I had already reserved Scrivi in my developer account.  But I think I want to do the renaming task first, before we go any further."*). The Sprint stays in Planning until the rename is done.
+
+*Last Updated: 2026-11-23 (EP-059 closed: no longer waiting on it.)*
 
 *Last Updated: 2026-11-20 (⏸ waits until [EP-059] is done (user, 2026-11-20: *"Nope.  Can't archive yet.  We need to do the Linux gap epic first."*).)*
 
