@@ -1,0 +1,1501 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		86BF02842FEDE0AE00531EAC /* Inkwyn/Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = ASSETS_REF /* Inkwyn/Assets.xcassets */; };
+		86BF02862FEDE0BF00531EAC /* Inkwyn/Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = ASSETS_REF /* Inkwyn/Assets.xcassets */; };
+		ASSETS_BF /* Inkwyn/Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = ASSETS_REF /* Inkwyn/Assets.xcassets */; };
+		C001_BF /* ScriviApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C001 /* ScriviApp.swift */; };
+		C002_BF /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = C002 /* AppEnvironment.swift */; };
+		C003_BF /* LandingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C003 /* LandingView.swift */; };
+		C004_BF /* EditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C004 /* EditorView.swift */; };
+		C005_BF /* NewProjectSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C005 /* NewProjectSheet.swift */; };
+		C006_BF /* ViewportSceneLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = C006 /* ViewportSceneLoader.swift */; };
+		C007_BF /* ManuscriptTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C007 /* ManuscriptTextView.swift */; };
+		C008_BF /* SceneNavigatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C008 /* SceneNavigatorView.swift */; };
+		C010_BF /* ScriviEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B010 /* ScriviEngine.swift */; };
+		C011_BF /* ScriviError.swift in Sources */ = {isa = PBXBuildFile; fileRef = B011 /* ScriviError.swift */; };
+		C012_BF /* ScriviEngineGraph.swift in Sources */ = {isa = PBXBuildFile; fileRef = B012 /* ScriviEngineGraph.swift */; };
+		C013_BF /* ObjectKindScope.swift in Sources */ = {isa = PBXBuildFile; fileRef = B013 /* ObjectKindScope.swift */; };
+		C014_BF /* ObjectDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = B014 /* ObjectDetail.swift */; };
+		C015_BF /* ObjectDetailHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = B015 /* ObjectDetailHistory.swift */; };
+		C016_BF /* ObjectDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B016 /* ObjectDetailSheet.swift */; };
+		C017_BF /* ObjectRelationsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B017 /* ObjectRelationsSection.swift */; };
+		C018_BF /* ObjectRelationPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B018 /* ObjectRelationPicker.swift */; };
+		C019_BF /* ObjectImageSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B019 /* ObjectImageSection.swift */; };
+		C020_BF /* libScriviCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = SCRIVI_CORE_LIB /* libScriviCore.a */; };
+		C030_BF /* ProjectSettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C030 /* ProjectSettingsSheet.swift */; };
+		C031_BF /* ProjectPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = C031 /* ProjectPreferences.swift */; };
+		C032_BF /* WindowFrameAutosave.swift in Sources */ = {isa = PBXBuildFile; fileRef = C032 /* WindowFrameAutosave.swift */; };
+		C033_BF /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C033 /* AboutView.swift */; };
+		C034_BF /* SceneInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C034 /* SceneInspectorView.swift */; };
+		C035_BF /* TimelineStripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C035 /* TimelineStripView.swift */; };
+		C036_BF /* SpotlightDonor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C036 /* SpotlightDonor.swift */; };
+		C037_BF /* ProjectBookmarkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C037 /* ProjectBookmarkStore.swift */; };
+		C038_BF /* ScriviURL.swift in Sources */ = {isa = PBXBuildFile; fileRef = C038 /* ScriviURL.swift */; };
+		C050_BF /* ProjectSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = C050 /* ProjectSession.swift */; };
+		C051_BF /* OpenProjectRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = C051 /* OpenProjectRegistry.swift */; };
+		C053_BF /* ProjectWindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C053 /* ProjectWindowManager.swift */; };
+		C054_BF /* OpenSessionManifest.swift in Sources */ = {isa = PBXBuildFile; fileRef = C054 /* OpenSessionManifest.swift */; };
+		C055_BF /* ProjectWindowFrameStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C055 /* ProjectWindowFrameStore.swift */; };
+		C060_BF /* HistoryCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = C060 /* HistoryCapture.swift */; };
+		C061_BF /* ForkPopover.swift in Sources */ = {isa = PBXBuildFile; fileRef = C061 /* ForkPopover.swift */; };
+		C062_BF /* BufferService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C062 /* BufferService.swift */; };
+		C063_BF /* BuffersPalette.swift in Sources */ = {isa = PBXBuildFile; fileRef = C063 /* BuffersPalette.swift */; };
+		C064_BF /* InspectorCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C064 /* InspectorCard.swift */; };
+		C065_BF /* InspectorLayoutStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C065 /* InspectorLayoutStore.swift */; };
+		C066_BF /* InspectorCardStackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C066 /* InspectorCardStackView.swift */; };
+		C067_BF /* WritingToolCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = C067 /* WritingToolCards.swift */; };
+		C068_BF /* HistoryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C068 /* HistoryCard.swift */; };
+		C069_BF /* ScenePropertiesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C069 /* ScenePropertiesView.swift */; };
+		C071_BF /* ObjectCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C071 /* ObjectCard.swift */; };
+		C072_BF /* ObjectPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C072 /* ObjectPickerView.swift */; };
+		C073_BF /* WorldsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C073 /* WorldsView.swift */; };
+		C074_BF /* WorldBookmarkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C074 /* WorldBookmarkStore.swift */; };
+		C075_BF /* WorldVolumeStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = C075 /* WorldVolumeStatus.swift */; };
+		C076_BF /* WorldWarningView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C076 /* WorldWarningView.swift */; };
+		C077_BF /* SourcesCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C077 /* SourcesCard.swift */; };
+		C078_BF /* ManuscriptEscapes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C078 /* ManuscriptEscapes.swift */; };
+		C079_BF /* MarkdownBlocks.swift in Sources */ = {isa = PBXBuildFile; fileRef = C079 /* MarkdownBlocks.swift */; };
+		C080_BF /* ManuscriptPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = C080 /* ManuscriptPresenter.swift */; };
+		C081_BF /* MarkdownEmphasis.swift in Sources */ = {isa = PBXBuildFile; fileRef = C081 /* MarkdownEmphasis.swift */; };
+		C082_BF /* ManuscriptCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = C082 /* ManuscriptCommands.swift */; };
+		C083_BF /* ManuscriptFind.swift in Sources */ = {isa = PBXBuildFile; fileRef = C083 /* ManuscriptFind.swift */; };
+		C090_BF /* ManuscriptEditing.swift in Sources */ = {isa = PBXBuildFile; fileRef = C090 /* ManuscriptEditing.swift */; };
+		C091_BF /* ManuscriptUITextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C091 /* ManuscriptUITextView.swift */; };
+		C092_BF /* ProjectToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = C092 /* ProjectToolbar.swift */; };
+		C093_BF /* PanelSwipes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C093 /* PanelSwipes.swift */; };
+		C094_BF /* ManuscriptStructure.swift in Sources */ = {isa = PBXBuildFile; fileRef = C094 /* ManuscriptStructure.swift */; };
+		C099_BF /* ScriviDiag.swift in Sources */ = {isa = PBXBuildFile; fileRef = C099 /* ScriviDiag.swift */; };
+		C210A_BF /* AuthorshipViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = C210A /* AuthorshipViews.swift */; };
+		C237_BF /* RelationTypeForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = B237 /* RelationTypeForm.swift */; };
+		C2A1_BF /* StaleBranchesSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A1 /* StaleBranchesSheet.swift */; };
+		C2A2_BF /* ManuscriptTypography.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A2 /* ManuscriptTypography.swift */; };
+		C2A3_BF /* ManuscriptAccessibility.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A3 /* ManuscriptAccessibility.swift */; };
+		C2A4_BF /* ManuscriptPresentedMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A4 /* ManuscriptPresentedMap.swift */; };
+		C2A5_BF /* ProjectArchiveFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A5 /* ProjectArchiveFlow.swift */; };
+		C2A6_BF /* ManuscriptPDF.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A6 /* ManuscriptPDF.swift */; };
+		C2A7_BF /* Glyph.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A7 /* Glyph.swift */; };
+		CORPUS_BF /* manuscript_format_corpus.json in Resources */ = {isa = PBXBuildFile; fileRef = CORPUS_REF /* manuscript_format_corpus.json */; };
+		C_CITE_BF /* Citation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B022 /* Citation.swift */; };
+		C_EAPICK_BF /* ExistingAssetPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B020 /* ExistingAssetPicker.swift */; };
+		C_SRCSEC_BF /* ObjectSourcesSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B021 /* ObjectSourcesSection.swift */; };
+		D001_BF /* ScriviApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C001 /* ScriviApp.swift */; };
+		D002_BF /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = C002 /* AppEnvironment.swift */; };
+		D003_BF /* LandingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C003 /* LandingView.swift */; };
+		D004_BF /* EditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C004 /* EditorView.swift */; };
+		D005_BF /* NewProjectSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C005 /* NewProjectSheet.swift */; };
+		D006_BF /* ViewportSceneLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = C006 /* ViewportSceneLoader.swift */; };
+		D007_BF /* ManuscriptTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C007 /* ManuscriptTextView.swift */; };
+		D008_BF /* SceneNavigatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C008 /* SceneNavigatorView.swift */; };
+		D010_BF /* ScriviEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B010 /* ScriviEngine.swift */; };
+		D011_BF /* ScriviError.swift in Sources */ = {isa = PBXBuildFile; fileRef = B011 /* ScriviError.swift */; };
+		D012_BF /* ScriviEngineGraph.swift in Sources */ = {isa = PBXBuildFile; fileRef = B012 /* ScriviEngineGraph.swift */; };
+		D013_BF /* ObjectKindScope.swift in Sources */ = {isa = PBXBuildFile; fileRef = B013 /* ObjectKindScope.swift */; };
+		D014_BF /* ObjectDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = B014 /* ObjectDetail.swift */; };
+		D015_BF /* ObjectDetailHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = B015 /* ObjectDetailHistory.swift */; };
+		D016_BF /* ObjectDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B016 /* ObjectDetailSheet.swift */; };
+		D017_BF /* ObjectRelationsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B017 /* ObjectRelationsSection.swift */; };
+		D018_BF /* ObjectRelationPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B018 /* ObjectRelationPicker.swift */; };
+		D019_BF /* ObjectImageSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B019 /* ObjectImageSection.swift */; };
+		D030_BF /* ProjectSettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C030 /* ProjectSettingsSheet.swift */; };
+		D031_BF /* ProjectPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = C031 /* ProjectPreferences.swift */; };
+		D032_BF /* WindowFrameAutosave.swift in Sources */ = {isa = PBXBuildFile; fileRef = C032 /* WindowFrameAutosave.swift */; };
+		D033_BF /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C033 /* AboutView.swift */; };
+		D034_BF /* SceneInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C034 /* SceneInspectorView.swift */; };
+		D035_BF /* TimelineStripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C035 /* TimelineStripView.swift */; };
+		D036_BF /* SpotlightDonor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C036 /* SpotlightDonor.swift */; };
+		D037_BF /* ProjectBookmarkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C037 /* ProjectBookmarkStore.swift */; };
+		D038_BF /* ScriviURL.swift in Sources */ = {isa = PBXBuildFile; fileRef = C038 /* ScriviURL.swift */; };
+		D050_BF /* ProjectSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = C050 /* ProjectSession.swift */; };
+		D051_BF /* OpenProjectRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = C051 /* OpenProjectRegistry.swift */; };
+		D053_BF /* ProjectWindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C053 /* ProjectWindowManager.swift */; };
+		D054_BF /* OpenSessionManifest.swift in Sources */ = {isa = PBXBuildFile; fileRef = C054 /* OpenSessionManifest.swift */; };
+		D055_BF /* ProjectWindowFrameStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C055 /* ProjectWindowFrameStore.swift */; };
+		D060_BF /* HistoryCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = C060 /* HistoryCapture.swift */; };
+		D061_BF /* ForkPopover.swift in Sources */ = {isa = PBXBuildFile; fileRef = C061 /* ForkPopover.swift */; };
+		D062_BF /* BufferService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C062 /* BufferService.swift */; };
+		D063_BF /* BuffersPalette.swift in Sources */ = {isa = PBXBuildFile; fileRef = C063 /* BuffersPalette.swift */; };
+		D064_BF /* InspectorCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C064 /* InspectorCard.swift */; };
+		D065_BF /* InspectorLayoutStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C065 /* InspectorLayoutStore.swift */; };
+		D066_BF /* InspectorCardStackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C066 /* InspectorCardStackView.swift */; };
+		D067_BF /* WritingToolCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = C067 /* WritingToolCards.swift */; };
+		D068_BF /* HistoryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C068 /* HistoryCard.swift */; };
+		D069_BF /* ScenePropertiesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C069 /* ScenePropertiesView.swift */; };
+		D071_BF /* ObjectCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C071 /* ObjectCard.swift */; };
+		D072_BF /* ObjectPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C072 /* ObjectPickerView.swift */; };
+		D073_BF /* WorldsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C073 /* WorldsView.swift */; };
+		D074_BF /* WorldBookmarkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C074 /* WorldBookmarkStore.swift */; };
+		D075_BF /* WorldVolumeStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = C075 /* WorldVolumeStatus.swift */; };
+		D076_BF /* WorldWarningView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C076 /* WorldWarningView.swift */; };
+		D077_BF /* SourcesCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C077 /* SourcesCard.swift */; };
+		D078_BF /* ManuscriptEscapes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C078 /* ManuscriptEscapes.swift */; };
+		D079_BF /* MarkdownBlocks.swift in Sources */ = {isa = PBXBuildFile; fileRef = C079 /* MarkdownBlocks.swift */; };
+		D080_BF /* ManuscriptPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = C080 /* ManuscriptPresenter.swift */; };
+		D081_BF /* MarkdownEmphasis.swift in Sources */ = {isa = PBXBuildFile; fileRef = C081 /* MarkdownEmphasis.swift */; };
+		D082_BF /* ManuscriptCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = C082 /* ManuscriptCommands.swift */; };
+		D083_BF /* ManuscriptFind.swift in Sources */ = {isa = PBXBuildFile; fileRef = C083 /* ManuscriptFind.swift */; };
+		D090_BF /* ManuscriptEditing.swift in Sources */ = {isa = PBXBuildFile; fileRef = C090 /* ManuscriptEditing.swift */; };
+		D091_BF /* ManuscriptUITextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C091 /* ManuscriptUITextView.swift */; };
+		D092_BF /* ProjectToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = C092 /* ProjectToolbar.swift */; };
+		D093_BF /* PanelSwipes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C093 /* PanelSwipes.swift */; };
+		D094_BF /* ManuscriptStructure.swift in Sources */ = {isa = PBXBuildFile; fileRef = C094 /* ManuscriptStructure.swift */; };
+		D099_BF /* ScriviDiag.swift in Sources */ = {isa = PBXBuildFile; fileRef = C099 /* ScriviDiag.swift */; };
+		D210A_BF /* AuthorshipViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = C210A /* AuthorshipViews.swift */; };
+		D237_BF /* RelationTypeForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = B237 /* RelationTypeForm.swift */; };
+		D2A1_BF /* StaleBranchesSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A1 /* StaleBranchesSheet.swift */; };
+		D2A2_BF /* ManuscriptTypography.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A2 /* ManuscriptTypography.swift */; };
+		D2A3_BF /* ManuscriptAccessibility.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A3 /* ManuscriptAccessibility.swift */; };
+		D2A4_BF /* ManuscriptPresentedMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A4 /* ManuscriptPresentedMap.swift */; };
+		D2A5_BF /* ProjectArchiveFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A5 /* ProjectArchiveFlow.swift */; };
+		D2A6_BF /* ManuscriptPDF.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A6 /* ManuscriptPDF.swift */; };
+		D2A7_BF /* Glyph.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A7 /* Glyph.swift */; };
+		D_CITE_BF /* Citation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B022 /* Citation.swift */; };
+		D_EAPICK_BF /* ExistingAssetPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B020 /* ExistingAssetPicker.swift */; };
+		D_SRCSEC_BF /* ObjectSourcesSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B021 /* ObjectSourcesSection.swift */; };
+		E001_BF /* ScriviApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C001 /* ScriviApp.swift */; };
+		E002_BF /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = C002 /* AppEnvironment.swift */; };
+		E003_BF /* LandingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C003 /* LandingView.swift */; };
+		E004_BF /* EditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C004 /* EditorView.swift */; };
+		E005_BF /* NewProjectSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C005 /* NewProjectSheet.swift */; };
+		E006_BF /* ViewportSceneLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = C006 /* ViewportSceneLoader.swift */; };
+		E007_BF /* ManuscriptTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C007 /* ManuscriptTextView.swift */; };
+		E008_BF /* SceneNavigatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C008 /* SceneNavigatorView.swift */; };
+		E010_BF /* ScriviEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B010 /* ScriviEngine.swift */; };
+		E011_BF /* ScriviError.swift in Sources */ = {isa = PBXBuildFile; fileRef = B011 /* ScriviError.swift */; };
+		E012_BF /* ScriviEngineGraph.swift in Sources */ = {isa = PBXBuildFile; fileRef = B012 /* ScriviEngineGraph.swift */; };
+		E013_BF /* ObjectKindScope.swift in Sources */ = {isa = PBXBuildFile; fileRef = B013 /* ObjectKindScope.swift */; };
+		E014_BF /* ObjectDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = B014 /* ObjectDetail.swift */; };
+		E015_BF /* ObjectDetailHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = B015 /* ObjectDetailHistory.swift */; };
+		E016_BF /* ObjectDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B016 /* ObjectDetailSheet.swift */; };
+		E017_BF /* ObjectRelationsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B017 /* ObjectRelationsSection.swift */; };
+		E018_BF /* ObjectRelationPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B018 /* ObjectRelationPicker.swift */; };
+		E019_BF /* ObjectImageSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B019 /* ObjectImageSection.swift */; };
+		E030_BF /* ProjectSettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C030 /* ProjectSettingsSheet.swift */; };
+		E031_BF /* ProjectPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = C031 /* ProjectPreferences.swift */; };
+		E032_BF /* WindowFrameAutosave.swift in Sources */ = {isa = PBXBuildFile; fileRef = C032 /* WindowFrameAutosave.swift */; };
+		E033_BF /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C033 /* AboutView.swift */; };
+		E034_BF /* SceneInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C034 /* SceneInspectorView.swift */; };
+		E035_BF /* TimelineStripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C035 /* TimelineStripView.swift */; };
+		E036_BF /* SpotlightDonor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C036 /* SpotlightDonor.swift */; };
+		E037_BF /* ProjectBookmarkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C037 /* ProjectBookmarkStore.swift */; };
+		E038_BF /* ScriviURL.swift in Sources */ = {isa = PBXBuildFile; fileRef = C038 /* ScriviURL.swift */; };
+		E050_BF /* ProjectSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = C050 /* ProjectSession.swift */; };
+		E051_BF /* OpenProjectRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = C051 /* OpenProjectRegistry.swift */; };
+		E053_BF /* ProjectWindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C053 /* ProjectWindowManager.swift */; };
+		E054_BF /* OpenSessionManifest.swift in Sources */ = {isa = PBXBuildFile; fileRef = C054 /* OpenSessionManifest.swift */; };
+		E055_BF /* ProjectWindowFrameStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C055 /* ProjectWindowFrameStore.swift */; };
+		E060_BF /* HistoryCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = C060 /* HistoryCapture.swift */; };
+		E061_BF /* ForkPopover.swift in Sources */ = {isa = PBXBuildFile; fileRef = C061 /* ForkPopover.swift */; };
+		E062_BF /* BufferService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C062 /* BufferService.swift */; };
+		E063_BF /* BuffersPalette.swift in Sources */ = {isa = PBXBuildFile; fileRef = C063 /* BuffersPalette.swift */; };
+		E064_BF /* InspectorCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C064 /* InspectorCard.swift */; };
+		E065_BF /* InspectorLayoutStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C065 /* InspectorLayoutStore.swift */; };
+		E066_BF /* InspectorCardStackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C066 /* InspectorCardStackView.swift */; };
+		E067_BF /* WritingToolCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = C067 /* WritingToolCards.swift */; };
+		E068_BF /* HistoryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C068 /* HistoryCard.swift */; };
+		E069_BF /* ScenePropertiesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C069 /* ScenePropertiesView.swift */; };
+		E071_BF /* ObjectCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C071 /* ObjectCard.swift */; };
+		E072_BF /* ObjectPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C072 /* ObjectPickerView.swift */; };
+		E073_BF /* WorldsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C073 /* WorldsView.swift */; };
+		E074_BF /* WorldBookmarkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C074 /* WorldBookmarkStore.swift */; };
+		E075_BF /* WorldVolumeStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = C075 /* WorldVolumeStatus.swift */; };
+		E076_BF /* WorldWarningView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C076 /* WorldWarningView.swift */; };
+		E077_BF /* SourcesCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C077 /* SourcesCard.swift */; };
+		E078_BF /* ManuscriptEscapes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C078 /* ManuscriptEscapes.swift */; };
+		E079_BF /* MarkdownBlocks.swift in Sources */ = {isa = PBXBuildFile; fileRef = C079 /* MarkdownBlocks.swift */; };
+		E080_BF /* ManuscriptPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = C080 /* ManuscriptPresenter.swift */; };
+		E081_BF /* MarkdownEmphasis.swift in Sources */ = {isa = PBXBuildFile; fileRef = C081 /* MarkdownEmphasis.swift */; };
+		E082_BF /* ManuscriptCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = C082 /* ManuscriptCommands.swift */; };
+		E083_BF /* ManuscriptFind.swift in Sources */ = {isa = PBXBuildFile; fileRef = C083 /* ManuscriptFind.swift */; };
+		E090_BF /* ManuscriptEditing.swift in Sources */ = {isa = PBXBuildFile; fileRef = C090 /* ManuscriptEditing.swift */; };
+		E091_BF /* ManuscriptUITextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C091 /* ManuscriptUITextView.swift */; };
+		E092_BF /* ProjectToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = C092 /* ProjectToolbar.swift */; };
+		E093_BF /* PanelSwipes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C093 /* PanelSwipes.swift */; };
+		E094_BF /* ManuscriptStructure.swift in Sources */ = {isa = PBXBuildFile; fileRef = C094 /* ManuscriptStructure.swift */; };
+		E099_BF /* ScriviDiag.swift in Sources */ = {isa = PBXBuildFile; fileRef = C099 /* ScriviDiag.swift */; };
+		E210A_BF /* AuthorshipViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = C210A /* AuthorshipViews.swift */; };
+		E237_BF /* RelationTypeForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = B237 /* RelationTypeForm.swift */; };
+		E2A1_BF /* StaleBranchesSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A1 /* StaleBranchesSheet.swift */; };
+		E2A2_BF /* ManuscriptTypography.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A2 /* ManuscriptTypography.swift */; };
+		E2A3_BF /* ManuscriptAccessibility.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A3 /* ManuscriptAccessibility.swift */; };
+		E2A4_BF /* ManuscriptPresentedMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A4 /* ManuscriptPresentedMap.swift */; };
+		E2A5_BF /* ProjectArchiveFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A5 /* ProjectArchiveFlow.swift */; };
+		E2A6_BF /* ManuscriptPDF.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A6 /* ManuscriptPDF.swift */; };
+		E2A7_BF /* Glyph.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A7 /* Glyph.swift */; };
+		E_CITE_BF /* Citation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B022 /* Citation.swift */; };
+		E_EAPICK_BF /* ExistingAssetPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B020 /* ExistingAssetPicker.swift */; };
+		E_SRCSEC_BF /* ObjectSourcesSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B021 /* ObjectSourcesSection.swift */; };
+		F001_BF /* ScriviInteropTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F001 /* ScriviInteropTests.swift */; };
+		F020_BF /* libScriviCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = SCRIVI_CORE_LIB /* libScriviCore.a */; };
+		FONTS_BF1 /* Fonts in Resources */ = {isa = PBXBuildFile; fileRef = FONTS_REF /* Fonts */; };
+		FONTS_BF2 /* Fonts in Resources */ = {isa = PBXBuildFile; fileRef = FONTS_REF /* Fonts */; };
+		FONTS_BF3 /* Fonts in Resources */ = {isa = PBXBuildFile; fileRef = FONTS_REF /* Fonts */; };
+		G001_BF /* ScriviManuscriptTests-iOS.swift in Sources */ = {isa = PBXBuildFile; fileRef = G001 /* ScriviManuscriptTests-iOS.swift */; };
+		ICON_BF1 /* Inkwyn/Inkwyn.icon in Resources */ = {isa = PBXBuildFile; fileRef = ICON_REF /* Inkwyn/Inkwyn.icon */; };
+		ICON_BF2 /* Inkwyn/Inkwyn.icon in Resources */ = {isa = PBXBuildFile; fileRef = ICON_REF /* Inkwyn/Inkwyn.icon */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		DEP_APP_PROXY /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = PROJECT /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = C_TARGET;
+			remoteInfo = ScriviApp;
+		};
+		DEP_IOS_PROXY /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = PROJECT /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D_TARGET;
+			remoteInfo = "ScriviApp-iOS";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		ASSETS_REF /* Inkwyn/Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Inkwyn/Assets.xcassets; sourceTree = SOURCE_ROOT; };
+		B010 /* ScriviEngine.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ScriviEngine.swift; path = Inkwyn/Engine/ScriviEngine.swift; sourceTree = SOURCE_ROOT; };
+		B011 /* ScriviError.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ScriviError.swift; path = Inkwyn/Engine/ScriviError.swift; sourceTree = SOURCE_ROOT; };
+		B012 /* ScriviEngineGraph.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ScriviEngineGraph.swift; path = Inkwyn/Engine/ScriviEngineGraph.swift; sourceTree = SOURCE_ROOT; };
+		B013 /* ObjectKindScope.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ObjectKindScope.swift; path = Inkwyn/Engine/ObjectKindScope.swift; sourceTree = SOURCE_ROOT; };
+		B014 /* ObjectDetail.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ObjectDetail.swift; path = Inkwyn/Engine/ObjectDetail.swift; sourceTree = SOURCE_ROOT; };
+		B015 /* ObjectDetailHistory.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ObjectDetailHistory.swift; path = Inkwyn/Views/Detail/ObjectDetailHistory.swift; sourceTree = SOURCE_ROOT; };
+		B016 /* ObjectDetailSheet.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ObjectDetailSheet.swift; path = Inkwyn/Views/Detail/ObjectDetailSheet.swift; sourceTree = SOURCE_ROOT; };
+		B017 /* ObjectRelationsSection.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ObjectRelationsSection.swift; path = Inkwyn/Views/Detail/ObjectRelationsSection.swift; sourceTree = SOURCE_ROOT; };
+		B018 /* ObjectRelationPicker.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ObjectRelationPicker.swift; path = Inkwyn/Views/Detail/ObjectRelationPicker.swift; sourceTree = SOURCE_ROOT; };
+		B019 /* ObjectImageSection.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ObjectImageSection.swift; path = Inkwyn/Views/Detail/ObjectImageSection.swift; sourceTree = SOURCE_ROOT; };
+		B020 /* ExistingAssetPicker.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ExistingAssetPicker.swift; path = Inkwyn/Views/Detail/ExistingAssetPicker.swift; sourceTree = SOURCE_ROOT; };
+		B021 /* ObjectSourcesSection.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ObjectSourcesSection.swift; path = Inkwyn/Views/Detail/ObjectSourcesSection.swift; sourceTree = SOURCE_ROOT; };
+		B022 /* Citation.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Citation.swift; path = Inkwyn/Views/Detail/Citation.swift; sourceTree = SOURCE_ROOT; };
+		B237 /* RelationTypeForm.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = RelationTypeForm.swift; path = Inkwyn/Views/Detail/RelationTypeForm.swift; sourceTree = SOURCE_ROOT; };
+		C001 /* ScriviApp.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ScriviApp.swift; path = Inkwyn/App/ScriviApp.swift; sourceTree = SOURCE_ROOT; };
+		C002 /* AppEnvironment.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = AppEnvironment.swift; path = Inkwyn/App/AppEnvironment.swift; sourceTree = SOURCE_ROOT; };
+		C003 /* LandingView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = LandingView.swift; path = Inkwyn/Views/LandingView.swift; sourceTree = SOURCE_ROOT; };
+		C004 /* EditorView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = EditorView.swift; path = Inkwyn/Views/EditorView.swift; sourceTree = SOURCE_ROOT; };
+		C005 /* NewProjectSheet.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = NewProjectSheet.swift; path = Inkwyn/Views/NewProjectSheet.swift; sourceTree = SOURCE_ROOT; };
+		C006 /* ViewportSceneLoader.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ViewportSceneLoader.swift; path = Inkwyn/Views/ViewportSceneLoader.swift; sourceTree = SOURCE_ROOT; };
+		C007 /* ManuscriptTextView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptTextView.swift; path = Inkwyn/Views/ManuscriptTextView.swift; sourceTree = SOURCE_ROOT; };
+		C008 /* SceneNavigatorView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = SceneNavigatorView.swift; path = Inkwyn/Views/SceneNavigatorView.swift; sourceTree = SOURCE_ROOT; };
+		C030 /* ProjectSettingsSheet.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ProjectSettingsSheet.swift; path = Inkwyn/Views/ProjectSettingsSheet.swift; sourceTree = SOURCE_ROOT; };
+		C031 /* ProjectPreferences.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ProjectPreferences.swift; path = Inkwyn/App/ProjectPreferences.swift; sourceTree = SOURCE_ROOT; };
+		C032 /* WindowFrameAutosave.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = WindowFrameAutosave.swift; path = Inkwyn/App/WindowFrameAutosave.swift; sourceTree = SOURCE_ROOT; };
+		C033 /* AboutView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = AboutView.swift; path = Inkwyn/Views/AboutView.swift; sourceTree = SOURCE_ROOT; };
+		C034 /* SceneInspectorView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = SceneInspectorView.swift; path = Inkwyn/Views/SceneInspectorView.swift; sourceTree = SOURCE_ROOT; };
+		C035 /* TimelineStripView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = TimelineStripView.swift; path = Inkwyn/Views/TimelineStripView.swift; sourceTree = SOURCE_ROOT; };
+		C036 /* SpotlightDonor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = SpotlightDonor.swift; path = Inkwyn/App/SpotlightDonor.swift; sourceTree = SOURCE_ROOT; };
+		C037 /* ProjectBookmarkStore.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ProjectBookmarkStore.swift; path = Inkwyn/App/ProjectBookmarkStore.swift; sourceTree = SOURCE_ROOT; };
+		C038 /* ScriviURL.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ScriviURL.swift; path = Inkwyn/App/ScriviURL.swift; sourceTree = SOURCE_ROOT; };
+		C050 /* ProjectSession.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ProjectSession.swift; path = Inkwyn/App/ProjectSession.swift; sourceTree = SOURCE_ROOT; };
+		C051 /* OpenProjectRegistry.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = OpenProjectRegistry.swift; path = Inkwyn/App/OpenProjectRegistry.swift; sourceTree = SOURCE_ROOT; };
+		C053 /* ProjectWindowManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ProjectWindowManager.swift; path = Inkwyn/App/ProjectWindowManager.swift; sourceTree = SOURCE_ROOT; };
+		C054 /* OpenSessionManifest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = OpenSessionManifest.swift; path = Inkwyn/App/OpenSessionManifest.swift; sourceTree = SOURCE_ROOT; };
+		C055 /* ProjectWindowFrameStore.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ProjectWindowFrameStore.swift; path = Inkwyn/App/ProjectWindowFrameStore.swift; sourceTree = SOURCE_ROOT; };
+		C060 /* HistoryCapture.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = HistoryCapture.swift; path = Inkwyn/App/HistoryCapture.swift; sourceTree = SOURCE_ROOT; };
+		C061 /* ForkPopover.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ForkPopover.swift; path = Inkwyn/Views/ForkPopover.swift; sourceTree = SOURCE_ROOT; };
+		C062 /* BufferService.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = BufferService.swift; path = Inkwyn/App/BufferService.swift; sourceTree = SOURCE_ROOT; };
+		C063 /* BuffersPalette.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = BuffersPalette.swift; path = Inkwyn/Views/BuffersPalette.swift; sourceTree = SOURCE_ROOT; };
+		C064 /* InspectorCard.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = InspectorCard.swift; path = Inkwyn/Views/Inspector/InspectorCard.swift; sourceTree = SOURCE_ROOT; };
+		C065 /* InspectorLayoutStore.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = InspectorLayoutStore.swift; path = Inkwyn/App/InspectorLayoutStore.swift; sourceTree = SOURCE_ROOT; };
+		C066 /* InspectorCardStackView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = InspectorCardStackView.swift; path = Inkwyn/Views/Inspector/InspectorCardStackView.swift; sourceTree = SOURCE_ROOT; };
+		C067 /* WritingToolCards.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = WritingToolCards.swift; path = Inkwyn/Views/Inspector/WritingToolCards.swift; sourceTree = SOURCE_ROOT; };
+		C068 /* HistoryCard.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = HistoryCard.swift; path = Inkwyn/Views/Inspector/HistoryCard.swift; sourceTree = SOURCE_ROOT; };
+		C069 /* ScenePropertiesView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ScenePropertiesView.swift; path = Inkwyn/Views/Inspector/ScenePropertiesView.swift; sourceTree = SOURCE_ROOT; };
+		C071 /* ObjectCard.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ObjectCard.swift; path = Inkwyn/Views/Inspector/ObjectCard.swift; sourceTree = SOURCE_ROOT; };
+		C072 /* ObjectPickerView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ObjectPickerView.swift; path = Inkwyn/Views/Inspector/ObjectPickerView.swift; sourceTree = SOURCE_ROOT; };
+		C073 /* WorldsView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = WorldsView.swift; path = Inkwyn/Views/WorldsView.swift; sourceTree = SOURCE_ROOT; };
+		C074 /* WorldBookmarkStore.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = WorldBookmarkStore.swift; path = Inkwyn/App/WorldBookmarkStore.swift; sourceTree = SOURCE_ROOT; };
+		C075 /* WorldVolumeStatus.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = WorldVolumeStatus.swift; path = Inkwyn/App/WorldVolumeStatus.swift; sourceTree = SOURCE_ROOT; };
+		C076 /* WorldWarningView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = WorldWarningView.swift; path = Inkwyn/Views/WorldWarningView.swift; sourceTree = SOURCE_ROOT; };
+		C077 /* SourcesCard.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = SourcesCard.swift; path = Inkwyn/Views/Inspector/SourcesCard.swift; sourceTree = SOURCE_ROOT; };
+		C078 /* ManuscriptEscapes.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptEscapes.swift; path = Inkwyn/Views/ManuscriptEscapes.swift; sourceTree = SOURCE_ROOT; };
+		C079 /* MarkdownBlocks.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = MarkdownBlocks.swift; path = Inkwyn/Views/MarkdownBlocks.swift; sourceTree = SOURCE_ROOT; };
+		C080 /* ManuscriptPresenter.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptPresenter.swift; path = Inkwyn/Views/ManuscriptPresenter.swift; sourceTree = SOURCE_ROOT; };
+		C081 /* MarkdownEmphasis.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = MarkdownEmphasis.swift; path = Inkwyn/Views/MarkdownEmphasis.swift; sourceTree = SOURCE_ROOT; };
+		C082 /* ManuscriptCommands.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptCommands.swift; path = Inkwyn/Views/ManuscriptCommands.swift; sourceTree = SOURCE_ROOT; };
+		C083 /* ManuscriptFind.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptFind.swift; path = Inkwyn/Views/ManuscriptFind.swift; sourceTree = SOURCE_ROOT; };
+		C090 /* ManuscriptEditing.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptEditing.swift; path = Inkwyn/Views/ManuscriptEditing.swift; sourceTree = SOURCE_ROOT; };
+		C091 /* ManuscriptUITextView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptUITextView.swift; path = Inkwyn/Views/ManuscriptUITextView.swift; sourceTree = SOURCE_ROOT; };
+		C092 /* ProjectToolbar.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ProjectToolbar.swift; path = Inkwyn/Views/ProjectToolbar.swift; sourceTree = SOURCE_ROOT; };
+		C093 /* PanelSwipes.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = PanelSwipes.swift; path = Inkwyn/Views/PanelSwipes.swift; sourceTree = SOURCE_ROOT; };
+		C094 /* ManuscriptStructure.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptStructure.swift; path = Inkwyn/Views/ManuscriptStructure.swift; sourceTree = SOURCE_ROOT; };
+		C099 /* ScriviDiag.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ScriviDiag.swift; path = Inkwyn/App/ScriviDiag.swift; sourceTree = SOURCE_ROOT; };
+		C210A /* AuthorshipViews.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = AuthorshipViews.swift; path = Inkwyn/Views/AuthorshipViews.swift; sourceTree = SOURCE_ROOT; };
+		C2A1 /* StaleBranchesSheet.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = StaleBranchesSheet.swift; path = Inkwyn/Views/StaleBranchesSheet.swift; sourceTree = SOURCE_ROOT; };
+		C2A2 /* ManuscriptTypography.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptTypography.swift; path = Inkwyn/Views/ManuscriptTypography.swift; sourceTree = SOURCE_ROOT; };
+		C2A3 /* ManuscriptAccessibility.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptAccessibility.swift; path = Inkwyn/Views/ManuscriptAccessibility.swift; sourceTree = SOURCE_ROOT; };
+		C2A4 /* ManuscriptPresentedMap.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptPresentedMap.swift; path = Inkwyn/Views/ManuscriptPresentedMap.swift; sourceTree = SOURCE_ROOT; };
+		C2A5 /* ProjectArchiveFlow.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ProjectArchiveFlow.swift; path = Inkwyn/App/ProjectArchiveFlow.swift; sourceTree = SOURCE_ROOT; };
+		C2A6 /* ManuscriptPDF.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptPDF.swift; path = Inkwyn/App/ManuscriptPDF.swift; sourceTree = SOURCE_ROOT; };
+		C2A7 /* Glyph.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Glyph.swift; path = Inkwyn/Views/Glyph.swift; sourceTree = SOURCE_ROOT; };
+		CORPUS_REF /* manuscript_format_corpus.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = manuscript_format_corpus.json; path = ScriviCore/tests/fixtures/manuscript_format_corpus.json; sourceTree = SOURCE_ROOT; };
+		C_PRODUCT /* Inkwyn.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Inkwyn.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D_PRODUCT /* Inkwyn.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Inkwyn.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E_PRODUCT /* Inkwyn.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Inkwyn.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F001 /* ScriviInteropTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ScriviInteropTests.swift; path = Inkwyn/Tests/ScriviInteropTests.swift; sourceTree = SOURCE_ROOT; };
+		FONTS_REF /* Fonts */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Fonts; path = Resources/Fonts; sourceTree = SOURCE_ROOT; };
+		F_PRODUCT /* InkwynInteropTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = InkwynInteropTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		G001 /* ScriviManuscriptTests-iOS.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = "ScriviManuscriptTests-iOS.swift"; path = "Inkwyn/Tests/ScriviManuscriptTests-iOS.swift"; sourceTree = SOURCE_ROOT; };
+		GRP_SCRIVI /* Inkwyn */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Inkwyn; sourceTree = SOURCE_ROOT; };
+		G_PRODUCT /* InkwynTests-iOS.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "InkwynTests-iOS.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		ICON_REF /* Inkwyn/Inkwyn.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = Inkwyn/Inkwyn.icon; sourceTree = SOURCE_ROOT; };
+		LINUX_PLATFORM_REF /* platforms/linux */ = {isa = PBXFileReference; lastKnownFileType = folder; path = platforms/linux; sourceTree = SOURCE_ROOT; };
+		SCRIVI_CORE_LIB /* libScriviCore.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; name = libScriviCore.a; path = build/ScriviCore/libScriviCore.a; sourceTree = SOURCE_ROOT; };
+		SCRIVI_CORE_REF /* ScriviCore */ = {isa = PBXFileReference; lastKnownFileType = folder; path = ScriviCore; sourceTree = SOURCE_ROOT; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		C_FW /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C020_BF /* libScriviCore.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D_FW /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E_FW /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F_FW /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F020_BF /* libScriviCore.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		G_FW /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		GRP_PRODUCTS /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				C_PRODUCT /* Inkwyn.app */,
+				D_PRODUCT /* Inkwyn.app */,
+				E_PRODUCT /* Inkwyn.app */,
+				F_PRODUCT /* InkwynInteropTests.xctest */,
+				G_PRODUCT /* InkwynTests-iOS.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		GRP_ROOT = {
+			isa = PBXGroup;
+			children = (
+				GRP_SCRIVI /* Inkwyn */,
+				SCRIVI_CORE_REF /* ScriviCore */,
+				LINUX_PLATFORM_REF /* platforms/linux */,
+				GRP_PRODUCTS /* Products */,
+				GRP_SOURCES /* Sources */,
+			);
+			sourceTree = "<group>";
+		};
+		GRP_SOURCES /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				B010 /* ScriviEngine.swift */,
+				B011 /* ScriviError.swift */,
+				B012 /* ScriviEngineGraph.swift */,
+				B013 /* ObjectKindScope.swift */,
+				B016 /* ObjectDetailSheet.swift */,
+				B020 /* ExistingAssetPicker.swift */,
+				B019 /* ObjectImageSection.swift */,
+				B022 /* Citation.swift */,
+				B021 /* ObjectSourcesSection.swift */,
+				B017 /* ObjectRelationsSection.swift */,
+				B018 /* ObjectRelationPicker.swift */,
+				B237 /* RelationTypeForm.swift */,
+				B015 /* ObjectDetailHistory.swift */,
+				B014 /* ObjectDetail.swift */,
+				C001 /* ScriviApp.swift */,
+				C002 /* AppEnvironment.swift */,
+				C003 /* LandingView.swift */,
+				C004 /* EditorView.swift */,
+				C005 /* NewProjectSheet.swift */,
+				C210A /* AuthorshipViews.swift */,
+				C006 /* ViewportSceneLoader.swift */,
+				C007 /* ManuscriptTextView.swift */,
+				C090 /* ManuscriptEditing.swift */,
+				C094 /* ManuscriptStructure.swift */,
+				C092 /* ProjectToolbar.swift */,
+				C093 /* PanelSwipes.swift */,
+				C2A7 /* Glyph.swift */,
+				C091 /* ManuscriptUITextView.swift */,
+				C078 /* ManuscriptEscapes.swift */,
+				C079 /* MarkdownBlocks.swift */,
+				C081 /* MarkdownEmphasis.swift */,
+				C080 /* ManuscriptPresenter.swift */,
+				C082 /* ManuscriptCommands.swift */,
+				C083 /* ManuscriptFind.swift */,
+				C061 /* ForkPopover.swift */,
+				C008 /* SceneNavigatorView.swift */,
+				C030 /* ProjectSettingsSheet.swift */,
+				C2A1 /* StaleBranchesSheet.swift */,
+				C2A2 /* ManuscriptTypography.swift */,
+				C2A3 /* ManuscriptAccessibility.swift */,
+				C2A4 /* ManuscriptPresentedMap.swift */,
+				C031 /* ProjectPreferences.swift */,
+				C032 /* WindowFrameAutosave.swift */,
+				C033 /* AboutView.swift */,
+				C034 /* SceneInspectorView.swift */,
+				C035 /* TimelineStripView.swift */,
+				C036 /* SpotlightDonor.swift */,
+				C037 /* ProjectBookmarkStore.swift */,
+				C074 /* WorldBookmarkStore.swift */,
+				C2A5 /* ProjectArchiveFlow.swift */,
+				C2A6 /* ManuscriptPDF.swift */,
+				C075 /* WorldVolumeStatus.swift */,
+				C038 /* ScriviURL.swift */,
+				C050 /* ProjectSession.swift */,
+				C099 /* ScriviDiag.swift */,
+				C060 /* HistoryCapture.swift */,
+				C062 /* BufferService.swift */,
+				C063 /* BuffersPalette.swift */,
+				C064 /* InspectorCard.swift */,
+				C065 /* InspectorLayoutStore.swift */,
+				C066 /* InspectorCardStackView.swift */,
+				C067 /* WritingToolCards.swift */,
+				C068 /* HistoryCard.swift */,
+				C071 /* ObjectCard.swift */,
+				C077 /* SourcesCard.swift */,
+				C072 /* ObjectPickerView.swift */,
+				C073 /* WorldsView.swift */,
+				C076 /* WorldWarningView.swift */,
+				C069 /* ScenePropertiesView.swift */,
+				C051 /* OpenProjectRegistry.swift */,
+				C053 /* ProjectWindowManager.swift */,
+				C054 /* OpenSessionManifest.swift */,
+				C055 /* ProjectWindowFrameStore.swift */,
+				SCRIVI_CORE_LIB /* libScriviCore.a */,
+				F001 /* ScriviInteropTests.swift */,
+				G001 /* ScriviManuscriptTests-iOS.swift */,
+				CORPUS_REF /* manuscript_format_corpus.json */,
+				ASSETS_REF /* Inkwyn/Assets.xcassets */,
+				ICON_REF /* Inkwyn/Inkwyn.icon */,
+				FONTS_REF /* Fonts */,
+			);
+			name = Sources;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		C_TARGET /* InkwynApp */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C_BCL /* Build configuration list for PBXNativeTarget "InkwynApp" */;
+			buildPhases = (
+				C_CMAKE_PHASE /* Build ScriviCore (CMake) */,
+				C_SOURCES /* Sources */,
+				C_RESOURCES /* Resources */,
+				C_FW /* Frameworks */,
+				C_VERSION_PHASE /* Stamp the version (T-0622) */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = InkwynApp;
+			productName = ScriviApp;
+			productReference = C_PRODUCT /* Inkwyn.app */;
+			productType = "com.apple.product-type.application";
+		};
+		D_TARGET /* InkwynApp-iOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D_BCL /* Build configuration list for PBXNativeTarget "InkwynApp-iOS" */;
+			buildPhases = (
+				D_CMAKE_PHASE /* Build ScriviCore for iOS (CMake) */,
+				D_SOURCES /* Sources */,
+				D_FW /* Frameworks */,
+				86BF02832FEDE0A600531EAC /* Resources */,
+				D_VERSION_PHASE /* Stamp the version (T-0622) */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "InkwynApp-iOS";
+			productName = "ScriviApp-iOS";
+			productReference = D_PRODUCT /* Inkwyn.app */;
+			productType = "com.apple.product-type.application";
+		};
+		E_TARGET /* InkwynApp-visionOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E_BCL /* Build configuration list for PBXNativeTarget "InkwynApp-visionOS" */;
+			buildPhases = (
+				E_SOURCES /* Sources */,
+				E_FW /* Frameworks */,
+				86BF02852FEDE0B700531EAC /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "InkwynApp-visionOS";
+			productName = "ScriviApp-visionOS";
+			productReference = E_PRODUCT /* Inkwyn.app */;
+			productType = "com.apple.product-type.application";
+		};
+		F_TARGET /* InkwynInteropTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F_BCL /* Build configuration list for PBXNativeTarget "InkwynInteropTests" */;
+			buildPhases = (
+				F_SOURCES /* Sources */,
+				F_FW /* Frameworks */,
+				F_RESOURCES /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				DEP_APP_TESTS /* PBXTargetDependency */,
+			);
+			name = InkwynInteropTests;
+			productName = ScriviInteropTests;
+			productReference = F_PRODUCT /* InkwynInteropTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		G_TARGET /* InkwynTests-iOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = G_BCL /* Build configuration list for PBXNativeTarget "InkwynTests-iOS" */;
+			buildPhases = (
+				G_SOURCES /* Sources */,
+				G_FW /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				DEP_IOS_TESTS /* PBXTargetDependency */,
+			);
+			name = "InkwynTests-iOS";
+			productName = "ScriviTests-iOS";
+			productReference = G_PRODUCT /* InkwynTests-iOS.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		PROJECT /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2700;
+				LastUpgradeCheck = 2710;
+				TargetAttributes = {
+					C_TARGET = {
+						SystemCapabilities = {
+							com.apple.Sandbox = {
+								enabled = 1;
+							};
+						};
+					};
+					F_TARGET = {
+						TestTargetID = C_TARGET;
+					};
+					G_TARGET = {
+						TestTargetID = D_TARGET;
+					};
+				};
+			};
+			buildConfigurationList = PROJ_BCL /* Build configuration list for PBXProject "Inkwyn" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = GRP_ROOT;
+			productRefGroup = GRP_PRODUCTS /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				C_TARGET /* InkwynApp */,
+				D_TARGET /* InkwynApp-iOS */,
+				E_TARGET /* InkwynApp-visionOS */,
+				F_TARGET /* InkwynInteropTests */,
+				G_TARGET /* InkwynTests-iOS */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		86BF02832FEDE0A600531EAC /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				86BF02842FEDE0AE00531EAC /* Inkwyn/Assets.xcassets in Resources */,
+				ICON_BF2 /* Inkwyn/Inkwyn.icon in Resources */,
+				FONTS_BF2 /* Fonts in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		86BF02852FEDE0B700531EAC /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				86BF02862FEDE0BF00531EAC /* Inkwyn/Assets.xcassets in Resources */,
+				FONTS_BF3 /* Fonts in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C_RESOURCES /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				ASSETS_BF /* Inkwyn/Assets.xcassets in Resources */,
+				ICON_BF1 /* Inkwyn/Inkwyn.icon in Resources */,
+				FONTS_BF1 /* Fonts in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F_RESOURCES /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CORPUS_BF /* manuscript_format_corpus.json in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		C_CMAKE_PHASE /* Build ScriviCore (CMake) */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Build ScriviCore (CMake)";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/zsh;
+			shellScript = "set -e\nexport PATH=\"/opt/homebrew/bin:$PATH\"\ncd \"$SRCROOT\"\n# Pin ScriviCore to the SAME deployment target the app links at.\n# Without this CMake builds for the HOST SDK (e.g. 27.2) while the app links at\n# MACOSX_DEPLOYMENT_TARGET (27.0), and every object in libScriviCore.a emits\n# \"was built for newer macOS version than being linked\" - 13 warnings.\n# The iOS phase below already did this correctly; macOS did not.\ncmake -S . -B build -DSCRIVI_BUILD_TESTS=OFF -DCMAKE_BUILD_TYPE=Debug \\\n  -DCMAKE_OSX_DEPLOYMENT_TARGET=\"$MACOSX_DEPLOYMENT_TARGET\"\ncmake --build build --parallel\n";
+		};
+		C_VERSION_PHASE /* Stamp the version (T-0622) */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)",
+			);
+			name = "Stamp the version (T-0622)";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"$SRCROOT/scripts/stamp-version.sh\"\n";
+		};
+		D_CMAKE_PHASE /* Build ScriviCore for iOS (CMake) */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Build ScriviCore for iOS (CMake)";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/zsh;
+			shellScript = "set -e\nexport PATH=\"/opt/homebrew/bin:$PATH\"\ncd \"$SRCROOT\"\n# Cross-build ScriviCore for the iOS SDK currently selected by Xcode.\n# $SDKROOT, $ARCHS, $PLATFORM_NAME come from the build; a per-platform build dir\n# (build-$PLATFORM_NAME) keeps simulator and device slices separate.\nBUILD_DIR=\"build-${PLATFORM_NAME}\"\nARCH_LIST=\"${ARCHS// /;}\"\ncmake -S . -B \"$BUILD_DIR\" \\\n  -DSCRIVI_BUILD_TESTS=OFF \\\n  -DCMAKE_BUILD_TYPE=Debug \\\n  -DCMAKE_SYSTEM_NAME=iOS \\\n  -DCMAKE_OSX_SYSROOT=\"$SDKROOT\" \\\n  -DCMAKE_OSX_ARCHITECTURES=\"$ARCH_LIST\" \\\n  -DCMAKE_OSX_DEPLOYMENT_TARGET=\"$IPHONEOS_DEPLOYMENT_TARGET\"\ncmake --build \"$BUILD_DIR\" --parallel\n";
+		};
+		D_VERSION_PHASE /* Stamp the version (T-0622) */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)",
+			);
+			name = "Stamp the version (T-0622)";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"$SRCROOT/scripts/stamp-version.sh\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		C_SOURCES /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C091_BF /* ManuscriptUITextView.swift in Sources */,
+				C090_BF /* ManuscriptEditing.swift in Sources */,
+				C094_BF /* ManuscriptStructure.swift in Sources */,
+				C092_BF /* ProjectToolbar.swift in Sources */,
+				C093_BF /* PanelSwipes.swift in Sources */,
+				C2A7_BF /* Glyph.swift in Sources */,
+				C010_BF /* ScriviEngine.swift in Sources */,
+				C011_BF /* ScriviError.swift in Sources */,
+				C012_BF /* ScriviEngineGraph.swift in Sources */,
+				C013_BF /* ObjectKindScope.swift in Sources */,
+				C016_BF /* ObjectDetailSheet.swift in Sources */,
+				C_EAPICK_BF /* ExistingAssetPicker.swift in Sources */,
+				C019_BF /* ObjectImageSection.swift in Sources */,
+				C_CITE_BF /* Citation.swift in Sources */,
+				C_SRCSEC_BF /* ObjectSourcesSection.swift in Sources */,
+				C017_BF /* ObjectRelationsSection.swift in Sources */,
+				C018_BF /* ObjectRelationPicker.swift in Sources */,
+				C237_BF /* RelationTypeForm.swift in Sources */,
+				C015_BF /* ObjectDetailHistory.swift in Sources */,
+				C014_BF /* ObjectDetail.swift in Sources */,
+				C001_BF /* ScriviApp.swift in Sources */,
+				C002_BF /* AppEnvironment.swift in Sources */,
+				C003_BF /* LandingView.swift in Sources */,
+				C004_BF /* EditorView.swift in Sources */,
+				C005_BF /* NewProjectSheet.swift in Sources */,
+				C210A_BF /* AuthorshipViews.swift in Sources */,
+				C006_BF /* ViewportSceneLoader.swift in Sources */,
+				C007_BF /* ManuscriptTextView.swift in Sources */,
+				C078_BF /* ManuscriptEscapes.swift in Sources */,
+				C079_BF /* MarkdownBlocks.swift in Sources */,
+				C081_BF /* MarkdownEmphasis.swift in Sources */,
+				C080_BF /* ManuscriptPresenter.swift in Sources */,
+				C082_BF /* ManuscriptCommands.swift in Sources */,
+				C083_BF /* ManuscriptFind.swift in Sources */,
+				C061_BF /* ForkPopover.swift in Sources */,
+				C008_BF /* SceneNavigatorView.swift in Sources */,
+				C030_BF /* ProjectSettingsSheet.swift in Sources */,
+				C2A1_BF /* StaleBranchesSheet.swift in Sources */,
+				C2A2_BF /* ManuscriptTypography.swift in Sources */,
+				C2A3_BF /* ManuscriptAccessibility.swift in Sources */,
+				C2A4_BF /* ManuscriptPresentedMap.swift in Sources */,
+				C031_BF /* ProjectPreferences.swift in Sources */,
+				C032_BF /* WindowFrameAutosave.swift in Sources */,
+				C033_BF /* AboutView.swift in Sources */,
+				C034_BF /* SceneInspectorView.swift in Sources */,
+				C035_BF /* TimelineStripView.swift in Sources */,
+				C036_BF /* SpotlightDonor.swift in Sources */,
+				C037_BF /* ProjectBookmarkStore.swift in Sources */,
+				C074_BF /* WorldBookmarkStore.swift in Sources */,
+				C2A5_BF /* ProjectArchiveFlow.swift in Sources */,
+				C2A6_BF /* ManuscriptPDF.swift in Sources */,
+				C075_BF /* WorldVolumeStatus.swift in Sources */,
+				C038_BF /* ScriviURL.swift in Sources */,
+				C050_BF /* ProjectSession.swift in Sources */,
+				C099_BF /* ScriviDiag.swift in Sources */,
+				C060_BF /* HistoryCapture.swift in Sources */,
+				C062_BF /* BufferService.swift in Sources */,
+				C063_BF /* BuffersPalette.swift in Sources */,
+				C064_BF /* InspectorCard.swift in Sources */,
+				C065_BF /* InspectorLayoutStore.swift in Sources */,
+				C066_BF /* InspectorCardStackView.swift in Sources */,
+				C067_BF /* WritingToolCards.swift in Sources */,
+				C068_BF /* HistoryCard.swift in Sources */,
+				C071_BF /* ObjectCard.swift in Sources */,
+				C072_BF /* ObjectPickerView.swift in Sources */,
+				C073_BF /* WorldsView.swift in Sources */,
+				C076_BF /* WorldWarningView.swift in Sources */,
+				C077_BF /* SourcesCard.swift in Sources */,
+				C069_BF /* ScenePropertiesView.swift in Sources */,
+				C051_BF /* OpenProjectRegistry.swift in Sources */,
+				C053_BF /* ProjectWindowManager.swift in Sources */,
+				C054_BF /* OpenSessionManifest.swift in Sources */,
+				C055_BF /* ProjectWindowFrameStore.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D_SOURCES /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D091_BF /* ManuscriptUITextView.swift in Sources */,
+				D090_BF /* ManuscriptEditing.swift in Sources */,
+				D094_BF /* ManuscriptStructure.swift in Sources */,
+				D092_BF /* ProjectToolbar.swift in Sources */,
+				D093_BF /* PanelSwipes.swift in Sources */,
+				D2A7_BF /* Glyph.swift in Sources */,
+				D010_BF /* ScriviEngine.swift in Sources */,
+				D011_BF /* ScriviError.swift in Sources */,
+				D012_BF /* ScriviEngineGraph.swift in Sources */,
+				D013_BF /* ObjectKindScope.swift in Sources */,
+				D016_BF /* ObjectDetailSheet.swift in Sources */,
+				D_EAPICK_BF /* ExistingAssetPicker.swift in Sources */,
+				D019_BF /* ObjectImageSection.swift in Sources */,
+				D_CITE_BF /* Citation.swift in Sources */,
+				D_SRCSEC_BF /* ObjectSourcesSection.swift in Sources */,
+				D017_BF /* ObjectRelationsSection.swift in Sources */,
+				D018_BF /* ObjectRelationPicker.swift in Sources */,
+				D237_BF /* RelationTypeForm.swift in Sources */,
+				D015_BF /* ObjectDetailHistory.swift in Sources */,
+				D014_BF /* ObjectDetail.swift in Sources */,
+				D001_BF /* ScriviApp.swift in Sources */,
+				D002_BF /* AppEnvironment.swift in Sources */,
+				D003_BF /* LandingView.swift in Sources */,
+				D004_BF /* EditorView.swift in Sources */,
+				D005_BF /* NewProjectSheet.swift in Sources */,
+				D210A_BF /* AuthorshipViews.swift in Sources */,
+				D006_BF /* ViewportSceneLoader.swift in Sources */,
+				D007_BF /* ManuscriptTextView.swift in Sources */,
+				D078_BF /* ManuscriptEscapes.swift in Sources */,
+				D079_BF /* MarkdownBlocks.swift in Sources */,
+				D081_BF /* MarkdownEmphasis.swift in Sources */,
+				D080_BF /* ManuscriptPresenter.swift in Sources */,
+				D082_BF /* ManuscriptCommands.swift in Sources */,
+				D083_BF /* ManuscriptFind.swift in Sources */,
+				D061_BF /* ForkPopover.swift in Sources */,
+				D008_BF /* SceneNavigatorView.swift in Sources */,
+				D030_BF /* ProjectSettingsSheet.swift in Sources */,
+				D2A1_BF /* StaleBranchesSheet.swift in Sources */,
+				D2A2_BF /* ManuscriptTypography.swift in Sources */,
+				D2A3_BF /* ManuscriptAccessibility.swift in Sources */,
+				D2A4_BF /* ManuscriptPresentedMap.swift in Sources */,
+				D031_BF /* ProjectPreferences.swift in Sources */,
+				D032_BF /* WindowFrameAutosave.swift in Sources */,
+				D033_BF /* AboutView.swift in Sources */,
+				D034_BF /* SceneInspectorView.swift in Sources */,
+				D035_BF /* TimelineStripView.swift in Sources */,
+				D036_BF /* SpotlightDonor.swift in Sources */,
+				D037_BF /* ProjectBookmarkStore.swift in Sources */,
+				D074_BF /* WorldBookmarkStore.swift in Sources */,
+				D2A5_BF /* ProjectArchiveFlow.swift in Sources */,
+				D2A6_BF /* ManuscriptPDF.swift in Sources */,
+				D075_BF /* WorldVolumeStatus.swift in Sources */,
+				D038_BF /* ScriviURL.swift in Sources */,
+				D050_BF /* ProjectSession.swift in Sources */,
+				D099_BF /* ScriviDiag.swift in Sources */,
+				D060_BF /* HistoryCapture.swift in Sources */,
+				D062_BF /* BufferService.swift in Sources */,
+				D063_BF /* BuffersPalette.swift in Sources */,
+				D064_BF /* InspectorCard.swift in Sources */,
+				D065_BF /* InspectorLayoutStore.swift in Sources */,
+				D066_BF /* InspectorCardStackView.swift in Sources */,
+				D067_BF /* WritingToolCards.swift in Sources */,
+				D068_BF /* HistoryCard.swift in Sources */,
+				D071_BF /* ObjectCard.swift in Sources */,
+				D072_BF /* ObjectPickerView.swift in Sources */,
+				D073_BF /* WorldsView.swift in Sources */,
+				D076_BF /* WorldWarningView.swift in Sources */,
+				D077_BF /* SourcesCard.swift in Sources */,
+				D069_BF /* ScenePropertiesView.swift in Sources */,
+				D051_BF /* OpenProjectRegistry.swift in Sources */,
+				D053_BF /* ProjectWindowManager.swift in Sources */,
+				D054_BF /* OpenSessionManifest.swift in Sources */,
+				D055_BF /* ProjectWindowFrameStore.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E_SOURCES /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E091_BF /* ManuscriptUITextView.swift in Sources */,
+				E090_BF /* ManuscriptEditing.swift in Sources */,
+				E094_BF /* ManuscriptStructure.swift in Sources */,
+				E092_BF /* ProjectToolbar.swift in Sources */,
+				E093_BF /* PanelSwipes.swift in Sources */,
+				E2A7_BF /* Glyph.swift in Sources */,
+				E010_BF /* ScriviEngine.swift in Sources */,
+				E011_BF /* ScriviError.swift in Sources */,
+				E012_BF /* ScriviEngineGraph.swift in Sources */,
+				E013_BF /* ObjectKindScope.swift in Sources */,
+				E016_BF /* ObjectDetailSheet.swift in Sources */,
+				E_EAPICK_BF /* ExistingAssetPicker.swift in Sources */,
+				E019_BF /* ObjectImageSection.swift in Sources */,
+				E_CITE_BF /* Citation.swift in Sources */,
+				E_SRCSEC_BF /* ObjectSourcesSection.swift in Sources */,
+				E017_BF /* ObjectRelationsSection.swift in Sources */,
+				E018_BF /* ObjectRelationPicker.swift in Sources */,
+				E237_BF /* RelationTypeForm.swift in Sources */,
+				E015_BF /* ObjectDetailHistory.swift in Sources */,
+				E014_BF /* ObjectDetail.swift in Sources */,
+				E001_BF /* ScriviApp.swift in Sources */,
+				E002_BF /* AppEnvironment.swift in Sources */,
+				E003_BF /* LandingView.swift in Sources */,
+				E004_BF /* EditorView.swift in Sources */,
+				E005_BF /* NewProjectSheet.swift in Sources */,
+				E210A_BF /* AuthorshipViews.swift in Sources */,
+				E006_BF /* ViewportSceneLoader.swift in Sources */,
+				E007_BF /* ManuscriptTextView.swift in Sources */,
+				E078_BF /* ManuscriptEscapes.swift in Sources */,
+				E079_BF /* MarkdownBlocks.swift in Sources */,
+				E081_BF /* MarkdownEmphasis.swift in Sources */,
+				E080_BF /* ManuscriptPresenter.swift in Sources */,
+				E082_BF /* ManuscriptCommands.swift in Sources */,
+				E083_BF /* ManuscriptFind.swift in Sources */,
+				E061_BF /* ForkPopover.swift in Sources */,
+				E008_BF /* SceneNavigatorView.swift in Sources */,
+				E030_BF /* ProjectSettingsSheet.swift in Sources */,
+				E2A1_BF /* StaleBranchesSheet.swift in Sources */,
+				E2A2_BF /* ManuscriptTypography.swift in Sources */,
+				E2A3_BF /* ManuscriptAccessibility.swift in Sources */,
+				E2A4_BF /* ManuscriptPresentedMap.swift in Sources */,
+				E031_BF /* ProjectPreferences.swift in Sources */,
+				E032_BF /* WindowFrameAutosave.swift in Sources */,
+				E033_BF /* AboutView.swift in Sources */,
+				E034_BF /* SceneInspectorView.swift in Sources */,
+				E035_BF /* TimelineStripView.swift in Sources */,
+				E036_BF /* SpotlightDonor.swift in Sources */,
+				E037_BF /* ProjectBookmarkStore.swift in Sources */,
+				E074_BF /* WorldBookmarkStore.swift in Sources */,
+				E2A5_BF /* ProjectArchiveFlow.swift in Sources */,
+				E2A6_BF /* ManuscriptPDF.swift in Sources */,
+				E075_BF /* WorldVolumeStatus.swift in Sources */,
+				E038_BF /* ScriviURL.swift in Sources */,
+				E050_BF /* ProjectSession.swift in Sources */,
+				E099_BF /* ScriviDiag.swift in Sources */,
+				E060_BF /* HistoryCapture.swift in Sources */,
+				E062_BF /* BufferService.swift in Sources */,
+				E063_BF /* BuffersPalette.swift in Sources */,
+				E064_BF /* InspectorCard.swift in Sources */,
+				E065_BF /* InspectorLayoutStore.swift in Sources */,
+				E066_BF /* InspectorCardStackView.swift in Sources */,
+				E067_BF /* WritingToolCards.swift in Sources */,
+				E068_BF /* HistoryCard.swift in Sources */,
+				E071_BF /* ObjectCard.swift in Sources */,
+				E072_BF /* ObjectPickerView.swift in Sources */,
+				E073_BF /* WorldsView.swift in Sources */,
+				E076_BF /* WorldWarningView.swift in Sources */,
+				E077_BF /* SourcesCard.swift in Sources */,
+				E069_BF /* ScenePropertiesView.swift in Sources */,
+				E051_BF /* OpenProjectRegistry.swift in Sources */,
+				E053_BF /* ProjectWindowManager.swift in Sources */,
+				E054_BF /* OpenSessionManifest.swift in Sources */,
+				E055_BF /* ProjectWindowFrameStore.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F_SOURCES /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F001_BF /* ScriviInteropTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		G_SOURCES /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				G001_BF /* ScriviManuscriptTests-iOS.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		DEP_APP_TESTS /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = C_TARGET /* InkwynApp */;
+			targetProxy = DEP_APP_PROXY /* PBXContainerItemProxy */;
+		};
+		DEP_IOS_TESTS /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D_TARGET /* InkwynApp-iOS */;
+			targetProxy = DEP_IOS_PROXY /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		C_BC_DEBUG /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = Inkwyn;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				AUTOMATION_APPLE_EVENTS = NO;
+				CODE_SIGN_ENTITLEMENTS = "$(SRCROOT)/Inkwyn/App/Scrivi.entitlements";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEAD_CODE_STRIPPING = YES;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_FILE_ACCESS_MUSIC_FOLDER = readonly;
+				ENABLE_FILE_ACCESS_PICTURE_FOLDER = readonly;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY = YES;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
+				INFOPLIST_FILE = "$(SRCROOT)/Inkwyn/App/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = Inkwyn;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/build/ScriviCore";
+				MACOSX_DEPLOYMENT_TARGET = 27.1;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-framework",
+					Security,
+					"-lc++",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.caposoft.inkwyn$(SCRIVI_TEST_HOST_ID_SUFFIX)";
+				"PRODUCT_BUNDLE_IDENTIFIER[sdk=macosx*]" = "com.caposoft.inkwyn$(SCRIVI_TEST_HOST_ID_SUFFIX)";
+				PRODUCT_MODULE_NAME = ScriviApp;
+				PRODUCT_NAME = Inkwyn;
+				RUNTIME_EXCEPTION_ALLOW_DYLD_ENVIRONMENT_VARIABLES = NO;
+				RUNTIME_EXCEPTION_ALLOW_JIT = NO;
+				RUNTIME_EXCEPTION_ALLOW_UNSIGNED_EXECUTABLE_MEMORY = NO;
+				RUNTIME_EXCEPTION_DEBUGGING_TOOL = NO;
+				RUNTIME_EXCEPTION_DISABLE_EXECUTABLE_PAGE_PROTECTION = NO;
+				RUNTIME_EXCEPTION_DISABLE_LIBRARY_VALIDATION = NO;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_INCLUDE_PATHS = "$(SRCROOT)/ScriviCore/include/scrivi";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		C_BC_RELEASE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = Inkwyn;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				AUTOMATION_APPLE_EVENTS = NO;
+				CODE_SIGN_ENTITLEMENTS = "$(SRCROOT)/Inkwyn/App/Scrivi.entitlements";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEAD_CODE_STRIPPING = YES;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_FILE_ACCESS_MUSIC_FOLDER = readonly;
+				ENABLE_FILE_ACCESS_PICTURE_FOLDER = readonly;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY = YES;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
+				INFOPLIST_FILE = "$(SRCROOT)/Inkwyn/App/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = Inkwyn;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/build/ScriviCore";
+				MACOSX_DEPLOYMENT_TARGET = 27.1;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-framework",
+					Security,
+					"-lc++",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.caposoft.inkwyn$(SCRIVI_TEST_HOST_ID_SUFFIX)";
+				"PRODUCT_BUNDLE_IDENTIFIER[sdk=macosx*]" = "com.caposoft.inkwyn$(SCRIVI_TEST_HOST_ID_SUFFIX)";
+				PRODUCT_MODULE_NAME = ScriviApp;
+				PRODUCT_NAME = Inkwyn;
+				RUNTIME_EXCEPTION_ALLOW_DYLD_ENVIRONMENT_VARIABLES = NO;
+				RUNTIME_EXCEPTION_ALLOW_JIT = NO;
+				RUNTIME_EXCEPTION_ALLOW_UNSIGNED_EXECUTABLE_MEMORY = NO;
+				RUNTIME_EXCEPTION_DEBUGGING_TOOL = NO;
+				RUNTIME_EXCEPTION_DISABLE_EXECUTABLE_PAGE_PROTECTION = NO;
+				RUNTIME_EXCEPTION_DISABLE_LIBRARY_VALIDATION = NO;
+				SDKROOT = macosx;
+				SWIFT_INCLUDE_PATHS = "$(SRCROOT)/ScriviCore/include/scrivi";
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		D_BC_DEBUG /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = Inkwyn;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "$(SRCROOT)/Inkwyn/App/Info-iOS.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = Inkwyn;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIStatusBarHidden = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				IPHONEOS_DEPLOYMENT_TARGET = 27.1;
+				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/build-$(PLATFORM_NAME)/ScriviCore";
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-lScriviCore",
+					"-framework",
+					Security,
+					"-lc++",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.caposoft.inkwyn;
+				PRODUCT_MODULE_NAME = Scrivi;
+				PRODUCT_NAME = Inkwyn;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_INCLUDE_PATHS = "$(SRCROOT)/ScriviCore/include/scrivi";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		D_BC_RELEASE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = Inkwyn;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "$(SRCROOT)/Inkwyn/App/Info-iOS.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = Inkwyn;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIStatusBarHidden = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				IPHONEOS_DEPLOYMENT_TARGET = 27.1;
+				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/build-$(PLATFORM_NAME)/ScriviCore";
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-lScriviCore",
+					"-framework",
+					Security,
+					"-lc++",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.caposoft.inkwyn;
+				PRODUCT_MODULE_NAME = Scrivi;
+				PRODUCT_NAME = Inkwyn;
+				SDKROOT = iphoneos;
+				SWIFT_INCLUDE_PATHS = "$(SRCROOT)/ScriviCore/include/scrivi";
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		E_BC_DEBUG /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIconVisionOS;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.caposoft.scrivi;
+				PRODUCT_MODULE_NAME = Scrivi;
+				PRODUCT_NAME = Inkwyn;
+				SDKROOT = xros;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+				XROS_DEPLOYMENT_TARGET = 27.1;
+			};
+			name = Debug;
+		};
+		E_BC_RELEASE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIconVisionOS;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.caposoft.scrivi;
+				PRODUCT_MODULE_NAME = Scrivi;
+				PRODUCT_NAME = Inkwyn;
+				SDKROOT = xros;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+				XROS_DEPLOYMENT_TARGET = 27.1;
+			};
+			name = Release;
+		};
+		F_BC_DEBUG /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEAD_CODE_STRIPPING = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/build/ScriviCore";
+				MACOSX_DEPLOYMENT_TARGET = 27.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.caposoft.scrivi.tests;
+				PRODUCT_NAME = InkwynInteropTests;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_INCLUDE_PATHS = "$(SRCROOT)/ScriviCore/include/scrivi";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Inkwyn.app/Contents/MacOS/Inkwyn";
+			};
+			name = Debug;
+		};
+		F_BC_RELEASE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEAD_CODE_STRIPPING = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/build/ScriviCore";
+				MACOSX_DEPLOYMENT_TARGET = 27.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.caposoft.scrivi.tests;
+				PRODUCT_NAME = InkwynInteropTests;
+				SDKROOT = macosx;
+				SWIFT_INCLUDE_PATHS = "$(SRCROOT)/ScriviCore/include/scrivi";
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Inkwyn.app/Contents/MacOS/Inkwyn";
+			};
+			name = Release;
+		};
+		G_BC_DEBUG /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.1;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.caposoft.scrivi.tests-ios";
+				PRODUCT_NAME = "InkwynTests-iOS";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_INCLUDE_PATHS = "$(SRCROOT)/ScriviCore/include/scrivi";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Inkwyn.app/Inkwyn";
+			};
+			name = Debug;
+		};
+		G_BC_RELEASE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.1;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.caposoft.scrivi.tests-ios";
+				PRODUCT_NAME = "InkwynTests-iOS";
+				SDKROOT = iphoneos;
+				SWIFT_INCLUDE_PATHS = "$(SRCROOT)/ScriviCore/include/scrivi";
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Inkwyn.app/Inkwyn";
+			};
+			name = Release;
+		};
+		PROJ_BC_DEBUG /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = QEJ2Z74RY9;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				MACOSX_DEPLOYMENT_TARGET = 27.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+			};
+			name = Debug;
+		};
+		PROJ_BC_RELEASE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = QEJ2Z74RY9;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				MACOSX_DEPLOYMENT_TARGET = 27.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		C_BCL /* Build configuration list for PBXNativeTarget "InkwynApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C_BC_DEBUG /* Debug */,
+				C_BC_RELEASE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D_BCL /* Build configuration list for PBXNativeTarget "InkwynApp-iOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D_BC_DEBUG /* Debug */,
+				D_BC_RELEASE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E_BCL /* Build configuration list for PBXNativeTarget "InkwynApp-visionOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E_BC_DEBUG /* Debug */,
+				E_BC_RELEASE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F_BCL /* Build configuration list for PBXNativeTarget "InkwynInteropTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F_BC_DEBUG /* Debug */,
+				F_BC_RELEASE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		G_BCL /* Build configuration list for PBXNativeTarget "InkwynTests-iOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				G_BC_DEBUG /* Debug */,
+				G_BC_RELEASE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		PROJ_BCL /* Build configuration list for PBXProject "Inkwyn" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				PROJ_BC_DEBUG /* Debug */,
+				PROJ_BC_RELEASE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = PROJECT /* Project object */;
+}

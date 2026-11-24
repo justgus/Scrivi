@@ -17,7 +17,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Inkwyn (formerly Scrivi)** is a multi-platform authoring, worldbuilding, and narrative design application. It helps writers, authors, dungeon masters, game designers, and scientists organize characters, scenes, locations, relationships, timelines, and maps for complex projects.
 
-⚠️ **Renamed 2026-11-20 ([SP-229]): what people see says Inkwyn, and the packages are `.inkwyn`, `.inkwynworld`, `.inkwynarchive`.** Identifiers keep "Scrivi": the bundle ID `com.caposoft.scrivi`, the Application Support folder, the `scrivi_*` ABI, schema IDs, the `scrivi://` URL scheme, names inside a package (`.scrivi-cache/`, `scrivarchive.json`, …), the Linux binary and desktop file (until [EP-056]), the repo and file names — and the "Scrivi" unnamed-author sentinel. Older docs say `.scrivi` / Scrivi; read them as Inkwyn.
+⚠️ **Renamed 2026-11-20 ([SP-229]): what people see says Inkwyn, and the packages are `.inkwyn`, `.inkwynworld`, `.inkwynarchive`.** ✅ **2026-11-24 (user): the Xcode side is renamed too** — `Inkwyn.xcodeproj`, schemes `InkwynApp` / `InkwynApp-iOS` / `InkwynApp-visionOS`, targets `InkwynInteropTests` / `InkwynTests-iOS`, the app source folder `Inkwyn/`; the workspace stays `Scrivi.xcworkspace` and ⚠️ the core stays `ScriviCore/` (CMake, CI, Linux and scripts name it). Other identifiers keep "Scrivi": the bundle ID `com.caposoft.scrivi`, the Application Support folder, the `scrivi_*` ABI, schema IDs, the `scrivi://` URL scheme, names inside a package (`.scrivi-cache/`, `scrivarchive.json`, …), the Linux binary and desktop file (until [EP-056]), the repo and file names — and the "Scrivi" unnamed-author sentinel. Older docs say `.scrivi` / Scrivi; read them as Inkwyn.
 
 **Target Platforms:** macOS 27.0+, iOS 27.0+, iPadOS 27.0+, visionOS 27.0+, Windows 11, Android, Linux
 
@@ -105,14 +105,14 @@ The approved architecture uses a **shared C++23 static library (ScriviCore)** as
 
 ### Apple Platform Layer
 
-The Swift/Apple layer is a thin wrapper over ScriviCore's **C ABI**. All Apple-platform source lives in `Scrivi/` at the repo root, owned directly by `Scrivi.xcodeproj`. There is no SPM package (`platforms/apple/` is stale).
+The Swift/Apple layer is a thin wrapper over ScriviCore's **C ABI**. All Apple-platform source lives in `Inkwyn/` at the repo root, owned directly by `Inkwyn.xcodeproj`. There is no SPM package (`platforms/apple/` is stale).
 
-- `ScriviEngine.swift` (`Scrivi/Engine/`) calls the `scrivi_*` C functions directly, converts Swift types, decodes JSON envelopes, throws `ScriviError`.
+- `ScriviEngine.swift` (`Inkwyn/Engine/`) calls the `scrivi_*` C functions directly, converts Swift types, decodes JSON envelopes, throws `ScriviError`.
 - ✅ **SecureStore on Apple is the KEYCHAIN** ([I-0216], ruled 2026-09-30, SP-151): a C++
   `KeychainSecureStore` in `ScriviCore/src/platform/` (Security.framework C API), selected by
   `makeSecureStore()` under `if(APPLE)`. Linux uses `EncryptedFileSecureStore`. ⚠️ Its tests are HIDDEN
   (`[.keychain]`) because they touch the real login keychain — run `ScriviCoreTests "[keychain]"`.
-- App source in `Scrivi/App/` and `Scrivi/Views/`. Interop tests in `Scrivi/Tests/`.
+- App source in `Inkwyn/App/` and `Inkwyn/Views/`. Interop tests in `Inkwyn/Tests/`.
 - `Scrivi.xcworkspace` is the entry point — open this, not the xcodeproj directly.
 - SwiftUI for all UI on Apple platforms (macOS active; iOS/visionOS targets stubbed, in progress)
 - CloudKit for sync (future — not in current Epics)
@@ -150,7 +150,7 @@ cmake --build build --parallel
 ctest --test-dir build --output-on-failure
 ```
 
-**Xcode project file rule:** The user commits and creates PRs from Xcode. Every time a new `.cpp`, `.hpp`, or `.swift` file is added anywhere under `Scrivi/` or `ScriviCore/`, `Scrivi.xcodeproj/project.pbxproj` MUST be updated in the same step — before the build, not after. Failing to do this means the user cannot see new files in Xcode and cannot stage them for commit. This is a non-negotiable requirement. `ScriviCore.xcodeproj` no longer exists — do not reference it.
+**Xcode project file rule:** The user commits and creates PRs from Xcode. Every time a new `.cpp`, `.hpp`, or `.swift` file is added anywhere under `Inkwyn/` or `ScriviCore/`, `Inkwyn.xcodeproj/project.pbxproj` MUST be updated in the same step — before the build, not after. Failing to do this means the user cannot see new files in Xcode and cannot stage them for commit. This is a non-negotiable requirement. `ScriviCore.xcodeproj` no longer exists — do not reference it.
 
 ### Apple Platform (when UI work begins)
 
@@ -162,8 +162,8 @@ ctest --test-dir build --output-on-failure
 
 Deployment targets: the **iOS app at 27.1** (EP-055 Q7: the iPhone Duo APIs are 27.1+), the **macOS app at 27.1**,
 the `ScriviInteropTests` target at **27.1** (it must match the app it tests), visionOS at **27.0**. Build and test the macOS
-app with `xcodebuild -scheme ScriviApp -destination 'platform=macOS' build|test`. The iOS tests (`ScriviTests-iOS`, EP-055) run
-with `xcodebuild -workspace Scrivi.xcworkspace -scheme ScriviApp-iOS -destination 'platform=iOS Simulator,id=1BD0746C-CEB7-47FC-8544-6CC20B566940' test`
+app with `xcodebuild -workspace Scrivi.xcworkspace -scheme InkwynApp -destination 'platform=macOS' build|test`. The iOS tests (`InkwynTests-iOS`, EP-055) run
+with `xcodebuild -workspace Scrivi.xcworkspace -scheme InkwynApp-iOS -destination 'platform=iOS Simulator,id=1BD0746C-CEB7-47FC-8544-6CC20B566940' test`
 — an iPhone 18 Pro on iOS 27.2, by its ID (user, 2026-11-13: the iPhone Duo simulator is retired). ⚠️ A 27.1+ runtime (the 27.0
 devices are refused), and never by name: there are two "iPhone 18 Pro" on 27.2. The real iPhone Duo is the device **Remus**.
 
@@ -218,8 +218,8 @@ When a kind's scope changes, grep every language for the kind names together
 ```
 Scrivi/
 ├── Scrivi.xcworkspace           ← Open this in Xcode (entry point)
-├── Scrivi.xcodeproj             ← Xcode project (all Apple targets)
-├── Scrivi/                      ← Apple platform Swift + Adapter source
+├── Inkwyn.xcodeproj             ← Xcode project (all Apple targets)
+├── Inkwyn/                      ← Apple platform Swift source
 │   │                              (⚠️ NO Adapter/ — the C++ adapter was retired; see the note below)
 │   ├── Engine/                  ← ScriviEngine.swift, ScriviError.swift
 │   ├── App/                     ← ScriviApp.swift, AppEnvironment.swift, Info.plist, entitlements

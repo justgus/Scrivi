@@ -18,7 +18,7 @@ REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DERIVED="$REPO_ROOT/build-xctest"
 LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
 
-xcodebuild -workspace "$REPO_ROOT/Scrivi.xcworkspace" -scheme ScriviApp \
+xcodebuild -workspace "$REPO_ROOT/Scrivi.xcworkspace" -scheme InkwynApp \
     -destination 'platform=macOS' -derivedDataPath "$DERIVED" \
     SCRIVI_TEST_HOST_ID_SUFFIX=.testhost "$@" test
 status=$?

@@ -38,7 +38,7 @@ set -uo pipefail
 cd "$(dirname "$0")/.."
 
 status=0
-FILE="Scrivi/Views/EditorView.swift"
+FILE="Inkwyn/Views/EditorView.swift"
 
 # ⚠️ THE ALLOW MARKER, same contract as `check-package-boundary.sh`: the reason
 # travels WITH the code, not in a line number in this file. ⛔ A bare marker is
@@ -126,7 +126,7 @@ fi
 # ---------------------------------------------------------------------------
 # The marker must carry a REASON
 # ---------------------------------------------------------------------------
-bare=$(grep -rnE "$MARKER\s*$" Scrivi/ 2>/dev/null || true)
+bare=$(grep -rnE "$MARKER\s*$" Inkwyn/ 2>/dev/null || true)
 if [ -n "$bare" ]; then
   echo "❌ A 'layout-ok:' marker carries no reason."
   echo "$bare"

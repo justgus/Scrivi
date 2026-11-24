@@ -28,7 +28,7 @@ PATTERN='\.layoutManager|NSLayoutManager|NSTextAttachmentCell'
 #   (none today — every site was migrated in SP-133)
 ALLOW='^$'
 
-hits=$(grep -rnE "$PATTERN" --include="*.swift" Scrivi/ 2>/dev/null \
+hits=$(grep -rnE "$PATTERN" --include="*.swift" Inkwyn/ 2>/dev/null \
   | grep -v 'textLayoutManager' \
   | grep -vE '^\s*[^:]+:[0-9]+:\s*//' \
   | grep -vE "$ALLOW" \

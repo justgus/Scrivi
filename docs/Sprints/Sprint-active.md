@@ -1,5 +1,7 @@
 # Active Sprints
 
+*Last Updated: 2026-11-24 (**SP-244 → 🟡 ACTIVE** (user, 2026-11-24: *"Q1-Q7 as recommended, implement SP-244"*) → [`Sprint-SP-244.md`](Sprint-SP-244.md); Q1–Q7 as recommended.)*
+
 *Last Updated: 2026-11-24 (**SP-243 → ✅ CLOSED** (user, 2026-11-24: *"close SP-243, then complete EP-060"*) → `Closed/Sprint-SP-243.md`; T-0706 ✅ Verified, archived. No Sprint is active.)*
 
 *Last Updated: 2026-11-24 (**SP-243 🟠 Complete** — AC1–AC6 met; Linux App CI ✅ on `31b74cb` (user, 2026-11-24: *"I pushed. Check CI."*). Awaiting close approval. I-0373 ✅ Verified.)*

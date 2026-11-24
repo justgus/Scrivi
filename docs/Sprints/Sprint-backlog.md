@@ -1,5 +1,9 @@
 # Sprint Backlog
 
+*Last Updated: 2026-11-24 (**SP-244 removed** — activated 2026-11-24.)*
+
+*Last Updated: 2026-11-24 (**SP-244 created in 🔵 Planning** — the pre-alpha bug sweep (user, 2026-11-24: *"let's start planning the bug sprint"*); Q1–Q7 to rule.)*
+
 *Last Updated: 2026-11-24 (**SP-243 removed** — activated 2026-11-24.)*
 
 *Last Updated: 2026-11-24 (**SP-243 created in 🔵 Planning** — EP-060 S3 (user, 2026-11-24: *"close SP-242, then plan Sprint 3"*); Q1–Q8 to rule.)*

@@ -23,6 +23,7 @@
 //       Cancel); opening another with changes asks Save · Discard · Cancel; a scene row asks for the scene; Remove;
 //   §10 C4: New Source… creates a source documenting the object; the citation shows its fields and who cites it; Cite…
 //       offers the project's sources (one already cited disabled); Remove Citation; a source opens in place;
+//   §10b [I-0370]: a source's citation fields edited in the view (Page shown only), written per field;
 //   §11 C4: the scene's Sources card lists the sources its objects cite, "via" them;
 //   §12 read-only: Relate…, Cite… and New Source… are off while the object's world is away.
 //   §13 [SP-240] A9: ⋯ ▸ Change to Artifact / Item (greyed while unsaved) and Delete <Kind>…; the trail after each (Q3).
@@ -706,7 +707,8 @@ int main(int argc, char** argv)
     check(!historiesID.isEmpty(), QStringLiteral("§10 … a project source —cites→ Cara"));
     {   // Its citation fields, as a writer would have set them; and Dov cites it too.
         QJsonObject h = objectJson(bridge, dir, QStringLiteral("source"), historiesID, QString());
-        h.insert(QStringLiteral("attributes"), QJsonArray{QJsonObject{{"k", "author"}, {"v", "Herodotus"}}, QJsonObject{{"k", "year"}, {"v", "c. 430 BC"}}});
+        h.insert(QStringLiteral("attributes"), QJsonArray{QJsonObject{{"k", "author"}, {"v", "Herodotus"}}, QJsonObject{{"k", "page"}, {"v", "pp. 12–18"}},
+                                                            QJsonObject{{"k", "year"}, {"v", "c. 430 BC"}}});
         bridge.saveObject(dir, QStringLiteral("source"), QString::fromUtf8(QJsonDocument(h).toJson(QJsonDocument::Compact)));
         bridge.createEdge(dir, historiesID, dovID, QStringLiteral("cites"), QString());
     }
@@ -769,8 +771,32 @@ int main(int argc, char** argv)
     check(part<QLabel>(d, "detailMetadata")->text().startsWith(QStringLiteral("Source")) && !part<QLabel>(d, "detailMetadata")->text().contains("World:"),
           QStringLiteral("§10 … a project-scoped source"));
     check(d->findChild<QDialog*>(QStringLiteral("citationPopup")) == nullptr, QStringLiteral("§10 a double-click does not also show the citation"));
+    // [I-0370] (SP-244): a source's citation fields are edited here; Page (T-0459: the edge's) is shown, not edited.
+    check(part<QWidget>(d, "detailCitation")->isVisible() && part<QLineEdit>(d, "citation_author")->text() == QStringLiteral("Herodotus")
+              && part<QLineEdit>(d, "citation_year")->text() == QStringLiteral("c. 430 BC"),
+          QStringLiteral("§10b a source's citation fields are shown, editable"));
+    check(part<QLabel>(d, "citation_page")->isVisible() && part<QLabel>(d, "citation_page")->text() == QStringLiteral("pp. 12–18")
+              && d->findChild<QLineEdit*>(QStringLiteral("citation_page")) == nullptr,
+          QStringLiteral("§10b … Page shown, not editable"));
+    part<QLineEdit>(d, "citation_publisher")->setText(QStringLiteral("Penguin"));
+    part<QLineEdit>(d, "citation_year")->clear();
+    check(action(d, "detailSave")->isEnabled(), QStringLiteral("§10b a citation edit enables Save"));
+    action(d, "detailSave")->trigger();
+    check(waitFor([&] { return part<QLabel>(d, "detailStatus")->isVisible()
+                                && part<QLabel>(d, "detailStatus")->text() == QStringLiteral("Changes saved"); }),
+          QStringLiteral("§10b saved"));   // the save runs off the GUI thread: Save greys out when it STARTS
+    {
+        QMap<QString, QString> attrs;
+        for (const QJsonValue& v : objectJson(bridge, dir, QStringLiteral("source"), historiesID, QString()).value("attributes").toArray()) {
+            attrs.insert(v.toObject().value("k").toString(), v.toObject().value("v").toString());
+        }
+        check(attrs.value("author") == QStringLiteral("Herodotus") && attrs.value("publisher") == QStringLiteral("Penguin")
+                  && !attrs.contains("year") && attrs.value("page") == QStringLiteral("pp. 12–18"),
+              QStringLiteral("§10b written: a field added, a cleared one removed, Page kept: %1").arg(QStringList(attrs.keys()).join(",")));
+    }
     action(d, "detailBack")->trigger();
     check(showing(QStringLiteral("Cara")), QStringLiteral("§10 Back to Cara"));
+    check(!part<QWidget>(d, "detailCitation")->isVisible(), QStringLiteral("§10b … no citation fields on a character"));
 
     // ── §12 read-only: the graph is frozen while the world is away ───────────────────────────────────────────────
     QDir().rename(worldPath, worldPath + QStringLiteral(".away"));

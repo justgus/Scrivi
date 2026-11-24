@@ -51,6 +51,34 @@ TEST_CASE("markdown ABI: emphasis, paragraph and list-Return edits return ONE ed
     CHECK(ok(scrivi_markdown_list_return_edit("plain", 2)).getBool("refused"));   // not in a list item
 }
 
+TEST_CASE("markdown ABI: [I-0353] a paragraph format on an EMPTY line applies to what is typed next", "[markdown-abi]") {
+    // An empty scene, and the blank line after a paragraph: the line starts with the marker alone, the caret after it.
+    struct Case { const char* format; const char* marker; };
+    for (const Case c : {Case{"heading1", "# "}, Case{"heading2", "## "}, Case{"heading3", "### "},
+                         Case{"bulletList", "- "}, Case{"numberedList", "1. "}}) {
+        INFO(c.format);
+        JsonDoc empty = ok(scrivi_markdown_paragraph_edit("", 0, 0, c.format));
+        REQUIRE_FALSE(empty.getBool("refused"));
+        CHECK(applyEdit("", empty) == c.marker);
+        CHECK(empty.getSubDoc("selection").getInt("location") == static_cast<int>(std::string(c.marker).size()));
+
+        const std::string t = "First.\n\n";
+        JsonDoc after = ok(scrivi_markdown_paragraph_edit(t.c_str(), 8, 0, c.format));
+        REQUIRE_FALSE(after.getBool("refused"));
+        CHECK(applyEdit(t, after) == t + c.marker);
+    }
+    // A numbered item after an ordered list continues its numbering.
+    JsonDoc next = ok(scrivi_markdown_paragraph_edit("1. one\n\n2. two\n\n", 16, 0, "numberedList"));
+    CHECK(applyEdit("1. one\n\n2. two\n\n", next) == "1. one\n\n2. two\n\n3. ");
+    // Q2: Body on an empty line succeeds with nothing to change (the platforms neither beep nor record it).
+    JsonDoc body = ok(scrivi_markdown_paragraph_edit("First.\n\n", 8, 0, "body"));
+    REQUIRE_FALSE(body.getBool("refused"));
+    CHECK(body.getSubDoc("range").getInt("length") == 0);
+    CHECK(body.getString("replacement").empty());
+    // A SELECTION of blank lines is still refused: there is no caret line to start.
+    CHECK(ok(scrivi_markdown_paragraph_edit("A\n\n\n\nB", 2, 2, "heading1")).getBool("refused"));
+}
+
 TEST_CASE("markdown ABI: balanced edit, copy, style at caret, paste pieces", "[markdown-abi]") {
     JsonDoc plain = ok(scrivi_markdown_balanced_edit("plain text", 5, 0, "x", 0));
     CHECK(plain.getBool("plain"));
@@ -179,7 +207,7 @@ TEST_CASE("markdown ABI: every answer of Apple's parity fixture, replayed throug
             ++differing;
             const std::string why = line.getString("why");
             INFO(text);
-            CHECK((why == "I-0284" || why == "symbol-as-punctuation"));   // an UNEXPLAINED difference never enters the fixture
+            CHECK((why == "I-0284" || why == "symbol-as-punctuation" || why == "I-0353"));   // an UNEXPLAINED difference never enters the fixture
         }
         const std::string expected = line.getSubDoc("expected").dump(-1), actual = answer(line).dump(-1);
         if (expected != actual && ++wrong <= 10) {
@@ -188,6 +216,6 @@ TEST_CASE("markdown ABI: every answer of Apple's parity fixture, replayed throug
         }
     }
     CHECK(lines == 5661);
-    CHECK(differing == 153);
+    CHECK(differing == 165);   // [I-0353] +12: a caret at the scene's end, or on its empty last line, is no longer refused
     CHECK(wrong == 0);
 }

@@ -87,6 +87,7 @@ private:
         QJsonObject json;
         QString displayName, subtitle, notes, modifiedAt, imageAssetID;
         QStringList tags;
+        QMap<QString, QString> attributes;   // [I-0370]: a source's citation fields (`attributes` [{"k","v"}])
     };
     struct World {
         QString name, status, reason;
@@ -162,6 +163,13 @@ private:
     bool hasDetail_ = false;
     Detail detail_;
     QStringList tags_;
+    // [I-0370]: a source's editable citation fields, by key (Apple's `CitationField` minus Page, SP-244 Q5), and Page shown.
+    QWidget* citationBox_ = nullptr;
+    QMap<QString, QLineEdit*> citation_;
+    QLabel* citationPageCaption_ = nullptr;
+    QLabel* citationPage_ = nullptr;
+    [[nodiscard]] QMap<QString, QString> citationDraft() const;
+    void fillCitation(const QMap<QString, QString>& attributes, bool onlyUnedited, const QMap<QString, QString>& was);
     QMap<QString, World> worlds_;
     bool worldsKnown_ = false;
     bool awayLatched_ = false;   // a save or read refused toward an absent world, until a read finds it back

@@ -84,8 +84,8 @@ check_file() {
     fi
 }
 
-check_file "Scrivi/Engine/ScriviEngine.swift"
-check_file "Scrivi/Engine/ScriviEngineGraph.swift"
+check_file "Inkwyn/Engine/ScriviEngine.swift"
+check_file "Inkwyn/Engine/ScriviEngineGraph.swift"
 
 if [ "$status" -eq 0 ]; then
     echo "✅ Engine stub parity clean."

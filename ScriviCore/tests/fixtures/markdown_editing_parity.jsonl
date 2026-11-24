@@ -448,7 +448,7 @@
 {"args":{"bit":1,"sel":[45,0]},"expected":{"refused":true},"op":"emphasis","scene":"**Bold at the start** and *italic at the end*"}
 {"args":{"caret":12},"expected":{"range":[10,3]},"op":"wordRange","scene":"**Bold at the start** and *italic at the end*"}
 {"args":{"bit":1,"caret":12,"sel":[10,3]},"expected":{"range":[0,21],"replacement":"**Bold at *the* start**","selection":[13,0]},"op":"emphasisWord","scene":"**Bold at the start** and *italic at the end*"}
-{"args":{"format":"bulletList","sel":[45,0]},"expected":{"refused":true},"op":"paragraph","scene":"**Bold at the start** and *italic at the end*"}
+{"args":{"format":"bulletList","sel":[45,0]},"expected":{"range":[0,45],"replacement":"- **Bold at the start** and *italic at the end*","selection":[47,0]},"op":"paragraph","scene":"**Bold at the start** and *italic at the end*","swift":{"refused":true},"why":"I-0353"}
 {"args":{"caret":12},"expected":{"refused":true},"op":"listReturn","scene":"**Bold at the start** and *italic at the end*"}
 {"args":{"own":false,"replacement":"\n\n","sel":[45,0]},"expected":{"plain":true},"op":"balancedEdit","scene":"**Bold at the start** and *italic at the end*"}
 {"args":{"sel":[45,0]},"expected":{"presented":"","source":""},"op":"copy","scene":"**Bold at the start** and *italic at the end*"}
@@ -504,7 +504,7 @@
 {"args":{"bit":2,"sel":[40,0]},"expected":{"refused":true},"op":"emphasis","scene":"- one item\n\n- two **bold** item\n\n- three"}
 {"args":{"caret":30},"expected":{"range":[27,4]},"op":"wordRange","scene":"- one item\n\n- two **bold** item\n\n- three"}
 {"args":{"bit":2,"caret":30,"sel":[27,4]},"expected":{"range":[27,4],"replacement":"**item**","selection":[32,0]},"op":"emphasisWord","scene":"- one item\n\n- two **bold** item\n\n- three"}
-{"args":{"format":"body","sel":[40,0]},"expected":{"refused":true},"op":"paragraph","scene":"- one item\n\n- two **bold** item\n\n- three"}
+{"args":{"format":"body","sel":[40,0]},"expected":{"range":[33,7],"replacement":"three","selection":[38,0]},"op":"paragraph","scene":"- one item\n\n- two **bold** item\n\n- three","swift":{"refused":true},"why":"I-0353"}
 {"args":{"caret":30},"expected":{"range":[30,0],"replacement":"\n\n- ","selection":[34,0]},"op":"listReturn","scene":"- one item\n\n- two **bold** item\n\n- three"}
 {"args":{"own":false,"replacement":"x","sel":[40,0]},"expected":{"plain":true},"op":"balancedEdit","scene":"- one item\n\n- two **bold** item\n\n- three"}
 {"args":{"sel":[40,0]},"expected":{"presented":"","source":""},"op":"copy","scene":"- one item\n\n- two **bold** item\n\n- three"}
@@ -528,7 +528,7 @@
 {"args":{"bit":2,"sel":[82,0]},"expected":{"refused":true},"op":"emphasis","scene":"Café — “quoted” words, naïve façade, and an emoji 👋 inside **bold 👋 text** here."}
 {"args":{"caret":55},"expected":{"range":[53,6]},"op":"wordRange","scene":"Café — “quoted” words, naïve façade, and an emoji 👋 inside **bold 👋 text** here."}
 {"args":{"bit":2,"caret":55,"sel":[53,6]},"expected":{"range":[53,6],"replacement":"**inside**","selection":[57,0]},"op":"emphasisWord","scene":"Café — “quoted” words, naïve façade, and an emoji 👋 inside **bold 👋 text** here."}
-{"args":{"format":"heading1","sel":[82,0]},"expected":{"refused":true},"op":"paragraph","scene":"Café — “quoted” words, naïve façade, and an emoji 👋 inside **bold 👋 text** here."}
+{"args":{"format":"heading1","sel":[82,0]},"expected":{"range":[0,82],"replacement":"# Café — “quoted” words, naïve façade, and an emoji 👋 inside **bold 👋 text** here.","selection":[84,0]},"op":"paragraph","scene":"Café — “quoted” words, naïve façade, and an emoji 👋 inside **bold 👋 text** here.","swift":{"refused":true},"why":"I-0353"}
 {"args":{"caret":55},"expected":{"refused":true},"op":"listReturn","scene":"Café — “quoted” words, naïve façade, and an emoji 👋 inside **bold 👋 text** here."}
 {"args":{"own":true,"replacement":"\n\n","sel":[82,0]},"expected":{"plain":true},"op":"balancedEdit","scene":"Café — “quoted” words, naïve façade, and an emoji 👋 inside **bold 👋 text** here."}
 {"args":{"sel":[82,0]},"expected":{"presented":"","source":""},"op":"copy","scene":"Café — “quoted” words, naïve façade, and an emoji 👋 inside **bold 👋 text** here."}
@@ -646,7 +646,7 @@
 {"args":{"bit":2,"sel":[30,0]},"expected":{"refused":true},"op":"emphasis","scene":"Some words to make bold here.\n"}
 {"args":{"caret":24},"expected":{"range":[24,4]},"op":"wordRange","scene":"Some words to make bold here.\n"}
 {"args":{"bit":2,"caret":24,"sel":[24,4]},"expected":{"range":[24,4],"replacement":"**here**","selection":[26,0]},"op":"emphasisWord","scene":"Some words to make bold here.\n"}
-{"args":{"format":"body","sel":[30,0]},"expected":{"refused":true},"op":"paragraph","scene":"Some words to make bold here.\n"}
+{"args":{"format":"body","sel":[30,0]},"expected":{"range":[30,0],"replacement":"","selection":[30,0]},"op":"paragraph","scene":"Some words to make bold here.\n","swift":{"refused":true},"why":"I-0353"}
 {"args":{"caret":24},"expected":{"refused":true},"op":"listReturn","scene":"Some words to make bold here.\n"}
 {"args":{"own":true,"replacement":"**b**","sel":[30,0]},"expected":{"caret":33,"range":[30,0],"replacement":"**b**"},"op":"balancedEdit","scene":"Some words to make bold here.\n"}
 {"args":{"sel":[30,0]},"expected":{"presented":"","source":""},"op":"copy","scene":"Some words to make bold here.\n"}
@@ -1507,7 +1507,7 @@
 {"args":{"bit":2,"sel":[33,0]},"expected":{"refused":true},"op":"emphasis","scene":"Mr\\. Smith said \\*no\\* \\- twice\\."}
 {"args":{"caret":15},"expected":{"range":[11,4]},"op":"wordRange","scene":"Mr\\. Smith said \\*no\\* \\- twice\\."}
 {"args":{"bit":2,"caret":15,"sel":[11,4]},"expected":{"range":[11,4],"replacement":"**said**","selection":[17,0]},"op":"emphasisWord","scene":"Mr\\. Smith said \\*no\\* \\- twice\\."}
-{"args":{"format":"heading2","sel":[33,0]},"expected":{"refused":true},"op":"paragraph","scene":"Mr\\. Smith said \\*no\\* \\- twice\\."}
+{"args":{"format":"heading2","sel":[33,0]},"expected":{"range":[0,33],"replacement":"## Mr\\. Smith said \\*no\\* \\- twice\\.","selection":[36,0]},"op":"paragraph","scene":"Mr\\. Smith said \\*no\\* \\- twice\\.","swift":{"refused":true},"why":"I-0353"}
 {"args":{"caret":15},"expected":{"refused":true},"op":"listReturn","scene":"Mr\\. Smith said \\*no\\* \\- twice\\."}
 {"args":{"own":false,"replacement":"","sel":[33,0]},"expected":{"plain":true},"op":"balancedEdit","scene":"Mr\\. Smith said \\*no\\* \\- twice\\."}
 {"args":{"sel":[33,0]},"expected":{"presented":"","source":""},"op":"copy","scene":"Mr\\. Smith said \\*no\\* \\- twice\\."}
@@ -2335,7 +2335,7 @@
 {"args":{"bit":2,"sel":[56,0]},"expected":{"refused":true},"op":"emphasis","scene":"Plain text with no markup at all, just words and spaces."}
 {"args":{"caret":41},"expected":{"range":[39,5]},"op":"wordRange","scene":"Plain text with no markup at all, just words and spaces."}
 {"args":{"bit":2,"caret":41,"sel":[39,5]},"expected":{"range":[39,5],"replacement":"**words**","selection":[43,0]},"op":"emphasisWord","scene":"Plain text with no markup at all, just words and spaces."}
-{"args":{"format":"numberedList","sel":[56,0]},"expected":{"refused":true},"op":"paragraph","scene":"Plain text with no markup at all, just words and spaces."}
+{"args":{"format":"numberedList","sel":[56,0]},"expected":{"range":[0,56],"replacement":"1. Plain text with no markup at all, just words and spaces.","selection":[59,0]},"op":"paragraph","scene":"Plain text with no markup at all, just words and spaces.","swift":{"refused":true},"why":"I-0353"}
 {"args":{"caret":41},"expected":{"refused":true},"op":"listReturn","scene":"Plain text with no markup at all, just words and spaces."}
 {"args":{"own":false,"replacement":"a *i* c","sel":[56,0]},"expected":{"caret":63,"range":[56,0],"replacement":"a *i* c"},"op":"balancedEdit","scene":"Plain text with no markup at all, just words and spaces."}
 {"args":{"sel":[56,0]},"expected":{"presented":"","source":""},"op":"copy","scene":"Plain text with no markup at all, just words and spaces."}
@@ -3558,7 +3558,7 @@
 {"args":{"caret":56},"expected":{"style":0},"op":"styleAtCaret","scene":"Plain text with no markup at all, just words and spaces."}
 {"args":{"bit":2,"sel":[45,0]},"expected":{"refused":true},"op":"emphasis","scene":"**Bold at the start** and *italic at the end*"}
 {"args":{"caret":21},"expected":{"range":null},"op":"wordRange","scene":"**Bold at the start** and *italic at the end*"}
-{"args":{"format":"heading3","sel":[45,0]},"expected":{"refused":true},"op":"paragraph","scene":"**Bold at the start** and *italic at the end*"}
+{"args":{"format":"heading3","sel":[45,0]},"expected":{"range":[0,45],"replacement":"### **Bold at the start** and *italic at the end*","selection":[49,0]},"op":"paragraph","scene":"**Bold at the start** and *italic at the end*","swift":{"refused":true},"why":"I-0353"}
 {"args":{"caret":21},"expected":{"refused":true},"op":"listReturn","scene":"**Bold at the start** and *italic at the end*"}
 {"args":{"own":false,"replacement":"a *i* c","sel":[45,0]},"expected":{"caret":51,"range":[45,0],"replacement":"*a i c*"},"op":"balancedEdit","scene":"**Bold at the start** and *italic at the end*"}
 {"args":{"sel":[45,0]},"expected":{"presented":"","source":""},"op":"copy","scene":"**Bold at the start** and *italic at the end*"}
@@ -3929,7 +3929,7 @@
 {"args":{"bit":1,"sel":[56,0]},"expected":{"refused":true},"op":"emphasis","scene":"Plain text with no markup at all, just words and spaces."}
 {"args":{"caret":9},"expected":{"range":[6,4]},"op":"wordRange","scene":"Plain text with no markup at all, just words and spaces."}
 {"args":{"bit":1,"caret":9,"sel":[6,4]},"expected":{"range":[6,4],"replacement":"*text*","selection":[10,0]},"op":"emphasisWord","scene":"Plain text with no markup at all, just words and spaces."}
-{"args":{"format":"numberedList","sel":[56,0]},"expected":{"refused":true},"op":"paragraph","scene":"Plain text with no markup at all, just words and spaces."}
+{"args":{"format":"numberedList","sel":[56,0]},"expected":{"range":[0,56],"replacement":"1. Plain text with no markup at all, just words and spaces.","selection":[59,0]},"op":"paragraph","scene":"Plain text with no markup at all, just words and spaces.","swift":{"refused":true},"why":"I-0353"}
 {"args":{"caret":9},"expected":{"refused":true},"op":"listReturn","scene":"Plain text with no markup at all, just words and spaces."}
 {"args":{"own":true,"replacement":" ","sel":[56,0]},"expected":{"plain":true},"op":"balancedEdit","scene":"Plain text with no markup at all, just words and spaces."}
 {"args":{"sel":[56,0]},"expected":{"presented":"","source":""},"op":"copy","scene":"Plain text with no markup at all, just words and spaces."}
@@ -3985,7 +3985,7 @@
 {"args":{"bit":1,"sel":[85,0]},"expected":{"refused":true},"op":"emphasis","scene":"## A heading here\n\nBody text after the heading, with **bold** in it.\n\n### Third level"}
 {"args":{"caret":39},"expected":{"range":[39,7]},"op":"wordRange","scene":"## A heading here\n\nBody text after the heading, with **bold** in it.\n\n### Third level"}
 {"args":{"bit":1,"caret":39,"sel":[39,7]},"expected":{"range":[39,7],"replacement":"*heading*","selection":[40,0]},"op":"emphasisWord","scene":"## A heading here\n\nBody text after the heading, with **bold** in it.\n\n### Third level"}
-{"args":{"format":"heading3","sel":[85,0]},"expected":{"refused":true},"op":"paragraph","scene":"## A heading here\n\nBody text after the heading, with **bold** in it.\n\n### Third level"}
+{"args":{"format":"heading3","sel":[85,0]},"expected":{"range":[70,15],"replacement":"Third level","selection":[81,0]},"op":"paragraph","scene":"## A heading here\n\nBody text after the heading, with **bold** in it.\n\n### Third level","swift":{"refused":true},"why":"I-0353"}
 {"args":{"caret":39},"expected":{"refused":true},"op":"listReturn","scene":"## A heading here\n\nBody text after the heading, with **bold** in it.\n\n### Third level"}
 {"args":{"own":true,"replacement":"\n\n","sel":[85,0]},"expected":{"plain":true},"op":"balancedEdit","scene":"## A heading here\n\nBody text after the heading, with **bold** in it.\n\n### Third level"}
 {"args":{"sel":[85,0]},"expected":{"presented":"","source":""},"op":"copy","scene":"## A heading here\n\nBody text after the heading, with **bold** in it.\n\n### Third level"}
@@ -4237,7 +4237,7 @@
 {"args":{"bit":1,"sel":[33,0]},"expected":{"refused":true},"op":"emphasis","scene":"Mr\\. Smith said \\*no\\* \\- twice\\."}
 {"args":{"caret":9},"expected":{"range":[5,5]},"op":"wordRange","scene":"Mr\\. Smith said \\*no\\* \\- twice\\."}
 {"args":{"bit":1,"caret":9,"sel":[5,5]},"expected":{"range":[5,5],"replacement":"*Smith*","selection":[10,0]},"op":"emphasisWord","scene":"Mr\\. Smith said \\*no\\* \\- twice\\."}
-{"args":{"format":"heading3","sel":[33,0]},"expected":{"refused":true},"op":"paragraph","scene":"Mr\\. Smith said \\*no\\* \\- twice\\."}
+{"args":{"format":"heading3","sel":[33,0]},"expected":{"range":[0,33],"replacement":"### Mr\\. Smith said \\*no\\* \\- twice\\.","selection":[37,0]},"op":"paragraph","scene":"Mr\\. Smith said \\*no\\* \\- twice\\.","swift":{"refused":true},"why":"I-0353"}
 {"args":{"caret":9},"expected":{"refused":true},"op":"listReturn","scene":"Mr\\. Smith said \\*no\\* \\- twice\\."}
 {"args":{"own":false,"replacement":" ","sel":[33,0]},"expected":{"plain":true},"op":"balancedEdit","scene":"Mr\\. Smith said \\*no\\* \\- twice\\."}
 {"args":{"sel":[33,0]},"expected":{"presented":"","source":""},"op":"copy","scene":"Mr\\. Smith said \\*no\\* \\- twice\\."}
@@ -4467,7 +4467,7 @@
 {"args":{"caret":62},"expected":{"style":0},"op":"styleAtCaret","scene":"## A heading here\n\nBody text after the heading, with **bold** in it.\n\n### Third level"}
 {"args":{"bit":1,"sel":[40,0]},"expected":{"refused":true},"op":"emphasis","scene":"- one item\n\n- two **bold** item\n\n- three"}
 {"args":{"caret":13},"expected":{"range":null},"op":"wordRange","scene":"- one item\n\n- two **bold** item\n\n- three"}
-{"args":{"format":"body","sel":[40,0]},"expected":{"refused":true},"op":"paragraph","scene":"- one item\n\n- two **bold** item\n\n- three"}
+{"args":{"format":"body","sel":[40,0]},"expected":{"range":[33,7],"replacement":"three","selection":[38,0]},"op":"paragraph","scene":"- one item\n\n- two **bold** item\n\n- three","swift":{"refused":true},"why":"I-0353"}
 {"args":{"caret":13},"expected":{"refused":true},"op":"listReturn","scene":"- one item\n\n- two **bold** item\n\n- three"}
 {"args":{"own":true,"replacement":"","sel":[40,0]},"expected":{"plain":true},"op":"balancedEdit","scene":"- one item\n\n- two **bold** item\n\n- three"}
 {"args":{"sel":[40,0]},"expected":{"presented":"","source":""},"op":"copy","scene":"- one item\n\n- two **bold** item\n\n- three"}
@@ -5317,7 +5317,7 @@
 {"args":{"bit":2,"sel":[40,0]},"expected":{"refused":true},"op":"emphasis","scene":"- one item\n\n- two **bold** item\n\n- three"}
 {"args":{"caret":9},"expected":{"range":[6,4]},"op":"wordRange","scene":"- one item\n\n- two **bold** item\n\n- three"}
 {"args":{"bit":2,"caret":9,"sel":[6,4]},"expected":{"range":[6,4],"replacement":"**item**","selection":[11,0]},"op":"emphasisWord","scene":"- one item\n\n- two **bold** item\n\n- three"}
-{"args":{"format":"heading1","sel":[40,0]},"expected":{"refused":true},"op":"paragraph","scene":"- one item\n\n- two **bold** item\n\n- three"}
+{"args":{"format":"heading1","sel":[40,0]},"expected":{"range":[33,7],"replacement":"# three","selection":[40,0]},"op":"paragraph","scene":"- one item\n\n- two **bold** item\n\n- three","swift":{"refused":true},"why":"I-0353"}
 {"args":{"caret":9},"expected":{"range":[9,0],"replacement":"\n\n- ","selection":[13,0]},"op":"listReturn","scene":"- one item\n\n- two **bold** item\n\n- three"}
 {"args":{"own":true,"replacement":" ","sel":[40,0]},"expected":{"plain":true},"op":"balancedEdit","scene":"- one item\n\n- two **bold** item\n\n- three"}
 {"args":{"sel":[40,0]},"expected":{"presented":"","source":""},"op":"copy","scene":"- one item\n\n- two **bold** item\n\n- three"}

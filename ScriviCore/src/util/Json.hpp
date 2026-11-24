@@ -82,6 +82,12 @@ private:
     friend Result<JsonDoc> parseJson(std::string_view utf8);
 };
 
+// [I-0323]: a parse failure reads as a sentence ("The file is empty." / "The file is damaged …"); the parser's own text is
+// in `detail`, never the message a writer sees.
 Result<JsonDoc> parseJson(std::string_view utf8);
+
+// [I-0323]: a parse failure of the file at `path` names it ("“project.json” is empty, so it could not be read.") and
+// carries the path. Any other error passes through unchanged.
+Error inFile(Error e, std::string_view path);
 
 } // namespace scrivi::util

@@ -3810,7 +3810,7 @@ const char* scrivi_get_pen_names(const char* appSupportRoot) {
         auto text = fs->readTextFile(path);
         if (!text.ok()) return heap(errorEnvelope(text.error()));
         auto parsed = scrivi::util::parseJson(text.value());
-        if (!parsed.ok()) return heap(errorEnvelope(parsed.error()));
+        if (!parsed.ok()) return heap(errorEnvelope(scrivi::util::inFile(parsed.error(), path)));
         for (const auto& n : parsed.value().getStringArray("penNames")) { out.appendStringToArray("penNames", n); }
         out.setString("default", parsed.value().getString("default"));
     } else {
@@ -3881,7 +3881,7 @@ const char* scrivi_set_project_title(const char* projectRootPath, const char* ti
     auto textR = services.fileSystem->readTextFile(path);
     if (!textR.ok()) return heap(errorEnvelope(textR.error()));
     auto parsed = scrivi::util::parseJson(textR.value());
-    if (!parsed.ok()) return heap(errorEnvelope(parsed.error()));
+    if (!parsed.ok()) return heap(errorEnvelope(scrivi::util::inFile(parsed.error(), path)));
     if (!parsed.value().isObject()) {
         return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument,
                                   "project.json is not a JSON object"));

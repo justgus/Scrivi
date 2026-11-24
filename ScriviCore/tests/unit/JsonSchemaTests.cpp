@@ -1055,3 +1055,18 @@ TEST_CASE("CommentJson rejects corrupt JSON", "[schemas][T-0043]") {
     REQUIRE_FALSE(result.ok());
     REQUIRE(result.error().code == ErrorCode::parseError);
 }
+
+TEST_CASE("[I-0323] a parse failure reads as a sentence; inFile names the file", "[Json]") {
+    auto blank = parseJson("  \n");
+    REQUIRE_FALSE(blank.ok());
+    CHECK(blank.error().message == "The file is empty.");
+    CHECK(blank.error().detail.find("parse_error") != std::string::npos);   // the parser's own text, kept in `detail`
+    auto bad = parseJson("{oops");
+    REQUIRE_FALSE(bad.ok());
+    CHECK(bad.error().message == "The file is damaged and could not be read.");
+    CHECK(inFile(blank.error(), "/p/x.inkwyn/project.json").message == "“project.json” is empty, so it could not be read.");
+    CHECK(inFile(bad.error(), "/p/a.meta.json").path == "/p/a.meta.json");
+    // Not a parse failure: passed through untouched.
+    const Error other{.code = ErrorCode::ioError, .message = "could not open file"};
+    CHECK(inFile(other, "/p/x").message == "could not open file");
+}

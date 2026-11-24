@@ -44,6 +44,7 @@
 #include <QVBoxLayout>
 
 #include <algorithm>
+#include <optional>
 #include <utility>
 
 namespace {
@@ -54,6 +55,23 @@ const QSize kPreviewBound(480, 220);   // Apple: scaled to fit, at most 220 high
 // Apple's `SourcesCardModel.citesType` / `.sourceKind`: the citation edge, and the one project-scoped kind it comes from.
 const QString kCites = QStringLiteral("cites");
 const QString kSourceKind = QStringLiteral("source");
+// [I-0370] (SP-244 Q5): Apple's `CitationField`, in its order and words, WITHOUT Page — [T-0459] moves it onto the `cites`
+// edge, so a stored Page is shown, not edited. {key, label, placeholder}.
+struct CitationKey { const char* key; const char* label; const char* placeholder; };
+const CitationKey kEditableCitation[] = {
+    {"author", QT_TRANSLATE_NOOP("ObjectDetailDialog", "Author"), "Ursula K. Le Guin"},
+    {"year", QT_TRANSLATE_NOOP("ObjectDetailDialog", "Year"), "1968 — or “n.d.”, “c. 1387”"},
+    {"publisher", QT_TRANSLATE_NOOP("ObjectDetailDialog", "Publisher"), "Parnassus Press"},
+    {"url", QT_TRANSLATE_NOOP("ObjectDetailDialog", "URL"), "https://…"},
+    {"accessed", QT_TRANSLATE_NOOP("ObjectDetailDialog", "Accessed"), "12 March 2026"},
+};
+// The editable citation fields as stored, absent ones as "" — what the draft is compared against.
+QMap<QString, QString> citationOf(const QMap<QString, QString>& attributes)
+{
+    QMap<QString, QString> out;
+    for (const CitationKey& c : kEditableCitation) { out.insert(QString::fromLatin1(c.key), attributes.value(QString::fromLatin1(c.key))); }
+    return out;
+}
 
 // I-0159: a list inside the dialog's own scroll area takes the height of its rows — one scroll region, never a capped
 // inner one whose hidden rows read as work missing.
@@ -104,10 +122,23 @@ QStringList tagsOf(const QJsonObject& json)
     return tags;
 }
 
-// Patch, never rebuild: `image`, `attributes` and every key a later core adds survive.
+// Patch, never rebuild: `image`, `attributes` and every key a later core adds survive. `attributes` is written only when
+// given (a source's citation, [I-0370]): sorted, blanks dropped, no key at all when empty (Apple: `applyingEdits`).
 QJsonObject patched(QJsonObject json, const QString& name, const QString& subtitle, const QString& notes,
-                    const QStringList& tags)
+                    const QStringList& tags, const std::optional<QMap<QString, QString>>& attributes = std::nullopt)
 {
+    if (attributes) {
+        QJsonArray pairs;
+        for (auto it = attributes->cbegin(); it != attributes->cend(); ++it) {   // QMap iterates sorted by key
+            const QString k = it.key().trimmed(), v = it.value().trimmed();
+            if (!k.isEmpty() && !v.isEmpty()) { pairs.append(QJsonObject{{QStringLiteral("k"), k}, {QStringLiteral("v"), v}}); }
+        }
+        if (pairs.isEmpty()) {
+            json.remove(QStringLiteral("attributes"));
+        } else {
+            json.insert(QStringLiteral("attributes"), pairs);
+        }
+    }
     json.insert(QStringLiteral("displayName"), name.trimmed());
     json.insert(QStringLiteral("subtitle"), subtitle);
     json.insert(QStringLiteral("notes"), notes);
@@ -323,6 +354,32 @@ ObjectDetailDialog::ObjectDetailDialog(ScriviBridge* bridge, const QString& proj
     subtitle_->setObjectName(QStringLiteral("detailSubtitle"));
     subtitle_->setPlaceholderText(tr("A one-line descriptor"));
     col->addWidget(subtitle_);
+
+    // [I-0370]: a source's citation, edited here (New Source… points here); shown only for a source (`refreshState`).
+    citationBox_ = new QWidget(content);
+    citationBox_->setObjectName(QStringLiteral("detailCitation"));
+    auto* citationCol = new QVBoxLayout(citationBox_);
+    citationCol->setContentsMargins(0, 0, 0, 0);
+    citationCol->setSpacing(10);
+    for (const CitationKey& c : kEditableCitation) {
+        citationCol->addWidget(caption(tr(c.label), citationBox_));
+        auto* edit = new QLineEdit(citationBox_);
+        edit->setObjectName(QStringLiteral("citation_") + QString::fromLatin1(c.key));
+        edit->setPlaceholderText(QString::fromUtf8(c.placeholder));
+        citationCol->addWidget(edit);
+        citation_.insert(QString::fromLatin1(c.key), edit);
+        connect(edit, &QLineEdit::textChanged, this, &ObjectDetailDialog::refreshState);
+    }
+    citationPageCaption_ = caption(tr("Page"), citationBox_);
+    citationPage_ = new QLabel(citationBox_);
+    citationPage_->setObjectName(QStringLiteral("citation_page"));
+    citationPage_->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    citationPage_->setForegroundRole(QPalette::PlaceholderText);
+    citationPageCaption_->hide();
+    citationPage_->hide();
+    citationCol->addWidget(citationPageCaption_);
+    citationCol->addWidget(citationPage_);
+    col->addWidget(citationBox_);
 
     col->addWidget(caption(tr("Notes"), content));
     notes_ = new QPlainTextEdit(content);
@@ -540,7 +597,35 @@ ObjectDetailDialog::Detail ObjectDetailDialog::parse(const QJsonObject& json)
     d.modifiedAt = json.value(QStringLiteral("modifiedAt")).toString();
     d.imageAssetID = json.value(QStringLiteral("image")).toObject().value(QStringLiteral("assetID")).toString();
     d.tags = tagsOf(json);
+    // T-0453: `attributes` is an ARRAY of {"k","v"}, not an object.
+    for (const QJsonValue& v : json.value(QStringLiteral("attributes")).toArray()) {
+        const QString k = v.toObject().value(QStringLiteral("k")).toString();
+        if (!k.isEmpty()) { d.attributes.insert(k, v.toObject().value(QStringLiteral("v")).toString()); }
+    }
     return d;
+}
+
+QMap<QString, QString> ObjectDetailDialog::citationDraft() const
+{
+    QMap<QString, QString> out;
+    for (auto it = citation_.cbegin(); it != citation_.cend(); ++it) { out.insert(it.key(), it.value()->text()); }
+    return out;
+}
+
+// Fill the citation fields from `attributes`; with `onlyUnedited`, only a field still equal to `was` (I-0165b, as above).
+void ObjectDetailDialog::fillCitation(const QMap<QString, QString>& attributes, bool onlyUnedited,
+                                      const QMap<QString, QString>& was)
+{
+    const QMap<QString, QString> fresh = citationOf(attributes);
+    for (auto it = citation_.cbegin(); it != citation_.cend(); ++it) {
+        if (onlyUnedited && it.value()->text() != was.value(it.key())) { continue; }
+        const QSignalBlocker block(it.value());
+        it.value()->setText(fresh.value(it.key()));
+    }
+    const QString page = attributes.value(QStringLiteral("page")).trimmed();
+    citationPage_->setText(page);
+    citationPageCaption_->setVisible(!page.isEmpty());
+    citationPage_->setVisible(!page.isEmpty());
 }
 
 void ObjectDetailDialog::reload()
@@ -655,6 +740,7 @@ void ObjectDetailDialog::applyRead(const Read& read)
             if (!same || notes_->toPlainText() == detail_.notes) { notes_->setPlainText(parsed.notes); }
             if (!same || tags_ == detail_.tags) { tags_ = parsed.tags; }
         }
+        fillCitation(parsed.attributes, same, citationOf(detail_.attributes));
         detail_ = parsed;
         hasDetail_ = true;
         imagePath_ = read.imagePath;
@@ -701,7 +787,8 @@ bool ObjectDetailDialog::hasChanges() const
 {
     return hasDetail_
         && (name_->text() != detail_.displayName || subtitle_->text() != detail_.subtitle
-            || notes_->toPlainText() != detail_.notes || tags_ != detail_.tags);
+            || notes_->toPlainText() != detail_.notes || tags_ != detail_.tags
+            || (entry_.kind == kSourceKind && citationDraft() != citationOf(detail_.attributes)));
 }
 
 QString ObjectDetailDialog::worldName() const
@@ -748,6 +835,8 @@ void ObjectDetailDialog::refreshState()
     subtitle_->setReadOnly(readOnly);
     notes_->setReadOnly(readOnly);
     notes_->setPlaceholderText(readOnly ? tr("No notes.") : QString());
+    citationBox_->setVisible(entry_.kind == kSourceKind);
+    for (QLineEdit* e : citation_) { e->setReadOnly(readOnly); }
     newTag_->setVisible(!readOnly);
 
     saveAction_->setEnabled(!saving_ && changed && !readOnly);
@@ -878,13 +967,15 @@ void ObjectDetailDialog::save()
     const Detail original = detail_;
     const QString name = name_->text(), subtitle = subtitle_->text(), notes = notes_->toPlainText();
     const QStringList tags = tags_;
+    const bool isSource = entry_.kind == kSourceKind;
+    const QMap<QString, QString> citation = citationDraft();
     struct Saved {
         Write write;
         QJsonObject json;
     };
     AsyncCall::run<Saved>(
         this,
-        [handle, root, entry, original, name, subtitle, notes, tags]() -> Saved {
+        [handle, root, entry, original, name, subtitle, notes, tags, isSource, citation]() -> Saved {
             WorkerBridge bridge(handle);
             Saved s;
             bool away = false;
@@ -901,9 +992,19 @@ void ObjectDetailDialog::save()
                 return s;
             }
             const Detail disk = parse(current);
+            // [I-0370]: a source's citation per field the same way; every other attribute (Page included) as on disk.
+            std::optional<QMap<QString, QString>> attributes;
+            if (isSource) {
+                attributes = disk.attributes;
+                const QMap<QString, QString> was = citationOf(original.attributes);
+                for (auto it = citation.cbegin(); it != citation.cend(); ++it) {
+                    if (it.value() != was.value(it.key())) { attributes->insert(it.key(), it.value()); }
+                }
+            }
             s.json = patched(current, name == original.displayName ? disk.displayName : name,
                              subtitle == original.subtitle ? disk.subtitle : subtitle,
-                             notes == original.notes ? disk.notes : notes, tags == original.tags ? disk.tags : tags);
+                             notes == original.notes ? disk.notes : notes, tags == original.tags ? disk.tags : tags,
+                             attributes);
             bridge->saveObject(root, entry.kind, QString::fromUtf8(QJsonDocument(s.json).toJson(QJsonDocument::Compact)));
             if (bridge->lastCallFailed()) {
                 s.write.worldAway = away;
@@ -941,6 +1042,7 @@ void ObjectDetailDialog::save()
                 notes_->setPlainText(detail_.notes);
                 tags_ = detail_.tags;
             }
+            fillCitation(detail_.attributes, false, {});
             rebuildTags();
             refreshState();
             setStatus(tr("Changes saved"));
@@ -977,6 +1079,7 @@ void ObjectDetailDialog::revert()
         notes_->setPlainText(detail_.notes);
         tags_ = detail_.tags;
     }
+    fillCitation(detail_.attributes, false, {});
     saveError_->hide();
     rebuildTags();
     refreshState();
@@ -1384,6 +1487,7 @@ void ObjectDetailDialog::showEntry(const Entry& entry)
         notes_->clear();
     }
     tags_.clear();
+    fillCitation({}, false, {});
     imagePath_.clear();
     image_ = QImage();
     awayLatched_ = false;
@@ -1971,7 +2075,8 @@ void ObjectDetailDialog::newSource()
     field->setMinimumWidth(260);
     col->addWidget(field);
     // ⚠️ Not the Mac's sentence: it says the rest is "edited on the source itself", and nothing edits it yet ([SP-236] Q4).
-    auto* hint = new QLabel(tr("Author, year and the rest are shown in the citation once they are set."), form);
+    auto* hint = new QLabel(tr("Author, year and the rest are edited on the source itself — double-click it once it appears."),
+                            form);   // [I-0370]: Apple's sentence, true now that the detail dialog edits them
     hint->setWordWrap(true);
     hint->setForegroundRole(QPalette::PlaceholderText);
     col->addWidget(hint);

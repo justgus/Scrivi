@@ -45,32 +45,28 @@
 
 *Last Updated: 2026-11-04 — **I-0349 filed here** (from `Issue-active.md`) (user, 2026-11-04: *"yes, backlog that don't attach it to SP-190. Then close SP-189 and SP-190."*): the font part open, no Sprint.*
 
+*Last Updated: 2026-11-24 — **I-0366, I-0369, I-0353, I-0284, I-0323, I-0370 → `Issue-active.md`** with [SP-244]'s activation (user, 2026-11-24: *"Q1-Q7 as recommended, implement SP-244"*).*
+
 Issues listed here are open and documented but not currently assigned to a Sprint.
 
 | ID | Title | Severity | Sprint |
 | -- | ----- | -------- | ------ |
 | **I-0349** | `[Linux]` ⛔ **After a load the window freezes ~5.5 s — GNOME offers "Wait or Force Quit"** (user, 2026-11-04: *"It only started happening today"*). ✅ Measured: the first paint of the manuscript loads FALLBACK FONTS one by one through fontconfig (`QFontEngineMulti::ensureEngineAt` → `FT_New_Face`, main-thread stack sampled); present since at least 2026-11-02 (build 1.0.321); the dialog is likely new with today's gnome-shell upgrade. ✅ A part was mine ([SP-203]'s accessibility layer handled each of a load's thousands of events alone) — coalesced. ✅ **Part 2 (fonts) fixed and verified** ([SP-217], 2026-11-13); ⏳ Part 3: dumas still pauses ~751 ms (accessibility rebuilds the Find text for every scene at once). → [details](#i-0349) | Medium | — |
-| **I-0370** | `[Apple]` **A source's citation fields can't be entered, and New Source… says they can** → [details](#i-0370) | Medium | — |
-| **I-0369** | `[Apple]` **Replace… and Remove delete an image another object still shows** (Choose Existing… lets two objects share one) → [details](#i-0369) | Medium | — |
 | **I-0368** | `[Linux]` **The scene's Tags card is a comma field, where the Mac's is chips** (a tag cannot hold a comma) → [details](#i-0368) | Low | — |
 | **I-0367** | `[Apple]` **The object cards restate the kinds: `ObjectCardKind.all` names all ten, each with its relation type** (the standing rule) → [details](#i-0367) | Low | — |
-| **I-0366** | `[Apple]` **A save panel that returns the wrong extension fails with a raw "operation not permitted": the app rewrites the URL to `.inkwyn`, a path the sandbox never granted** (New Project, Import as a New Project) | Low | — |
 | **I-0361** | `[Linux]` **The timeline's zoom buttons ◎ (`U+25CE`) and − (`U+2212`) are drawn from fallback fonts (DejaVu Sans, Noto Sans Bengali), costing ~23 ms and ~4 ms at their first layout on scrivi-vm** ([SP-217] Q2). → [details](#i-0361) | Low | — |
 | **I-0360** | `[Linux]` **`structural_baseline_smoke` failed once on its I-0348 check — after a structural edit the caret was far off screen (y=−53207, window 0–375) and the window showed scene 40 of 40 — then passed 3 of 3** (Docker Qt 6.4.2 arm64, [SP-216]'s checks, not that Sprint's code). → [details](#i-0360) | Low | — |
 | **I-0359** | `[Linux]` **Heap corruption at exit: the indent smoke printed `indent-ok`, then died (`malloc_consolidate(): unaligned fastbin chunk detected`)** — Linux App CI x86_64 + Qt 6.4, **2 of 2 on `1aaffb3`**; clean on arm64 (scrivi-vm, Docker Qt 6.4) | High | — |
 | **I-0356** | `[Apple]` **The visionOS target does not build: `EditorView.swift` uses `.inspector(isPresented:)` and `.inspectorColumnWidth`, which visionOS does not have** | Medium | — |
 | **I-0355** | `[ScriviCore]` **Two unrelated ctest cases failed once under `ctest --parallel 8` on macOS, passing on re-run; 41 test files name temp folders only by `steady_clock`** | Low | — |
 | **I-0354** | `[Cross]` **Two folders holding the same project (same project ID) collide on one machine: reopen-at-launch, window position, Spotlight and the Linux session are stored under the ID, not the folder** | Medium | — |
-| **I-0353** | `[Cross]` **Every paragraph format (Heading 1–3, Bullet list, Numbered list, Body) is refused on an EMPTY line (the Mac flashes, Linux beeps): the writer must type the text first, then format it** (user, 2026-11-05, [SP-183] live pass). ✅ Ruled: what is typed next takes the format. → [details](#i-0353) | Medium | — |
 | **I-0352** | `[ScriviCore]` **`findByID performs NO directory scan on the happy path` failed once under `ctest --parallel 8` on macOS; not reproduced since** (found 2026-11-05 during [SP-183], which changes no core code). → [details](#i-0352) | Low | — |
-| **I-0323** | `[ScriviCore]` ⚠️ **An older Scrivi opening a project from a newer one shows a raw parser error** (`[json.exception.parse_error.101] … attempting to parse an empty input`), not a plain message. Found 2026-10-24 in [SP-193]'s Mac live pass (an old `/Applications` build). → [details](#i-0323) | Medium | Not Assigned |
 | **I-0223** | `[ScriviCore]` ⚠️ **A WORLD CAN BIND TO A DIFFERENT *VERSION* OF ITSELF, SILENTLY — the core detects world IDENTITY but has no notion of world STATE.** ⛔ **REWRITTEN 2026-09-25 BY USER RULING. ⚠️ THE ORIGINAL RECORD WAS SUBSTANTIALLY WRONG AND ITS TEXT IS SUPERSEDED — see 'WHAT THE ORIGINAL CLAIMED' below, kept because the error is instructive.** ---- ✅ **THE USER'S FRAMING, WHICH IS THE SPECIFICATION:** ⚠️ ***"The World's filename and internal ID must match the Project's expectation or else the World Load will be rejected. That will account for every world except a copy of the world or an earlier version of the world. A copy of the world is assumed to be identical... If the mounted file is a mis-matched version (older or newer) of the previous linked world, then an honest reconciliation should take place."*** ---- ✅ **THE IDENTITY CHECK IS REAL, AND IT RUNS ON EVERY CANDIDATE INCLUDING THE RELATIVE ONE.** ✅ **`WorldStore.cpp:428-436`:** ⚠️ ***"IDENTITY CHECK. A package whose worldID differs is NOT this world — resolution stops rather than silently substituting a same-named package. A world's name is a label; its worldID is its identity."*** — ✅ **a mismatch returns `WorldStatus::missing`, NOT a bind.** ✅ **`relinkWorld` enforces the same at `:492-498` with a `worldIDMismatch` detail.** ---- ⚠️ **SO THE SPACE PARTITIONS THREE WAYS, AND ONLY THE THIRD IS A DEFECT:** ✅ **(1) A DIFFERENT WORLD → REJECTED on `worldID`. ⛔ Not a defect; already correct.** ✅ **(2) A COPY of the world → identical `worldID`, identical content, binds and resolves every object reference. ⛔ NOT A DEFECT — a copy is assumed identical and linking to it is FINE (user ruling).** ⛔ **(3) A MIS-MATCHED VERSION of the SAME world (older or newer) → `worldID` MATCHES, so it BINDS SILENTLY, and the core CANNOT NOTICE it is not the version the project last saw. ⚠️ THAT IS THIS ISSUE, ENTIRELY.** ---- ⚠️ **WHY THE CORE IS STRUCTURALLY BLIND TO (3): `worldID` IS IDENTITY, NOT STATE.** ✅ **It answers *"is this the same world?"* and CANNOT answer *"is this the same version of it?"* — ⚠️ **two different questions, and only the first has a mechanism.** ---- ✅ **THE MATERIAL GAP, CONFIRMED IN THE SCHEMAS 2026-09-25:** ⚠️ **`world.json` ALREADY CARRIES `modifiedAt` AND `formatVersion`** (`WorldJson.cpp:25-26`, `WorldRecord` in `worlds/WorldTypes.hpp`) — ⛔ **BUT `WorldBindingRecord` RECORDS NEITHER.** ✅ **It stores only `worldID`, `displayName`, `epochOffsetMs`, `reference` and `cachedIndex`** (`WorldJson.cpp:82-98`). ⚠️ **So the binding has NO RECORD OF WHICH VERSION IT BOUND, and divergence is undetectable by construction — ⛔ not merely unchecked.** ---- ✅ **WHAT THE WORK IS (two capabilities, and the second NEEDS the first):** ✅ **(a) CHANGE-CONTROL DETECTION IN THE WORLD ITSELF** — ⚠️ **something that distinguishes VERSIONS of one `worldID`: a monotonic revision counter or a content hash, written into `world.json` AND recorded in the binding at bind time.** ⛔ **Without this the core cannot detect the case at all, no matter what resolution does.** ⚠️ **`modifiedAt` ALONE IS NOT SUFFICIENT EVIDENCE — a timestamp can go backwards, be preserved by a copy, or be rewritten by sync; ✅ whether it is a usable input is part of the work, not an assumption.** ✅ **(b) HONEST RECONCILIATION** — ⚠️ **when the bound revision and the found revision differ, REPORT IT and say WHICH DIRECTION (older / newer / divergent); ⛔ do not silently pick.** ✅ **This is exactly the two standing rules this code already follows: *"core reports, app decides"* ([SP-141] ruling) and §6a.0's *absence is never deletion*.** ---- ⚠️ **SCOPE WARNING: (a) IS A SCHEMA CHANGE to `world.json` and to the binding, so it needs a MIGRATION story for worlds predating the field** — ✅ **and `WorldRecord::kSupportedFormatVersion` (currently `1`) is the existing mechanism for exactly that.** ⚠️ **THAT is what makes this larger than a resolution patch and why it wants real design, not an incidental fix.** ---- ⚠️ **THE UNMOUNTED-DEVICE VARIANT FOLDS INTO (3), IT IS NOT SEPARATE:** ⛔ **the hazard is NOT resolving to a wrong world (identity blocks that) — ✅ it is resolving to a STALE COPY of the RIGHT world on some other reachable volume while the current one is unmounted.** ⚠️ **Identity passes; nothing flags the divergence.** ---- ⛔ **WHAT THE ORIGINAL RECORD CLAIMED, AND WHY IT WAS WRONG** (⚠️ **kept deliberately**): ⚠️ **it claimed a cross-volume relative path could make the core *"bind the WRONG WORLD and report success"*, severity framed as the [I-0181] class (a wrong answer asserted confidently).** ⛔ **THAT CANNOT HAPPEN — the identity check at `:428` rejects it.** ⚠️ **THE METHOD FAILURE: the 2026-09-22 re-confirmation (*"CONFIRMED STILL LIVE"*) read the CANDIDATE ORDERING at `WorldStore.cpp:305-315` and STOPPED THERE — ✅ it never read the 120 lines further down where the check lives.** ⚠️ **A partial code read produced a confident wrong severity that this record then carried for three days.** ✅ **THE RELATIVE-FIRST ORDERING IS CORRECT AND STAYS** (⚠️ *it is what protects a project and its worlds moved TOGETHER*). ---- ⛔ **THE ORIGINAL ACs ARE VOID:** ⚠️ **old AC2 (*"verify the resolved package IS the bound world"*) IS ALREADY IMPLEMENTED at `:428`; ⚠️ old AC1 (*"skip a meaningless relative candidate"*) addresses a hazard the identity check already closes.** ✅ **[EP-044] MUST BE RE-SPECIFIED around (a) and (b) above.** ---- ⚠️ **SEVERITY RE-REASONED, NOT INHERITED: *"silently binds a STALE VERSION, which is RECONCILABLE"* is a lesser and different thing than *"silently binds the WRONG WORLD"*.** ✅ **It is also arguably NO LONGER the [I-0181] family at all** (⚠️ *that family is about asserting a wrong answer from absent evidence; this is about having no evidence to assert from*). | **Low** — ⚠️ **DROPPED FROM MEDIUM 2026-09-25 (user ruling), re-reasoned NOT inherited:** ⛔ **the Medium came from the FALSE wrong-world claim;** ✅ **"silently binds a STALE VERSION, which is RECONCILABLE" is lesser and different.** ⚠️ **No data is lost and no wrong world is bound — ✅ the writer sees a world that is genuinely theirs, at a state they did not choose.** | [EP-044] — no Sprint (user, 2026-10-24: kept in the backlog, *"I don't think they pose a major threat to data"*) |
 | **I-0192** | `[ScriviCore]` ⚠️ **A world on a PHYSICALLY REMOVED volume resolved `available`, and a full object read SUCCEEDED through it, until a scene change forced a re-resolve.** ⚠️ **Found by the USER on the REAL RIG during T-0477's S3 physical yank, 2026-09-07.** ⚠️ **RE-SCOPED 2026-09-07 from `[Linux]` to `[ScriviCore]` after reading the code — ⚠️ MY ORIGINAL DIAGNOSIS WAS WRONG.** ⚠️ **I filed this as an app-layer 'cached status with no invalidation' and as a placeholder dialog reusing a name it already held. ✅ **The code says otherwise, and the truth is WORSE:** `EditorShell::onOpenObjectRequested` (`EditorShell.cpp:~1790`) calls `bridge_->openObject(...)`, checks `lastCallFailed()`, and ⚠️ **parses the displayed name out of the `objectJson` THAT CALL RETURNED** — its own comment reads *"the object is genuinely read here."* ⚠️ **There is no app-side status cache to go stale.** ✅ **The read is guarded end-to-end**: `ObjectStore::open` → `findByID` → `kindDirFor` (`ObjectStore.cpp:~250`), which calls `WorldStore::resolve()` and ⚠️ **refuses unless status is `available`.** ✅ **And `resolve` caches NO verdict** — it sets `available` only after actually reading and parsing `world.json` from the candidate path (`WorldStore.cpp:337-342`). ⚠️ **SO THE DEFECT IS NOT STALENESS ANYWHERE — the filesystem itself answered successfully for a volume that was physically gone**, and every layer above correctly trusted a correct answer. ⚠️ **The likely mechanism is the PAGE CACHE / unreaped dentries**, which ✅ **the 2b container pass ALREADY measured in a stronger form**: a held FD survived `umount -l` + `losetup -D` entirely, reading and writing fine while the PATH broke instantly. ⚠️ **THIS IS I-0181's SIBLING, NOT ITS OPPOSITE**: I-0181 is `resolve` inferring absence it cannot prove; ⚠️ **I-0192 is `resolve` inferring PRESENCE it cannot prove** — ✅ **and `read succeeded` is no more proof of a mounted volume than `directory exists` is proof of a deleted one.** ⚠️ **T-0498's `st_dev` primitive is plausibly the SAME fix for both** — ⚠️ **but that must be MEASURED, not assumed.** ⚠️ **PARTIALLY MEASURED 2026-09-07 (over SSH, drive already out): the STEADY STATE is CORRECT** — `scrivi_get_world_status` returns ✅ **`unavailable`** (not `missing`), with `packagePath` empty and `lastKnownPackagePath` preserved, ⚠️ **stable across repeated calls**, and ✅ **`binding.json` stores no status key at all** — ⚠️ **so there is no persisted verdict to go stale.** ⚠️ **Therefore I-0192 is a TRANSIENT WINDOW, not a stuck verdict** — ⚠️ **severity lowered accordingly.** ⚠️ **The decay-vs-persist question across the yank itself is STILL OPEN and needs the sampled run.** | **Low** | [EP-044] — no Sprint (user, 2026-10-24: kept in the backlog, *"I don't think they pose a major threat to data"*) |
 | **I-0317** | `[Linux]` ⚠️ **Drag-selecting toward the top or bottom (autoscroll) freezes the window for up to 25.6 s over the share: every autoscroll step that enters a new scene moves the Inspector to it on the GUI thread (50–290 ms each, back to back).** Found 2026-10-23 in the rig log during [SP-188]'s live pass (not that Sprint's code). → [details](#i-0317) | High | Not Assigned |
 | **I-0318** | `[Linux]` ⚠️ **After a large cross-scene cut lands, the caret is restored to a position past the end of the shortened document** (`QTextCursor::setPosition: Position '1846043' out of range`). Nothing visible broke. Found 2026-10-23 in the rig log ([SP-188] live pass). → [details](#i-0318) | Low | Not Assigned |
 | **I-0308** | `[Linux]` ⛔ **The app CRASHED while the writer typed in the Find bar** (dumas-prose-timelines over the share, after a cross-scene paste, a quit, a reopen and an undo of the paste). Found on the rig 2026-10-15. ⚪ **Not reproducible** (user, 2026-10-22): not reproduced in Docker under ASan, did not recur on the rig (build 75). → [details](#i-0308) | **High** | Not Assigned (removed from [SP-185] 2026-10-22) |
 | **I-0301** | `[Apple]` ⚠️ **At the beginning of the manuscript, scrolling down jitters and the view does not move — as if something keeps putting it back.** Reported by the user 2026-10-13 during [SP-180]'s live pass. ✅ Caught in the diagnostics 2026-10-17 (after a Show chapter titles toggle): the view snaps back about 35 pt mid-gesture, with no Scrivi scroll call logged. Cause not yet named. → [details](#i-0301) | **Medium** | — (detached from [SP-180] 2026-10-14) |
-| **I-0284** | `[Apple]` ⚠️ **A paragraph containing a HARD BREAK renders NO emphasis — its `**`, `*`, `_` markers show raw.** ✅ **MEASURED 2026-10-08** (found by [SP-171]'s AC1 corpus test; `MarkdownBlocks.analyze`): `"A line\nthen _under_ and **b**."` → 4 markers; `"A hard break\\\nthen _under_ and **b**."` (the Option-Return form, [T-0584]) → **0 markers**. The presenter and the presented map agree (both show the markers), so it is the ANALYZER's result, not the drawing. ⚠️ Not yet checked: whether the whole block is affected or only lines after the break; whether headings/lists in such a block are affected; Linux (md4c) behaviour. ✅ Repro: type a bold word, then Option-Return, then another bold word in the same paragraph. ⚠️ Not in SP-171's scope (filed to the backlog first). | Medium | Not Assigned |
 | **I-0275** | `[Apple]` ⚠️ **Keystroke and caret-move cost grows LINEARLY with position in the manuscript — ~20–43 ms at the start, ~89–122 ms at the end of 1.85 MB.** ✅ **MEASURED 2026-10-04** ([SP-157] AC10c, user's run, `dumas-prose-timelines`, 1,855,917 chars): typing 20.0–42.6 ms (scene 0) · 37.1–66.2 ms (scene 291, ~460k) · 89.1–121.7 ms (scenes 1182–1184); Return and ⌫ the same as typing at each place; ⚠️ **arrow keys 0.6–1.7 ms at the start, 89–117 ms at the end — and arrows run NONE of Scrivi's per-keystroke work**, so the scaling is AppKit's (TextKit 2). Scrivi's own work (`[SCRIVI-KEY]`) is flat at 2.3–4.3 ms (→ [T-0583]). ---- ⚠️ **USER'S STANDING (quoted, not inflated):** *"I'm a little worried that we're scanning the whole document at each keystroke"* · *"I didn't say it bites. I said I was kind of concerned."* → *"Let's backlog the Issue for the real cost as well."* ⛔ **NOT ruled as biting.** ---- ✅ **Relation:** [I-0206] (closed not-a-defect) measured `setSel` linear in offset and typing "constant" — ⚠️ this shows typing and arrows are linear too ([I-0206] measured typing at one place). ⚠️ Consistent with [I-0267]'s unexplained fast/slow runs being a caret-POSITION difference — unproven. ---- ✅ **Next step: an Instruments time profile of ONE keystroke and ONE arrow at the end of the manuscript**, to name the AppKit call that grows with position. ⚠️ Only then a design decision; the structural option (not holding the whole manuscript in one text view, with a scene-position map) is Epic-sized. ---- ✅ **BACKGROUND — sync vs async (user asked 2026-10-04; added at the user's request):** ⚠️ **everything per keystroke is SYNCHRONOUS on the main thread, inside `keyDown`**: (1) AppKit's key dispatch → `insertText`; (2) our pre-edit guards in `shouldChangeText` (heading / divider refusal, escape-pair widening); (3) escaping in `insertText`; (4) the storage edit + `EscapeHidingStyler.restyle` (must finish before drawing, or a hidden backslash flashes); (5) **AppKit's own layout / selection / display**; (6) our `textDidChange` bookkeeping (boundary scan, scene lookup, text extract, history `noteEdit`, and on `.`/`!`/`?`/Return a C++ `historyRecordEvent`). ✅ **Already async (debounced `Task`s):** autosave 1 s, Navigator title 300 ms, viewport-scene-after-scroll 120 ms. ✅ **Split at the end of 1.85 MB:** `keyDown` 89–122 ms; Scrivi's (6) 2.3–2.8 ms (≈2.3 ms of it the scan → [T-0583]); (2)–(4) each < 0.5 ms; ⛔ **AppKit ≈ 85–115 ms.** ✅ Arrow keys run none of (2)–(6) and still cost ~90 ms at the end. ✅ **Can it be made async?** ⛔ AppKit's share: NO — `NSTextView`/TextKit are main-thread-only, inside the event; the lever is to find and avoid the offset-linear call, or give the view less text. ⛔ (2)–(4): NO — they decide or change what is stored or drawn. ⚠️ (6): possible, ✅ but after [T-0583] it is ~0.2 ms, and moving the history record off-main risks the EP-019 *"history commits before disk writes"* ordering (§4.d) — not worth it. | Low | Not Assigned |
 | **I-0147** | `[ScriviCore]` ⚠️ **KNOWN LIMITATION (user-ruled 2026-08-21, ACCEPTED — not to be fixed in SP-116).** ⚠️ **For up to `kStaleSeconds` (60 s) after an interrupted world write, the world is ENTIRELY UNWRITABLE and its abandoned `.partial` is unreclaimable.** When a volume vanishes mid-import the writer dies holding the lock, leaving `.lock` on disk with a **fresh** heartbeat. Reattach the drive quickly — the natural thing to do — and the next write is refused `worldLocked`; ⚠️ **T-0433's sweep runs only AFTER a successful acquire**, so the orphan survives until the lock ages out. **Observed on the real rig 2026-08-21**: drive pulled mid-import, reattached within ~60 s, next import refused and a **2.9 GB** `.partial` remained. ✅ **Both halves verified**: staged fresh lock + orphan → `worldLocked`, orphan stays; waited past 60 s → **acquired and swept**. ⚠️ **This is arguably CORRECT, which is why it is accepted:** `kStaleSeconds` exists precisely because the core cannot distinguish *"writer died"* from *"writer is briefly stalled"*, and guessing wrong means two processes writing a shared world at once. It **self-heals** within a minute and loses no data. **The stronger evidence available — the package's own VOLUME was unmounted, which is far better proof of a dead holder than a quiet heartbeat — is not currently used.** ⚠️ **Deferred to the network-worlds design**, which must revisit *"exactly one winner"* regardless; ruling that inside an asset sprint is how a locking model gets set by accident (the lesson of I-0144). ⚠️ **The eventual UI must not present the 60 s wait as an error** — it is a retryable state. | Low | ⚠️ **Deferred — network-worlds design.** 🟡 Accepted limitation (2026-08-21); moved to the backlog 2026-10-03 (user). 🟡 **Accepted limitation (2026-08-21)** — ⚠️ **found by the LIVE RIG PASS**; ⚠️ **my own earlier staged-orphan test PASSED because it created the orphan WITHOUT a matching fresh lock** — not the state a real crash leaves |
 
@@ -118,38 +114,6 @@ all 1,174 scenes at once on the main thread (`ManuscriptAccessibility` → `Pres
 
 ---
 
-## I-0370: `[Apple]` A source's citation fields can't be entered, and New Source… says they can
-
-**Found:** 2026-11-22, planning [SP-236] C4 (Q4, (user, 2026-11-22: *"Q1-Q6 as recommended, implement SP-236"*)). Read from the code.
-**What:** the citation popover (`SourcesCard.swift`, `ObjectSourcesSection.swift`) shows Author, Year, Publisher, Page, URL and
-Accessed from a source's `attributes` (`CitationField`, `Scrivi/Views/Detail/Citation.swift`), but nothing in the app writes them:
-the detail sheet has no field for them, and `git log -S` finds no editor ever. New Source…'s form says *"Author, year and the rest are
-edited on the source itself — double-click it once it appears."* — the sheet that opens has no such fields. A writer can create a
-source and never record who wrote it.
-**How Linux does it ([SP-236]):** shows the fields that are set, read-only, as the Mac; its New Source… form does not repeat the
-sentence.
-**Next:** a citation section in the detail sheet when the object is a source (Mac and iOS first, then Linux); see also [T-0459]
-(`page` belongs on the edge).
-**Severity:** Medium — a documented capability with no surface, and the app tells the writer it exists.
-**Status:** 🔵 Open.
-
-## I-0369: `[Apple]` Replace… and Remove delete an image another object still shows
-
-**Found:** 2026-11-22, building [SP-235] B2 on Linux from the Mac's `ObjectImageSection.swift`. Not reproduced on the Mac; read from
-the code.
-**What:** Choose Existing… points an object at an asset already in the world without copying it, so two objects can share one image
-(the Mac's own comment at `ObjectImageSection.swift:294`: *"nothing stops two objects referencing one image"*). But **Replace…**
-(`importImage`, `:276`) and **Remove** (`removeImage`, `:321`) call `removeAsset` on the old asset unconditionally, so the other
-object loses its image's bytes and shows "This object's image is in a world that is unavailable." — a damaged-looking state for a
-deliberate edit, and the image is gone.
-**Repro (expected):** give A an image; on B, Choose Existing… → A's image; on B, Remove. A's image is gone.
-**How Linux does it ([SP-235]):** `removeAssetIfUnshared` (`platforms/linux/src/ObjectDetailDialog.cpp`) deletes the asset only when
-no other object's `imagePath` (from `listObjects`) is the same file, and keeps it when it cannot tell. Tested:
-`object_detail_smoke` §5.
-**Next:** the same guard on the Mac and iOS.
-**Severity:** Medium — data loss from an ordinary edit, but only after Choose Existing… has shared an image.
-**Status:** 🔵 Open.
-
 ## I-0368: `[Linux]` The scene's Tags card is a comma field, where the Mac's is chips
 
 **Found:** 2026-11-22, planning [SP-235] (Q3, (user, 2026-11-22: *"Q1-Q6 as recommended, implement SP-235"*)).
@@ -174,25 +138,6 @@ from the project's vocabulary: a type that names the kind with a scene at the ot
 scene endpoint.
 **Next:** derive the Mac's cards the same way (the symbol and title are presentation and may stay a per-kind lookup with a fallback).
 **Severity:** Low — correct today.
-**Status:** 🔵 Open.
-
----
-
-## I-0366: `[Apple]` A save panel returning the wrong extension fails as "operation not permitted"
-
-**Found:** 2026-11-20, [SP-229]'s Mac live pass, step 4 (user: *"When I tapped Create it said "the operation is not permitted"."*).
-**What happens:** `NewProjectSheet.choosePath()` (`NewProjectSheet.swift:149–151`) and Import ▸ as a New Project
-(`ProjectArchiveFlow.swift:457`) take the save panel's URL and, when its extension is not `inkwyn`, replace the extension. The
-sandbox grants write access to **the URL the panel returned**, not to the rewritten one, so the create fails with EPERM and the
-writer sees only "the operation is not permitted". The rewrite is I-0092's defensive branch (2026-07-28); it can never succeed in a
-sandboxed app, and it stayed hidden because the panel always returned the right extension.
-**What triggered it:** after the rename the type IDs stayed (`com.caposoft.scrivi.project`, by [T-0684]'s scope) and the extensions
-changed; ten stale `Scrivi.app` builds on the Mac still declared the old `.scrivi`, so the panel enforced `.scrivi`. Fixed on the
-Mac by unregistering them ([SP-229] progress log). The same can happen on any Mac where an old build registers again.
-**Next:** when the panel's extension is wrong, do not rewrite it: tell the writer the location must end in `.inkwyn` (or reopen
-the panel). Check the other panels that name a Scrivi type (`AppEnvironment.swift:755`, `ProjectArchiveFlow.swift:147,584`) for the
-same shape.
-**Severity:** Low — only a Mac with a stale registration hits it; no tester has one.
 **Status:** 🔵 Open.
 
 ---
@@ -337,27 +282,6 @@ they are the same work.
 
 ---
 
-## I-0353: `[Cross]` A paragraph format on an empty line is refused
-
-**Reported:** the user, 2026-11-05, during [SP-183]'s live pass: *"On the mac, when I select "Format->Heading 1" with nothing
-selected, the screen flashes at me. I have to type the text, and then select it, and then select heading 1."*
-**Measured** (`scrivi_markdown_paragraph_edit`, macOS build, 2026-11-05): **every paragraph format** — `heading1`, `heading2`,
-`heading3`, `bulletList`, `numberedList`, `body` — is `refused` on a blank line after a paragraph and in an empty scene. With the
-caret INSIDE a paragraph and nothing selected, it works (`heading1` on `First.` → `# First.`): no selection is needed, only
-text on the line. ✅ **Bold and Italic already behave as ruled:** on a blank line `word_range` finds no word, so the platform
-inserts the PENDING pair and what is typed next is bold or italic.
-**Where:** the core refuses (`ScriviCore/include/scrivi/scrivi.h:1248`, `paragraph_edit`); the Mac beeps on a refusal
-(`ManuscriptTextView.swift:2626`, `NSSound.beep()`), Linux too (`ManuscriptEditor.cpp:1517`, `QApplication::beep()`).
-✅ **RULED (user, 2026-11-05):** *"That is an excellent question. Your assumption of the scrivi functionality implies that it
-should be so."* · ✅ **Widened (user, 2026-11-05):** *"I-0353 should apply to all the format options."* — every Format command on
-an empty line applies to what is typed next, as word processors do, instead of refusing: Heading 1–3 and the two lists
-start the line as that kind (Bold and Italic already do, through the pending pair). ⚠️ **Body**, on a line that is already
-body, has nothing to change: under the ruling it succeeds silently rather than flashing — to confirm at planning. ⚠️ An empty `# ` line is stored Markdown, so it is a core change,
-made the same way on both platforms.
-**Status:** 🔵 Open.
-
----
-
 ## I-0352: `[ScriviCore]` An intermittent failure of `findByID performs NO directory scan on the happy path`
 
 **Found:** 2026-11-05, running the macOS ctest (Debug, `ctest --parallel 8`, 806 tests) for [SP-183], which changes no ScriviCore
@@ -374,32 +298,6 @@ temp folder is named by `steady_clock` ticks only (`ObjectIndexTests.cpp:91`; 41
 deterministic UUIDs would collide too. ctest starts processes milliseconds apart, so this is unlikely.
 **Next:** keep each ctest run's output (`--output-on-failure` into a file) so a recurrence names the assertion.
 **Status:** 🔵 Open.
-
----
-
-## I-0323
-
-**Title:** An older build opening a newer project shows a raw JSON parser error
-**Status:** 🔵 **Open**
-**Platform:** `[ScriviCore]` (the message), shown by both apps
-**Component:** `util::parseJson` (`ScriviCore/src/util/Json.cpp:174`) returns `e.what()` as the error message; the
-caller that read an empty file is not yet named.
-**Severity:** Medium. Nothing is lost, but alpha testers on builds that fall behind each other will meet it, and the
-message tells them nothing.
-**Sprint:** Not Assigned
-**Date Identified:** 2026-10-24, [SP-193] Mac live pass step 4: a Finder double-click launched `/Applications/Scrivi.app`
-(a 2026-09-16 build, process 88249) on a current project. Filed by user request (2026-10-25).
-
-**What happened:** the open failed with *"[json.exception.parse_error.101] parse error at line 1, column 1: attempting to
-parse an empty input…"*.
-
-⚠️ **Cause not named.** "Empty input" means the old build read a file that was empty or absent, not a newer schema it
-could not understand. Which file is not known: reproduce with that build (or any build before the change) and log the
-path before fixing.
-
-**Fix direction (not ruled):** two parts. (1) The parse error names the file and reads as a plain sentence. (2) A
-project written by a newer format says so: *"This project was saved by a newer version of Scrivi"*, which needs the
-open path to check a format version before reading anything else.
 
 ---
 

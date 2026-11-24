@@ -2,7 +2,7 @@
 // make-glyph-symbols.swift — EP-060 / SP-241 (T-0704).
 //
 // Turns the Inkwyn glyph art in Resources/Icons into custom
-// SF Symbols: Scrivi/Assets.xcassets/Glyphs/inkwyn.<name>.symbolset, with Small/Medium/Large as the symbol's three
+// SF Symbols: Inkwyn/Assets.xcassets/Glyphs/inkwyn.<name>.symbolset, with Small/Medium/Large as the symbol's three
 // scales. A glyph comes either as three files, <Name>-Small/-Medium/-Large.svg, or as ONE <Name>.svg holding three groups
 // <g id="large|medium|small"> each in its own tile named by <view id="large-view|…" viewBox> (the Runic Whimsy set). Strokes are outlined and white shapes knocked out (a symbol is filled outlines only), and every drawing is
 // fitted into one box so the glyphs read as the same size (EP-060 Q5). The output is committed; re-run after the art
@@ -422,7 +422,7 @@ do {
     try selfCheck()
     let repo = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
     let source = repo.appendingPathComponent("Resources/Icons")
-    let catalog = repo.appendingPathComponent("Scrivi/Assets.xcassets/Glyphs")
+    let catalog = repo.appendingPathComponent("Inkwyn/Assets.xcassets/Glyphs")
     let args = CommandLine.arguments
     let only = args.firstIndex(of: "--only").map { args[$0 + 1] }
     let sheet = args.firstIndex(of: "--sheet").map { URL(fileURLWithPath: args[$0 + 1]) }

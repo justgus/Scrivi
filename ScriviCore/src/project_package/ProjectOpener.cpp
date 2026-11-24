@@ -8,6 +8,7 @@
 #include "objects/RelationshipStore.hpp"
 #include "project_package/ProjectValidator.hpp"
 #include "schemas/ProjectJson.hpp"
+#include "util/Json.hpp"
 #include "util/PathUtils.hpp"
 #include "workspace/WorkspaceStateService.hpp"
 
@@ -106,12 +107,13 @@ Result<OpenProjectResult> ProjectOpener::open(const OpenProjectRequest& request)
     }
 
     // 2. Read project.json
-    auto projTextR = fs.readTextFile(util::join(request.projectRootPath, "project.json"));
+    const auto projectJsonPath = util::join(request.projectRootPath, "project.json");
+    auto projTextR = fs.readTextFile(projectJsonPath);
     if (!projTextR.ok()) { return Result<OpenProjectResult>::failure(projTextR.error());
 }
 
     auto projParsed = schemas::parseProject(projTextR.value());
-    if (!projParsed.ok()) { return Result<OpenProjectResult>::failure(projParsed.error());
+    if (!projParsed.ok()) { return Result<OpenProjectResult>::failure(util::inFile(projParsed.error(), projectJsonPath));
 }
 
     auto& proj = projParsed.value();

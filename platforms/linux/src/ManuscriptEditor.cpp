@@ -1497,6 +1497,9 @@ void ManuscriptEditor::applyFormat(Format format)
         QApplication::beep();   // across a boundary, nothing to format, or not writable balanced
         return;
     }
+    if (edit->range.start == edit->range.end && edit->replacement.isEmpty()) {
+        return;   // [I-0353] Q2: done, nothing to change (Body on an empty line) — no beep, no history event
+    }
     applyComputed(scene->start, *edit);
 }
 

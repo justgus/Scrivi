@@ -4,7 +4,13 @@
 
 #include <nlohmann/json.hpp>
 
+#include <filesystem>
+
 namespace scrivi::util {
+
+namespace {
+constexpr const char* kEmptyFile = "The file is empty.";
+}
 
 struct JsonDoc::Impl {
     nlohmann::json data;
@@ -177,8 +183,20 @@ Result<JsonDoc> parseJson(std::string_view utf8) {
         doc.impl_->data = nlohmann::json::parse(utf8);
         return Result<JsonDoc>::success(std::move(doc));
     } catch (const nlohmann::json::parse_error& e) {
-        return Result<JsonDoc>::failure({.code = ErrorCode::parseError, .message = e.what()});
+        const bool blank = utf8.find_first_not_of(" \t\r\n") == std::string_view::npos;
+        return Result<JsonDoc>::failure({.code    = ErrorCode::parseError,
+                                         .message = blank ? kEmptyFile : "The file is damaged and could not be read.",
+                                         .detail  = e.what()});
     }
+}
+
+Error inFile(Error e, std::string_view path) {
+    if (e.code != ErrorCode::parseError || !e.path.empty()) { return e; }
+    const std::string name = std::filesystem::path(path).filename().string();
+    e.message = "“" + name + (e.message == kEmptyFile ? "” is empty, so it could not be read."
+                                                     : "” is damaged and could not be read.");
+    e.path = std::string(path);
+    return e;
 }
 
 } // namespace scrivi::util

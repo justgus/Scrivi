@@ -344,8 +344,34 @@ std::optional<Edit> paragraphEdit(const Scene& s, URange sel, ParagraphFormat fo
         case ParagraphFormat::bulletList: target = {Kind::bullet, 0}; break;
         case ParagraphFormat::numberedList: target = {Kind::numbered, 0}; break;
     }
-    const auto targets = s.blocksIn(sel.location, std::max(sel.location, sel.end() - (sel.length > 0 ? 1 : 0)));
-    if (targets.empty()) { return std::nullopt; }
+    const int n = s.length();
+    // [I-0353]: a caret at the very end of the scene, after text, is IN the last paragraph (it was refused: no block starts there).
+    const int probe = sel.length == 0 && sel.location == n && n > 0 && s.at(n - 1) != u'\n' ? n - 1 : sel.location;
+    const auto targets = s.blocksIn(probe, std::max(probe, sel.end() - (sel.length > 0 ? 1 : 0)));
+    if (targets.empty()) {
+        // [I-0353] (ruled 2026-11-05): on an EMPTY line the format applies to what is typed next — the line starts with the
+        // marker alone (SP-244 Q2), and Body has nothing to change. Only for a caret on a line with nothing on it.
+        const bool lineEmpty = (sel.location == 0 || s.at(sel.location - 1) == u'\n')
+                               && (sel.location == n || s.at(sel.location) == u'\n');
+        if (sel.length != 0 || !lineEmpty) { return std::nullopt; }
+        Units prefix;
+        switch (target.kind) {
+            case Kind::body: break;
+            case Kind::heading: prefix = Units(static_cast<std::size_t>(target.level), u'#') + u" "; break;
+            case Kind::bullet: prefix = u"- "; break;
+            case Kind::numbered: {
+                int number = 1;
+                if (const auto prev = s.previousBlockBefore(sel.location)) {
+                    const ListItem16* li = firstLineItem(s.info(*prev));
+                    if (li != nullptr && li->ordered) { number = li->number + 1; }
+                }
+                prefix = decimal(number) + u". ";
+                break;
+            }
+        }
+        const int caret = sel.location + static_cast<int>(prefix.size());
+        return Edit{{sel.location, 0}, prefix, {caret, 0}};
+    }
     bool allTarget = true;
     for (const auto& t : targets) { if (!(kindOf(t, s.info(t)).kind == target)) { allTarget = false; } }
     const ParagraphKind newKind = allTarget && target.kind != Kind::body ? ParagraphKind{Kind::body, 0} : target;

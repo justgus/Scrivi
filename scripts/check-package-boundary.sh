@@ -65,8 +65,8 @@ APPLE_PATTERN='\.write\(to:|Data\(contentsOf:|String\(contentsOf:|FileHandle'
 # ✅ A marker moves WITH the code it excuses, and it is visible AT the site to the
 # next person who reads it, not only here.
 
-apple_hits=$(grep -rnE "$APPLE_PATTERN" Scrivi/ 2>/dev/null \
-  | grep -v '^Scrivi/Tests/' \
+apple_hits=$(grep -rnE "$APPLE_PATTERN" Inkwyn/ 2>/dev/null \
+  | grep -v '^Inkwyn/Tests/' \
   | grep -vE '^[^:]+:[0-9]+:\s*(//|///|\*)' \
   | grep -v "$MARKER" \
   || true)
@@ -132,7 +132,7 @@ fi
 # right. A bare `// boundary-ok:` silences the guard while explaining nothing, so
 # it is itself a failure. ⛔ This is what stops the allow-list becoming a dumping
 # ground, which is the risk [SP-143]'s plan names first.
-bare=$(grep -rnE "$MARKER\s*$" Scrivi/ platforms/linux/src/ 2>/dev/null || true)
+bare=$(grep -rnE "$MARKER\s*$" Inkwyn/ platforms/linux/src/ 2>/dev/null || true)
 if [ -n "$bare" ]; then
   echo "❌ A 'boundary-ok:' marker carries no reason."
   echo "$bare"

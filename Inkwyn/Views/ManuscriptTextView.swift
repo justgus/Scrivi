@@ -1,0 +1,2092 @@
+import SwiftUI
+#if os(macOS)
+import AppKit
+
+// ManuscriptTextView presents all loaded SceneSegments as a single continuous NSTextView.
+//
+// Scene boundaries are tracked as character ranges in `sceneBoundaries`.
+// A thin 1pt horizontal rule NSTextAttachment is inserted between segments.
+// Auto-save: 1-second debounce after each keystroke for the current segment;
+//            immediate save on scene-exit (cursor crosses a boundary) and on demand.
+// Key bindings:
+//   ⌘↩  — createScene in current chapter after current scene
+//   ⌘⇧↩ — createChapter (new chapter with auto first scene)
+
+struct ManuscriptTextView: NSViewRepresentable {
+
+    var loader: ViewportSceneLoader
+    var env: AppEnvironment
+    var session: ProjectSession
+    @Binding var navigateToSceneID: String?
+    var showChapterTitles: Bool
+    /// ✅ EP-047 S2: the project's type (face + size). Applied to the presenter's ONE stored value; a change re-presents.
+    var typography: ManuscriptTypography
+    /// ✅ EP-047 S4: Markup Hints on/off — applied WITHOUT a rebuild (the presenter re-presents what changes).
+    var markupHints: Bool = true
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+
+    func makeNSView(context: Context) -> NSScrollView {
+        let textView = ManuscriptNSTextView()
+        textView.isEditable = true
+        textView.isRichText = false
+        // EP-019: disable AppKit's native undo entirely. Undo/redo are driven by
+        // our custom HistoryService via the undo(_:)/redo(_:) action methods on
+        // ManuscriptNSTextView (T-0199 spike: a real allowsUndo=false + first-
+        // responder action methods, NOT an UndoManager proxy).
+        textView.allowsUndo = false
+        // ✅ EP-047 S2: the project's type, from the ONE source (the presenter's `typography`).
+        context.coordinator.presenter.typography = typography
+        if let ts = textView.textStorage {
+            context.coordinator.presenter.setHints(markupHints, selection: textView.selectedRange(), in: ts)
+        }
+        textView.font = typography.bodyFont
+        textView.typingAttributes = typography.bodyAttributes
+        // I-0112: an NSTextView whose textColor is nil renders runs that carry no
+        // .foregroundColor as literal NSColor.black — NOT the adaptive default — so in
+        // Dark Mode the manuscript was black text on a dark gray background. Body runs
+        // now set .foregroundColor explicitly (see rebuildStorage / the history-apply
+        // path); this assignment is the backstop so any run written without one still
+        // inherits an appearance-adaptive color instead of black.
+        textView.textColor = NSColor.textColor
+        textView.autoresizingMask = [.width]
+        textView.isVerticallyResizable = true
+        textView.textContainer?.widthTracksTextView = true
+        textView.textContainerInset = NSSize(width: 60, height: 40)
+        textView.delegate = context.coordinator
+        context.coordinator.textView = textView
+        // ✅ EP-046 E2-S1 — the PRESENTER (route (a′)): TextKit 2 asks it for each paragraph and gets
+        // the same characters with styled attributes; storage stays plain. It is also the storage
+        // delegate, to re-present a whole block after a character edit. (Weak delegates — the
+        // coordinator owns it.) It replaces EP-045's `EscapeHidingStyler`.
+        textView.textContentStorage?.delegate = context.coordinator.presenter
+        textView.textStorage?.delegate = context.coordinator.presenter
+        if let storage = textView.textStorage { context.coordinator.boundaryTable.observe(storage) }
+
+        // T-0531 DIAGNOSTIC — report which layout engine this view ACTUALLY uses.
+        // ⚠️ Reading `.layoutManager` to check would itself cause the downgrade, so the
+        // test is `textLayoutManager != nil` — present ⇒ TextKit 2, nil ⇒ TextKit 1.
+        NSLog("[SCRIVI-TK] engine at construction: %@",
+              textView.textLayoutManager != nil ? "TextKit 2" : "TextKit 1 (DOWNGRADED)")
+        // Register takeFocus with both the coordinator and the loader so any
+        // caller (Navigator, delete handler) can transfer first-responder directly.
+        //
+        // ⚠️ **Deferred one pass, and that is all it needs (I-0132).** Called from a
+        // SwiftUI `onChange` on the selection, so it runs during a view update; hopping to
+        // the next runloop pass lets that update — and any responder change AppKit makes
+        // while completing the click — finish first.
+        //
+        // Earlier attempts fought a race here (synchronous call, then a claim/re-claim
+        // retry) because navigation itself was unreliable: the *real* defect was the
+        // one-shot `navigateToSceneID` trigger, not first-responder arbitration. With
+        // selection as the source of truth the call site is deterministic, so this does
+        // not need to defend itself.
+        let takeFocus: () -> Void = { [weak textView] in
+            DispatchQueue.main.async {
+                guard let textView, let window = textView.window else { return }
+                if window.firstResponder === textView { return }
+                window.makeFirstResponder(textView)
+            }
+        }
+        context.coordinator.onTakeFocus = takeFocus
+        loader.takeFocusHandler = takeFocus
+
+        // Bridge the buffers palette / Edit menu to the coordinator's text mutations
+        // (EP-019 SP-056, T-0214). The palette calls these so paste/load run on this
+        // text view through the history + auto-save path. Loading from the palette
+        // takes focus first so the current selection is this view's selection.
+        let coordinator = context.coordinator
+        session.bufferService?.pasteFromBufferHandler = { [weak coordinator] bufferID in
+            coordinator?.pasteFromBuffer(bufferID)
+        }
+        session.bufferService?.loadSelectionHandler = { [weak coordinator] bufferID in
+            coordinator?.copyIntoBuffer(bufferID)
+        }
+        session.bufferService?.cutIntoBufferHandler = { [weak coordinator] bufferID in
+            coordinator?.cutIntoBuffer(bufferID)
+        }
+
+        // Structural editing bridges (T-0214) — let the Scene/Chapter menu items invoke
+        // the same handlers as the ⌘↩ / ⌘⇧↩ / ⌘⌫ / ⌘⇧⌫ keys. Take focus first so the
+        // operation acts on the manuscript caret (menu clicks don't change first
+        // responder), matching what the keyboard path already has.
+        // ✅ EP-046 E2-S4: Edit ▸ Find acts on this manuscript; Replace All is one grouped step (Q2).
+        textView.finderClient.replaceAllHandler = { [weak coordinator] edits in coordinator?.replaceAll(edits) }
+        session.findAction = { [weak coordinator, weak textView] command in
+            coordinator?.takeFocus(); textView?.performFind(command)
+        }
+        // ✅ EP-046 E2-S3: the Format menu acts on the manuscript's own selection.
+        session.formatAction = { [weak coordinator, weak textView] format in
+            coordinator?.takeFocus(); textView?.applyFormat(format)
+        }
+        session.createSceneAction   = { [weak coordinator] in coordinator?.takeFocus(); coordinator?.handleCreateScene() }
+        session.createChapterAction = { [weak coordinator] in coordinator?.takeFocus(); coordinator?.handleCreateChapter() }
+        session.mergeSceneAction    = { [weak coordinator] in coordinator?.takeFocus(); coordinator?.handleMergeScene() }
+        session.mergeChapterAction  = { [weak coordinator] in coordinator?.takeFocus(); coordinator?.handleMergeChapter() }
+        session.importRangeAction   = { [weak coordinator] range in coordinator?.takeFocus(); _ = coordinator?.pasteStructuredRange(range) }
+
+        // Scene/Chapter boundary navigation — menu-only until a key equivalent is ruled.
+        // Same take-focus-first discipline: a menu click leaves first responder alone, and
+        // moving the caret in an unfocused text view would hide the very thing the command
+        // exists to show.
+        session.sceneStartAction = { [weak coordinator, weak textView] in
+            guard let tv = textView else { return }
+            coordinator?.takeFocus(); coordinator?.moveTo(.scene, .start, in: tv)
+        }
+        session.sceneEndAction = { [weak coordinator, weak textView] in
+            guard let tv = textView else { return }
+            coordinator?.takeFocus(); coordinator?.moveTo(.scene, .end, in: tv)
+        }
+        session.chapterStartAction = { [weak coordinator, weak textView] in
+            guard let tv = textView else { return }
+            coordinator?.takeFocus(); coordinator?.moveTo(.chapter, .start, in: tv)
+        }
+        session.chapterEndAction = { [weak coordinator, weak textView] in
+            guard let tv = textView else { return }
+            coordinator?.takeFocus(); coordinator?.moveTo(.chapter, .end, in: tv)
+        }
+        // ⚠️ [T-0568] — Manuscript Start / End. ✅ Same take-focus-first discipline; the
+        // navigator follows the viewport on its own.
+        session.manuscriptStartAction = { [weak coordinator, weak textView] in
+            guard let tv = textView else { return }
+            coordinator?.takeFocus(); coordinator?.moveTo(.manuscript, .start, in: tv)
+        }
+        session.manuscriptEndAction = { [weak coordinator, weak textView] in
+            guard let tv = textView else { return }
+            coordinator?.takeFocus(); coordinator?.moveTo(.manuscript, .end, in: tv)
+        }
+
+        let scroll = NSScrollView()
+        scroll.documentView = textView
+        scroll.hasVerticalScroller = true
+        scroll.autohidesScrollers = true
+
+        // Observe scroll position to update the viewport scene (Navigator highlight).
+        // Does not trigger any load/release — purely for highlight tracking.
+        scroll.contentView.postsBoundsChangedNotifications = true
+        NotificationCenter.default.addObserver(
+            context.coordinator,
+            selector: #selector(Coordinator.scrollDidChange(_:)),
+            name: NSView.boundsDidChangeNotification,
+            object: scroll.contentView
+        )
+        // ⚠️ [I-0273] A RESIZE posts FRAME-changed, not bounds-changed (AppKit), so the
+        // observer above never hears the window giving the manuscript its height. The
+        // restore needs exactly that moment.
+        scroll.contentView.postsFrameChangedNotifications = true
+        NotificationCenter.default.addObserver(
+            context.coordinator,
+            selector: #selector(Coordinator.clipFrameDidChange(_:)),
+            name: NSView.frameDidChangeNotification,
+            object: scroll.contentView
+        )
+        // ⚠️ [I-0273] …and the TEXT's own height: TextKit 2 keeps revising its document-height
+        // ESTIMATE as it lays out (logged 237,598 → 640,264 pt within a second), and a fixed
+        // scroll offset then shows different text. That change arrives as the document view's
+        // frame change.
+        textView.postsFrameChangedNotifications = true
+        NotificationCenter.default.addObserver(
+            context.coordinator,
+            selector: #selector(Coordinator.clipFrameDidChange(_:)),
+            name: NSView.frameDidChangeNotification,
+            object: textView
+        )
+
+        return scroll
+    }
+
+    func updateNSView(_ scrollView: NSScrollView, context: Context) {
+        guard let tv = scrollView.documentView as? NSTextView else { return }
+        let coordinator = context.coordinator
+
+        // Keep coordinator current so delegate callbacks always see the latest env and loader.
+        coordinator.parent = self
+
+        // Rebuild text storage when the segment list, the chapter-title toggle, or any chapter
+        // title changes. A rename leaves the segment IDs identical (same scenes, new heading text),
+        // so the title fingerprint is what forces the heading to refresh after a rename (I-0095).
+        // T-0531 DIAGNOSTIC — updateNSView runs on EVERY SwiftUI update, and the GUARD
+        // below is O(N): a 1,156-element map plus a full allScenes walk.
+        let __u0 = Date()
+        let segIDs = loader.segments.map(\.id)
+        let chapterTitleFingerprint = coordinator.chapterHeadingFingerprint(for: loader)
+        let __uGuard = Date()
+        defer {
+            let total = Date().timeIntervalSince(__u0) * 1000
+            if total > 0.5 {
+                NSLog(String(format: "[SCRIVI-UPD] updateNSView total=%.1f  guard=%.1f ms",
+                             total, __uGuard.timeIntervalSince(__u0) * 1000))
+            }
+        }
+        // ✅ EP-047 S2: a new face or size re-presents through the rebuild — attributes only; no history event, and the
+        // scene text (so the `.md`) is untouched.
+        let typographyChanged = typography != coordinator.presenter.typography
+        // ✅ EP-047 S4: hints on/off — attributes only, never a rebuild.
+        if markupHints != coordinator.presenter.hintsEnabled, let ts = tv.textStorage {
+            coordinator.presenter.setHints(markupHints, selection: tv.selectedRange(), in: ts)
+            coordinator.scheduleBranchMarks()   // [SP-192] the mark shows only with the hints
+        }
+        session.historyCapture?.onReport = { [weak coordinator] in coordinator?.scheduleBranchMarks() }
+        if segIDs != coordinator.lastSegmentIDs
+            || showChapterTitles != coordinator.lastShowChapterTitles
+            || chapterTitleFingerprint != coordinator.lastChapterTitleFingerprint
+            || typographyChanged {
+            coordinator.lastSegmentIDs = segIDs
+            coordinator.lastShowChapterTitles = showChapterTitles
+            coordinator.lastChapterTitleFingerprint = chapterTitleFingerprint
+            if typographyChanged {
+                // ✅ [I-0282]: a new face or size must not move the writer's place — ONE method does the whole sequence.
+                coordinator.applyTypography(typography, to: tv, segments: loader.segments)
+            } else {
+                coordinator.rebuildStorage(tv, segments: loader.segments)
+            }
+        }
+
+        // Resume the last-session writing surface once, after storage is built (I-0058).
+        // The loader was seeded with the restored scene (viewportSceneID) and scene-local
+        // cursor offset by loadAll(); place the cursor there and scroll to it.
+        if !coordinator.didRestoreSurface {
+            coordinator.didRestoreSurface = true
+            coordinator.restoreWritingSurface(in: tv)
+        }
+
+        if let targetID = navigateToSceneID {
+            coordinator.navigateToScene(targetID, in: tv)
+            // Reset the binding after the current update pass completes —
+            // mutating bound state inside updateNSView is a view-update violation.
+            DispatchQueue.main.async {
+                navigateToSceneID = nil
+            }
+        }
+
+    }
+
+    // MARK: — Coordinator
+
+    @MainActor
+    final class Coordinator: NSObject, NSTextViewDelegate {
+        var parent: ManuscriptTextView {
+            didSet {
+                sync.loader = parent.loader
+                sync.env = parent.env
+                sync.session = parent.session
+                sync.showChapterTitles = parent.showChapterTitles
+            }
+        }
+        weak var textView: NSTextView?
+        /// ✅ EP-055 (T-0633): the model sync shared with every host — the boundary table, the presenter, what an edit
+        /// and a caret move do to the loader, and the render. This coordinator forwards to it.
+        let sync: ManuscriptSceneSync
+
+        // ⚠️ I-0131: while set, scroll-driven viewport retargeting is suppressed.
+        // An explicit navigation (navigator click, deep link) sets it so the scroll it
+        // *causes* cannot overwrite the scene the writer actually asked for. Expires on
+        // its own, so hand-scrolling is unaffected a moment later.
+        var navigationLockUntil: Date?
+
+        // Character range for each scene segment in the NSTextStorage.
+        // Dividers occupy 1 character each between segments.
+        // ✅ EP-045 AC11 (T-0583): MAINTAINED by `boundaryTable` from each edit; read here, it
+        // is current or rescanned — never a stale copy (ONE authority, [I-0131]).
+        var boundaryTable: SceneBoundaryTable { sync.boundaryTable }
+        var sceneBoundaries: [NSRange] {
+            guard let storage = textView?.textStorage else { return [] }
+            return boundaryTable.ranges(in: storage)
+        }
+
+        var lastSegmentIDs: [String] = []
+        var lastShowChapterTitles: Bool = false
+        // Fingerprint of the resolved chapter headings (ordered chapterID→title pairs). A rename
+        // changes a title without changing any segment ID, so this is what makes updateNSView
+        // rebuild the storage — and thus refresh the heading — after a rename (I-0095).
+        var lastChapterTitleFingerprint: String = ""
+
+        // Ordered "chapterID=title" join across the loaded scenes — the raw stored titles the
+        // heading builder reads (empty titles included, so a cleared title also shifts the print
+        // and triggers a rebuild). Cheap: one pass over allScenes, deduped by chapter.
+        func chapterHeadingFingerprint(for loader: ViewportSceneLoader) -> String {
+            var seen = Set<String>()
+            var parts: [String] = []
+            for info in loader.allScenes where seen.insert(info.chapterID).inserted {
+                parts.append("\(info.chapterID)=\(info.chapterTitle)")
+            }
+            return parts.joined(separator: "\u{1f}")
+        }
+        private var highlightTask: Task<Void, Never>? { get { sync.highlightTask } set { sync.highlightTask = newValue } }
+        private var scrollTask: Task<Void, Never>? { get { sync.scrollTask } set { sync.scrollTask = newValue } }
+
+        // Set true during rebuildStorage to suppress textDidChange callbacks
+        // that fire from NSTextStorage delegate notifications mid-rebuild.
+        private var isRebuilding: Bool { get { sync.isRebuilding } set { sync.isRebuilding = newValue } }
+
+        // Tracks which segment index the cursor was in at last check.
+        private var lastCursorSegmentIndex: Int {
+            get { sync.lastCursorSegmentIndex } set { sync.lastCursorSegmentIndex = newValue }
+        }
+
+        // Set true after the first updateNSView restores the last-session writing
+        // surface (I-0058), so resume runs exactly once per editor lifetime.
+        var didRestoreSurface: Bool = false
+
+        // Set by makeNSView; call to transfer first-responder directly in AppKit.
+        var onTakeFocus: (() -> Void)?
+
+        func takeFocus() { onTakeFocus?() }
+
+        // Inline fork popover shown when an undo/redo step lands on a fork
+        // (SP-055 / §10 T2, T-0211). Owned by the coordinator; anchored at the
+        // caret in the text view.
+        private let forkPopover = ForkPopoverController()
+
+        init(_ parent: ManuscriptTextView) {
+            self.parent = parent
+            sync = ManuscriptSceneSync(loader: parent.loader, env: parent.env, session: parent.session,
+                                       showChapterTitles: parent.showChapterTitles)
+        }
+        /// EP-046 E2-S1 — presents headings and hides escape backslashes (see `ManuscriptPresenter`).
+        var presenter: ManuscriptPresenter { sync.presenter }
+
+        // MARK: — History capture helpers (EP-019)
+
+        // The loaded segment at `index`, or nil if out of range.
+        func loader(for index: Int) -> SceneSegment? {
+            parent.loader.segments.indices.contains(index) ? parent.loader.segments[index] : nil
+        }
+
+
+        // MARK: — Undo / redo, structural edits and the cross-scene clipboard: SHARED (EP-055 S3a)
+
+        /// ✅ [SP-222] Q2: the apply path, the range calls and the structured clipboard are `ManuscriptStructure`, which the
+        /// iOS host drives too. This coordinator is its Mac host: the caret, the scroll, the render, alerts, the pasteboard.
+        lazy var structure: ManuscriptStructure = {
+            let s = ManuscriptStructure(sync: sync)
+            s.host = self
+            return s
+        }()
+        var canUndo: Bool { structure.canUndo }
+        var undoAvailable: Bool { structure.undoAvailable }
+        var canRedo: Bool { structure.canRedo }
+        func performUndo() { structure.performUndo() }
+        func performRedo() { structure.performRedo() }
+        func runDeferredSteps() { structure.runDeferredSteps() }
+
+        // Shows the inline fork popover for `fork` ([I-0320]). Selecting a branch re-primaries the fork then redoes onto
+        // it; dismissing it redoes nothing (§10 T2).
+        /// Tests choose a branch (its eventID; nil = dismissed) instead of the popover, told where it would open.
+        var onRedoFork: ((HistoryForkAhead, NSRect?) -> String?)?
+        private func presentForkPopover(_ fork: HistoryForkAhead, in tv: NSTextView, at anchor: NSRect? = nil) {
+            if let hook = onRedoFork {
+                if let child = hook(fork, anchor) { structure.redoBranch(child, of: fork) }
+                return
+            }
+            forkPopover.show(
+                fork: fork,
+                in: tv,
+                at: anchor,
+                onSelect: { [weak self] childEventID in self?.structure.redoBranch(childEventID, of: fork) },
+                onCancel: { /* no redo; the primary child stays */ })
+        }
+
+        // MARK: — [SP-192] The branch-point mark ([T-0620])
+
+        /// ✅ [SP-192] (user, 2026-10-24): with Show Markup Hints on, a mark in the LEFT MARGIN on each line where a branch
+        /// of the current branch point parts (Q1), i.e. where ⇧⌘Z will ask. A button over the text view — drawn only, never in
+        /// the text; a click opens the chooser (Q3); a tooltip and VoiceOver label (Q4).
+        private(set) var branchMarks: [NSButton] = []
+        private var branchMarksScheduled = false
+        private static let branchMarkLabel = "⇧⌘Z will ask which branch to redo"
+
+        /// After the turn: a report can arrive before the step it reports has been applied to the text.
+        func scheduleBranchMarks() {
+            guard !branchMarksScheduled else { return }
+            branchMarksScheduled = true
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.branchMarksScheduled = false
+                self.refreshBranchMarks()
+            }
+        }
+
+        /// Where `fork`'s branches part, one margin frame per distinct line (Q1) — laid-out lines only (Q2).
+        func branchMarkFrames(for fork: HistoryForkAhead, in tv: NSTextView) -> [NSRect] {
+            ensureBoundaries(tv)
+            let segments = parent.loader.segments
+            var lines: [NSRect] = []
+            for child in fork.children {
+                guard let sceneID = child.sceneID, let i = segments.firstIndex(where: { $0.sceneID == sceneID }),
+                      i < sceneBoundaries.count else { continue }
+                let at = sceneBoundaries[i].location + charOffsetForByteOffset(child.changeOffsetUtf8 ?? 0, in: segments[i].text)
+                // At the very END of the text there is no character, so no line: the line of the one before (typing at a
+                // scene's end is the common branch).
+                guard let line = lineRect(forCharacterIndex: at, in: tv) ?? (at > 0 ? lineRect(forCharacterIndex: at - 1, in: tv) : nil),
+                      !lines.contains(where: { abs($0.midY - line.midY) < 1 }) else { continue }
+                lines.append(line)
+            }
+            return lines.map { line in
+                let side = min(line.height, 18)
+                return NSRect(x: tv.textContainerInset.width - side - 6, y: line.midY - side / 2, width: side, height: side)
+            }
+        }
+
+        func refreshBranchMarks() {
+            guard let tv = textView else { return }
+            var frames: [NSRect] = []
+            if presenter.hintsEnabled, let fork = parent.session.historyCapture?.redoForkNow {
+                frames = branchMarkFrames(for: fork, in: tv)
+            }
+            while branchMarks.count > frames.count { branchMarks.removeLast().removeFromSuperview() }
+            while branchMarks.count < frames.count {
+                let image = NSImage(systemSymbolName: "arrow.triangle.branch", accessibilityDescription: Self.branchMarkLabel)
+                let mark = NSButton(image: image ?? NSImage(), target: self, action: #selector(branchMarkClicked(_:)))
+                mark.isBordered = false
+                mark.imageScaling = .scaleProportionallyDown
+                mark.contentTintColor = .secondaryLabelColor   // follows light and dark (Q3)
+                mark.toolTip = Self.branchMarkLabel
+                mark.setAccessibilityLabel(Self.branchMarkLabel)
+                tv.addSubview(mark)
+                branchMarks.append(mark)
+            }
+            for (mark, frame) in zip(branchMarks, frames) { mark.frame = frame }
+        }
+
+        @objc func branchMarkClicked(_ sender: NSButton) {
+            guard let tv = textView, let fork = parent.session.historyCapture?.redoFork() else { return }
+            presentForkPopover(fork, in: tv, at: sender.frame)
+        }
+
+        /// [I-0319] Asks before an undo crosses into an earlier session. Tests answer the question instead of the modal.
+        var onEarlierSessionUndo: ((String) -> Bool)?
+
+        // Scene-local UTF-8 byte offset → character offset within `sceneText`.
+        private func charOffsetForByteOffset(_ byteOffset: Int, in sceneText: String) -> Int {
+            ManuscriptStructure.charOffset(forByteOffset: byteOffset, in: sceneText)
+        }
+
+        /// Tests replace the modal barrier notice with this ([I-0302]); nil = the notice.
+        var onBarrierNotice: ((String) -> Void)?
+
+        // [I-0273] The restore's centring target, held until the scroll view has a height
+        // and kept while the window and TextKit 2 settle.
+        // ⛔ 2nd attempt stopped after a FIXED 1 s: the user's log showed it centred correctly
+        // at viewH=493, then the view grew to 787 and the document-height estimate went
+        // 237,598 → 640,264 pt — after the window closed — and the centre drifted ~145,000
+        // characters back (to 1,710,569 against a target of 1,855,739).
+        // ✅ Now: re-centre on ANY clip or document frame change, but ONLY when the target has
+        // left the visible rect (never a no-op scroll, never a loop); END on the writer's first
+        // key, click or scroll (`cancelRestoreCentre`), with a 5 s safety cap.
+        private var pendingRestoreCentre: (target: Int, sceneID: String)?
+        private var lastLoggedClipY: CGFloat = 0        // ⚠️ [I-0301] DIAGNOSTIC (Debug only)
+        private var lastLoggedDocHeight: CGFloat = 0    // ⚠️ [I-0301] DIAGNOSTIC (Debug only)
+        // ⚠️ [I-0301] DIAGNOSTIC (Debug only): the writer's last wheel direction, to catch a clip move that goes AGAINST it.
+        private var lastWheelDY: CGFloat = 0
+        private var lastWheelAt = Date.distantPast
+
+        func noteWheel(_ dy: CGFloat) {   // ⚠️ [I-0301] DIAGNOSTIC (Debug only)
+            guard dy != 0 else { return }   // a phase's begin/end event carries no direction
+            lastWheelDY = dy
+            lastWheelAt = Date()
+        }
+        private var restoreCentreUntil: Date?
+        private var isCentringRestore = false
+
+        func cancelRestoreCentre() {
+            pendingRestoreCentre = nil
+            restoreCentreUntil = nil
+        }
+
+        @objc func clipFrameDidChange(_ notification: Notification) {
+            if !branchMarks.isEmpty || parent.session.historyCapture?.redoForkNow != nil { scheduleBranchMarks() }   // [SP-192]
+            guard let pending = pendingRestoreCentre, !isCentringRestore, let tv = textView,
+                  let clip = tv.enclosingScrollView?.contentView, clip.bounds.height > 0 else { return }
+            if let until = restoreCentreUntil, Date() > until { cancelRestoreCentre(); return }
+            // Still on screen → leave the scroll alone.
+            if let rect = boundingRect(forCharacterIndex: pending.target, in: tv),
+               clip.bounds.intersects(rect) { return }
+            applyPendingRestoreCentre(in: tv)
+        }
+
+        private func applyPendingRestoreCentre(in tv: NSTextView) {
+            guard let pending = pendingRestoreCentre else { return }
+            if restoreCentreUntil == nil { restoreCentreUntil = Date().addingTimeInterval(5.0) }
+            scrollDiag(String(format: "[SCRIVI-SCROLL] restore re-centre target=%d", pending.target))   // ⚠️ [I-0301] DIAGNOSTIC (Debug only)
+            isCentringRestore = true
+            defer { isCentringRestore = false }
+            navigationLockUntil = Date().addingTimeInterval(0.5)
+            centerStorageOffset(pending.target, in: tv)
+            parent.loader.setViewportScene(pending.sceneID)
+        }
+
+        // Called by NSScrollView bounds-change notification.
+        // Updates the viewport scene (Navigator highlight) based on scroll position.
+        // Does not load or release any scenes.
+        @objc func scrollDidChange(_ notification: Notification) {
+            let span = ScriviDiag.begin("scrolled"); defer { ScriviDiag.end(span) }
+            guard let clipView = notification.object as? NSClipView,
+                  let tv = textView else { return }
+            if !branchMarks.isEmpty || parent.session.historyCapture?.redoForkNow != nil { scheduleBranchMarks() }   // [SP-192]
+
+            // ⚠️ [I-0301] DIAGNOSTIC (Debug builds only; kept until the jitter is caught): the document's height changing, or the view jumping.
+            if let docView = clipView.documentView {
+                let y = clipView.bounds.minY, h = docView.frame.height
+                if abs(h - lastLoggedDocHeight) > 0.5 || abs(y - lastLoggedClipY) > 150 {
+                    scrollDiag(String(format: "[SCRIVI-SCROLL] clip y=%.0f (was %.0f) docH=%.0f (was %.0f)", y, lastLoggedClipY, h,
+                          lastLoggedDocHeight))
+                }
+                #if DEBUG
+                // ⚠️ [I-0301] The 2026-10-17 log: mid-gesture the view went BACK ~35 pt, with none of Scrivi's scroll calls
+                // logged. A wheel step moves the clip opposite to its delta (dy > 0 → y falls), so a move the same way as dy,
+                // within 0.3 s of a wheel event, is something else moving the view. This notification is posted from INSIDE
+                // the origin change, so the call stack here names the caller.
+                let moved = y - lastLoggedClipY
+                if abs(moved) > 4, lastWheelDY != 0, moved * lastWheelDY > 0, Date().timeIntervalSince(lastWheelAt) < 0.3 {
+                    let stack = Thread.callStackSymbols.dropFirst(1).prefix(18).map { frame -> String in
+                        let parts = frame.split(separator: " ", omittingEmptySubsequences: true)
+                        return parts.count > 3 ? "\(parts[1]):\(parts[3])" : String(frame)
+                    }
+                    scrollDiag(String(format: "[SCRIVI-SCROLL] AGAINST WHEEL clip y=%.0f (was %.0f, moved %+.0f) wheel dy=%.1f docH=%.0f stack=%@",
+                                      y, lastLoggedClipY, moved, lastWheelDY, h, stack.joined(separator: " < ")))
+                }
+                #endif
+                lastLoggedClipY = y
+                lastLoggedDocHeight = h
+            }
+            // Record the document scroll fraction so the next save persists it (I-0058).
+            if let docView = clipView.documentView {
+                let scrollable = max(0, docView.bounds.height - clipView.bounds.height)
+                let fraction = scrollable > 0 ? Double(clipView.bounds.minY / scrollable) : 0
+                parent.loader.updateScrollFraction(fraction)
+            }
+
+            // Use the center of the visible area as the anchor so the scene only
+            // changes when a boundary has clearly passed the midpoint of the viewport.
+            let centerY = clipView.bounds.minY + clipView.bounds.height / 2
+            scrollTask?.cancel()
+            let loader = parent.loader
+            scrollTask = Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 120_000_000) // 120ms debounce
+                guard !Task.isCancelled else { return }
+                // I-0131: an explicit navigation owns the viewport for its lock window.
+                if let until = self.navigationLockUntil {
+                    if Date() < until { return }
+                    self.navigationLockUntil = nil
+                }
+                ensureBoundaries(tv)
+                guard let charIdx = self.characterIndex(atPoint: NSPoint(x: 0, y: centerY), in: tv),
+                      let segIdx = segmentIndex(for: charIdx),
+                      loader.segments.indices.contains(segIdx) else { return }
+                let sceneID = loader.segments[segIdx].sceneID
+                loader.setViewportScene(sceneID)
+            }
+        }
+
+        // Rebuild the entire NSTextStorage from the current segments.
+        // Called when the segment list changes (new scene inserted, viewport shifted, toggle flipped).
+        func rebuildStorage(_ tv: NSTextView, segments: [SceneSegment]) {
+            // T-0573 — remember how far below the top of the viewport the caret sits, so
+            // `revealCaretAfterRebuild` can put it back at the same height.
+            caretViewportOffset = caretOffsetInViewport(tv)
+            // Suppress delegate callbacks and undo registration during rebuild.
+            // NSTextStorage fires textDidChange synchronously mid-rebuild, before
+            // sceneBoundaries is valid — which would corrupt segment text extraction.
+            isRebuilding = true
+            let undoManager = tv.undoManager
+            undoManager?.disableUndoRegistration()
+            defer {
+                undoManager?.enableUndoRegistration()
+                isRebuilding = false
+            }
+
+            // ⚠️ [I-0196] instrumentation. This is the prime suspect for the hang
+            // AFTER loadAll: it builds ONE NSTextStorage across every segment,
+            // and the chapter-heading lookup below is O(N) PER SEGMENT (see the
+            // tick inside the loop).
+            NSLog("[SCRIVI-TK] engine at rebuildStorage: %@ (segments=%d)",
+                  tv.textLayoutManager != nil ? "TextKit 2" : "TextKit 1 (DOWNGRADED)",
+                  segments.count)
+            NSLog("[SCRIVI-TIMING] >>> entering: rebuildStorage segments=\(segments.count)")
+            let rebuildStart = Date()
+            defer {
+                NSLog(String(format: "[SCRIVI-TIMING] <<< rebuildStorage took %.1f s",
+                             Date().timeIntervalSince(rebuildStart)))
+            }
+            let storage = tv.textStorage!
+            let (rendered, built) = renderedManuscript(segments)
+            storage.beginEditing()
+            storage.setAttributedString(rendered)
+            storage.endEditing()
+            // ✅ EP-045 AC11: the ranges were built exactly while appending — install them, so
+            // the whole-storage edit above (which marked the table dirty) costs no rescan.
+            boundaryTable.reset(built)
+            fullRenders += 1
+            renderedChapterCount = Self.chapterCount(segments)
+
+            // Sync the change-detection keys so the NEXT updateNSView pass — which the
+            // @Observable segment mutation that prompted this rebuild will schedule — sees no
+            // change and does NOT rebuild storage again. A redundant rebuild there re-runs
+            // setAttributedString and drops the selection to 0, which stole the caret after a
+            // scene/chapter merge (SP-075). Any handler that rebuilds storage then places the
+            // caret can now trust that placement to survive.
+            lastSegmentIDs = segments.map(\.id)
+            lastShowChapterTitles = parent.showChapterTitles
+            // ⚠️ [I-0272] ALL THREE keys `updateNSView` compares — the chapter-title
+            // fingerprint (added by I-0095) was never synced here. A chapter create/merge
+            // renumbers titles, so the next update pass saw a "changed" fingerprint and
+            // rebuilt AGAIN — after the handler had placed the caret — undoing T-0573's
+            // scroll and I-0271's viewport layout (the blank band came back).
+            lastChapterTitleFingerprint = chapterHeadingFingerprint(for: parent.loader)
+        }
+
+        // MARK: — EP-053 S2a (SP-187, T-0615): the scene list renders; a run re-renders on its own
+        //
+        // ✅ Design v0.2 §4.2a: the scene list (`loader.segments`) is the model of record and the storage is a rendering of
+        // it. ONE renderer builds every scene's prefix (the divider before it, and its chapter title when titles show) and its
+        // body, for the whole manuscript (`rebuildStorage`) or for a run (`renderRun`), so the two cannot drift.
+
+        /// Full renders and run renders since this coordinator was made — the baseline S2b is measured against, and the
+        /// proof a structural operation did not re-render everything.
+        var fullRenders = 0
+        var runRenders = 0
+        /// How many chapters the storage shows. A run render cannot renumber "Chapter N" titles outside its run, so when
+        /// titles show and the chapter count changed it renders everything instead.
+        private var renderedChapterCount = 0
+
+        static func chapterCount(_ segments: [SceneSegment]) -> Int { ManuscriptSceneSync.chapterCount(segments) }
+
+        /// What goes before scene `i` — the shared render ([T-0633]).
+        private func renderedPrefix(_ i: Int, _ segments: [SceneSegment]) -> NSAttributedString {
+            sync.renderedPrefix(i, segments)
+        }
+
+        /// The whole manuscript as the storage shows it, with each scene body's range — the shared render ([T-0633]).
+        func renderedManuscript(_ segments: [SceneSegment]) -> (NSAttributedString, [NSRange]) {
+            sync.renderedManuscript(segments)
+        }
+
+        /// Re-render ONE run of scenes: `old` is where the run sat in the storage before the scene list changed, `new` where
+        /// it sits in `loader.segments` now (both start at the same index). Replaces the run's prefixes and bodies, and the
+        /// prefix of the scene after it (its divider can change with the run), and nothing else. The boundary table is
+        /// spliced, not rescanned. ⚠️ Renders everything instead when the storage does not match the run's assumptions,
+        /// or when titles show and the chapter count changed ("Chapter N" titles outside the run renumber).
+        func renderRun(_ tv: NSTextView, old: Range<Int>, new: Range<Int>) {
+            let segments = parent.loader.segments
+            guard let storage = tv.textStorage else { return }
+            let chapters = Self.chapterCount(segments)
+            guard sync.runFits(in: storage, old: old, new: new, renderedChapterCount: renderedChapterCount) else {
+                rebuildStorage(tv, segments: segments)
+                return
+            }
+            caretViewportOffset = caretOffsetInViewport(tv)   // T-0573: the caret keeps its height
+            isRebuilding = true
+            let undoManager = tv.undoManager
+            undoManager?.disableUndoRegistration()
+            defer {
+                undoManager?.enableUndoRegistration()
+                isRebuilding = false
+            }
+            sync.spliceRun(in: storage, old: old, new: new)   // the shared render ([SP-222]: the iOS host's too)
+            runRenders += 1
+            renderedChapterCount = chapters
+            // The keys `updateNSView` compares, as `rebuildStorage` syncs them ([I-0272]).
+            lastSegmentIDs = segments.map(\.id)
+            lastShowChapterTitles = parent.showChapterTitles
+            lastChapterTitleFingerprint = chapterHeadingFingerprint(for: parent.loader)
+        }
+
+        // MARK: — Copy buffers (EP-019 SP-056, T-0214)
+        //
+        // Ten buffers 0–9; buffer 0 is the system pasteboard (ordinary ⌘C/⌘V, never
+        // touched here). Slots 1–9 are ScriviCore-persisted. ⌘N/⌃⌘N/⌥N route here from
+        // ManuscriptNSTextView.keyDown. These mutate text via the same paths the
+        // native paste/cut overrides use, so history capture + auto-save happen
+        // through the existing textDidChange flow (Trade T3).
+
+        // ✅ The copy buffers are shared ([SP-223]); a palette click leaves the text view not-first-responder, so its delete or
+        // insert would be dropped — focus first (a no-op on the keyboard path).
+        func copyIntoBuffer(_ bufferID: String) { structure.copyIntoBuffer(bufferID) }
+        func cutIntoBuffer(_ bufferID: String) {
+            textView?.window?.makeFirstResponder(textView)
+            structure.cutIntoBuffer(bufferID)
+        }
+        func pasteFromBuffer(_ bufferID: String) {
+            textView?.window?.makeFirstResponder(textView)
+            structure.pasteFromBuffer(bufferID)
+        }
+
+        // MARK: — NSTextViewDelegate
+
+        func textDidChange(_ notification: Notification) {
+            guard !isRebuilding else { return }
+            guard let tv = notification.object as? NSTextView, let storage = tv.textStorage else { return }
+            // A genuine keystroke commits the writer to the current branch, so
+            // any open fork popover must dismiss rather than obstruct (§10 T2).
+            if !(parent.session.historyCapture?.isApplying ?? false) { forkPopover.close() }
+            sync.textChanged(in: storage, caret: tv.selectedRange().location)
+        }
+
+        func textViewDidChangeSelection(_ notification: Notification) {
+            let span = ScriviDiag.begin("caret moved"); defer { ScriviDiag.end(span) }
+            guard !isRebuilding else { return }
+            guard let tv = notification.object as? NSTextView, let storage = tv.textStorage else { return }
+            sync.selectionChanged(in: storage, caret: tv.selectedRange().location)
+        }
+
+        // MARK: — Scene/Chapter creation and split/merge — the shared `ManuscriptStructure` ([SP-191], EP-055 S3a)
+
+        func handleCreateScene() { structure.handleCreateScene() }
+        func handleCreateChapter() { structure.handleCreateChapter() }
+        func handleMergeScene() { structure.handleMergeScene() }
+        func handleMergeChapter() { structure.handleMergeChapter() }
+
+        // ⚠️ [I-0271] Place the caret after a FULL storage rebuild and make the viewport show
+        // it. ⛔ The user saw the top of the viewport stay BLANK after create/merge until the
+        // next scroll or keystroke — with the caret dropped at the BOTTOM edge, because
+        // `scrollRangeToVisible` scrolls the minimum distance. ✅ Present on `dbc158f`, so it
+        // predates SP-151's work (A/B by the user, 2026-10-02). ✅ TextKit 2 lays out only the
+        // viewport; after the rebuild + scroll, nothing asked it to lay that viewport out again
+        // until the next interaction did. `layoutViewport()` asks now (AppKit,
+        // `NSTextViewportLayoutController.layoutViewport()`, macOS — doc fetched 2026-10-02).
+        // ⚠️ Every rebuild-then-place-caret path goes through here so the fix is not partial.
+        //
+        // ✅ T-0573 (user request 2026-10-02): the caret STAYS AT THE SAME HEIGHT in the
+        // viewport across create/merge — *"I find it jarring when the cursor that was in the
+        // middle of the viewport is suddenly at the bottom."* `rebuildStorage` measures the
+        // caret's offset below the viewport top BEFORE it rebuilds.
+        // ⛔ FIRST ATTEMPT FAILED (user, same day: it scrolled to "somewhere around Chapter
+        // 44"): it scrolled to the caret's ABSOLUTE y right after the rebuild. ✅ MEASURED in a
+        // standalone TextKit 2 harness (~1.8 M chars): after a full rebuild most of the document
+        // is not laid out, so y is an ESTIMATE — and the whole coordinate space shifts (the same
+        // text moved ~16,000 pt). ✅ So: let AppKit scroll to the caret (it resolves this
+        // correctly), lay the viewport out, THEN nudge by the RELATIVE difference between where
+        // the caret now sits and where it sat — measured only inside laid-out text. ✅ Harness:
+        // one nudge lands exactly on the requested offset, and the text drawn there is the
+        // caret's line. ⚠️ No measurement (caret was off screen) → `scrollRangeToVisible` only.
+        private func revealCaretAfterRebuild(_ loc: Int, in tv: NSTextView) {
+            let caret = NSRange(location: loc, length: 0)
+            tv.setSelectedRange(caret)
+            tv.scrollRangeToVisible(caret)
+            tv.textLayoutManager?.textViewportLayoutController.layoutViewport()
+            if let offset = caretViewportOffset,
+               let scroll = tv.enclosingScrollView,
+               let rect = boundingRect(forCharacterIndex: loc, in: tv) {
+                let clip = scroll.contentView
+                let delta = (rect.minY - clip.bounds.minY) - offset
+                let maxY = max(0, tv.bounds.height - clip.bounds.height)
+                scrollDiag(String(format: "[SCRIVI-SCROLL] revealCaretAfterRebuild loc=%d clipY=%.0f -> %.0f", loc, clip.bounds.minY,
+                      max(0, min(clip.bounds.minY + delta, maxY))))   // ⚠️ [I-0301] DIAGNOSTIC (Debug only)
+                clip.scroll(to: NSPoint(x: clip.bounds.minX, y: max(0, min(clip.bounds.minY + delta, maxY))))
+                scroll.reflectScrolledClipView(clip)
+                tv.textLayoutManager?.textViewportLayoutController.layoutViewport()
+            }
+            caretViewportOffset = nil
+        }
+
+        // ✅ [I-0282] (SP-168 live pass, user: *"when changing font or font size, the position of the caret is not maintained
+        // … my manuscript position will shift from say, 53 to say, 35"*). A typeface or size change rebuilds the storage
+        // with the SAME text but different line heights, so the scroll's PIXEL offset lands on different text. ✅ Anchor on a
+        // CHARACTER instead: the caret's line when it is on screen, else the character at the top of the visible area —
+        // and put that character's line back at the same height. The selection is kept.
+        /// ✅ [I-0282] THE way a typeface or size change is applied: read the writer's place FIRST, then change the type,
+        /// rebuild, and restore. ⛔ LIVE RE-CHECK 3 (log `caretLineY=nan`): `updateNSView` used to set `tv.font` BEFORE the
+        /// place was read — an `NSTextView` font assignment re-fonts the WHOLE document and invalidates every line position,
+        /// so the place was read from garbage. (It also overwrote the chapter titles' font, which the rebuild then repaired.)
+        /// ⛔ No `tv.font` assignment here: the rebuild writes every attribute; typing uses `typingAttributes`.
+        func applyTypography(_ t: ManuscriptTypography, to tv: NSTextView, segments: [SceneSegment]) {
+            rebuildKeepingReadingPosition(tv, segments: segments) {
+                self.presenter.typography = t
+                tv.typingAttributes = t.bodyAttributes
+            }
+        }
+
+        func rebuildKeepingReadingPosition(_ tv: NSTextView, segments: [SceneSegment], change: () -> Void = {}) {
+            let selection = tv.selectedRanges
+            let anchor = readingAnchor(tv)
+            change()                       // only AFTER the place has been read
+            rebuildStorage(tv, segments: segments)
+            let length = tv.textStorage?.length ?? 0
+            tv.selectedRanges = selection.map { v in
+                let r = v.rangeValue
+                let loc = min(r.location, length)
+                return NSValue(range: NSRange(location: loc, length: min(r.length, length - loc)))
+            }
+            guard let anchor, let scroll = tv.enclosingScrollView else { return }
+            let clip = scroll.contentView
+            let target = min(anchor.index, length)
+            // ⛔ LIVE RE-CHECK (user, 2026-10-07): computing a pixel target and clamping it to `tv.bounds.height` sent the view
+            // to Chapter 25 from Chapter 51 — right after a rebuild the text view's FRAME still holds TextKit 2's provisional
+            // height, so the clamp landed mid-document. ✅ The pattern that already works in the app (T-0573,
+            // `revealCaretAfterRebuild`): bring the anchor on screen with `scrollRangeToVisible` FIRST — AppKit sizes the
+            // document as it goes — then correct by the small remaining delta.
+            tv.scrollRangeToVisible(NSRange(location: target, length: 0))
+            // ⚠️ Measured: straight after `scrollRangeToVisible` the first `layoutViewport` has not yet brought the anchor into
+            // the DRAWN range — one more layout does. So a not-yet-drawn anchor means "lay out again", not "give up".
+            for _ in 0..<10 {
+                tv.textLayoutManager?.textViewportLayoutController.layoutViewport()
+                guard let line = lineRect(forCharacterIndex: target, in: tv) else { continue }   // not drawn yet: lay out again
+                let delta = (line.minY - clip.bounds.minY) - anchor.offset
+                if abs(delta) < 0.5 { break }
+                let maxY = max(0, (scroll.documentView?.frame.height ?? tv.bounds.height) - clip.bounds.height)
+                scrollDiag(String(format: "[SCRIVI-SCROLL] anchor loc=%d clipY=%.0f -> %.0f", target, clip.bounds.minY,
+                      max(0, min(clip.bounds.minY + delta, maxY))))   // ⚠️ [I-0301] DIAGNOSTIC (Debug only)
+                clip.scroll(to: NSPoint(x: clip.bounds.minX, y: max(0, min(clip.bounds.minY + delta, maxY))))
+                scroll.reflectScrolledClipView(clip)
+            }
+            tv.textLayoutManager?.textViewportLayoutController.layoutViewport()
+        }
+
+        /// The character the writer is "at", and its line's distance below the top of the visible area.
+        /// ⛔ [I-0282] live re-check 2 (log): `caret=1846568 caretLineY=624533.0 clipY=591857.6` — the caret WAS on screen, but
+        /// `ensureLayout` put its line at ~1.2 M pt (past the document's end) while the viewport draws Chapter 51 at ~0.6 M:
+        /// TextKit 2 places the VIEWPORT's paragraphs on ESTIMATED heights above them, and `ensureLayout` computes TRUE
+        /// positions — two frames that disagree. `characterIndexForInsertion` mis-read the top of the view the same way
+        /// (index 898922, Chapter 25). ✅ Read ONLY what the viewport has laid out: the caret is on screen iff it is in the
+        /// viewport's range, and the top of the view is the first DRAWN line at or below the visible top.
+        func readingAnchor(_ tv: NSTextView) -> (index: Int, offset: CGFloat)? {
+            guard let clip = tv.enclosingScrollView?.contentView else { return nil }
+            tv.textLayoutManager?.textViewportLayoutController.layoutViewport()
+            let caret = tv.selectedRange().location
+            if let r = lineRect(forCharacterIndex: caret, in: tv), (0...clip.bounds.height).contains(r.minY - clip.bounds.minY) {
+                return (caret, r.minY - clip.bounds.minY)
+            }
+            guard let top = firstVisibleLine(in: tv) else { return nil }
+            return (top.index, top.rect.minY - clip.bounds.minY)
+        }
+
+        /// The first line the viewport has DRAWN whose top is at or below the visible top — its character and rect.
+        func firstVisibleLine(in tv: NSTextView) -> (index: Int, rect: NSRect)? {
+            guard let lm = tv.textLayoutManager, let content = lm.textContentManager,
+                  let clip = tv.enclosingScrollView?.contentView,
+                  let viewport = lm.textViewportLayoutController.viewportRange else { return nil }
+            let inset = tv.textContainerInset
+            var found: (Int, NSRect)?
+            lm.enumerateTextLayoutFragments(from: viewport.location, options: []) { fragment in
+                let frame = fragment.layoutFragmentFrame
+                for line in fragment.textLineFragments {
+                    let b = line.typographicBounds
+                    let rect = NSRect(x: frame.minX + b.minX + inset.width, y: frame.minY + b.minY + inset.height,
+                                      width: b.width, height: b.height)
+                    if rect.minY >= clip.bounds.minY - 0.5 {
+                        let start = content.offset(from: content.documentRange.location, to: fragment.rangeInElement.location)
+                        found = (start + line.characterRange.location, rect)
+                        return false
+                    }
+                }
+                return fragment.rangeInElement.endLocation.compare(viewport.endLocation) == .orderedAscending
+            }
+            return found
+        }
+
+        /// The LINE holding character `index`, in the text view's coordinates — ⚠️ ONLY if the viewport has laid it out
+        /// (nil otherwise). Never `ensureLayout`: see `readingAnchor` for why its positions disagree with what is drawn.
+        func lineRect(forCharacterIndex index: Int, in tv: NSTextView) -> NSRect? {
+            guard let lm = tv.textLayoutManager, let content = lm.textContentManager,
+                  let viewport = lm.textViewportLayoutController.viewportRange,
+                  let loc = content.location(content.documentRange.location, offsetBy: index) else { return nil }
+            let inViewport = viewport.contains(loc) || loc.compare(viewport.endLocation) == .orderedSame
+            guard inViewport, let fragment = lm.textLayoutFragment(for: loc) else { return nil }
+            let frame = fragment.layoutFragmentFrame
+            let within = content.offset(from: fragment.rangeInElement.location, to: loc)
+            let line = fragment.textLineFragments.first { NSLocationInRange(within, $0.characterRange) }
+                ?? fragment.textLineFragments.last
+            let bounds = line?.typographicBounds ?? CGRect(x: 0, y: 0, width: frame.width, height: frame.height)
+            return NSRect(x: frame.minX + bounds.minX + tv.textContainerInset.width,
+                          y: frame.minY + bounds.minY + tv.textContainerInset.height,
+                          width: bounds.width, height: bounds.height)
+        }
+
+        // T-0573 — the caret's distance below the top of the visible area, or nil when the
+        // caret is not on screen (then there is no position to preserve).
+        private var caretViewportOffset: CGFloat?
+        private func caretOffsetInViewport(_ tv: NSTextView) -> CGFloat? {
+            guard let clip = tv.enclosingScrollView?.contentView,
+                  let rect = boundingRect(forCharacterIndex: tv.selectedRange().location, in: tv)
+            else { return nil }
+            let offset = rect.minY - clip.bounds.minY
+            return (0...clip.bounds.height).contains(offset) ? offset : nil
+        }
+
+        // MARK: — Helpers
+
+        // Recompute sceneBoundaries by scanning the live text storage.
+        //
+        // Layout of storage when chapter titles are shown:
+        //   [heading\n] scene0text [attachment\n] [\nheading\n] scene1text [attachment\n] ...
+        //
+        // A segment's content starts AFTER any leading scriviHeading-attributed characters,
+        // not immediately after the divider. recomputeBoundaries must skip heading runs
+        // the same way rebuildStorage does, otherwise boundaries point into heading text
+        // and textDidChange extracts heading characters into seg.text.
+        // MARK: — TextKit 2 geometry (EP-039 SP-133, T-0525)
+        //
+        // ⚠️ **NEVER TOUCH `tv.layoutManager` FROM ANYWHERE IN THIS FILE.**
+        //
+        // ⚠️ `NSTextView` starts on TEXTKIT 2, which lays out only the VIEWPORT. Reading the
+        // TextKit-1 `.layoutManager` property makes AppKit PERMANENTLY DOWNGRADE the view to
+        // TextKit 1, which lays out the WHOLE DOCUMENT. ✅ VERIFIED EMPIRICALLY: a fresh
+        // `NSTextView` reports `textLayoutManager != nil`; after one `_ = tv.layoutManager`
+        // it reports `nil`.
+        //
+        // ✅ MEASURED ON THE REAL MANUSCRIPT (1,831,770 chars, 14,985 paragraphs):
+        //   initial layout   TextKit 1 = 272.8 ms   →   TextKit 2 = 0.9 ms
+        //   window resize    TextKit 1 = 222.5 ms   →   viewport-bounded
+        //   rebuildStorage   TextKit 1 = 270.0 ms   →   viewport-bounded
+        //
+        // ⚠️ These two helpers are the ONLY places that convert between a character offset
+        // and screen geometry. ⚠️ Two lines in this file were the entire downgrade; keeping
+        // the conversion in one pair is what stops a third appearing.
+        //
+        // ⚠️ TEXTKIT 2'S LAZINESS IS PER PARAGRAPH: a manuscript that is ONE enormous
+        // paragraph collapses to TextKit 1 numbers (measured 201 ms). ✅ Real prose is ~15k
+        // paragraphs, so this is a shape risk, not a normal one (T-0530 measures it).
+
+        /// Character index at `point` in `tv`'s coordinate space, or nil.
+        /// ⚠️ Returns nil rather than guessing — the caller must not treat that as index 0.
+        func characterIndex(atPoint point: NSPoint, in tv: NSTextView) -> Int? {
+            guard let lm = tv.textLayoutManager,
+                  let content = lm.textContentManager else { return nil }
+            // ⚠️ The text view insets its container; fragment coordinates are container-relative.
+            let p = NSPoint(x: point.x - tv.textContainerInset.width,
+                            y: point.y - tv.textContainerInset.height)
+            // ⛔ [I-0273] Lay out the point FIRST. It used to look up a fragment only among
+            // those ALREADY laid out and, finding none, report END OF DOCUMENT — so a not-yet-
+            // laid-out centre read as the last scene. That fed `viewportSceneID`, and the quit
+            // stamp saves `viewportSceneID`: the log showed viewport = an END scene at
+            // scroll 0.0 (the TOP).
+            lm.ensureLayout(for: CGRect(x: p.x, y: p.y, width: 1, height: 1))
+            guard let fragment = lm.textLayoutFragment(for: p) else {
+                // ⚠️ Truly beyond the text — clamp to the nearer end, rather than failing, so
+                // a scroll to the bottom still resolves a scene.
+                return p.y <= 0 ? 0 : (tv.string as NSString).length
+            }
+            let loc = fragment.rangeInElement.location
+            return content.offset(from: content.documentRange.location, to: loc)
+        }
+
+        /// Bounding rect (in `tv`'s coordinate space) of the line containing `charIndex`.
+        func boundingRect(forCharacterIndex charIndex: Int, in tv: NSTextView) -> NSRect? {
+            guard let lm = tv.textLayoutManager,
+                  let content = lm.textContentManager,
+                  let loc = content.location(content.documentRange.location, offsetBy: charIndex)
+            else { return nil }
+            // ⚠️ ensureLayout is REQUIRED: the target may be outside the laid-out viewport,
+            // and TextKit 2 will not have positioned it yet. ✅ It lays out only up to the
+            // requested range, not the document.
+            lm.ensureLayout(for: NSTextRange(location: loc))
+            guard let fragment = lm.textLayoutFragment(for: loc) else { return nil }
+            let f = fragment.layoutFragmentFrame
+            return NSRect(x: f.origin.x + tv.textContainerInset.width,
+                          y: f.origin.y + tv.textContainerInset.height,
+                          width: f.width, height: f.height)
+        }
+
+        // Recomputes each scene's range in the text storage, from the storage itself.
+        //
+        // ⚠️ **THIS WAS THE INTERACTION FREEZE.** [I-0200] / EP-039.
+        //
+        // ⚠️ The previous implementation walked the storage ONE CHARACTER AT A TIME —
+        // `storage.attribute(.attachment, at: pos, …)` with `pos += 1` in the common
+        // branch. ⚠️ On the measured 1,153-scene manuscript that is **1,823,706 attribute
+        // lookups PER CALL**, and it is called from NINE sites including the navigator
+        // click path and the scroll handler.
+        // ✅ MEASURED SYMPTOM: AppKit logged
+        // `NSTableView.doubleTapGestureRecognizer has been in possible phase for
+        // 48.06 seconds` — the table blocked while this ran on the main thread.
+        //
+        // ✅ NOW: `enumerateAttribute` jumps between attribute RUNS, so the cost is
+        // proportional to the number of SCENES (~1,153 dividers), not to the number of
+        // CHARACTERS. ⚠️ Same output, same authority — the storage is still the single
+        // source of truth for boundaries (I-0131), this only stops re-deriving it the
+        // slowest possible way.
+        /// ✅ EP-045 AC11: makes `sceneBoundaries` trustworthy — a no-op unless an edit the
+        /// table could not prove local marked it dirty, in which case it rescans the storage.
+        /// ⛔ It used to RESCAN the whole manuscript on every call, keystrokes included.
+        func ensureBoundaries(_ tv: NSTextView) {
+            guard let storage = tv.textStorage else { return }
+            _ = boundaryTable.ranges(in: storage)
+        }
+
+        // Resume the writing surface restored from the last session (I-0058).
+        // Places the cursor at the restored scene's storage offset + scene-local
+        // selection offset, and scrolls it into view. No-op when nothing was restored
+        // (fresh open at scene 0 — the existing scroll observer handles highlight).
+        func restoreWritingSurface(in tv: NSTextView) {
+            let loader = parent.loader
+            guard let sceneID = loader.viewportSceneID else {
+                NSLog("[SCRIVI-DIAG] restoreWritingSurface BAILED: viewportSceneID is nil")
+                return
+            }
+            // ⚠️ **I-0131 root cause: two sources of truth for the same coordinate.**
+            //
+            // This used `loader.storageOffset(forSceneID:)`, which reads
+            // `sceneStorageOffsetMap` — built by `rebuildSceneStartMap()` from scene
+            // text plus 2 characters per separator, and **with no knowledge of chapter
+            // headings**. `rebuildStorage` inserts heading text into the same storage
+            // when "Show Chapter Titles" is on, and `recomputeBoundaries` skips over it
+            // (see `skipHeading`). So the map is short by the total heading length of
+            // every chapter before the target, and the caret landed roughly one scene
+            // early — which then made the delegate report a different scene and the
+            // scroll observer drift further still.
+            //
+            // Boundaries are computed from the REAL storage, so they are authoritative.
+            // Recompute FIRST, then resolve the offset from them.
+            ensureBoundaries(tv)
+
+            guard let segIdx = loader.segments.firstIndex(where: { $0.sceneID == sceneID }) else {
+                NSLog("[SCRIVI-DIAG] restoreWritingSurface BAILED: scene not loaded \(sceneID)")
+                return
+            }
+            // ⚠️ Fall back to the map when boundaries are unavailable. `recomputeBoundaries`
+            // returns early on EMPTY storage (`fullLen > 0` guard), and **a brand-new
+            // project is exactly that** — ProjectCreator writes one empty scene .md. With
+            // no text there is also no heading run, so the map and the boundaries agree
+            // trivially; the fallback is correct, not a guess.
+            //
+            // The same holds with "Show Chapter Titles" OFF: no character carries
+            // `.scriviHeading`, `skipHeading` is a no-op, and boundaries == the map's
+            // arithmetic. The boundary path is preferred only because it is authoritative
+            // when headings ARE present.
+            let sceneStorageStart: Int
+            if sceneBoundaries.indices.contains(segIdx) {
+                sceneStorageStart = sceneBoundaries[segIdx].location
+            } else if let mapped = loader.storageOffset(forSceneID: sceneID) {
+                sceneStorageStart = mapped
+            } else {
+                NSLog("[SCRIVI-DIAG] restoreWritingSurface BAILED: no offset for \(sceneID)")
+                return
+            }
+            NSLog("[SCRIVI-DIAG] restoreWritingSurface: scene=\(sceneID) idx=\(segIdx) boundaryStart=\(sceneStorageStart) mapSaid=\(loader.storageOffset(forSceneID: sceneID) ?? -1) tvLen=\(tv.string.count)")
+
+            // Clamp the scene-local offset to the scene's text length so a shrunken
+            // scene (edited externally) can't place the cursor past its bounds.
+            let localOffset = loader.restoredSelectionOffset ?? 0
+            let sceneLen = loader.segments.first(where: { $0.sceneID == sceneID })?.text.count ?? 0
+            let clampedLocal = min(max(0, localOffset), sceneLen)
+            let target = sceneStorageStart + clampedLocal
+
+            // ⚠️ **The scroll this causes must not retarget the current scene (I-0131).**
+            //
+            // `placeCursorAt` calls `scrollRangeToVisible`, whose notification wakes the
+            // debounced scroll handler; that handler recomputes the viewport from the
+            // CENTRE of the visible rect. `scrollRangeToVisible` scrolls *minimally*, so
+            // the restored scene sits at the viewport EDGE while the centre still shows
+            // an earlier scene — and the navigator highlight follows `viewportSceneID`
+            // (`SceneNavigatorView:200`), so the writer sees the wrong scene selected AND
+            // the wrong text. Deterministic, which is why it landed on the same wrong
+            // scene every run.
+            //
+            // Centre the restored scene rather than merely revealing it, so the viewport
+            // the writer sees and the scene we restored are the same thing (§1 of the
+            // Current Scene Model), then hold the scene against the resulting scroll.
+            navigationLockUntil = Date().addingTimeInterval(0.5)
+            placeCursorAt(target, in: tv)
+            // ⛔ [I-0273] MEASURED on the user's relaunch 2026-10-02: `viewH=0` — the restore
+            // runs BEFORE the window has given the scroll view any height, so centring here
+            // scrolled nothing (`clipY=0`): caret at the end, viewport at the top. ✅ Centre
+            // now if there is a height; otherwise hold the target for `clipFrameDidChange`.
+            pendingRestoreCentre = (target, sceneID)
+            restoreCentreUntil = nil
+            if let clip = tv.enclosingScrollView?.contentView, clip.bounds.height > 0 {
+                applyPendingRestoreCentre(in: tv)
+            }
+            loader.setViewportScene(sceneID)
+
+
+            // Consume the one-shot restore state so it can't reapply on a later rebuild.
+            //
+            // ⚠️ There is deliberately no scroll-fraction restore here (I-0133, ruled
+            // 2026-08-18). Restore *centres* the restored scene, and reapplying a
+            // document-wide fraction from the previous session would fight that — the
+            // exact edge-vs-centre disagreement I-0131 exists to eliminate. The Apple
+            // layer therefore ignores `restored.scroll` by design, not by omission.
+            // ⚠️ The schema field is NOT dead: `[Linux]` consumes it (T-0247,
+            // `EditorShell.cpp`), so it must stay in `scrivi.h` and the open envelope.
+            loader.restoredSelectionOffset = nil
+        }
+
+        // Navigate to a scene by ID — places the caret at the scene's first character,
+        // scrolls it into view, and (via the navigator's `takeFocus`) hands over the
+        // keyboard. §3 of the Current Scene Model.
+        //
+        // ⚠️ **I-0131: the scroll this triggers must not be allowed to overwrite the
+        // destination.** `scrollRangeToVisible` emits scroll notifications, and the
+        // handler for those recomputes the viewport scene from the CENTER of the
+        // visible rect after a 120 ms debounce. Cancelling `scrollTask` here is not
+        // enough — the cancelled task is the *old* one; the scroll we are about to
+        // cause schedules a NEW one that lands 120 ms later and wins.
+        //
+        // It also lands on the wrong scene: `scrollRangeToVisible` scrolls
+        // *minimally*, so the target sits at the edge of the viewport while its centre
+        // still shows earlier scenes. That is why navigating to scene 15 resumed at
+        // 10, and 22 resumed at 14 — the gap is however many scenes fit on screen.
+        //
+        // `navigationLockUntil` makes an explicit navigation authoritative for a short
+        // window, so the scroll it causes cannot retarget it. Scrolling by hand after
+        // that window behaves exactly as before.
+        func navigateToScene(_ sceneID: String, in tv: NSTextView) {
+            // ⚠️ Same defect as restoreWritingSurface (I-0131): `storageOffset(forSceneID:)`
+            // ignores chapter-heading text, so it scrolls short by the heading length of
+            // every chapter before the target. Use the boundaries computed from real
+            // storage instead.
+            ensureBoundaries(tv)
+            guard let segIdx = parent.loader.segments.firstIndex(where: { $0.sceneID == sceneID }) else { return }
+            // Same fallback as restoreWritingSurface: boundaries are authoritative when
+            // they exist, but empty storage (a new project) leaves them unbuilt.
+            let sceneStart: Int
+            if sceneBoundaries.indices.contains(segIdx) {
+                sceneStart = sceneBoundaries[segIdx].location
+            } else if let mapped = parent.loader.storageOffset(forSceneID: sceneID) {
+                sceneStart = mapped
+            } else { return }
+            let storageOffset = searchMatchOffset(sceneID: sceneID, segIdx: segIdx, in: tv) ?? sceneStart
+            NSLog("[SCRIVI-DIAG] navigateToScene -> \(sceneID) boundaryStart=\(sceneStart) caret=\(storageOffset) mapSaid=\(parent.loader.storageOffset(forSceneID: sceneID) ?? -1)")
+            scrollTask?.cancel()
+            highlightTask?.cancel()
+            navigationLockUntil = Date().addingTimeInterval(0.5)
+            // §3 of the Current Scene Model (ruled 2026-08-17): a navigator click SELECTS
+            // the scene — the caret moves to its first character, the manuscript scrolls
+            // there, and focus transfers to the manuscript. All three, or the writer
+            // cannot simply start typing.
+            //
+            // ⚠️ This deliberately **reverses SP-063's scroll-without-caret rule for
+            // navigator clicks specifically**; SP-063 still governs click-to-place *within*
+            // the manuscript, which is unchanged. An earlier comment here asserted the
+            // opposite ("navigateToScene deliberately does not move the caret") and was
+            // simply wrong against the ruling — the caret stayed wherever it had last
+            // been, which was invisible only because focus used to stay in the navigator.
+            // Once focus started transferring, the stale caret became visible immediately.
+            let __n0 = Date()
+            tv.setSelectedRange(NSRange(location: storageOffset, length: 0))
+            let __nSel = Date()
+            // Centre rather than merely reveal, for the same reason as restore: a scene
+            // parked at the viewport edge makes the scroll handler read a DIFFERENT
+            // scene at the centre, and the navigator highlight follows that.
+            tv.scrollRangeToVisible(NSRange(location: storageOffset, length: 0))
+            let __nScroll = Date()
+            centerStorageOffset(storageOffset, in: tv)
+            let __nCenter = Date()
+            parent.loader.setViewportScene(sceneID)
+            NSLog(String(format:
+                "[SCRIVI-NAV] setSel=%.1f  scrollToVisible=%.1f  center=%.1f  setViewport=%.1f ms",
+                __nSel.timeIntervalSince(__n0) * 1000,
+                __nScroll.timeIntervalSince(__nSel) * 1000,
+                __nCenter.timeIntervalSince(__nScroll) * 1000,
+                Date().timeIntervalSince(__nCenter) * 1000))
+            // Keep the caret-derived current scene in step with the click, so a later quit
+            // resumes here (I-0131's stamp reads cursorSceneID). `setCurrentIndex` moves
+            // `currentIndex` and `cursorSceneID` together — setting either alone is what
+            // let the two disagree in the first place (§1: there is ONE current scene).
+            parent.loader.setCurrentIndex(segIdx)
+        }
+
+        // T-0571 — where a navigator click made WHILE SEARCHING puts the caret: the query's
+        // FIRST match inside the scene's own text (ruled 2026-10-01: caret only, no selection;
+        // first match only). nil → the scene start, as for any other navigation — including a
+        // scene listed only because its CHAPTER title matched (ruled the same day).
+        //
+        // ✅ Same semantics as the navigator's `localizedStandardContains`: case- and
+        // diacritic-insensitive, current locale — so the scene the list showed is the scene
+        // this finds a match in.
+        // ⚠️ The hint is NOT consumed here: one click drives `navigateToScene` two or three
+        // times (see the log of 2026-10-01), and consuming it on the first call would send
+        // the later ones back to the scene start. It expires after the same window as
+        // `navigationLockUntil`, so a LATER navigation to this scene from elsewhere (timeline,
+        // Detail Sheet) lands at the scene start as before.
+        private func searchMatchOffset(sceneID: String, segIdx: Int, in tv: NSTextView) -> Int? {
+            guard let hint = parent.loader.searchCaretHint, hint.sceneID == sceneID,
+                  sceneBoundaries.indices.contains(segIdx) else { return nil }
+            let loader = parent.loader
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                if loader.searchCaretHint == hint { loader.searchCaretHint = nil }
+            }
+            let ns = tv.string as NSString
+            let scene = NSIntersectionRange(sceneBoundaries[segIdx], NSRange(location: 0, length: ns.length))
+            // ✅ [SP-164] Q5: match what the writer SEES — a query with punctuation (`Mr. Smith`, stored `Mr\. Smith`) or one
+            // across a hidden marker (`bold here`, stored `**bold** here`) used to find nothing here.
+            guard let storage = tv.textStorage else { return nil }
+            return PresentedText.build(storage, presenter: presenter, range: scene).firstMatch(of: hint.query)?.location
+        }
+
+        // Scroll so `storageOffset` sits near the VERTICAL CENTRE of the viewport.
+        //
+        // `scrollRangeToVisible` only guarantees visibility, which puts a target at the
+        // edge — and the scroll handler then reads the centre and concludes a different
+        // scene is current. Centring makes the two agree.
+        //
+        // ⛔ [I-0273] It used to scroll to the target's ABSOLUTE y. After a full rebuild (a
+        // project OPEN, i.e. the restore) TextKit 2 has laid out almost nothing, so that y is
+        // an ESTIMATE — measured for T-0573 (2026-10-02) — and the restore landed ~12
+        // chapters away (the log's first viewport scene after restoring index 1180 was in
+        // chapter 46 of 58). ✅ Same cure as T-0573: let AppKit reveal the target (it resolves
+        // the estimate), lay the viewport out, then nudge by the RELATIVE distance from the
+        // viewport centre, measured inside laid-out text. ⚠️ Also: the clamp used
+        // `tv.string.count` (Characters) against UTF-16 offsets.
+        func centerStorageOffset(_ storageOffset: Int, in tv: NSTextView) {
+            guard let scroll = tv.enclosingScrollView else { return }
+            let clip = scroll.contentView
+            let loc = min(storageOffset, (tv.string as NSString).length)
+            tv.scrollRangeToVisible(NSRange(location: loc, length: 0))
+            tv.textLayoutManager?.textViewportLayoutController.layoutViewport()
+            guard let rect = self.boundingRect(forCharacterIndex: loc, in: tv) else { return }
+            let delta = rect.midY - (clip.bounds.minY + clip.bounds.height / 2)
+            let maxY = max(0, tv.bounds.height - clip.bounds.height)
+            scrollDiag(String(format: "[SCRIVI-SCROLL] centerStorageOffset loc=%d clipY=%.0f -> %.0f", loc, clip.bounds.minY,
+                  max(0, min(clip.bounds.minY + delta, maxY))))   // ⚠️ [I-0301] DIAGNOSTIC (Debug only)
+            clip.scroll(to: NSPoint(x: clip.bounds.minX, y: max(0, min(clip.bounds.minY + delta, maxY))))
+            scroll.reflectScrolledClipView(clip)
+            tv.textLayoutManager?.textViewportLayoutController.layoutViewport()
+        }
+
+        // MARK: — Scene / Chapter boundary navigation
+        //
+        // Move the caret to the start or end of the scene or chapter the caret is
+        // currently in. Unlike `navigateToScene` (a survey gesture that scrolls without
+        // moving the caret), these are *editing* moves: they place the insertion point,
+        // because that is what "go to the start of this scene" means while writing.
+        //
+        // ⚠️ **No key equivalents — deliberately, pending a ruling (2026-08-18).** Every
+        // conventional candidate is already owned:
+        //   • ⌘↑/⌘↓  — document start/end (NSTextView)
+        //   • ⌥↑/⌥↓  — paragraph start/end (NSTextView)
+        //   • ⌃↑/⌃↓  — Mission Control (macOS, not ours to take)
+        // …and Shift with any of them extends the selection, so rebinding one would cost
+        // an existing text-editing behaviour. The menu items exist so the *functions* can
+        // be exercised and judged while the binding question stays open.
+
+        // The arithmetic is shared with iOS (`ManuscriptSceneSync.navigateTarget`).
+        func moveTo(_ scope: ManuscriptSceneSync.NavigateScope, _ edge: ManuscriptEdge, in tv: NSTextView) {
+            guard let storage = tv.textStorage,
+                  let target = sync.navigateTarget(scope, edge, caret: tv.selectedRange().location, in: storage)
+            else { return }
+            placeCursorAt(target, in: tv)
+        }
+
+        // Place cursor at a given NSTextStorage offset and take focus.
+        func placeCursorAt(_ storageOffset: Int, in tv: NSTextView) {
+            let loc = NSRange(location: min(storageOffset, tv.string.count), length: 0)
+            tv.setSelectedRange(loc)
+            tv.scrollRangeToVisible(loc)
+            takeFocus()
+        }
+
+        // Translate an NSTextStorage offset to a manuscript position
+        // by subtracting the 2-char separator pairs (attachment + \n) before it.
+        func storageOffsetToManuscriptPosition(_ storageOffset: Int) -> Int {
+            guard let tv = textView, let storage = tv.textStorage else { return storageOffset }
+            return sync.storageOffsetToManuscriptPosition(storageOffset, in: storage)
+        }
+
+        // ✅ [I-0313]: at a line's start AppKit gives typing the attributes of the character AFTER the caret. Before an
+        // empty scene's divider that is the divider's, so typed text carried `.scriviDivider` and the boundary scan took
+        // it for a scene break, crediting the text to the next scene. Typing never carries it: the body's attributes.
+        func textView(_ textView: NSTextView, shouldChangeTypingAttributes oldTypingAttributes: [String: Any],
+                      toAttributes newTypingAttributes: [NSAttributedString.Key: Any]) -> [NSAttributedString.Key: Any] {
+            newTypingAttributes[.scriviDivider] == nil ? newTypingAttributes : presenter.typography.bodyAttributes
+        }
+
+        private func segmentIndex(for characterLocation: Int) -> Int? {
+            guard let storage = textView?.textStorage else { return nil }
+            return sync.segmentIndex(for: characterLocation, in: storage)
+        }
+
+        // MARK: — Cross-boundary Cut/Copy/Paste support (EP-029 SP-089, T-0354)
+        //
+        // The manuscript is one NSTextStorage; sceneBoundaries[i] is scene i's storage char
+        // range (dividers/headings sit OUTSIDE those ranges). A selection is "cross-boundary"
+        // when it overlaps more than one scene's range — then Cut/Copy/Paste route through the
+        // ScriviCore fragment endpoints. A single-scene selection keeps the existing fast path
+        // (AC5).
+
+        func selectionCrossesBoundary(_ sel: NSRange) -> Bool { structure.selectionCrossesBoundary(sel) }
+        func selectionRun(_ sel: NSRange) -> [(segIdx: Int, part: NSRange)]? { structure.selectionRun(sel) }
+
+        // T-0572 — where a caret proposed at `loc` goes instead, when `loc` is in the GAP
+        // between two scenes (nil = not in a gap, leave it).
+        //
+        // ✅ Layout: `[scene][divider][\n][heading][scene]` (heading only at a chapter break).
+        // ✅ The DIVIDER'S OWN POSITION is the previous scene's END — a real caret stop, kept
+        // by user ruling 2026-10-02 (typing there appends to that scene).
+        // ⛔ The gap is everything AFTER it up to the next scene's first character: the
+        // divider's `\n` and any heading. Typing after the divider prepended to the next
+        // scene — or, at a chapter break, landed in FRONT of the heading and pulled it into
+        // the scene text (user report 2026-10-02).
+        // Moving BACKWARD (from a later position) → the divider position (previous scene's
+        // end); otherwise → the next scene's start. Chapter 1's heading has no divider before
+        // it, so it always resolves forward.
+        // ✅ Read from the TEXT's own markers (attachment + heading attribute), not from
+        // `sceneBoundaries`, which can be a beat stale mid-rebuild.
+        func caretOutsideSceneGap(_ loc: Int, from previous: Int) -> Int? {
+            guard let storage = textView?.textStorage else { return nil }
+            func isDivider(_ i: Int) -> Bool {
+                SceneDivider.isDivider(in: storage, at: i)
+            }
+            func headingRun(at i: Int) -> NSRange? {
+                guard i < storage.length else { return nil }
+                var run = NSRange()
+                return storage.attribute(.scriviHeading, at: i, longestEffectiveRange: &run,
+                                         in: NSRange(location: 0, length: storage.length)) != nil ? run : nil
+            }
+            let heading = headingRun(at: loc)
+            let afterDivider = isDivider(loc - 1)
+            guard heading != nil || afterDivider else { return nil }
+
+            if loc < previous {
+                if afterDivider { return loc - 1 }
+                if let h = heading, isDivider(h.location - 2) { return h.location - 2 }
+            }
+            var p = loc
+            if afterDivider { p += 1 }                       // past the divider's `\n`
+            if let h = headingRun(at: p) { p = h.location + h.length }
+            return min(p, storage.length)
+        }
+
+        func structuredCopyIfCrossBoundary() -> Bool { structure.structuredCopyIfCrossBoundary() }
+        func copiedRange(_ sel: NSRange) -> (range: ScriviRange, presented: String, source: String)? { structure.copiedRange(sel) }
+
+        /// ✅ [SP-164] Q2 / [I-0333]: Replace All, one undoable step — shared ([SP-223]). With no history (no project) the view
+        /// applies the edits itself.
+        func replaceAll(_ edits: [(NSRange, String)]) {
+            if !structure.replaceAll(edits) { (textView as? ManuscriptNSTextView)?.applyReplacements(edits) }
+        }
+
+        /// The selected part of each scene `sel` overlaps, in storage order — what `fragmentSpans` sends ScriviCore.
+        func sceneParts(of sel: NSRange) -> [NSRange]? {
+            var parts: [NSRange] = []
+            for range in sceneBoundaries {
+                let inter = NSIntersectionRange(range, sel)
+                if inter.length > 0 { parts.append(inter) }
+                else if sel.location <= range.location && range.location < NSMaxRange(sel) {
+                    parts.append(NSRange(location: range.location, length: 0))
+                }
+            }
+            return parts.isEmpty ? nil : parts
+        }
+
+        typealias CutKeeping = ManuscriptStructure.CutKeeping
+        @discardableResult
+        func cutAcrossScenes(_ sel: NSRange, keeping: CutKeeping, then: (@MainActor () -> Void)? = nil) -> Bool {
+            structure.cutAcrossScenes(sel, keeping: keeping, then: then)
+        }
+        func structuredPasteIfAvailable() -> Bool { structure.structuredPasteIfAvailable() }
+        func pasteStructuredRange(_ range: ScriviRange) -> Bool { structure.pasteStructuredRange(range) }
+        var hasInternalStructuredRange: Bool { structure.hasInternalStructuredRange }
+    }
+}
+
+// MARK: — The Mac host of the shared structural edits (EP-055 S3a, `ManuscriptStructure`)
+
+extension ManuscriptTextView.Coordinator: ManuscriptStructureHost {
+    var structureStorage: NSTextStorage? { textView?.textStorage }
+    var structureSelection: NSRange { textView?.selectedRange() ?? NSRange(location: 0, length: 0) }
+    func structureSetEditable(_ editable: Bool) { textView?.isEditable = editable }
+    func structureRefuse() { NSSound.beep() }
+
+    // Flash the screen + beep and do NOT paste — the caret sits in a non-editable chapter heading (§4.2, §10 Q2, user
+    // ruling 2026-07-27). Leaves the caret where it is.
+    func structureFlashRefuse() {
+        NSSound.beep()
+        guard let tv = textView, let layer = tv.enclosingScrollView?.layer ?? tv.layer else { return }
+        let flash = CABasicAnimation(keyPath: "backgroundColor")
+        flash.fromValue = NSColor.systemRed.withAlphaComponent(0.18).cgColor
+        flash.toValue   = NSColor.clear.cgColor
+        flash.duration  = 0.18
+        layer.add(flash, forKey: "scrivi.headingRefuseFlash")
+    }
+
+    func structureRenderRun(old: Range<Int>, new: Range<Int>) {
+        guard let tv = textView else { return }
+        renderRun(tv, old: old, new: new)
+    }
+
+    func structureRevealCaret(_ loc: Int) {
+        guard let tv = textView else { return }
+        revealCaretAfterRebuild(loc, in: tv)
+    }
+
+    func structurePlaceCaret(_ loc: Int, reveal: Bool) {
+        guard let tv = textView else { return }
+        tv.setSelectedRange(NSRange(location: loc, length: 0))
+        if reveal { tv.scrollRangeToVisible(NSRange(location: loc, length: 0)) }
+    }
+
+    func structurePreservingScroll(_ body: () -> Void) {
+        let origin = textView?.enclosingScrollView?.contentView.bounds.origin
+        body()
+        if let origin, let scroll = textView?.enclosingScrollView {
+            scroll.contentView.scroll(to: origin)
+            scroll.reflectScrolledClipView(scroll.contentView)
+        }
+    }
+
+    func structureLanded() { scheduleBranchMarks() }   // [SP-192] the text moved after the report
+
+    func structureConfirmEarlierSessionUndo(_ timestamp: String, _ answer: @escaping @MainActor (Bool) -> Void) {
+        if let hook = onEarlierSessionUndo { return answer(hook(timestamp)) }
+        let alert = NSAlert()
+        alert.alertStyle = .informational
+        alert.messageText = "Undo a change from a previous session?"
+        alert.informativeText = if let when = HistoryTimestamp.friendly(timestamp) {
+            "This undo changes text you wrote \(when)."
+        } else {
+            "This undo changes text you wrote before this session."
+        }
+        alert.addButton(withTitle: "Undo")
+        alert.addButton(withTitle: "Cancel")
+        answer(alert.runModal() == .alertFirstButtonReturn)
+    }
+
+    func structureBarrierNotice(_ message: String) {
+        if let hook = onBarrierNotice { hook(message); return }
+        let alert = NSAlert()
+        alert.messageText = message
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: "OK")
+        alert.runModal()
+    }
+
+    // ✅ [SP-192] (user, 2026-10-24): the chooser opens at the branch's mark, as a click on it — the one nearest the caret;
+    // the same place with the hints off; the caret only when the branch's line is not on screen.
+    func structureChooseBranch(_ fork: HistoryForkAhead, _ choose: @escaping @MainActor (String) -> Void) {
+        guard let tv = textView else { return }
+        let caretY = lineRect(forCharacterIndex: tv.selectedRange().location, in: tv)?.midY ?? 0
+        let anchor = branchMarkFrames(for: fork, in: tv).min { abs($0.midY - caretY) < abs($1.midY - caretY) }
+        presentForkPopover(fork, in: tv, at: anchor)
+    }
+
+    func structureCloseBranchChooser() { forkPopover.close() }
+
+    func structureDeleteSelection(_ sel: NSRange) { textView?.insertText("", replacementRange: sel) }
+    func structureInsertOwnSource(_ source: String) { (textView as? ManuscriptNSTextView)?.insertTextForBuffer(source) }
+
+    var structurePasteboardChangeCount: Int { NSPasteboard.general.changeCount }
+
+    func structureWritePasteboard(_ presented: String) -> Int {
+        let pb = NSPasteboard.general
+        pb.clearContents()
+        pb.setString(presented, forType: .string)
+        return pb.changeCount
+    }
+}
+
+/// ⚠️ [I-0301] DIAGNOSTIC — the `[SCRIVI-SCROLL]` console lines, Debug builds only. The jitter at the manuscript's start did
+/// not reproduce on its first instrumented run (2026-10-14); these stay so the next occurrence is caught with evidence.
+@inline(__always) func scrollDiag(_ message: @autoclosure () -> String) {
+    #if DEBUG
+    NSLog("%@", message())
+    #endif
+}
+
+// MARK: — Custom NSTextView for key binding interception
+
+// Subclass so we can intercept ⌘↩ and ⌘⇧↩ before the text system handles them.
+final class ManuscriptNSTextView: NSTextView {
+
+    // ⛔ [I-0283] (ruled 2026-10-08, user: "a … Fix now.") — macOS SMART QUOTES are OFF in the manuscript, whatever
+    // Edit ▸ Substitutions says. AppKit substitutes asynchronously over STORAGE and does not know a backslash belongs to an
+    // escape: measured, three typed apostrophes became curly·straight·curly with their escape backslashes deleted, and a typed
+    // "hi" became ”hi\"” (a quote ADDED), each with the caret thrown. A typed ' or " is stored escaped and drawn straight.
+    // (Smart Dashes need nothing: a typed -- is stored \-\-, which AppKit never sees as two hyphens — measured.)
+    override var isAutomaticQuoteSubstitutionEnabled: Bool {
+        get { false }
+        set { }
+    }
+
+    // T-0531 DIAGNOSTIC — the OUTERMOST edit boundary AppKit gives us.
+    // ⚠️ `[SCRIVI-KEY]` covers `textDidChange` only. If a keystroke is slow but KEY is
+    // fast, the cost is BETWEEN these two — i.e. in AppKit's own edit/layout/display
+    // work, not in Scrivi's delegate.
+    override func didChangeText() {
+        let t0 = Date()
+        super.didChangeText()
+        let ms = Date().timeIntervalSince(t0) * 1000
+        if ms > 0.5 { NSLog(String(format: "[SCRIVI-EDIT] didChangeText=%.1f ms", ms)) }
+    }
+
+    override func shouldChangeText(in affectedCharRange: NSRange, replacementString: String?) -> Bool {
+        let __t0 = Date()
+        defer {
+            let ms = Date().timeIntervalSince(__t0) * 1000
+            if ms > 0.5 { NSLog(String(format: "[SCRIVI-EDIT] shouldChangeText=%.1f ms", ms)) }
+        }
+        guard let storage = textStorage else {
+            return super.shouldChangeText(in: affectedCharRange, replacementString: replacementString)
+        }
+        // ✅ EP-055 (T-0633): the rules are shared with every host — `ManuscriptEditRules.verdict` (headings, dividers,
+        // escape pairs, balanced emphasis). This applies its answer.
+        switch ManuscriptEditRules.verdict(changing: affectedCharRange, with: replacementString, in: storage,
+                                           presenter: presenter, applyingBalancedEdit: applyingBalancedEdit,
+                                           pastingOwnCopy: pastingOwnCopy) {
+        case .allow:
+            return super.shouldChangeText(in: affectedCharRange, replacementString: replacementString)
+        case .refuse:
+            return false
+        case let .reissue(range, replacement, caret, balanced):
+            let wasBalancing = applyingBalancedEdit
+            if balanced { applyingBalancedEdit = true }
+            defer { applyingBalancedEdit = wasBalancing }
+            if shouldChangeText(in: range, replacementString: replacement) {
+                storage.replaceCharacters(in: range, with: NSAttributedString(
+                    string: replacement,
+                    attributes: typography.bodyAttributes))
+                didChangeText()
+                setSelectedRange(NSRange(location: caret, length: 0))
+            }
+            return false
+        }
+    }
+
+    /// True while a balanced edit is being applied — it must not be balanced again.
+    private var applyingBalancedEdit = false
+
+    // MARK: — EP-046 E2-S4: Find and Replace over what the writer SEES ([SP-164])
+
+    /// The client AppKit's find bar searches: the manuscript AS PRESENTED (Q1, Q-E2-5).
+    let finderClient = ManuscriptFinderClient()
+    /// ✅ EP-050 S1: the ONE presented ⇄ storage map (Find and accessibility) — built at first use, patched per edit.
+    lazy var presentedMap = PresentedMap(textView: self)
+    private var finderObserver: NSObjectProtocol?
+    lazy var textFinder: NSTextFinder = {
+        let finder = NSTextFinder()
+        finderClient.textView = self
+        finder.client = finderClient
+        finder.findBarContainer = enclosingScrollView
+        finder.isIncrementalSearchingEnabled = true
+        // Every character edit invalidates the presented text; AppKit must hear of it BEFORE the change.
+        if let storage = textStorage {
+            finderObserver = NotificationCenter.default.addObserver(
+                forName: NSTextStorage.willProcessEditingNotification, object: storage, queue: nil) { [weak self] note in
+                guard let ts = note.object as? NSTextStorage, ts.editedMask.contains(.editedCharacters) else { return }
+                MainActor.assumeIsolated {
+                    self?.textFinder.noteClientStringWillChange()
+                    self?.finderClient.storageVersion += 1
+                }
+            }
+        }
+        return finder
+    }()
+
+    /// What Edit ▸ Find calls.
+    func performFind(_ command: ManuscriptFindCommand) {
+        guard let action = NSTextFinder.Action(rawValue: command.rawValue) else { return }
+        textFinder.performAction(action)
+    }
+
+    /// AppKit's own Find items (if any reach this view) go to the same finder.
+    override func performTextFinderAction(_ sender: Any?) {
+        guard let tag = (sender as? NSValidatedUserInterfaceItem)?.tag,
+              let action = NSTextFinder.Action(rawValue: tag) else { return }
+        textFinder.performAction(action)
+    }
+
+    /// Replace one found range (STORAGE) with what the writer typed in the find bar: ✅ escaped like typing and balanced like
+    /// any edit — it takes the style of the match's first character (Q3).
+    func replaceFound(_ range: NSRange, with string: String) {
+        insertText(string, replacementRange: range)
+    }
+
+    /// Replace All's replacements (STORAGE ranges, back to front, typed text) in ONE editing pass — each escaped, snapped
+    /// and balanced exactly as `replaceFound` does it. ⚠️ [SP-164] live pass: 1,172 replacements through the typing path
+    /// (`replaceFound` each) kept the app busy for about a minute on dumas.
+    func applyReplacements(_ edits: [(NSRange, String)]) {
+        guard let storage = textStorage else { return }
+        let attrs: [NSAttributedString.Key: Any] = typography.bodyAttributes
+        storage.beginEditing()
+        for (r, typed) in edits {
+            let escaped = MarkdownEscapes.escape(typed)
+            var range = r
+            if range.length > 0, let presenter,
+               let pair = MarkdownEscapes.snapSelection(range, in: storage.string as NSString,
+                                                        runAt: ManuscriptEditRules.runLookup(presenter, storage)) {
+                range = pair
+            }
+            if let presenter, let edit = presenter.balancedEdit(in: storage, replacing: range, with: escaped) {
+                storage.replaceCharacters(in: edit.range, with: NSAttributedString(string: edit.replacement, attributes: attrs))
+            } else {
+                storage.replaceCharacters(in: range, with: NSAttributedString(string: escaped, attributes: attrs))
+            }
+        }
+        storage.endEditing()
+        let len = storage.length
+        let sel = selectedRange()
+        setSelectedRange(NSRange(location: min(sel.location, len), length: 0))
+    }
+    /// True while Scrivi's OWN copy is pasted: it keeps its own formatting.
+    private var pastingOwnCopy = false
+
+
+    /// ✅ EP-046 E2-S1 — the view's presenter, found through TextKit 2's own delegate slot so a view
+    /// built without a coordinator (the interop fixtures) works the same way.
+    var presenter: ManuscriptPresenter? { textContentStorage?.delegate as? ManuscriptPresenter }
+    /// ✅ EP-047 AC4: the project's type — read from the presenter's ONE stored value, never kept here.
+    var typography: ManuscriptTypography { presenter?.typography ?? .default }
+
+    // MARK: — EP-045 AC4: the escape layer
+
+    /// True while inserting text that is ALREADY in stored form (a copy-buffer slot, or Scrivi's
+    /// own copy coming back) — it must not be escaped a second time.
+    private var insertsVerbatim = false
+    /// What THIS view last put on a pasteboard, in STORED form, keyed to that pasteboard write.
+    /// ⚠️ The pasteboard carries what the writer SEES; pasting it back must restore the exact
+    /// source — re-escaping it would turn intended markup (R2: e.g. a `##` heading) literal.
+    private var ownCopy: (pasteboard: NSPasteboard.Name, changeCount: Int, source: String)?
+
+    /// ✅ Typing escapes: every keystroke and IME commit arrives here (measured 2026-10-03).
+    override func insertText(_ string: Any, replacementRange: NSRange) {
+        guard !insertsVerbatim else { return super.insertText(string, replacementRange: replacementRange) }
+        let typed = (string as? String) ?? (string as? NSAttributedString)?.string ?? ""
+        // ✅ [SP-163] Q1: whitespace typed into an EMPTY pending pair cannot start a span (`** x**` is not emphasis):
+        // it goes BEFORE the pair, which stays pending with the caret inside it.
+        if let p = presenter?.pending, selectedRange() == NSRange(location: p.caret, length: 0),
+           !typed.isEmpty, typed.allSatisfy({ $0 == " " || $0 == "\t" }) {
+            let markers = String(repeating: "*", count: p.markerLength)
+            removePendingPair()
+            super.insertText(MarkdownEscapes.escape(typed), replacementRange: NSRange(location: p.range.location, length: 0))
+            insertPendingPair(at: selectedRange().location, markers: markers)
+            return
+        }
+        super.insertText(MarkdownEscapes.escape(typed), replacementRange: replacementRange)
+    }
+
+    /// ✅ EP-045 AC5 + AC6 — Return starts a PARAGRAPH: it stores `\n\n` (study §3A.6), first
+    /// reducing the trailing spaces before the caret to AT MOST ONE (§4B.6: two or more are a
+    /// CommonMark hard break once a ⌫ merges the paragraphs) and collapsing a trailing typed
+    /// backslash (`\\`) to `\`, so that a merge leaves the break the writer typed.
+    /// ⚠️ Measured 2026-10-04: Return, keypad Enter AND Shift-Return all send `insertNewline:`;
+    /// Option-Return sends `insertNewlineIgnoringFieldEditor:` and is NOT changed here.
+    /// ⛔ ONE replacement, never several: Return is a history commit boundary
+    /// (the core's `CaptureSession::isCommitBoundary`, SP-177), so a split edit would commit half the gesture as its own undo step.
+    override func insertNewline(_ sender: Any?) {
+        guard let storage = textStorage, !hasMarkedText() else { return super.insertNewline(sender) }
+        switch ManuscriptEditRules.returnEdit(in: storage, selection: selectedRange(), presenter: presenter) {
+        case let .command(edit): applyCommandEdit(edit)
+        case let .paragraph(range, source): insertVerbatim(source, replacementRange: range)
+        }
+    }
+
+    /// Insert text that is already in stored form, unescaped.
+    func insertVerbatim(_ source: String, replacementRange: NSRange) {
+        insertsVerbatim = true
+        defer { insertsVerbatim = false }
+        insertText(source, replacementRange: replacementRange)
+    }
+
+    /// ✅ [T-0584] (Q-E2-4 = (b), ruled 2026-10-05): Option-Return is a deliberate HARD LINE BREAK — `\` + `\n`, the
+    /// form EP-045 AC6 already writes. ⚠️ Measured 2026-10-04: Option-Return sends THIS action, not `insertNewline:`.
+    /// ⚠️ [SP-163] Q6: at a paragraph's END the backslash shows until the next line is typed (CommonMark reads it as
+    /// literal before a blank line) — accepted.
+    override func insertNewlineIgnoringFieldEditor(_ sender: Any?) {
+        guard !hasMarkedText() else { return super.insertNewlineIgnoringFieldEditor(sender) }
+        insertVerbatim("\\\n", replacementRange: selectedRange())
+    }
+
+    // MARK: — EP-046 E2-S3: the Format commands ([SP-163], Q-E2-2)
+
+    /// What the Format menu calls. ✅ ONE edit per command — one history event.
+    func applyFormat(_ format: ManuscriptFormat) {
+        guard let storage = textStorage, let presenter else { return }
+        switch presenter.formatStep(format, in: storage, selection: selectedRange()) {
+        case let .edit(edit): applyCommandEdit(edit)
+        case .unchanged: break
+        case .refuse: NSSound.beep()
+        case .removePending: removePendingPair()
+        case let .insertPending(loc, markers): insertPendingPair(at: loc, markers: markers)
+        }
+    }
+
+    /// Apply a presenter-computed edit as ONE replacement (one `textDidChange`, one history event), through the
+    /// heading/divider guards but never re-balanced (it already is).
+    private func applyCommandEdit(_ edit: ManuscriptPresenter.CommandEdit) {
+        guard let storage = textStorage else { return }
+        applyingBalancedEdit = true
+        defer { applyingBalancedEdit = false }
+        guard shouldChangeText(in: edit.range, replacementString: edit.replacement) else { return }
+        storage.replaceCharacters(in: edit.range, with: NSAttributedString(
+            string: edit.replacement,
+            attributes: typography.bodyAttributes))
+        didChangeText()
+        setSelectedRange(edit.selection)
+    }
+
+    /// Insert the PENDING pair (Q1) — storage only, NO `didChangeText`: history, autosave and the scene text never see
+    /// it (see `ManuscriptPresenter.PendingPair`).
+    private func insertPendingPair(at loc: Int, markers: String) {
+        guard let storage = textStorage, let presenter else { return }
+        presenter.insertingPending = true
+        storage.replaceCharacters(in: NSRange(location: loc, length: 0), with: NSAttributedString(
+            string: markers + markers,
+            attributes: typography.bodyAttributes))
+        presenter.insertingPending = false
+        presenter.pending = .init(range: NSRange(location: loc, length: markers.utf16.count * 2), markerLength: markers.utf16.count)
+        presentedMap.noteChange(in: presenter.pending!.range)     // the pair is now hidden on the page at rest
+        keepingPending = true
+        setSelectedRange(NSRange(location: loc + markers.utf16.count, length: 0))
+        keepingPending = false
+    }
+
+    /// Take the pending pair out again — storage only, nothing recorded (user: *"it should be removed"*).
+    func removePendingPair() {
+        guard let storage = textStorage, let presenter, let p = presenter.pending else { return }
+        presenter.pending = nil
+        let text = (storage.string as NSString)
+        guard NSMaxRange(p.range) <= text.length,
+              text.substring(with: p.range) == String(repeating: "*", count: p.range.length) else { return }
+        presenter.insertingPending = true
+        storage.replaceCharacters(in: p.range, with: "")
+        presenter.insertingPending = false
+    }
+
+    /// True while the view itself places the caret inside a pending pair.
+    private var keepingPending = false
+
+    /// ✅ Copy, cut and drag put what the writer SEES on the pasteboard (measured: all three
+    /// route here), and remember the stored form for a paste back into Scrivi.
+    override func writeSelection(to pboard: NSPasteboard, type: NSPasteboard.PasteboardType) -> Bool {
+        let sel = selectedRange()
+        guard Self.isPlainTextType(type), sel.length > 0, let storage = textStorage else {
+            return super.writeSelection(to: pboard, type: type)
+        }
+        // ✅ EP-046 AC12 + [SP-162] Q2: other apps get what the writer SEES (no markers, no prefix, no
+        // escapes); Scrivi's own paste gets the BALANCED source — a selection that starts or ends inside a
+        // bold span carries its own markers, so the paste stays bold.
+        let raw = (storage.string as NSString).substring(with: sel)
+        let copy: (source: String, presented: String) = presenter?.balancedCopy(in: storage, sel)
+            ?? (raw, MarkdownEscapes.map(raw).presented)
+        let ok = pboard.setString(copy.presented, forType: .string)
+        if ok { ownCopy = (pboard.name, pboard.changeCount, copy.source) }
+        return ok
+    }
+
+    /// ⛔ USER-FOUND 2026-10-03: AppKit calls the two overrides below with the LEGACY type
+    /// `NSStringPboardType` — ⚠️ which is NOT equal to `.string` (`public.utf8-plain-text`). The
+    /// first version tested `type == .string`, so BOTH fell through to AppKit: copy wrote the
+    /// stored backslashes and paste inserted unescaped text. Its tests passed only because they
+    /// named `.string` themselves. ✅ Accept either spelling.
+    private static let legacyStringType = NSPasteboard.PasteboardType("NSStringPboardType")
+    static func isPlainTextType(_ type: NSPasteboard.PasteboardType) -> Bool {
+        type == .string || type == legacyStringType
+    }
+
+    /// The plain text a paste of `type` would insert, or nil to leave it to AppKit.
+    /// ⚠️ A plain view still READS rich text, RTFD and HTML (measured `readablePasteboardTypes`),
+    /// so those are reduced to their plain text here and escaped like any other paste (R1).
+    /// ⛔ Left to AppKit: colours, fonts, rulers — and URLs / filenames with no plain-text form.
+    static func plainText(from pboard: NSPasteboard, type: NSPasteboard.PasteboardType) -> String? {
+        if isPlainTextType(type) || pboard.string(forType: .string) != nil {
+            return pboard.string(forType: .string)
+        }
+        let rich: [NSPasteboard.PasteboardType: NSAttributedString.DocumentType] = [
+            .rtf: .rtf, .init("NeXT Rich Text Format v1.0 pasteboard type"): .rtf,
+            .rtfd: .rtfd, .init("NeXT RTFD pasteboard type"): .rtfd,
+            .html: .html, .init("Apple HTML pasteboard type"): .html,
+        ]
+        guard let docType = rich[type], let data = pboard.data(forType: type) else { return nil }
+        return (try? NSAttributedString(data: data, options: [.documentType: docType],
+                                        documentAttributes: nil))?.string
+    }
+
+    /// ✅ Paste and drop (measured: both route here, NOT through `insertText`). R1: text from
+    /// anywhere else is escaped like typing; Scrivi's own copy goes back exactly as stored.
+    override func readSelection(from pboard: NSPasteboard, type: NSPasteboard.PasteboardType) -> Bool {
+        guard let text = Self.plainText(from: pboard, type: type) else {
+            return super.readSelection(from: pboard, type: type)
+        }
+        let range = rangeForUserTextChange
+        guard range.location != NSNotFound else { return false }
+        if let own = ownCopy, own.pasteboard == pboard.name, own.changeCount == pboard.changeCount {
+            // ✅ [SP-163] live pass (user, 2026-10-05): Scrivi's own copy keeps ITS formatting where it lands — plain
+            // text pasted inside bold stays plain (the bold closes around it); bold into bold still merges.
+            pastingOwnCopy = true
+            defer { pastingOwnCopy = false }
+            insertVerbatim(own.source, replacementRange: range)
+        } else {
+            insertText(text, replacementRange: range)
+        }
+        return true
+    }
+
+    // MARK: — Custom undo/redo routing (EP-019 T-0205, T-0199-validated mechanism)
+    //
+    // allowsUndo is false and there is NO undoManager override. The Edit ▸ Undo /
+    // Redo menu items send undo:/redo: down the responder chain; as first
+    // responder this text view implements them and delegates to the Coordinator's
+    // custom HistoryService-backed apply path. validateUserInterfaceItem drives
+    // the enable state (and could set the menu titles). ⌘Z/⇧⌘Z arrive as these
+    // same actions via the SwiftUI menu item's key equivalents.
+
+    // ✅ T-0572 — THE CARET NEVER RESTS BETWEEN SCENES: not on a chapter heading (user
+    // request 2026-10-01: *"it would be better if the cursor just skipped the chapter lines
+    // entirely"*), and not after a divider (2026-10-02: *"skip the scene dividers too"*).
+    // Every caret placement — arrows, clicks, programmatic — arrives here, so this is the
+    // one place to enforce it. A selection with LENGTH is left alone: selecting across
+    // scenes (fragment cut/copy) must still span headings.
+    // ⚠️ Not while `stillSelecting` (a mouse drag in progress) — only the settled caret.
+    override func setSelectedRanges(_ ranges: [NSValue], affinity: NSSelectionAffinity,
+                                    stillSelecting: Bool) {
+        var ranges = ranges
+        if !stillSelecting, ranges.count == 1, let r = ranges.first?.rangeValue, r.length == 0,
+           let target = coordinator?.caretOutsideSceneGap(r.location, from: selectedRange().location) {
+            ranges = [NSValue(range: NSRange(location: target, length: 0))]
+        }
+        // ✅ EP-045 AC3 / R3 = (c), generalised by EP-046 AC5: nor inside a STOP RUN — an escape
+        // backslash, an emphasis marker or a heading prefix. ✅ [SP-162] Q1: at the start of a span or a
+        // heading the caret goes AFTER the marker, so the revealed hint shows to its LEFT; at the end of
+        // a span it stays before the closer. A selection's ends are snapped too, so cut/copy never
+        // splits `\` from its mark or a marker in two.
+        if !stillSelecting, ranges.count == 1, let r = ranges.first?.rangeValue, let storage = textStorage,
+           let presenter {
+            // ✅ EP-045 AC10a: the snap's own cost, separate from `[SCRIVI-NAV] setSel`.
+            let t0 = Date()
+            defer {
+                let ms = Date().timeIntervalSince(t0) * 1000
+                if ms > 0.5 { NSLog(String(format: "[SCRIVI-EDIT] caretSnap=%.1f ms", ms)) }
+            }
+            let runAt = ManuscriptEditRules.runLookup(presenter, storage)
+            if r.length == 0,
+               let target = MarkdownEscapes.snapCaret(r.location, from: selectedRange().location,
+                                                      length: storage.length, runAt: runAt) {
+                ranges = [NSValue(range: NSRange(location: target, length: 0))]
+            } else if r.length > 0,
+                      let snapped = MarkdownEscapes.snapSelection(r, previousEnd: NSMaxRange(selectedRange()),
+                                                                  in: storage.string as NSString, runAt: runAt) {
+                ranges = [NSValue(range: snapped)]
+            }
+        }
+        super.setSelectedRanges(ranges, affinity: affinity, stillSelecting: stillSelecting)
+        // ✅ EP-046 AC4 (Q-E2-1): the heading prefixes on the selection's lines, and the markers of the
+        // span it is in, show.
+        // ⚠️ Not mid-drag — a reveal reflows the line, which must not happen under the pointer.
+        // ✅ [SP-163] Q1: the caret LEFT an empty pending pair — remove it (nothing was recorded, nothing to undo).
+        if !stillSelecting, !keepingPending, let p = presenter?.pending, selectedRange() != NSRange(location: p.caret, length: 0) {
+            let sel = selectedRange()
+            removePendingPair()
+            let shift = sel.location >= NSMaxRange(p.range) ? p.range.length : (sel.location > p.range.location ? sel.location - p.range.location : 0)
+            setSelectedRange(NSRange(location: sel.location - shift, length: sel.length))
+            return
+        }
+        if !stillSelecting, let storage = textStorage { presenter?.reveal(for: selectedRange(), in: storage) }
+    }
+
+    // ⚠️ [I-0266] ⌘↑ lands where `Go to Manuscript Start` does — the first scene's first
+    // character — not at offset 0, in front of Chapter 1's heading, where typing is refused.
+    override func moveToBeginningOfDocument(_ sender: Any?) {
+        guard let coordinator else { return super.moveToBeginningOfDocument(sender) }
+        coordinator.moveTo(.manuscript, .start, in: self)
+    }
+
+    @objc func undo(_ sender: Any?) {
+        coordinator?.performUndo()
+    }
+
+    @objc func redo(_ sender: Any?) {
+        coordinator?.performRedo()
+    }
+
+    override func validateUserInterfaceItem(_ item: any NSValidatedUserInterfaceItem) -> Bool {
+        switch item.action {
+        case #selector(undo(_:)): return coordinator?.undoAvailable ?? false
+        case #selector(redo(_:)): return coordinator?.canRedo ?? false
+        case #selector(toggleAutomaticQuoteSubstitution(_:)): return false   // [I-0283]: never on in the manuscript
+        default:                  return super.validateUserInterfaceItem(item)
+        }
+    }
+
+    // Paste/cut commit as their own history events (§4.a triggers #3/#4): flush
+    // any pending typing first, tag the next commit, let AppKit mutate text
+    // (captured by textDidChange), then flush that insertion/removal as the
+    // paste/cut event.
+    // ⌘C: a cross-boundary selection copies as a structured fragment (flat plainText goes to the
+    // system pasteboard for external apps; the fragment is held internally for ⌘V). A single-scene
+    // selection uses the normal copy (AC5). EP-029 SP-089.
+    override func copy(_ sender: Any?) {
+        if coordinator?.structuredCopyIfCrossBoundary() == true { return }
+        super.copy(sender)
+    }
+
+    override func paste(_ sender: Any?) {
+        // A held structured fragment reconstructs at the caret (or refuses in a heading). Otherwise
+        // the normal system-pasteboard paste runs (AC5). EP-029 SP-089.
+        if coordinator?.hasInternalStructuredRange == true,
+           coordinator?.structuredPasteIfAvailable() == true { return }
+        // ✅ [SP-188] Q6: over a cross-scene selection, the structural cut first; the text goes in when it lands.
+        if coordinator?.cutAcrossScenes(selectedRange(), keeping: .nothing,
+                                        then: { [weak self] in self?.paste(sender) }) == true { return }
+        coordinator?.parent.session.historyCapture?.beginPasteOrCut(kind: "paste")
+        super.paste(sender)
+        coordinator?.parent.session.historyCapture?.flush(trigger: "paste", kind: "paste")
+    }
+
+    override func cut(_ sender: Any?) {
+        // ✅ [SP-188] (design R4) A cross-boundary cut removes the structure: one `rangeCut`, the Range on Scrivi's clipboard
+        // when it lands (Q4). A single-scene selection uses the normal cut (AC5).
+        if coordinator?.cutAcrossScenes(selectedRange(), keeping: .clipboard) == true { return }
+        coordinator?.parent.session.historyCapture?.beginPasteOrCut(kind: "cut")
+        super.cut(sender)
+        coordinator?.parent.session.historyCapture?.flush(trigger: "cut", kind: "cut")
+    }
+
+    // MARK: — Copy-buffer text mutation (EP-019 SP-056, T-0214)
+    //
+    // The buffer paste/cut go through insertText/deleteBackward like ordinary
+    // editing so textDidChange captures them, but WITHOUT going through the system
+    // pasteboard (buffers are a parallel mechanism). The coordinator brackets these
+    // with the history capture begin/flush, exactly as the native paste/cut do.
+
+    // Inserts `text` at the caret (replacing any selection), routed through
+    // insertText so it commits as a normal editable change. Used by pasteFromBuffer.
+    func insertTextForBuffer(_ text: String) {
+        // EP-045 AC4: a slot holds STORED text (`copyIntoBuffer` stores the balanced source), so it goes
+        // back verbatim — escaping it again would turn `\*` into `\\\*`.
+        // ✅ [I-0289]: a slot is always Scrivi's OWN copy, so it keeps ITS formatting where it lands, as ⌘V of Scrivi's
+        // own copy does ([SP-163] live pass) — plain text pasted inside bold stays plain. ⛔ It took the caret's style.
+        pastingOwnCopy = true
+        defer { pastingOwnCopy = false }
+        insertVerbatim(text, replacementRange: selectedRange())
+    }
+
+    // [I-0273] The writer's first key, click or scroll ends the restore's re-centring.
+    override func mouseDown(with event: NSEvent) {
+        coordinator?.cancelRestoreCentre()
+        super.mouseDown(with: event)
+    }
+
+    override func scrollWheel(with event: NSEvent) {
+        coordinator?.cancelRestoreCentre()
+        // ⚠️ [I-0301] DIAGNOSTIC (Debug builds only; kept until the jitter is caught): the writer's scroll, against what the clip view then does.
+        #if DEBUG
+        coordinator?.noteWheel(event.scrollingDeltaY)
+        #endif
+        if let clip = enclosingScrollView?.contentView {
+            scrollDiag(String(format: "[SCRIVI-SCROLL] wheel dy=%.1f phase=%lu momentum=%lu clipY=%.0f docH=%.0f", event.scrollingDeltaY,
+                  event.phase.rawValue, event.momentumPhase.rawValue, clip.bounds.minY, frame.height))
+        }
+        super.scrollWheel(with: event)
+    }
+
+    // ⚠️ [I-0301] DIAGNOSTIC (Debug builds only; kept until the jitter is caught): every programmatic "scroll this range into view", and who asked.
+    override func scrollRangeToVisible(_ range: NSRange) {
+        #if DEBUG
+        let callers = Thread.callStackSymbols.dropFirst(1).prefix(4)
+            .map { $0.split(separator: " ", omittingEmptySubsequences: true).dropFirst(3).prefix(1).joined() }
+        scrollDiag(String(format: "[SCRIVI-SCROLL] scrollRangeToVisible loc=%d clipY=%.0f callers=%@", range.location,
+              enclosingScrollView?.contentView.bounds.minY ?? -1, callers.joined(separator: " < ")))
+        #endif
+        super.scrollRangeToVisible(range)
+    }
+
+    override func keyDown(with event: NSEvent) {
+        coordinator?.cancelRestoreCentre()
+        #if DEBUG
+        // EP-050 S2 (SP-172): which keys reach the manuscript after a rotor choice, and with what caret.
+        NSLog("[SCRIVI-ROTOR] key code=%d chars=%@ firstResponder=%@ sel=%@", Int(event.keyCode),
+              (event.characters ?? "").debugDescription, window?.firstResponder === self ? "self" : String(describing: window?.firstResponder),
+              NSStringFromRange(selectedRange()))
+        #endif
+        // T-0531 DIAGNOSTIC — the OUTERMOST boundary for a keystroke.
+        // ⚠️ If this is slow while `[SCRIVI-KEY]` (textDidChange) is fast, the cost is in
+        // AppKit's own edit/layout/display work, NOT in Scrivi's delegate.
+        let __t0 = Date()
+        defer {
+            let ms = Date().timeIntervalSince(__t0) * 1000
+            if ms > 0.5 {
+                NSLog(String(format: "[SCRIVI-EDIT] keyDown(%@ code=%d)=%.1f ms",
+                             (event.charactersIgnoringModifiers ?? "?") as NSString,
+                             Int(event.keyCode), ms))
+            }
+        }
+        let isReturn    = event.keyCode == 36  // kVK_Return
+        let isDelete    = event.keyCode == 51  // kVK_Delete (backspace)
+        let cmd         = event.modifierFlags.contains(.command)
+        let shift       = event.modifierFlags.contains(.shift)
+
+        if isReturn && cmd && shift {
+            coordinator?.handleCreateChapter()
+            return
+        }
+        if isReturn && cmd && !shift {
+            coordinator?.handleCreateScene()
+            return
+        }
+        if isDelete && cmd && shift {
+            coordinator?.handleMergeChapter()
+            return
+        }
+        if isDelete && cmd && !shift {
+            coordinator?.handleMergeScene()
+            return
+        }
+
+        // Copy-buffer chords (EP-019 SP-056, T-0214). Three EXPLICIT chords over slots
+        // 1–9 — one action each, so behaviour never depends on whether text happens to
+        // be selected (the earlier context-sensitive ⌘N was ambiguous and couldn't
+        // paste-over-selection). The palette's modifier-sensitive button mirrors these.
+        //   ⌘1–9  → copy selection into slot N (copy-only, no history event, Trade T3)
+        //   ⌃⌘1–9 → paste slot N at the caret, replacing any selection (a `paste` event)
+        //           ⛔ [I-0290]: was ⌃1–9, which macOS Mission Control takes ("Switch to Desktop N") —
+        //           ⌃1 never reached Scrivi on the user's Mac. ⌃⌘ + digit is bound by neither macOS nor Scrivi.
+        //   ⌥1–9  → cut selection into slot N (a `cut` history event, bufferID-tagged)
+        // ⇧⌘digit is deliberately NOT used (⇧⌘3/4/5 are the system screenshot chords).
+        // ⌘C/⌘V (buffer 0 = system pasteboard) are untouched. Each branch names its exact
+        // modifiers and excludes the rest, so the chords never overlap.
+        let ctrl = event.modifierFlags.contains(.control)
+        let opt  = event.modifierFlags.contains(.option)
+        if let digit = event.charactersIgnoringModifiers,
+           digit.count == 1, let scalar = digit.unicodeScalars.first,
+           scalar >= "1", scalar <= "9" {
+            let bufferID = String(scalar)
+            if cmd && !ctrl && !opt && !shift {
+                coordinator?.copyIntoBuffer(bufferID)      // ⌘N — copy
+                return
+            }
+            if ctrl && cmd && !opt && !shift {
+                coordinator?.pasteFromBuffer(bufferID)     // ⌃⌘N — paste ([I-0290])
+                return
+            }
+            if opt && !cmd && !ctrl && !shift {
+                coordinator?.cutIntoBuffer(bufferID)       // ⌥N — cut
+                return
+            }
+        }
+
+        super.keyDown(with: event)
+    }
+
+    // ⚠️ [I-0269] Both delete overrides guard the ONE character a bare caret would remove.
+    // With a SELECTION, the selection is what is deleted — so a selection starting at a
+    // scene's first character was refused because the character BEFORE it is the divider's
+    // `\n`. ✅ [SP-188] A selection across scenes → the structural cut, minus the clipboard (design Q4);
+    // within one scene → super.
+    override func deleteBackward(_ sender: Any?) {
+        guard let storage = textStorage else { super.deleteBackward(sender); return }
+        if selectedRange().length > 0 {
+            if coordinator?.cutAcrossScenes(selectedRange(), keeping: .nothing) == true { return }
+            super.deleteBackward(sender); return
+        }
+        let loc = selectedRange().location
+        // ✅ [SP-163] Q1: ⌫ inside an empty pending pair takes the pair away.
+        if let p = presenter?.pending, loc == p.caret { removePendingPair(); setSelectedRange(NSRange(location: p.range.location, length: 0)); return }
+        switch ManuscriptEditRules.deleteBackwardEdit(at: loc, in: storage, presenter: presenter) {
+        case .system: super.deleteBackward(sender)
+        case .nothing: return
+        case let .verbatim(range, source): insertVerbatim(source, replacementRange: range)
+        }
+    }
+
+    override func deleteForward(_ sender: Any?) {
+        guard let storage = textStorage else { super.deleteForward(sender); return }
+        if selectedRange().length > 0 {
+            if coordinator?.cutAcrossScenes(selectedRange(), keeping: .nothing) == true { return }
+            super.deleteForward(sender); return
+        }
+        let loc = selectedRange().location
+        if let p = presenter?.pending, loc == p.caret { removePendingPair(); setSelectedRange(NSRange(location: p.range.location, length: 0)); return }
+        switch ManuscriptEditRules.deleteForwardEdit(at: loc, in: storage, presenter: presenter) {
+        case .system: super.deleteForward(sender)
+        case .nothing: return
+        case let .verbatim(range, source): insertVerbatim(source, replacementRange: range)
+        }
+    }
+
+    private var coordinator: ManuscriptTextView.Coordinator? {
+        delegate as? ManuscriptTextView.Coordinator
+    }
+}
+
+// iOS / visionOS: `ManuscriptUITextView.swift` (EP-055 S1).
+#endif

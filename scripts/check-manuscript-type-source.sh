@@ -16,8 +16,8 @@ set -uo pipefail
 cd "$(dirname "$0")/.."
 # ⚠️ EP-055 (T-0633): `UIFont` and the `PlatformFont` alias are the same question on iOS.
 hits=$(grep -n -E '(NS|UI|Platform)Font\.(systemFont|monospacedSystemFont|boldSystemFont|monospacedDigitSystemFont)\(|(NS|UI|Platform)Font\(name|NSFontManager|(NS|UI|Platform)Font\.systemFontSize' \
-    Scrivi/Views/Manuscript*.swift Scrivi/Views/Markdown*.swift \
-    | grep -v '^Scrivi/Views/ManuscriptTypography.swift:' | grep -v 'type-source-ok')
+    Inkwyn/Views/Manuscript*.swift Inkwyn/Views/Markdown*.swift \
+    | grep -v '^Inkwyn/Views/ManuscriptTypography.swift:' | grep -v 'type-source-ok')
 if [ -n "$hits" ]; then
     echo "⛔ A second source of manuscript type (EP-047 AC4) — build fonts through ManuscriptTypography:"
     echo "$hits"

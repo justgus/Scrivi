@@ -154,3 +154,18 @@ TEST_CASE("set project title: an empty title is refused and nothing changes", "[
     CHECK(failed(scrivi_set_project_title(nullptr, "x")));
     CHECK(f.read("project.json") == before);
 }
+
+TEST_CASE("[I-0323] an empty or damaged project.json is named in a sentence, never the parser's text", "[project-settings][capi]") {
+    SettingsFixture f;
+    for (const auto& [content, says] : {std::pair<std::string, std::string>{"", "“project.json” is empty, so it could not be read."},
+                                        std::pair<std::string, std::string>{"{\"title\": ", "“project.json” is damaged and could not be read."}}) {
+        { std::ofstream(f.projectDir / "project.json", std::ios::trunc) << content; }
+        const JsonDoc env = envelope(scrivi_set_project_title(f.root(), "x"));
+        REQUIRE_FALSE(env.getBool("ok"));
+        const JsonDoc err = env.getSubDoc("error");
+        INFO(err.dump());
+        CHECK(err.getString("message") == says);
+        CHECK(err.getString("path") == (f.projectDir / "project.json").string());
+        CHECK(err.getString("detail").find("parse_error") != std::string::npos);   // the parser's text is kept, out of sight
+    }
+}

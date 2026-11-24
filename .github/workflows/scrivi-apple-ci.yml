@@ -28,7 +28,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'Scrivi/**'
+      - 'Inkwyn/**'
       - 'scripts/check-package-boundary.sh'
       - 'scripts/check-textkit2.sh'
       - 'scripts/check-layout-convergence.sh'
@@ -37,7 +37,7 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - 'Scrivi/**'
+      - 'Inkwyn/**'
       - 'scripts/check-package-boundary.sh'
       - 'scripts/check-textkit2.sh'
       - 'scripts/check-layout-convergence.sh'

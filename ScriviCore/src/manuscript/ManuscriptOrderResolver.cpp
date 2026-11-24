@@ -5,6 +5,7 @@
 #include "schemas/ChapterMetaJson.hpp"
 #include "schemas/ManuscriptMetaJson.hpp"
 #include "schemas/SceneMetaJson.hpp"
+#include "util/Json.hpp"
 #include "util/PathUtils.hpp"
 
 namespace scrivi::manuscript {
@@ -38,7 +39,7 @@ Result<std::vector<ResolvedScene>> ManuscriptOrderResolver::resolve(
 }
 
         auto chParsed = schemas::parseChapterMeta(chTextR.value());
-        if (!chParsed.ok()) { return Result<std::vector<ResolvedScene>>::failure(chParsed.error());
+        if (!chParsed.ok()) { return Result<std::vector<ResolvedScene>>::failure(util::inFile(chParsed.error(), chPath));
 }
 
         // EP-027 §8.1: scene order within the chapter is FILESYSTEM-AUTHORITATIVE — the
@@ -49,12 +50,13 @@ Result<std::vector<ResolvedScene>> ManuscriptOrderResolver::resolve(
         const std::string chDir = chapterDirOf(chapterRelPath);
 
         for (auto& sceneEntry : scenesR.value()) {
-            auto sTextR = fs.readTextFile(util::join(projectRoot, sceneEntry.metadataRelPath));
+            const auto sPath = util::join(projectRoot, sceneEntry.metadataRelPath);
+            auto sTextR = fs.readTextFile(sPath);
             if (!sTextR.ok()) { return Result<std::vector<ResolvedScene>>::failure(sTextR.error());
 }
 
             auto sParsed = schemas::parseSceneMeta(sTextR.value());
-            if (!sParsed.ok()) { return Result<std::vector<ResolvedScene>>::failure(sParsed.error());
+            if (!sParsed.ok()) { return Result<std::vector<ResolvedScene>>::failure(util::inFile(sParsed.error(), sPath));
 }
 
             ResolvedScene rs;
@@ -100,16 +102,17 @@ Result<ResolvedScene> ManuscriptOrderResolver::findScene(
             // ✅ ONLY NOW do we pay for the chapter + scene sidecar parse -- once,
             // for the scene actually asked for, instead of once per scene in the
             // manuscript.
-            auto chTextR = fs.readTextFile(util::join(projectRoot, chapterRelPath));
+            const auto chPath = util::join(projectRoot, chapterRelPath);
+            auto chTextR = fs.readTextFile(chPath);
             if (!chTextR.ok()) { return Result<ResolvedScene>::failure(chTextR.error()); }
             auto chParsed = schemas::parseChapterMeta(chTextR.value());
-            if (!chParsed.ok()) { return Result<ResolvedScene>::failure(chParsed.error()); }
+            if (!chParsed.ok()) { return Result<ResolvedScene>::failure(util::inFile(chParsed.error(), chPath)); }
 
-            auto sTextR = fs.readTextFile(
-                util::join(projectRoot, sceneEntry.metadataRelPath));
+            const auto sPath = util::join(projectRoot, sceneEntry.metadataRelPath);
+            auto sTextR = fs.readTextFile(sPath);
             if (!sTextR.ok()) { return Result<ResolvedScene>::failure(sTextR.error()); }
             auto sParsed = schemas::parseSceneMeta(sTextR.value());
-            if (!sParsed.ok()) { return Result<ResolvedScene>::failure(sParsed.error()); }
+            if (!sParsed.ok()) { return Result<ResolvedScene>::failure(util::inFile(sParsed.error(), sPath)); }
 
             ResolvedScene rs;
             rs.sceneID             = sParsed.value().sceneID;
