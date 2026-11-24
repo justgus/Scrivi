@@ -1,5 +1,7 @@
 # Active Sprints
 
+*Last Updated: 2026-11-23 (**SP-240 → ✅ CLOSED** (user, 2026-11-23: *"Step 2 passes now, close SP-240"*) → `Closed/Sprint-SP-240.md`; T-0703 and I-0372 ✅ Verified, archived. No Sprint is active.)*
+
 *Last Updated: 2026-11-23 (**SP-240 → 🟡 ACTIVE** (user, 2026-11-23: *"Q1-Q4 as recommended.  Implement SP-240"*) → [`Sprint-SP-240.md`](Sprint-SP-240.md); built — AC1–AC2 met; ⏳ AC4 live pass.)*
 
 *Last Updated: 2026-11-23 (**SP-239 → ✅ CLOSED** (user, 2026-11-23: *"you may close SP-239"*) → `Closed/Sprint-SP-239.md`; T-0702 ✅ Verified, I-0371 ✅ Verified, archived. SP-240 unblocked. No Sprint is active.)*

@@ -1,5 +1,9 @@
 # Active Issues
 
+*Last Updated: 2026-11-23 — **I-0372 → ✅ Verified** (user, 2026-11-23: *"Step 2 passes now"*) and archived → `Verified/Issue-verified-0371-0380.md` with [SP-240]'s close.*
+
+*Last Updated: 2026-11-23 — **I-0372 filed → 🟠 Resolved - Not Verified** (found in [SP-240]'s Mac live pass, step 6).*
+
 *Last Updated: 2026-11-23 — **I-0371 archived** → `Verified/Issue-verified-0371-0380.md` with [SP-239]'s close (user, 2026-11-23: *"you may close SP-239"*).*
 
 *Last Updated: 2026-11-23 — **I-0371 → ✅ Verified** (user, 2026-11-23: *"Step 2 passes now, all four buttons show."*); archived when [SP-239] closes.*

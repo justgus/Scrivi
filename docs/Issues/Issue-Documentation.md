@@ -118,7 +118,7 @@ never used). **This is not a filing defect** — do not re-open it as one.
 | 35 | I-0341 – I-0350 | [`Issue-verified-0341-0350.md`](Verified/Issue-verified-0341-0350.md) | 8 |
 | 36 | I-0351 – I-0360 | [`Issue-verified-0351-0360.md`](Verified/Issue-verified-0351-0360.md) | 2 |
 | 37 | I-0361 – I-0370 | [`Issue-verified-0361-0370.md`](Verified/Issue-verified-0361-0370.md) | 4 |
-| 38 | I-0371 – I-0380 | [`Issue-verified-0371-0380.md`](Verified/Issue-verified-0371-0380.md) | 1 |
+| 38 | I-0371 – I-0380 | [`Issue-verified-0371-0380.md`](Verified/Issue-verified-0371-0380.md) | 2 |
 
 ⚠️ **Rows 15 onward added 2026-09-30 ([SP-148] Audit Check A6)** — the table had stopped at batch 14. ✅ Each count is re-derived from the file (distinct IDs in its table rows ∪ `## I-0` sections), ⛔ never copied.
 
@@ -175,6 +175,8 @@ stands as a marker.**
 | [`Issue-closed-0312.md`](Closed/Issue-closed-0312.md) | I-0312 — ⚪ **OBE** (`keyBetween` vs legacy undotted keys; no project uses that scheme; closed 2026-10-24) |
 
 ---
+
+*Last Updated: 2026-11-23 — **I-0372 archived**; batch 38 1 → 2.*
 
 *Last Updated: 2026-11-23 — **I-0371 archived**; batch 38 (`0371-0380`) opened.*
 

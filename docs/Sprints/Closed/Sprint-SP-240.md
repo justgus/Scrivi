@@ -1,9 +1,9 @@
 # Sprint SP-240 — `[Linux]` [EP-059] A9: Delete and Change Kind for objects on Linux, as the Mac's
 
-**Status:** 🟡 **ACTIVE** 2026-11-23 (user, 2026-11-23: *"Q1-Q4 as recommended.  Implement SP-240"*); ✅ Q1–Q4 as recommended. Built 2026-11-23: AC1–AC2 met; AC3 green locally (CI on the push). ⏳ AC4 live pass. Created 2026-11-23 (user, 2026-11-23: *"plan A8"*). ✅ **Unblocked 2026-11-23** ([SP-239] closed); was blocked by it (the Mac's shape, which
+**Status:** ✅ **CLOSED** 2026-11-23 (user, 2026-11-23: *"Step 2 passes now, close SP-240"*). Was 🟡 **ACTIVE** 2026-11-23 (user, 2026-11-23: *"Q1-Q4 as recommended.  Implement SP-240"*); ✅ Q1–Q4 as recommended. Built 2026-11-23: AC1–AC2 met; AC3 green locally (CI on the push). ⏳ AC4 live pass. Created 2026-11-23 (user, 2026-11-23: *"plan A8"*). ✅ **Unblocked 2026-11-23** ([SP-239] closed); was blocked by it (the Mac's shape, which
 this one adopts, and its core guard).
 **Carries:** [T-0703] (A9).
-**Epic:** [EP-059] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md) — part **A**: A9.
+**Epic:** [EP-059] → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md) — part **A**: A9.
 **Size:** S — both endpoints are bridged (`ScriviBridge::deleteObject`, `ScriviBridge::promoteObject`); one menu and one confirmation in
 `ObjectDetailDialog`, in the shape [SP-239] sets.
 
@@ -81,11 +81,22 @@ On `/mnt/scrivi-net/projects/the-river-of-time.inkwyn` (world Eskandar).
 
 - [x] AC1 — Linux's detail window deletes and changes the kind of objects as the Mac's (Q1, Q2, Q4).
 - [x] AC2 — After either, Back never reaches the object under a stale kind or after its deletion, on Linux and the Mac (Q3).
-- [~] AC3 — A smoke through a real project window; ctest and every smoke green in Docker; the Mac's interop tests; CI green. ✅ ctest 887/887 (Docker, non-root), smokes 49/49, interop 355/355, iOS 38/38; ⏳ CI on the push.
-- [ ] AC4 — Live pass on the Linux VM, on an existing project there; the Mac step for Q3.
+- [x] AC3 — A smoke through a real project window; ctest and every smoke green in Docker; the Mac's interop tests; CI green. ✅ ctest 887/887 (Docker, non-root), smokes 49/49, interop 355/355, iOS 38/38; CI: on the push (Claude reads it after the user pushes).
+- [x] AC4 — Live pass on the Linux VM, on an existing project there; the Mac step for Q3. ✅ all steps pass on the VM and the Mac (user, 2026-11-23: *"All steps pass on the Linux VM and the Mac."*); ✅ [I-0372] re-passed (user, 2026-11-23: *"Step 2 passes now, close SP-240"*).
+
+## Retrospective
+
+- The Q3 finding (the same object twice in the trail) came from reading the code at planning, not from a failure; the user's own
+  attempt to trip it (L → test key loaded twice, the second deleted) passed.
+- The live pass found [I-0372]: a pushed level of the Mac's sheet had no bar at all — no Save, no Close — probably since T-0547
+  (2026-09-23). Two Sprints in a row the Mac sheet's bar was the finding ([I-0371], [I-0372]): toolbar placement on a sheet is only
+  proved on screen.
+- Live-pass steps must fit one screen (the user loses ~8 lines per scroll): steps alone, nothing around them.
 
 ## Progress log
 
+- **2026-11-23** — ✅ **CLOSED** (user, 2026-11-23: *"Step 2 passes now, close SP-240"*). T-0703 and I-0372 archived. EP-059 A9 [x].
+- **2026-11-23** — Live pass: all steps pass on the Linux VM and the Mac; T-0703 → ✅ Verified. Mac step 6: no bottom bar on objects opened from the sheet → [I-0372], fixed (the toolbar on every level); ⏳ its re-pass.
 - **2026-11-23** — Built: AC1, AC2 met; AC3 smokes, interop and iOS green; T-0703 → 🟠. ctest 887/887 in Docker. ⏳ CI, AC4 live pass.
 - **2026-11-23** — 🟡 **ACTIVE** (user, 2026-11-23: *"Q1-Q4 as recommended.  Implement SP-240"*); Q1–Q4 as recommended; T-0703 → active.
 - **2026-11-23** — Planned (user, 2026-11-23: *"Next is SP-230 planning"* — SP-230 is closed; read as SP-240): findings 1–5, Q1–Q4 to rule.

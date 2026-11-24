@@ -214,6 +214,7 @@ struct ObjectDetailSheet: View {
                     // trail currently names, and neither owns state.
                     editorSurface
                         .navigationTitle(entry.displayName)
+                        .toolbar { detailToolbar }   // [I-0372]: toolbar items are per VIEW — a pushed level has none of the root's
                 }
                 .toolbar { detailToolbar }
         }
