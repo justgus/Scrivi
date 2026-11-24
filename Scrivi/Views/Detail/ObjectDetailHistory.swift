@@ -76,6 +76,13 @@ final class ObjectDetailHistory {
         current = entry
     }
 
+    /// [SP-240] Q3: `trail` with every entry of `objectID` removed, and the neighbours that leaves side by side merged.
+    static func trail(_ trail: [Entry], without objectID: String) -> [Entry] {
+        trail.filter { $0.objectID != objectID }.reduce(into: []) { kept, e in
+            if kept.last?.objectID != e.objectID { kept.append(e) }
+        }
+    }
+
     /// Clears the handoff when the sheet closes, so reopening starts fresh rather than
     /// resuming a trail the writer has left behind.
     func reset() {

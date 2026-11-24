@@ -803,6 +803,17 @@ struct ScriviInteropTests {
             #expect(h.current?.objectID == "Brother Colm")
         }
 
+        @Test("[SP-240] Q3: a deleted object leaves the trail at every depth, and its neighbours merge")
+        func trailWithoutDeleted() {
+            let ids = { (t: [ObjectDetailHistory.Entry]) in t.map(\.objectID) }
+            // Key → Cara → Key: deleting Key leaves Cara alone, with nothing to go back to.
+            #expect(ids(ObjectDetailHistory.trail([entry("Key"), entry("Cara"), entry("Key")], without: "Key")) == ["Cara"])
+            // Cara → Key → Cara → Key: the two Caras it leaves side by side are one level.
+            #expect(ids(ObjectDetailHistory.trail([entry("Cara"), entry("Key"), entry("Cara"), entry("Key")], without: "Key")) == ["Cara"])
+            #expect(ObjectDetailHistory.trail([entry("Key")], without: "Key").isEmpty)
+            #expect(ids(ObjectDetailHistory.trail([entry("Abel"), entry("Key")], without: "Key")) == ["Abel"])
+        }
+
         @Test("reset clears the handoff so the next open starts fresh")
         func resetClears() {
             // ⚠️ [I-0168]'s guarded re-entry depends on this: the host calls `reset()`

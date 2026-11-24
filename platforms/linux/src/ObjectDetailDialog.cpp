@@ -270,6 +270,17 @@ ObjectDetailDialog::ObjectDetailDialog(ScriviBridge* bridge, const QString& proj
                                    tr("Undo Changes"));
     revertAction_->setObjectName(QStringLiteral("detailRevert"));
     revertAction_->setToolTip(tr("Undo Changes — discard your edits and return to the saved version"));
+    // A9: ⋯ after Undo Changes, before Close — the Mac's order ([I-0371]). Filled as it opens, so it always reads the state.
+    more_ = new QToolButton(bar);
+    more_->setObjectName(QStringLiteral("detailMore"));
+    more_->setText(QStringLiteral("⋯"));   // shown when the theme has no `view-more` (Qt has no standard "more" icon)
+    more_->setIcon(QIcon::fromTheme(QStringLiteral("view-more")));
+    more_->setToolTip(tr("More"));
+    more_->setPopupMode(QToolButton::InstantPopup);
+    more_->setMenu(new QMenu(more_));
+    more_->menu()->setObjectName(QStringLiteral("detailMoreMenu"));
+    connect(more_->menu(), &QMenu::aboutToShow, this, &ObjectDetailDialog::fillMoreMenu);
+    bar->addWidget(more_);
     closeAction_ = bar->addAction(QIcon::fromTheme(QStringLiteral("window-close"),
                                                    style()->standardIcon(QStyle::SP_DialogCloseButton)),
                                   tr("Close"));
@@ -741,6 +752,7 @@ void ObjectDetailDialog::refreshState()
 
     saveAction_->setEnabled(!saving_ && changed && !readOnly);
     revertAction_->setEnabled(!saving_ && changed);
+    more_->setEnabled(hasDetail_ && !saving_ && !readOnly);   // greyed while the world is away (the Mac's rule)
 
     // The image (Apple: `ObjectImageSection`).
     const bool hasImage = !detail_.imageAssetID.isEmpty();
@@ -1206,6 +1218,155 @@ void ObjectDetailDialog::removeImage()
         removeAssetIfUnshared(b, root, assetID, assetPath, entry.objectID, entry.worldID, projectID);
         return {};
     });
+}
+
+// ── A9: delete and change of kind, as the Mac's ([SP-239]) ─────────────────────────────────────────────────────
+
+namespace {
+QString otherKind(const QString& kind)
+{
+    if (kind == QLatin1String("item")) { return QStringLiteral("artifact"); }
+    if (kind == QLatin1String("artifact")) { return QStringLiteral("item"); }
+    return {};
+}
+
+QString capitalized(const QString& s) { return s.left(1).toUpper() + s.mid(1); }
+}   // namespace
+
+void ObjectDetailDialog::fillMoreMenu()
+{
+    QMenu* menu = more_->menu();
+    menu->clear();
+    if (const QString target = otherKind(entry_.kind); !target.isEmpty()) {
+        if (hasChanges()) { menu->addSection(tr("Save your changes first")); }
+        QAction* change = menu->addAction(tr("Change to %1").arg(capitalized(target)));
+        change->setObjectName(QStringLiteral("detailChangeKind"));
+        change->setEnabled(!hasChanges());   // an edit is never saved under the old kind
+        connect(change, &QAction::triggered, this, [this, target] { changeKind(target); });
+        if (hasChanges()) { menu->addSeparator(); }
+    }
+    QAction* del = menu->addAction(tr("Delete %1…").arg(capitalized(entry_.kind.isEmpty() ? QStringLiteral("object")
+                                                                                          : entry_.kind)));
+    del->setObjectName(QStringLiteral("detailDelete"));
+    connect(del, &QAction::triggered, this, &ObjectDetailDialog::confirmDelete);
+}
+
+void ObjectDetailDialog::confirmDelete()
+{
+    if (!hasDetail_ || saving_ || isReadOnly()) { return; }
+    const QString name = detail_.displayName;
+    const QString unsaved = hasChanges() ? tr(" Your unsaved changes are discarded.") : QString();
+    const QString world = worldName();
+    auto* box = new QMessageBox(this);
+    box->setObjectName(QStringLiteral("deletePrompt"));
+    box->setAttribute(Qt::WA_DeleteOnClose);
+    box->setIcon(QMessageBox::Warning);
+    box->setWindowTitle(tr("Delete “%1”?").arg(name));
+    box->setText(tr("Delete “%1”?").arg(name));
+    box->setInformativeText(
+        entry_.worldID.isEmpty()
+            ? tr("“%1” will be removed from this project, with its citations and relationships. This can't be undone.%2")
+                  .arg(name, unsaved)
+            : tr("“%1” will be removed from the world “%2” and from every project that uses it, with its relationships "
+                 "in this project. This can't be undone.%3")
+                  .arg(name, world.isEmpty() ? entry_.worldID : world, unsaved));
+    QPushButton* del = box->addButton(tr("Delete"), QMessageBox::DestructiveRole);
+    QPushButton* cancel = box->addButton(tr("Cancel"), QMessageBox::RejectRole);
+    box->setDefaultButton(cancel);
+    box->setEscapeButton(cancel);
+    connect(box, &QMessageBox::finished, this, [this, box, del] {
+        if (box->clickedButton() == del) { deleteCurrent(); }
+    });
+    box->open();
+}
+
+void ObjectDetailDialog::runObjectWrite(std::function<QString(ScriviBridge&)> work, std::function<void()> done)
+{
+    if (bridge_ == nullptr || saving_) { return; }
+    saving_ = true;   // Save, Back and ⋯ grey while it runs
+    saveError_->hide();
+    refreshState();
+    const WorkerBridge::Handle handle = WorkerBridge::handleFor(bridge_);
+    AsyncCall::run<Write>(
+        this,
+        [handle, work]() -> Write {
+            WorkerBridge bridge(handle);
+            Write w;
+            QObject::connect(&*bridge, &ScriviBridge::errorOccurred, [&w](int, const QString& m) {
+                if (isWorldAwayMessage(m)) { w.worldAway = true; }
+            });
+            w.error = work(*bridge);
+            return w;
+        },
+        [this, done](const Write& w) {
+            saving_ = false;
+            if (!w.error.isEmpty()) {
+                if (w.worldAway) { awayLatched_ = true; }
+                saveError_->setText(w.worldAway ? readOnlyBanner() : w.error);
+                saveError_->show();
+                refreshState();
+                return;
+            }
+            done();
+        },
+        [this] {
+            saving_ = false;
+            saveError_->setText(tr("This is taking longer than expected — the project may be on a slow or unreachable "
+                                   "volume."));
+            saveError_->show();
+            refreshState();
+        },
+        AsyncCall::kProjectOpenTimeoutMs);
+}
+
+void ObjectDetailDialog::deleteCurrent()
+{
+    if (!hasDetail_ || isReadOnly()) { return; }
+    const QString root = root_;
+    const Entry entry = entry_;
+    const QString name = detail_.displayName;
+    runObjectWrite(
+        [root, entry, name](ScriviBridge& b) -> QString {
+            b.deleteObject(root, entry.kind, entry.objectID, entry.worldID);
+            return b.lastCallFailed() ? QObject::tr("“%1” could not be deleted.").arg(name) : QString();
+        },
+        [this, entry] {
+            emit saved();   // the Inspector's cards drop it
+            // [SP-240] Q3: Back must never reach the deleted object — it can be deeper in the trail (A → B → A).
+            QList<Entry> kept;
+            for (const Entry& e : std::as_const(back_)) {
+                if (e.objectID != entry.objectID && (kept.isEmpty() || kept.last().objectID != e.objectID)) { kept << e; }
+            }
+            back_ = kept;
+            if (back_.isEmpty()) {
+                finishClose();
+                return;
+            }
+            showEntry(back_.takeLast());
+        });
+}
+
+void ObjectDetailDialog::changeKind(const QString& target)
+{
+    if (!hasDetail_ || isReadOnly() || hasChanges()) { return; }
+    const QString root = root_;
+    const Entry entry = entry_;
+    runObjectWrite(
+        [root, entry, target](ScriviBridge& b) -> QString {
+            b.promoteObject(root, entry.objectID, target, entry.worldID);
+            return b.lastCallFailed() ? QObject::tr("This object could not be changed to %1.").arg(target) : QString();
+        },
+        [this, entry, target] {
+            // [SP-240] Q3: every entry of it in the trail takes the new kind, so Back never opens it under the old one.
+            for (Entry& e : back_) {
+                if (e.objectID == entry.objectID) { e.kind = target; }
+            }
+            Entry now = entry_;
+            now.kind = target;
+            if (hasDetail_ && !detail_.displayName.isEmpty()) { now.displayName = detail_.displayName; }
+            emit saved();   // it moves from one card to the other
+            showEntry(now);
+        });
 }
 
 // ── C3: navigation inside the window ───────────────────────────────────────────────────────────────────────────

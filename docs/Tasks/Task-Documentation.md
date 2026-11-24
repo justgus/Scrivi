@@ -843,7 +843,7 @@ archive files reconstructed after the fact from secondary sources.
 | T-0700 | `[Apple]` EP-059 C5/C6: custom relationship types on the Mac and iOS; the upsert endpoint's C ABI test and fixes | ✅ SP-237 | **EP-059** | ✅ Verified 2026-11-23 | [`Verified/Task-verified-0700.md`](Verified/Task-verified-0700.md) |
 | T-0701 | `[Cross]` Delete a relationship type no edge uses | — | — | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
 | T-0702 | `[Apple]` EP-059 A8: Delete and Change Kind for objects on the Mac and iOS | ✅ SP-239 | **EP-059** | ✅ Verified 2026-11-23 | [`Verified/Task-verified-0702.md`](Verified/Task-verified-0702.md) |
-| T-0703 | `[Linux]` EP-059 A9: Delete and Change Kind for objects on Linux, as the Mac's | 🔵 SP-240 | **EP-059** | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
+| T-0703 | `[Linux]` EP-059 A9: Delete and Change Kind for objects on Linux, as the Mac's | 🟡 SP-240 | **EP-059** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
 | T-0685 | `[Apple]` EP-055 S3a: undo/redo, structural edits, cross-scene clipboard on iOS | ✅ SP-222 | **EP-055** | ✅ Verified | [`Verified/Task-verified-0685.md`](Verified/Task-verified-0685.md) |
 | T-0690 | `[Apple]` EP-055 S8: TestFlight for iPad, iPhone and the Mac | 🔵 SP-228 | **EP-055** | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
 | T-0689 | `[Apple]` EP-055 S7: the whole app at iPhone width | ✅ SP-227 | **EP-055** | ✅ Verified | [`Verified/Task-verified-0689.md`](Verified/Task-verified-0689.md) |
@@ -894,6 +894,8 @@ archive files reconstructed after the fact from secondary sources.
 ⚠️ **This index ended at `T-0485 (next available)` until 2026-09-10 — ✅ that was STALE.** ⚠️ **T-0485–T-0498 had all been taken**, and T-0485–T-0490/T-0492–T-0496 are archived as Verified. ⚠️ **Rows for T-0486–T-0497 are NOT reconstructed here** — ✅ **their Sprints' closed records are authoritative** (`feedback_archive_on_close`).
 
 ---
+
+*Last Updated: 2026-11-23 (**T-0703 → 🟠** ([SP-240] built).)*
 
 *Last Updated: 2026-11-23 (**T-0702 → ✅ Verified**, archived ([SP-239] closed).)*
 

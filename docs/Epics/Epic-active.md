@@ -1,5 +1,7 @@
 # Active Epics
 
+*Last Updated: 2026-11-23 (**EP-059:** [SP-240] 🟡 ACTIVE (user, 2026-11-23: *"Q1-Q4 as recommended.  Implement SP-240"*), built (A9 + the trail on the Mac); ⏳ its live pass.)*
+
 *Last Updated: 2026-11-23 (**EP-059:** [SP-239] ✅ closed (user, 2026-11-23: *"you may close SP-239"*); A8 [x]; A9 = [SP-240], unblocked.)*
 
 *Last Updated: 2026-11-23 (**EP-059:** [SP-239] 🟡 ACTIVE (user, 2026-11-23: *"Q1-Q5 as recommended, implement SP-239"*), built (A8); ⏳ its live pass.)*
@@ -199,7 +201,7 @@
 
 ## EP-059: `[Linux]` **Linux catches up with the Mac** — every capability gap, one Epic
 
-**Status:** 🟡 **ACTIVE** 2026-11-20 (user, 2026-11-20: *"Nope.  Can't archive yet.  We need to do the Linux gap epic first."*); part E = [SP-230] ✅ closed 2026-11-21; part D = [SP-231] ✅ closed 2026-11-21; part F (toolbar) = [SP-232] ✅ closed 2026-11-21; part A's first Sprint = [SP-233] ✅ closed 2026-11-22; its second = [SP-234] ✅ closed 2026-11-22; part B (B1–B4) = [SP-235] ✅ closed 2026-11-22; part C (C1–C4) = [SP-236] ✅ closed 2026-11-22; C5/C6 = [SP-237] (`[Apple]`) ✅ closed 2026-11-23 and [SP-238] (Linux) ✅ closed 2026-11-23; A8 = [SP-239] (`[Apple]`) ✅ closed 2026-11-23; A9 = [SP-240] (Linux), 🔵 Planning, unblocked. Created 2026-11-20 (user, 2026-11-20: *"yes, file G1–G9 as an Epic (include everything here, so it is all tracked at once."*). ✅ It **supersedes [EP-035], [EP-036] and [EP-037]**
+**Status:** 🟡 **ACTIVE** 2026-11-20 (user, 2026-11-20: *"Nope.  Can't archive yet.  We need to do the Linux gap epic first."*); part E = [SP-230] ✅ closed 2026-11-21; part D = [SP-231] ✅ closed 2026-11-21; part F (toolbar) = [SP-232] ✅ closed 2026-11-21; part A's first Sprint = [SP-233] ✅ closed 2026-11-22; its second = [SP-234] ✅ closed 2026-11-22; part B (B1–B4) = [SP-235] ✅ closed 2026-11-22; part C (C1–C4) = [SP-236] ✅ closed 2026-11-22; C5/C6 = [SP-237] (`[Apple]`) ✅ closed 2026-11-23 and [SP-238] (Linux) ✅ closed 2026-11-23; A8 = [SP-239] (`[Apple]`) ✅ closed 2026-11-23; A9 = [SP-240] (Linux) 🟡 Active, built. Created 2026-11-20 (user, 2026-11-20: *"yes, file G1–G9 as an Epic (include everything here, so it is all tracked at once."*). ✅ It **supersedes [EP-035], [EP-036] and [EP-037]**
 (user, 2026-11-20: *"One Epic for all"*), which are closed into it: their ACs are carried below by reference, verified ones kept.
 **Source:** [`../Scrivi_Linux_Capability_Gap_Review_v0_1.md`](../Scrivi_Linux_Capability_Gap_Review_v0_1.md) (G1–G9, read from the code
 2026-11-20). The core is at parity; every gap is a Linux surface.
@@ -224,7 +226,7 @@ on the Mac.
 - [x] **A8** `[Apple]` — Delete Object and Promote on the Mac and iOS, which have neither today (the core has both). New 2026-11-21
       (user, 2026-11-21: *"Build them on Linux and Mac and iOS (will require two Sprints.  One for Linux and one for MacOS/iOS).  The
       Linux sprint should block on the MacOS/iOS sprint's completion."*) — [T-0702] → [SP-239] ✅
-- [ ] **A9** — Delete Object and Promote on Linux, in the shape A8 sets. ✅ Unblocked ([SP-239] closed). [T-0703] → [SP-240] (Planning)
+- [ ] **A9** — Delete Object and Promote on Linux, in the shape A8 sets. ✅ Unblocked ([SP-239] closed). [T-0703] → [SP-240] (🟡 Active)
 
 *B. The detail sheet and media — from [EP-036] ([`Closed/Epic-EP-036.md`](Closed/Epic-EP-036.md)):*
 - [x] **B1** (EP-036 AC1; **G1**, [T-0697] → [SP-235]) — the object detail view, in place of today's "not built yet" message (`EditorShell.cpp:4503`):

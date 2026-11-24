@@ -1186,10 +1186,13 @@ struct ObjectDetailSheet: View {
         }
         self.detail = nil   // nothing left to save: no prompt on the way out
         onDidSave()         // the inspector's cards drop it
-        if path.isEmpty {
+        // [SP-240] Q3: Back must never reach it — it can be deeper in the trail too (A → B → A).
+        let kept = ObjectDetailHistory.trail(trail, without: detail.objectID)
+        if kept.isEmpty {
             onClose()
         } else {
-            path.removeLast()   // Back: `sheetObservers` trims the trail and loads the previous object
+            trail = kept                          // `currentEntry` changes: load()
+            path = NavigationPath(kept.dropFirst())
         }
     }
 
@@ -1199,8 +1202,12 @@ struct ObjectDetailSheet: View {
             let moved = try engine.promoteObject(projectRootPath: projectRootPath, objectID: detail.objectID,
                                                  targetKind: target, worldID: detail.worldID)
             self.detail = nil   // adopt the object under its new kind wholesale
-            trail[trail.count - 1] = .init(objectID: entry.objectID, kind: moved.kind, worldID: moved.worldID,
-                                           displayName: entry.displayName)   // `currentEntry` changes: load()
+            // [SP-240] Q3: every entry of it takes the new kind, so Back never opens it under the old one.
+            trail = trail.map {
+                $0.objectID == entry.objectID
+                    ? .init(objectID: $0.objectID, kind: moved.kind, worldID: moved.worldID, displayName: $0.displayName)
+                    : $0
+            }   // `currentEntry` changes: load()
             if trail.count == 1 { history.visit(trail[0]) }
             onDidSave()         // it moves from one card to the other
         } catch {

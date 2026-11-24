@@ -25,6 +25,7 @@
 //       offers the project's sources (one already cited disabled); Remove Citation; a source opens in place;
 //   §11 C4: the scene's Sources card lists the sources its objects cite, "via" them;
 //   §12 read-only: Relate…, Cite… and New Source… are off while the object's world is away.
+//   §13 [SP-240] A9: ⋯ ▸ Change to Artifact / Item (greyed while unsaved) and Delete <Kind>…; the trail after each (Q3).
 //
 //   argv[1] = a scratch directory; $XDG_DATA_HOME drives appSupportRoot; Qt offscreen.
 
@@ -777,8 +778,9 @@ int main(int argc, char** argv)
     check(waitFor([&] { return part<QLabel>(d, "detailReadOnly")->isVisible(); }), QStringLiteral("§12 read-only"));
     check(!part<QPushButton>(d, "detailRelate")->isEnabled() && !part<QPushButton>(d, "detailCite")->isEnabled()
               && !part<QPushButton>(d, "detailNewSource")->isEnabled()
+              && !part<QToolButton>(d, "detailMore")->isEnabled()
               && part<QPushButton>(d, "detailRelate")->toolTip().contains(QStringLiteral("frozen")),
-          QStringLiteral("§12 Relate…, Cite… and New Source… are off, with the reason"));
+          QStringLiteral("§12 Relate…, Cite…, New Source… and ⋯ are off, with the reason"));
     QDir().rename(worldPath + QStringLiteral(".away"), worldPath);
     w->editorShell()->refreshWorlds();
     check(waitFor([&] { return !part<QLabel>(d, "detailReadOnly")->isVisible(); }), QStringLiteral("§12 the world is back"));
@@ -805,6 +807,71 @@ int main(int argc, char** argv)
     check(showing(QStringLiteral("Histories")), QStringLiteral("§11 a double-click opens the source's detail"));
     if (d != nullptr) { action(d, "detailClose")->trigger(); }
     check(closed(), QStringLiteral("§11 closes"));
+
+    // ── §13 [SP-240] A9: ⋯ ▸ Change to Artifact / Item, Delete <Kind>… — the Mac's ([SP-239]) ───────────────────
+    const QString keyID = bridge.createObject(dir, QStringLiteral("item"), QStringLiteral("Key"), QString(), worldID)
+                              .value(QStringLiteral("objectID")).toString();
+    bridge.createEdge(dir, keyID, sceneA, general, QString());
+    auto keyEdges = [&] { return bridge.listEdgesFor(dir, keyID).value(QStringLiteral("edges")).toList().size(); };
+    check(!keyID.isEmpty() && keyEdges() == 1, QStringLiteral("§13 fixture: an item Key, in the scene"));
+    auto moreItems = [&] {
+        QMenu* m = part<QToolButton>(d, "detailMore")->menu();
+        emit m->aboutToShow();
+        QStringList texts;
+        for (QAction* a : m->actions()) { texts << (a->isSeparator() ? (a->text().isEmpty() ? QStringLiteral("|") : "[" + a->text() + "]") : a->text()); }
+        return texts;
+    };
+    openObject(QStringLiteral("item"), keyID, worldID, QStringLiteral("Key"));
+    check(showing(QStringLiteral("Key")), QStringLiteral("§13 Key opens"));
+    check(part<QToolButton>(d, "detailMore")->isEnabled()
+              && moreItems() == QStringList({QStringLiteral("Change to Artifact"), QStringLiteral("Delete Item…")}),
+          QStringLiteral("§13 ⋯ holds Change to Artifact and Delete Item…: %1").arg(moreItems().join(", ")));
+    part<QPlainTextEdit>(d, "detailNotes")->setPlainText(QStringLiteral("x"));
+    check(moreItems().contains(QStringLiteral("[Save your changes first]")) && !action(d, "detailChangeKind")->isEnabled(),
+          QStringLiteral("§13 unsaved: Change to Artifact greyed under “Save your changes first”"));
+    action(d, "detailRevert")->trigger();
+    // Q3: Key → Cara → Key, so Key is in the trail twice.
+    d->navigateTo({QStringLiteral("character"), caraID, worldID, QStringLiteral("Cara"), false});
+    check(showing(QStringLiteral("Cara")), QStringLiteral("§13 Cara"));
+    check(moreItems() == QStringList{QStringLiteral("Delete Character…")}, QStringLiteral("§13 a character: only Delete Character…"));
+    d->navigateTo({QStringLiteral("item"), keyID, worldID, QStringLiteral("Key"), false});
+    check(showing(QStringLiteral("Key")), QStringLiteral("§13 Key again"));
+    QSignalSpy savedSpy(d.data(), &ObjectDetailDialog::saved);
+    moreItems();
+    action(d, "detailChangeKind")->trigger();
+    check(waitFor([&] { return part<QLabel>(d, "detailMetadata")->text().startsWith(QStringLiteral("Artifact")); }),
+          QStringLiteral("§13 Change to Artifact: the view stays on Key, now an artifact"));
+    check(showing(QStringLiteral("Key")) && savedSpy.count() >= 1, QStringLiteral("§13 … the cards are told"));
+    check(!objectJson(bridge, dir, QStringLiteral("artifact"), keyID, worldID).isEmpty() && keyEdges() == 1,
+          QStringLiteral("§13 … on disk an artifact, its scene link kept"));
+    check(moreItems() == QStringList({QStringLiteral("Change to Item"), QStringLiteral("Delete Artifact…")}),
+          QStringLiteral("§13 ⋯ now holds Change to Item and Delete Artifact…"));
+    action(d, "detailBack")->trigger();
+    check(showing(QStringLiteral("Cara")), QStringLiteral("§13 Back to Cara"));
+    action(d, "detailBack")->trigger();
+    check(showing(QStringLiteral("Key")) && part<QLabel>(d, "detailMetadata")->text().startsWith(QStringLiteral("Artifact")),
+          QStringLiteral("§13 Q3: Back reaches the first Key under its NEW kind"));
+    d->navigateTo({QStringLiteral("character"), caraID, worldID, QStringLiteral("Cara"), false});
+    d->navigateTo({QStringLiteral("artifact"), keyID, worldID, QStringLiteral("Key"), false});
+    check(showing(QStringLiteral("Key")), QStringLiteral("§13 Key → Cara → Key again"));
+    moreItems();
+    action(d, "detailDelete")->trigger();
+    QMessageBox* del = d->findChild<QMessageBox*>(QStringLiteral("deletePrompt"));
+    check(del != nullptr && del->text() == QStringLiteral("Delete “Key”?")
+              && del->informativeText().contains(QStringLiteral("from the world “Westmarch” and from every project")),
+          QStringLiteral("§13 Delete asks, naming the world: %1").arg(del != nullptr ? del->informativeText() : QString()));
+    clickButton(del, QStringLiteral("Cancel"));
+    QTest::qWait(100);
+    check(!objectJson(bridge, dir, QStringLiteral("artifact"), keyID, worldID).isEmpty(), QStringLiteral("§13 Cancel deletes nothing"));
+    moreItems();
+    action(d, "detailDelete")->trigger();
+    clickButton(d->findChild<QMessageBox*>(QStringLiteral("deletePrompt")), QStringLiteral("Delete"));
+    check(showing(QStringLiteral("Cara")), QStringLiteral("§13 Delete goes Back to Cara"));
+    check(!action(d, "detailBack")->isVisible(), QStringLiteral("§13 Q3: … and the other Key left the trail too"));
+    check(objectJson(bridge, dir, QStringLiteral("artifact"), keyID, worldID).isEmpty() && keyEdges() == 0,
+          QStringLiteral("§13 … gone from disk, with its scene link"));
+    action(d, "detailClose")->trigger();
+    check(closed(), QStringLiteral("§13 closes"));
 
     if (failures == 0) { std::printf("object-detail-ok\n"); }
     return failures == 0 ? 0 : 1;

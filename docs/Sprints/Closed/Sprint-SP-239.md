@@ -104,7 +104,7 @@ On `dumas-prose-timelines-history` (iCloud Drive ▸ Scrivi ▸ projects ▸ Scr
 - [x] AC2 — Change to Artifact / Change to Item on items and artifacts only, keeping relationships; greyed while unsaved.
 - [x] AC3 — Both greyed while the object's world is away.
 - [x] AC4 — The core refuses a promote other than item ↔ artifact, tested through `scrivi_*`.
-- [x] AC5 — ctest, the interop tests and the iOS tests green; CI green. ✅ 882/882, 354/354, 38/38; CI: Apple and Linux green on `2aae842` and `5ac4e35`; ScriviCore's macOS sanitizers job was never given a runner on `2aae842` (no steps ran) — re-run requested at close, Claude checks it.
+- [x] AC5 — ctest, the interop tests and the iOS tests green; CI green. ✅ 882/882, 354/354, 38/38; CI: Apple and Linux green on `2aae842` and `5ac4e35`; ScriviCore's macOS sanitizers job was never given a runner on `2aae842` (no steps ran) — re-run at close: ✅ green (all four jobs, macOS sanitizers 6 min 29 s).
 - [x] AC6 — Live pass on the Mac and iOS. ✅ Mac, iPad and iPhone (user, 2026-11-23: *"Steps 3 through 11 also pass.  On all three platforms (mac, iPad, and iPhone)"*), after [I-0371].
 
 ## Retrospective

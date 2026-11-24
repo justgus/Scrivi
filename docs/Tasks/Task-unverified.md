@@ -1,5 +1,7 @@
 # Unverified Tasks
 
+*Last Updated: 2026-11-23 (**T-0703 → 🟠 Implemented - Not Verified** ([SP-240] built); the live pass is the user's.)*
+
 *Last Updated: 2026-11-23 (**T-0702 archived** → `Verified/Task-verified-0702.md` with [SP-239]'s close (user, 2026-11-23: *"you may close SP-239"*).)*
 
 *Last Updated: 2026-11-23 (**T-0702 → ✅ Verified** (user, 2026-11-23: *"Steps 3 through 11 also pass.  On all three platforms (mac, iPad, and iPhone)"*); archived when [SP-239] closes.)*
@@ -185,6 +187,20 @@ in the backlog carrying a 🟠 status.
 ---
 
 
+
+## 🟠 T-0703 — `[Linux]` EP-059 A9: Delete and Change Kind for objects on Linux, as the Mac's
+
+**Epic:** [EP-059] (A9) · **Status:** 🟠 Implemented - Not Verified · **Sprint:** [SP-240] (🟡 Active) →
+[`../Sprints/Sprint-SP-240.md`](../Sprints/Sprint-SP-240.md) · **Date Requested:** 2026-11-21 (user, 2026-11-21: *"Build them on Linux and Mac and iOS"*)
+
+**What:** the Mac's ⋯ menu ([SP-239]) in Linux's detail window — Change to Artifact / Item, Delete <Kind>… — and, on both platforms,
+a Back trail that never reaches a deleted object or one under its old kind (Q3).
+
+**Built:** `ObjectDetailDialog.cpp/.hpp` (⋯, the delete box, `deleteCurrent`/`changeKind` off the main thread, the trail);
+`ObjectDetailSheet.swift` + `ObjectDetailHistory.swift` (the Mac's trail, Q3); `object_detail_smoke.cpp` §13; an interop test.
+Details and the live pass: the Sprint.
+
+---
 
 ## 🟠 T-0656 — `[Linux]` Landing: a warm grey background with a little depth
 

@@ -1,5 +1,7 @@
 # Active Sprints
 
+*Last Updated: 2026-11-23 (**SP-240 → 🟡 ACTIVE** (user, 2026-11-23: *"Q1-Q4 as recommended.  Implement SP-240"*) → [`Sprint-SP-240.md`](Sprint-SP-240.md); built — AC1–AC2 met; ⏳ AC4 live pass.)*
+
 *Last Updated: 2026-11-23 (**SP-239 → ✅ CLOSED** (user, 2026-11-23: *"you may close SP-239"*) → `Closed/Sprint-SP-239.md`; T-0702 ✅ Verified, I-0371 ✅ Verified, archived. SP-240 unblocked. No Sprint is active.)*
 
 *Last Updated: 2026-11-23 (**SP-239 → 🟡 ACTIVE** (user, 2026-11-23: *"Q1-Q5 as recommended, implement SP-239"*) → [`Sprint-SP-239.md`](Sprint-SP-239.md); Q1–Q5 as recommended. Built — AC1–AC4 met, AC5 green locally (CI on the push); T-0702 → 🟠. ⏳ AC6 live pass.)*

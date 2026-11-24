@@ -26,6 +26,7 @@ class QListWidget;
 class QListWidgetItem;
 class QPlainTextEdit;
 class QPushButton;
+class QToolButton;
 class QStackedWidget;
 class QTimer;
 class QTreeWidget;
@@ -129,6 +130,14 @@ private:
     void removeImage();
     void finishClose();
 
+    // A8/A9 ([SP-240], the Mac's `moreMenu`): ⋯ ▸ Change to Artifact / Item, Delete <Kind>….
+    void fillMoreMenu();
+    void confirmDelete();
+    void deleteCurrent();
+    void changeKind(const QString& target);
+    // `work` returns an error or empty; `done` runs on success, on the main thread.
+    void runObjectWrite(std::function<QString(ScriviBridge&)> work, std::function<void()> done);
+
     // C1–C4.
     void showEntry(const Entry& entry);   // the trail moved: start over on `entry`
     void rebuildGraph();
@@ -207,4 +216,5 @@ private:
     QAction* saveAction_ = nullptr;
     QAction* revertAction_ = nullptr;
     QAction* closeAction_ = nullptr;
+    QToolButton* more_ = nullptr;
 };
