@@ -66,7 +66,7 @@ sum to.
 | ⚪ Descoped | 4 |
 | ⚪ Superseded | 3 |
 | ⚪ Closed | 2 |
-| ⛔️ Removed as OBE | 2 |
+| ⛔️ Removed as OBE | 3 |
 | ⚪ Never assigned | **2** — ⚠️ **corrected 2026-09-15, audit ruling [R-05]: was `1`.** ✅ **T-0278 AND T-0138; ⚠️ the file named only T-0278 while T-0138 was equally absent.** |
 | ⚪ Unassigned *(T-0426, next available)* | 1 |
 | ⛔ **REMOVED 2026-09-15** | **Audit rulings [R-03] / [R-11] / [R-15].** ⚠️ **This row claimed *"425 — T-0001 … T-0426"*; ✅ **the highest ID issued was T-0534.** ⚠️ **Per-status totals above are removed for the same reason.** ✅ **To count Tasks by status, read the layer files; ✅ to find the next ID, read `Sprint-active.md`.** ⛔ **Restated summaries drift — [R-15] applies the 2026-08-19 R-22(④) rule to ALL FOUR LAYERS.** |
@@ -809,7 +809,7 @@ archive files reconstructed after the fact from secondary sources.
 | T-0653 | `[Linux]` Rig pass: The history opens fast and reads back the same | — | **EP-057** | ✅ Verified 2026-11-02 | [`Task-verified-0653.md`](Verified/Task-verified-0653.md) |
 | T-0654 | `[Linux]` Rig pass: The Properties tab's metrics | — | **EP-057** | ✅ Verified 2026-11-02 | [`Task-verified-0654.md`](Verified/Task-verified-0654.md) |
 | T-0655 | `[Linux]` Rig pass: Replace All without holding the window | — | **EP-057** | ✅ Verified 2026-11-02 | [`Task-verified-0655.md`](Verified/Task-verified-0655.md) |
-| T-0656 | `[Linux]` Landing: a warm grey background with a little depth | — | — | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
+| T-0656 | `[Linux]` Landing: a warm grey background with a little depth | — | — | ✅ Verified 2026-11-24 | [`Verified/Task-verified-0656.md`](Verified/Task-verified-0656.md) |
 | T-0657 | `[Cross]` Navigator: collapsible chapters, the current one open, the writer's choices remembered per device | ✅ SP-226 | **EP-055** | ✅ Verified | [`Verified/Task-verified-0657.md`](Verified/Task-verified-0657.md) |
 | T-0658 | `[Linux]` EP-050 AC6: measure what Orca is given for the manuscript | ✅ **SP-202** | **EP-050** | ✅ Verified 2026-11-04 | [`Verified/Task-verified-0658.md`](Verified/Task-verified-0658.md) |
 | T-0659 | `[Linux]` EP-050 S4: Orca reads the manuscript as the page shows it | ✅ **SP-203** | **EP-050** | ✅ Verified 2026-11-04 | [`Verified/Task-verified-0659.md`](Verified/Task-verified-0659.md) |
@@ -830,7 +830,7 @@ archive files reconstructed after the fact from secondary sources.
 | T-0675 | `[Cross]` EP-054 S5b: PDF export | ✅ **SP-214** | **EP-054** | ✅ Verified 2026-11-13 | [`Verified/Task-verified-0675.md`](Verified/Task-verified-0675.md) |
 | T-0676 | `[Cross]` EP-054: File ▸ Import / Export submenus, Export ▸ Chapter…, the iPad's timeline import/export | ✅ **SP-215** | **EP-054** | ✅ Verified 2026-11-13 | [`Verified/Task-verified-0676.md`](Verified/Task-verified-0676.md) |
 | T-0684 | `[Cross]` The app's name is too close to Scrivener's → Inkwyn | ✅ SP-229 | ⚠️ None yet | ✅ Verified | [`Verified/Task-verified-0684.md`](Verified/Task-verified-0684.md) |
-| T-0691 | `[Cross]` Inkwyn's app icon and document icon: the rune ᚹ | — | ⚠️ None yet | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
+| T-0691 | `[Cross]` Inkwyn's app icon and document icon: the rune ᚹ | — | — | ⛔️ Removed as OBE ([EP-060]) | [`Task-closed-0691.md`](Closed/Task-closed-0691.md) |
 | T-0692 | `[Linux]` EP-059 E1 + E3: untitled-scene titles as on the Mac, and Navigator search | ✅ SP-230 | **EP-059** | ✅ Verified | [`Verified/Task-verified-0692.md`](Verified/Task-verified-0692.md) |
 | T-0497 | `[Linux]` World creation (EP-059 D1) | ✅ SP-231 | **EP-059** | ✅ Verified | [`Verified/Task-verified-0497.md`](Verified/Task-verified-0497.md) |
 | T-0693 | `[Linux]` EP-059 D2 + D3: Reconnect Worlds, and the world-warning strip | ✅ SP-231 | **EP-059** | ✅ Verified | [`Verified/Task-verified-0693.md`](Verified/Task-verified-0693.md) |
@@ -897,6 +897,8 @@ archive files reconstructed after the fact from secondary sources.
 ⚠️ **This index ended at `T-0485 (next available)` until 2026-09-10 — ✅ that was STALE.** ⚠️ **T-0485–T-0498 had all been taken**, and T-0485–T-0490/T-0492–T-0496 are archived as Verified. ⚠️ **Rows for T-0486–T-0497 are NOT reconstructed here** — ✅ **their Sprints' closed records are authoritative** (`feedback_archive_on_close`).
 
 ---
+
+*Last Updated: 2026-11-24 (**T-0656 → ✅ Verified** → `Verified/Task-verified-0656.md`; **T-0691 → ⛔️ Removed as OBE** ([EP-060]) → `Closed/Task-closed-0691.md`.)*
 
 *Last Updated: 2026-11-24 (**T-0706 → ✅ Verified**, archived ([SP-243] closed).)*
 

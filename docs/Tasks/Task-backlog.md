@@ -1,5 +1,7 @@
 # Task Backlog
 
+*Last Updated: 2026-11-24 (**T-0691 → ⛔️ Removed as OBE** (done by [EP-060]) → `Closed/Task-closed-0691.md`; **T-0667**: AO3 is back online, waits for its invitation (~2026-12-03).)*
+
 *Last Updated: 2026-11-24 (**T-0706 removed** → `Task-active.md` ([SP-243] activated) (user, 2026-11-24: *"Q1-Q8 as recommended, implement SP-243"*).)*
 
 *Last Updated: 2026-11-24 (**T-0706 filed** — EP-060 S3 ([SP-243], 🔵 Planning) (user, 2026-11-24: *"close SP-242, then plan Sprint 3"*).)*
@@ -208,8 +210,7 @@ status changes on its own layer.
 | T-0621 | `[Cross]` Explore a whole-manuscript history view (a tree, or a branching timeline) | ⚠️ None yet | 🔵 Backlog — exploration |
 | T-0628 | `[Cross]` EP-052: keep a held queue on local disk and push it when the project returns | EP-052 (unscheduled) | 🔵 Backlog |
 | T-0663 | `[Cross]` Properties tab: the project's file facts (folder, path, dates, size) | ⚠️ None yet | 🔵 Backlog — Q1–Q5 ruled |
-| T-0667 | `[Cross]` EP-054: paste a Copy as HTML chapter into AO3 itself once it is back online | EP-054 | 🔵 Backlog — waits for AO3 |
-| T-0691 | `[Cross]` Inkwyn's app icon and document icon: the rune ᚹ | ⚠️ None yet | 🔵 Backlog — waits on the artwork |
+| T-0667 | `[Cross]` EP-054: paste a Copy as HTML chapter into AO3 itself once it is back online | EP-054 | 🔵 Backlog — waits for the AO3 invitation (~2026-12-03) |
 
 > ✅ **T-0477 – T-0479 LEFT this file 2026-08-31 when SP-124 was ACTIVATED**, per the standing rule that
 > active Tasks never sit in the backlog. ✅ **They are now VERIFIED (2026-09-10) and ARCHIVED** →
@@ -253,21 +254,9 @@ builds onto TestFlight for internal and then external testers. Findings, questio
 
 ---
 
-## 🔵 T-0691 — `[Cross]` Inkwyn's app icon and document icon: the rune ᚹ
-
-**Epic:** ⚠️ None yet · **Status:** 🔵 Backlog — waits on the artwork (the user's) · **Sprint:** Not Assigned · **Date Requested:**
-2026-11-20 (from [SP-229] Q-ruling, user: *"Q1-Q7 as recommended"*; the rune is for the logo only, user, 2026-11-20: *"we should
-onlt use the rune in the logo"*)
-
-**What:** the app's icon on every platform (iOS light/dark/tinted, the Mac's sizes, the Linux theme icon) and the project
-document icon, drawn on ᚹ (wynn, U+16B9). Today's icon stays until the art exists. ⛔ The rune never appears in the app's name or
-in text.
-
----
-
 ## 🔵 T-0667 — `[Cross]` EP-054: paste a Copy as HTML chapter into AO3 itself
 
-**Epic:** [EP-054] (EP-054 AC4) · **Status:** 🔵 Backlog — ⏸ **waits for an AO3 account** (requested 2026-11-18, expected ~2026-12-01; AO3 is back up) · **Sprint:** Not Assigned · **Date Requested:** 2026-11-09 (from [SP-207] AC7 at
+**Epic:** [EP-054] (EP-054 AC4) · **Status:** 🔵 Backlog — ⏸ **waits for AO3 to issue the invitation to join** (requested 2026-11-18; expected ~2026-12-03, user, 2026-11-24; AO3 is back online) · **Sprint:** Not Assigned · **Date Requested:** 2026-11-09 (from [SP-207] AC7 at
 its close; user: *"close SP-207"*, after the AC was proposed to move here)
 
 **What:** the one AC7 step [SP-207] could not run: AO3 was reported offline (a data breach). When it is back, copy a chapter

@@ -116,7 +116,7 @@ never used). **This is not a filing defect** — do not re-open it as one.
 | 33 | I-0321 – I-0330 | [`Issue-verified-0321-0330.md`](Verified/Issue-verified-0321-0330.md) | 9 |
 | 34 | I-0331 – I-0340 | [`Issue-verified-0331-0340.md`](Verified/Issue-verified-0331-0340.md) | 10 |
 | 35 | I-0341 – I-0350 | [`Issue-verified-0341-0350.md`](Verified/Issue-verified-0341-0350.md) | 8 |
-| 36 | I-0351 – I-0360 | [`Issue-verified-0351-0360.md`](Verified/Issue-verified-0351-0360.md) | 2 |
+| 36 | I-0351 – I-0360 | [`Issue-verified-0351-0360.md`](Verified/Issue-verified-0351-0360.md) | 3 |
 | 37 | I-0361 – I-0370 | [`Issue-verified-0361-0370.md`](Verified/Issue-verified-0361-0370.md) | 4 |
 | 38 | I-0371 – I-0380 | [`Issue-verified-0371-0380.md`](Verified/Issue-verified-0371-0380.md) | 3 |
 
@@ -181,6 +181,8 @@ stands as a marker.**
 *Last Updated: 2026-11-23 — **I-0372 archived**; batch 38 1 → 2.*
 
 *Last Updated: 2026-11-23 — **I-0371 archived**; batch 38 (`0371-0380`) opened.*
+
+*Last Updated: 2026-11-24 (**I-0358 → ✅ Verified** and archived to batch 36 (2 → 3, counted: I-0351, I-0357, I-0358))*
 
 *Last Updated: 2026-11-09 (**I-0357 → ✅ Verified** and archived to batch 36 (1 → 2, counted: I-0351, I-0357))*
 
