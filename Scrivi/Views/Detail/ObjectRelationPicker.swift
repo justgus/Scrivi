@@ -75,7 +75,7 @@ struct ObjectRelationPicker: View {
                 .font(.headline)
 
             if let loadError {
-                Label(loadError, systemImage: "exclamationmark.triangle")
+                Label(loadError, image: "inkwyn.warnings")
                     .font(.caption)
                     .foregroundStyle(.orange)
             }

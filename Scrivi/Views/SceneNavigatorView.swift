@@ -876,8 +876,12 @@ private struct ChapterChevron: View {
 
     var body: some View {
         Button { onToggle(chapterID, !state.isHers) } label: {
-            Image(systemName: "arrowtriangle.\(state.isOpen ? "down" : "right")\(state.isHers ? ".fill" : "")")
+            // EP-060: closed / opened by her (stays open) / open only because it is current or searched. ⚠️ The glyph NAMES read
+            // the other way round; this pairing is the user's (2026-11-24: "Chapter expanded Automatic and … Manual need to be switched").
+            Image(!state.isOpen ? "inkwyn.chapter.collapsed"
+                  : state.isHers ? "inkwyn.chapter.expanded.automatic" : "inkwyn.chapter.expanded.manual")
                 .font(.caption)
+                .imageScale(.small)   // the 2× glyph at caption size would overflow the 16-pt Mac frame
                 .foregroundStyle(.secondary)
                 #if os(iOS)
                 .frame(width: 44, height: 44)   // the minimum touch target

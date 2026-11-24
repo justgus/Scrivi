@@ -951,7 +951,7 @@ struct TimelineStripView: View {
         if !model.rejectedImports.isEmpty {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
-                    Image(systemName: "exclamationmark.triangle.fill")
+                    Image("inkwyn.warnings")
                         .foregroundStyle(.orange)
                         .accessibilityHidden(true)
                     Text(model.rejectedImports.count == 1
@@ -1545,7 +1545,7 @@ struct TimelineStripView: View {
                 }
             }
         } label: {
-            Image(systemName: "ellipsis.circle")
+            Image("inkwyn.more.options")
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
         }

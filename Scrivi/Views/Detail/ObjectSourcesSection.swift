@@ -78,7 +78,7 @@ struct ObjectSourcesSection: View {
             header
 
             if let loadError {
-                Label(loadError, systemImage: "exclamationmark.triangle")
+                Label(loadError, image: "inkwyn.warnings")
                     .font(.caption)
                     .foregroundStyle(.orange)
             }
@@ -92,7 +92,7 @@ struct ObjectSourcesSection: View {
             }
 
             if let actionError {
-                Label(actionError, systemImage: "exclamationmark.triangle")
+                Label(actionError, image: "inkwyn.warnings")
                     .font(.caption)
                     .foregroundStyle(.orange)
             }
@@ -135,7 +135,7 @@ struct ObjectSourcesSection: View {
             // because putting "New" first is what trains a writer to create
             // duplicates.
             Button { showAttach = true } label: {
-                Label("Cite…", systemImage: "link")
+                Label("Cite…", image: "inkwyn.create.citation.link")
                     .font(.caption)
             }
             .buttonStyle(.borderless)
@@ -515,7 +515,7 @@ struct ExistingSourcePicker: View {
                 .font(.headline)
 
             if let loadError {
-                Label(loadError, systemImage: "exclamationmark.triangle")
+                Label(loadError, image: "inkwyn.warnings")
                     .font(.caption)
                     .foregroundStyle(.orange)
             }

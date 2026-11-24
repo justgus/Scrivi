@@ -65,7 +65,7 @@ struct ObjectRelationsSection: View {
             header
 
             if let loadError {
-                Label(loadError, systemImage: "exclamationmark.triangle")
+                Label(loadError, image: "inkwyn.warnings")
                     .font(.caption)
                     .foregroundStyle(.orange)
             }
@@ -133,7 +133,7 @@ struct ObjectRelationsSection: View {
             }
 
             if let actionError {
-                Label(actionError, systemImage: "exclamationmark.triangle")
+                Label(actionError, image: "inkwyn.warnings")
                     .font(.caption)
                     .foregroundStyle(.orange)
             }
@@ -187,7 +187,7 @@ struct ObjectRelationsSection: View {
     private func row(_ edge: EdgeView) -> some View {
         HStack(spacing: 6) {
             Image(glyph: edge.otherPending
-                  ? "exclamationmark.triangle.fill"
+                  ? "inkwyn.warnings"
                   : symbol(for: edge.otherKind))
                 .font(.caption)
                 .foregroundStyle(edge.otherPending ? .orange : .secondary)

@@ -1,5 +1,9 @@
 # Sprint Backlog
 
+*Last Updated: 2026-11-24 (**SP-242 removed** — activated 2026-11-24.)*
+
+*Last Updated: 2026-11-24 (**SP-242 created in 🔵 Planning** — EP-060 S2 (user, 2026-11-24: *"close SP-241, then plan Sprint 2"*); Q1–Q6 to rule.)*
+
 *Last Updated: 2026-11-24 (**SP-241 removed** — activated 2026-11-24.)*
 
 *Last Updated: 2026-11-24 (**SP-241 created in 🔵 Planning** — EP-060 S1 (user, 2026-11-24: *"Ok we're activating EP-060 and planning the first sprint."*); EP-060 Q1–Q7 and Q1–Q7 to rule.)*

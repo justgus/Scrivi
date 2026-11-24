@@ -135,7 +135,7 @@ private struct PenNameRow: View {
                 Button("Move Down") { move(1) }.disabled(!canMoveDown)
                 Divider()
                 Button("Remove", role: .destructive, action: remove)
-            } label: { Image(systemName: "ellipsis.circle") }
+            } label: { Image("inkwyn.more.options") }
             .menuStyle(.button)
             .buttonStyle(.borderless)
             .fixedSize()
@@ -177,7 +177,7 @@ struct AuthorsSection: View {
                         Divider()
                         // A work keeps at least one author (the core refuses none).
                         Button("Remove", role: .destructive) { remove(index) }.disabled(authors.count == 1)
-                    } label: { Image(systemName: "ellipsis.circle") }
+                    } label: { Image("inkwyn.more.options") }
                     .menuStyle(.button)
                     .buttonStyle(.borderless)
                     .fixedSize()

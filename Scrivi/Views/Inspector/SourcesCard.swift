@@ -231,7 +231,7 @@ private struct SourcesCardBody: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             if let error = model?.loadError {
-                Label(error, systemImage: "exclamationmark.triangle")
+                Label(error, image: "inkwyn.warnings")
                     .font(.callout)
                     .foregroundStyle(.secondary)
             } else if let entries = model?.entries, !entries.isEmpty {

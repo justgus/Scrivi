@@ -41,17 +41,18 @@ struct ImportExportCommands: View {
 }
 
 /// Import ▸ Manuscript…, Scrivener Project…, Timeline…, Archive… — the File menu's submenu and the toolbar's Import (SP-227 Q2).
+/// EP-060 SP-242: the items carry their Inkwyn glyphs (Scrivener Project has none) in both places.
 struct ImportMenuItems: View {
     let env: AppEnvironment
     let session: ProjectSession?
 
     var body: some View {
         // SP-218 Q2: with no project open it makes one.
-        Button("Manuscript…") { env.presentImportManuscript(session) }
+        Button { env.presentImportManuscript(session) } label: { Label("Manuscript…", image: "inkwyn.manuscript") }
         Button("Scrivener Project…") { env.presentImportManuscript(session, scrivener: true) }   // SP-220 Q6
-        Button("Timeline…") { if let session { env.importTimeline(session) } }
+        Button { if let session { env.importTimeline(session) } } label: { Label("Timeline…", image: "inkwyn.timeline") }
             .disabled(session == nil)
-        Button("Archive…") { env.presentImportArchive() }
+        Button { env.presentImportArchive() } label: { Label("Archive…", image: "inkwyn.archive") }
     }
 }
 
@@ -63,13 +64,13 @@ struct ExportMenuItems: View {
 
     var body: some View {
         // AC7: the format is the item (Pages' Export To ▸) — no format dialog; a chapter has no ePub (SP-213 Q7).
-        Menu("Manuscript") { formats(currentChapter: false) }
+        Menu { formats(currentChapter: false) } label: { Label("Manuscript", image: "inkwyn.manuscript") }
             .disabled(session == nil)
-        Menu("Current Chapter") { formats(currentChapter: true) }
+        Menu { formats(currentChapter: true) } label: { Label("Current Chapter", image: "inkwyn.chapter") }
             .disabled(session.flatMap { env.caretChapter($0) } == nil)
-        Button("Timeline…") { if let session { Task { await env.exportTimeline(session) } } }
+        Button { if let session { Task { await env.exportTimeline(session) } } } label: { Label("Timeline…", image: "inkwyn.timeline") }
             .disabled(session == nil)
-        Button("Archive…") { if let session { Task { await env.exportArchive(session) } } }
+        Button { if let session { Task { await env.exportArchive(session) } } } label: { Label("Archive…", image: "inkwyn.archive") }
             .disabled(session == nil)
     }
 

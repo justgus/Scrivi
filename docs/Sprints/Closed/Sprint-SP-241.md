@@ -1,10 +1,12 @@
 # Sprint SP-241 — `[Apple]` [EP-060] S1: the glyph pipeline and the Inkwyn app icon
 
-**Status:** 🟡 **ACTIVE** 2026-11-24 (user, 2026-11-24: *"Q1-Q7 as recommended, implement SP-241"*); ✅ Q1–Q7 as recommended. Built 2026-11-24:
-AC1–AC3, AC5 met (live pass ✅ 2026-11-24, run 3); AC6 green locally, ⏳ CI on the push; AC4 ✅ (mapping approved with rulings (a)–(f), 2026-11-24). Created 2026-11-24 (user, 2026-11-24: *"Ok we're activating EP-060 and planning
-the first sprint."*).
-**Carries:** [T-0704].
-**Epic:** [EP-060] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md) — proposed Sprint 1 of 3. Sprint 2 (`[Apple]` the glyphs at
+**Status:** ✅ **CLOSED** 2026-11-24 (user, 2026-11-24: *"close SP-241, then plan Sprint 2"*). Was 🟠 Complete 2026-11-24. AC1–AC6 met: live pass ✅ (run 3, user, 2026-11-24: *"Step 3 passes
+now"*); mapping approved with rulings (a)–(f); CI ✅ on `2892f96` (Scrivi Apple CI — the boundary, TextKit, layout and stub-parity
+guards; Core and Linux CI not triggered: no C++ or Linux change). Was 🟡 ACTIVE 2026-11-24 (user, 2026-11-24: *"Q1-Q7 as
+recommended, implement SP-241"*); ✅ Q1–Q7 as recommended. Created 2026-11-24 (user, 2026-11-24: *"Ok we're activating EP-060 and
+planning the first sprint."*).
+**Carries:** [T-0704] (✅ Verified 2026-11-24 → [`../../Tasks/Verified/Task-verified-0704.md`](../../Tasks/Verified/Task-verified-0704.md)).
+**Epic:** [EP-060] → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md) — proposed Sprint 1 of 3. Sprint 2 (`[Apple]` the glyphs at
 their call sites) needs this Sprint's mapping table; Sprint 3 (`[Linux]`) needs nothing from it but the table.
 **Size:** M. Most of it is one script; the risk is concentrated in whether Xcode accepts what the script writes, so that is
 proved on one glyph first (Q5).
@@ -35,7 +37,7 @@ proved on one glyph first (Q5).
 
 ## Questions
 
-**First: EP-060's Q1–Q7** (in [`../Epics/Epic-active.md`](../Epics/Epic-active.md)). ✅ Taken as recommended with this Sprint's
+**First: EP-060's Q1–Q7** (in [`../Epics/Epic-active.md`](../../Epics/Epic-active.md)). ✅ Taken as recommended with this Sprint's
 activation (it was planned on them):
 custom symbols (Q1), an Icon Composer icon (Q2), visionOS and Windows left out (Q3, Q7), a mapping table (Q4), canvases
 evened out in the conversion (Q5).
@@ -76,11 +78,11 @@ evened out in the conversion (Q5).
 - [x] **AC4** The mapping table is in this record and approved by you.
 - [x] **AC5** The Inkwyn icon shows in the Dock, Finder and About on the Mac, and on the Home Screen and in the App Switcher on iOS.
   No Scrivi icon art remains for macOS or iOS.
-- [ ] **AC6** macOS and iOS build with no new warnings; ScriviCore, interop and iOS tests are green; CI is green on the push.
+- [x] **AC6** macOS and iOS build with no new warnings; ScriviCore, interop and iOS tests are green; CI is green on the push.
 
 ## What was built (2026-11-24)
 
-**The script** — [`scripts/make-glyph-symbols.swift`](../../scripts/make-glyph-symbols.swift) (Q1), no dependencies beyond the
+**The script** — [`scripts/make-glyph-symbols.swift`](../../../scripts/make-glyph-symbols.swift) (Q1), no dependencies beyond the
 SDK: a small SVG reader (`<svg>` nested too, `<g>`, `<path>` M L H V Q C Z, `<circle>`, `<rect rx>`, inherited fill/stroke and
 transforms; anything else stops it with the file named) → strokes outlined with `CGPath.copy(strokingWithWidth:)` → painted in
 order (ink is unioned, **white is cut out**: Info-Small, Factions-Small) → **cropped to the viewBox** → fitted into one box
@@ -93,7 +95,7 @@ into Apple's symbol template (geometry copied from the template SF Symbols.app s
 (`inkwyn.timeline`); the script refuses two DIFFERENT drawings with one name.
 
 **The spike** (Q5) — `inkwyn.characters` in the Characters card header (`ObjectCard.swift`). It reaches the card header, the
-Add Card menu and the relation rows through one small helper, [`Glyph.swift`](../../Scrivi/Views/Glyph.swift): `Image(glyph:)` and
+Add Card menu and the relation rows through one small helper, [`Glyph.swift`](../../../Scrivi/Views/Glyph.swift): `Image(glyph:)` and
 `Label(_:glyph:)` draw an `inkwyn.*` name from the catalog and anything else as an SF Symbol. Checked headless on the built app:
 actool compiled it with three renditions (Glyph Size Small/Medium/Large), and at 100 pt it loads as 61×81 / 76×98 / 98×123
 (Apple's `person.fill` Medium: 108×105). ⏳ How it looks in the app is the live pass.
@@ -245,3 +247,11 @@ iPhone icon and card), the live pass is complete.
   all 54 symbols, only `inkwyn.menu.worlds` differs from a run without the rule. Mac app rebuilt.
 - ✅ **The toolbar changes shape on EVERY platform** (user, 2026-11-24: *"yes, we're changing the shape of the toolbar. making it a
   bit smaller and better organized. same for all platforms."*): one Import/Export and one Tools button, on the Mac, iOS and Linux.
+
+## Retrospective
+
+- **What worked:** proving the format on one glyph first; a self-checking converter with no dependencies; a contact sheet before any UI.
+- **What cost runs:** two live-pass runs on my own mistakes — a size change judged from numbers instead of a render at the app's size,
+  and a step ("as the other cards show theirs") whose premise I never checked. Both are now a standing rule (render visual changes as
+  the app draws them; check a step's premise first).
+- **Carried to Sprint 2:** everything in the approved mapping and rulings (a)–(f), including the toolbar reshape.

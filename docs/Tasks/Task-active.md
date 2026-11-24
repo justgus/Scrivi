@@ -1,5 +1,11 @@
 # Active Tasks
 
+*Last Updated: 2026-11-24 (**T-0705 → ✅ Verified** (user, 2026-11-24: *"All steps pass on the Mac, iPad, and iPhone."*) → `Task-unverified.md` until [SP-242] closes.)*
+
+*Last Updated: 2026-11-24 (**T-0705 → active** with [SP-242]'s activation.)*
+
+*Last Updated: 2026-11-24 (**T-0704 removed** — ✅ Verified, archived with [SP-241]'s close.)*
+
 *Last Updated: 2026-11-24 (**T-0704 → active** with [SP-241]'s activation; built the same day → 🟠 `Task-unverified.md`.)*
 
 *Last Updated: 2026-11-23 (**T-0703 removed** — ✅ Verified, archived with [SP-240]'s close.)*

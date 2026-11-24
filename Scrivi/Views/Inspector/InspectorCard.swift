@@ -34,8 +34,8 @@ enum InspectorTab: String, Codable, CaseIterable, Identifiable, Sendable {
     var systemImage: String {
         switch self {
         case .writing:       return "pencil.line"
-        case .worldbuilding: return "globe"
-        case .properties:    return "info.circle"
+        case .worldbuilding: return "inkwyn.menu.worlds"   // the tree, without pips (user, 2026-11-24)
+        case .properties:    return "inkwyn.info"
         }
     }
 

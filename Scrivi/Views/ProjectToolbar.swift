@@ -30,6 +30,8 @@ struct ProjectToolbar: ToolbarContent {
     // because there is one code path.
     /// Width compact on iOS: the Inspector is a page, so its item opens it instead of toggling a column (SP-199 G3).
     var showInspectorPage: (() -> Void)? = nil
+    /// Width compact on iOS: the Navigator is a page too (SP-242, View▾ ▸ Scene Navigator).
+    var showNavigatorPage: (() -> Void)? = nil
 
     // ⚠️ ORDERED BY USE, ONE SHAPE ON EVERY APPLE PLATFORM (user ruling 2026-11-03, SP-199). As the width shrinks the
     // system moves items into its ⋯ overflow from the END, so the most-used come first and stay longest. ✅ It supersedes
@@ -37,160 +39,229 @@ struct ProjectToolbar: ToolbarContent {
     // two clicks each, and every one keeps its menu-bar item and shortcut. ✅ Manuscript Start/End return to the toolbar
     // inside the labelled Navigate menu, where [T-0568]'s misreading as Scene Start/End cannot happen.
     // ⚠️ EVERY ITEM CALLS AN EXISTING CLOSURE: the toolbar is a SURFACE for what the menu bar already does (EP-040 AC2).
+    // ✅ EP-060 SP-242 (rulings (e), (f), Q3; user, 2026-11-24: "making it a bit smaller and better organized. same for all
+    // platforms"): 14 items → 10. Import▾ + Export▾ → ONE Import/Export▾ with an Import and an Export submenu; Project Settings,
+    // Inkwyn Settings, Purge and About → ONE Tools▾. A glyph with diamond pips marks a button that opens a menu.
+    // ⚠️ Toolbar labels go through `toolbarLabel` (Q2): the 2× glyphs are too big for a toolbar button as symbols.
+    // ⚠️ Menu CONTENT is `.titleAndIcon` (Q1): a menu may give its items another default label style and drop the icon (I-0035).
+    // The style goes on the content, never on the Menu: there it would put titles on the toolbar buttons.
     var body: some ToolbarContent {
+        // ✅ View▾ is LEADING and holds the panels (user, 2026-11-24): Scene Navigator, Scene Inspector, Timeline, then the overlays.
+        // Width compact (iPhone) has pages, not panels, so the first two go to the page instead of toggling a column.
         ToolbarItem(placement: placement) {
-            if let showInspectorPage {
-                Button(action: showInspectorPage) { Label("Inspector", systemImage: "sidebar.trailing") }
-            } else {
-                Toggle(isOn: Bindable(session).inspectorVisible) { Label("Inspector", systemImage: "sidebar.trailing") }
-                    .help("Show or hide the Scene Inspector")
+            Menu {
+                Group {
+                    menuHeader("View", "inkwyn.menu.view")
+                    #if os(macOS)
+                    // The SAME actions as the menu bar's View items: Show/Hide Sidebar is the system's `toggleSidebar:`
+                    // (NavigationSplitView's own item), and the other two flip the value as View ▸ Show or Hide … does.
+                    Button { NSApp.sendAction(#selector(NSSplitViewController.toggleSidebar(_:)), to: nil, from: nil) } label: {
+                        Label("Show or Hide Scene Navigator", image: "inkwyn.left.sidebar")
+                    }
+                    Button { session.inspectorVisible.toggle() } label: {
+                        Label("Show or Hide Scene Inspector", image: "inkwyn.right.sidebar")
+                    }
+                    Button { session.timelineVisible.toggle() } label: {
+                        Label("Show or Hide Timeline", image: "inkwyn.timeline")
+                    }
+                    #else
+                    if let showNavigatorPage, let showInspectorPage {
+                        Button(action: showNavigatorPage) { Label("Scene Navigator", image: "inkwyn.left.sidebar") }
+                        Button(action: showInspectorPage) { Label("Scene Inspector", image: "inkwyn.right.sidebar") }
+                    } else {
+                        Toggle(isOn: Bindable(session).navigatorVisible) {
+                            Label("Show Scene Navigator", image: "inkwyn.left.sidebar")
+                        }
+                        Toggle(isOn: Bindable(session).inspectorVisible) {
+                            Label("Show Scene Inspector", image: "inkwyn.right.sidebar")
+                        }
+                    }
+                    Toggle(isOn: Bindable(session).timelineVisible) {
+                        Label("Show Timeline", image: "inkwyn.timeline")
+                    }
+                    #endif
+                    Divider()
+                    Toggle(isOn: Bindable(session).worldWarningVisible) {
+                        Label("World Warnings", image: "inkwyn.warnings")
+                    }
+                    // SP-227 Q2: the iPhone has no menu bar for ⇧⌘H.
+                    if let prefs = session.projectPreferences {
+                        Toggle(isOn: Bindable(prefs).markupHints) {
+                            Label("Markup Hints", image: "inkwyn.hints")
+                        }
+                    }
+                    #if os(macOS)
+                    // ⚠️ Buffers visibility is APP-GLOBAL: one palette follows the frontmost project.
+                    Toggle(isOn: Bindable(env).buffersPaletteVisible) {
+                        Label("Buffers", image: "inkwyn.buffers")
+                    }
+                    #endif
+                }
+                .labelStyle(.titleAndIcon)
+            } label: {
+                toolbarLabel("View", "inkwyn.menu.view")
             }
+            .menuIndicator(.hidden)
+            .help("Show or hide the Navigator, Inspector and Timeline; view options")
         }
 
         ToolbarItem(placement: placement) {
-            Toggle(isOn: Bindable(session).timelineVisible) {
-                Label("Timeline", systemImage: "calendar.day.timeline.left")
-            }
-            .help("Show or hide the Timeline")
-        }
-
-        ToolbarItem(placement: placement) {
-            Button { session.showProjectSettings = true } label: {
-                Label("Project Settings", systemImage: "gearshape")
-            }
-            .help("Project Settings… (⌥⌘,)")
-        }
-
-        ToolbarItem(placement: placement) {
+            // Its glyph has no pips: it opens a sheet, not a menu (user, 2026-11-24).
             Button { session.showWorlds = true } label: {
-                Label("Worlds", systemImage: "globe")
+                toolbarLabel("Worlds", "inkwyn.menu.worlds")
             }
             .help("Manage Worlds…")
         }
 
         ToolbarItem(placement: placement) {
             Menu {
-                item("Scene Start", "arrow.up.to.line.compact", session.sceneStartAction)
-                item("Scene End", "arrow.down.to.line.compact", session.sceneEndAction)
-                // ✅ `.circle` is Chapter's "enclosed" variant (user, live pass 2026-09-22).
-                item("Chapter Start", "arrow.up.to.line.circle", session.chapterStartAction)
-                item("Chapter End", "arrow.down.to.line.circle", session.chapterEndAction)
-                item("Manuscript Start", "arrow.up.to.line", session.manuscriptStartAction)
-                item("Manuscript End", "arrow.down.to.line", session.manuscriptEndAction)
+                Group {
+                    menuHeader("Navigate", "inkwyn.menu.navigate")
+                    item("Scene Start", "inkwyn.scene.start", session.sceneStartAction)
+                    item("Scene End", "inkwyn.scene.end", session.sceneEndAction)
+                    item("Chapter Start", "inkwyn.chapter.start", session.chapterStartAction)
+                    item("Chapter End", "inkwyn.chapter.end", session.chapterEndAction)
+                    item("Manuscript Start", "inkwyn.manuscript.start", session.manuscriptStartAction)
+                    item("Manuscript End", "inkwyn.manuscript.end", session.manuscriptEndAction)
+                }
+                .labelStyle(.titleAndIcon)
             } label: {
-                Label("Navigate", systemImage: "arrow.up.arrow.down")
+                toolbarLabel("Navigate", "inkwyn.menu.navigate")
             }
+            .menuIndicator(.hidden)   // the glyph's pips already say "menu"
             .help("Go to a scene, chapter or manuscript start or end")
         }
 
         ToolbarItem(placement: placement) {
             Menu {
-                item("New Scene", "plus.rectangle", session.createSceneAction)
-                item("New Chapter", "plus.rectangle.on.folder", session.createChapterAction)
+                Group {
+                    menuHeader("New", "inkwyn.menu.create")
+                    item("New Scene", "inkwyn.new.scene", session.createSceneAction)
+                    item("New Chapter", "inkwyn.new.chapter", session.createChapterAction)
+                }
+                .labelStyle(.titleAndIcon)
             } label: {
-                Label("New", systemImage: "plus")
+                toolbarLabel("New", "inkwyn.menu.create")
             }
+            .menuIndicator(.hidden)   // the glyph's pips already say "menu"
             .help("New Scene (⌘↩) or New Chapter (⇧⌘↩)")
         }
 
         ToolbarItem(placement: placement) {
             Menu {
-                item("Merge Scene with Previous", "arrow.triangle.merge", session.mergeSceneAction)
-                // ✅ Its own glyph, so Merge Chapter never reads as Merge Scene (user, live pass 2026-09-22).
-                item("Merge Chapter with Previous", "rectangle.compress.vertical", session.mergeChapterAction)
+                Group {
+                    menuHeader("Merge", "inkwyn.menu.merge")
+                    item("Merge Scene with Previous", "inkwyn.merge.scene.with.previous", session.mergeSceneAction)
+                    item("Merge Chapter with Previous", "inkwyn.merge.chapter.with.previous", session.mergeChapterAction)
+                }
+                .labelStyle(.titleAndIcon)
             } label: {
-                Label("Merge", systemImage: "arrow.triangle.merge")
+                toolbarLabel("Merge", "inkwyn.menu.merge")
             }
+            .menuIndicator(.hidden)   // the glyph's pips already say "menu"
             .help("Merge Scene (⌘⌫) or Merge Chapter (⇧⌘⌫) with the previous one")
         }
 
+        // [SP-206] EP-040's Export slot, [SP-215] File ▸ Export plus Copy as HTML, SP-227 Q2 Import beside it — now one button
+        // (ruling (e)): the iPhone still reaches both without a menu bar.
         ToolbarItem(placement: placement) {
             Menu {
-                Toggle(isOn: Bindable(session).worldWarningVisible) {
-                    Label("World Warnings", systemImage: "exclamationmark.triangle")
-                }
-                // SP-227 Q2: the iPhone has no menu bar for ⇧⌘H.
-                if let prefs = session.projectPreferences {
-                    Toggle(isOn: Bindable(prefs).markupHints) {
-                        Label("Markup Hints", systemImage: "textformat")
+                Group {
+                    menuHeader("Import/Export", "inkwyn.menu.import.export")
+                    Menu {
+                        ImportMenuItems(env: env, session: session)
+                    } label: {
+                        Label("Import", image: "inkwyn.import")
+                    }
+                    Menu {
+                        ExportMenuItems(env: env, session: session)
+                        Divider()
+                        Button("Copy as HTML") { Task { await env.copyManuscriptAsHTML(session) } }
+                    } label: {
+                        Label("Export", image: "inkwyn.export")
                     }
                 }
-                #if os(macOS)
-                // ⚠️ Buffers visibility is APP-GLOBAL: one palette follows the frontmost project.
-                Toggle(isOn: Bindable(env).buffersPaletteVisible) {
-                    Label("Buffers", systemImage: "doc.on.clipboard")
+                .labelStyle(.titleAndIcon)
+            } label: {
+                toolbarLabel("Import/Export", "inkwyn.menu.import.export")
+            }
+            .menuIndicator(.hidden)   // the glyph's pips already say "menu"
+            .help("Import or Export")
+        }
+
+        // Ruling (f): Project Settings (⌥⌘,), Inkwyn Settings, Purge and About in one menu. Items without an Inkwyn glyph keep
+        // their system symbol (Q5).
+        ToolbarItem(placement: placement) {
+            Menu {
+                Group {
+                    menuHeader("Tools", "inkwyn.menu.tools")
+                    Button { session.showProjectSettings = true } label: {
+                        Label("Project Settings…", systemImage: "gearshape")
+                    }
+                    #if os(macOS)
+                    // The Mac's Inkwyn Settings is the app's Settings scene (Inkwyn ▸ Settings…, ⌘,).
+                    SettingsLink { Label("Inkwyn Settings…", systemImage: "gearshape.2") }
+                    #else
+                    Button { env.showAppSettings = true } label: {
+                        Label("Inkwyn Settings…", systemImage: "gearshape.2")
+                    }
+                    #endif
+                    Button { session.showStaleBranches = true } label: {
+                        Label("Purge Stale History Branches…", systemImage: "arrow.triangle.branch")
+                    }
+                    Divider()
+                    Button {
+                        #if os(macOS)
+                        AboutPanel.show()
+                        #else
+                        env.showAbout = true
+                        #endif
+                    } label: {
+                        Label("About Inkwyn", image: "inkwyn.info")
+                    }
                 }
-                #endif
+                .labelStyle(.titleAndIcon)
             } label: {
-                Label("View", systemImage: "eye")
+                toolbarLabel("Tools", "inkwyn.menu.tools")
             }
-            .help("View options")
-        }
-
-        // [SP-206] EP-040's declared Export slot; [SP-215] (Point 2) it matches File ▸ Export, plus Copy as HTML. On iOS this is
-        // the way to them without a keyboard.
-        // SP-227 Q2: Import beside Export, so the iPhone reaches it without a menu bar.
-        ToolbarItem(placement: placement) {
-            Menu {
-                ImportMenuItems(env: env, session: session)
-            } label: {
-                Label("Import", systemImage: "square.and.arrow.down")
-            }
-            .help("Import")
-        }
-
-        ToolbarItem(placement: placement) {
-            Menu {
-                ExportMenuItems(env: env, session: session)
-                Divider()
-                Button("Copy as HTML") { Task { await env.copyManuscriptAsHTML(session) } }
-            } label: {
-                Label("Export", systemImage: "square.and.arrow.up")
-            }
-            .help("Export")
+            .menuIndicator(.hidden)   // the glyph's pips already say "menu"
+            .help("Project Settings, Inkwyn Settings, Purge Stale History Branches, About Inkwyn")
         }
 
         ToolbarItem(placement: placement) {
             Button(role: .destructive) { closeProject() } label: {
-                Label("Close Project", systemImage: "xmark")
+                toolbarLabel("Close Project", "inkwyn.menu.close")
             }
             .help("Close Project (⌘W)")
-        }
-
-        #if os(iOS)
-        // SP-210 Q1: the app's Settings (pen names) — last, so it is the first into the ⋯ menu.
-        ToolbarItem(placement: placement) {
-            Button { env.showAppSettings = true } label: {
-                Label("Inkwyn Settings", systemImage: "gearshape.2")
-            }
-        }
-        #endif
-
-        // SP-227 Q2: menu-bar-only until now, so out of an iPhone's reach. Last, the first into the ⋯ overflow.
-        ToolbarItem(placement: placement) {
-            Button { session.showStaleBranches = true } label: {
-                Label("Purge Stale History Branches…", systemImage: "arrow.triangle.branch")
-            }
-        }
-
-        ToolbarItem(placement: placement) {
-            Button {
-                #if os(macOS)
-                AboutPanel.show()
-                #else
-                env.showAbout = true
-                #endif
-            } label: {
-                Label("About Inkwyn", systemImage: "info.circle")
-            }
         }
 
         // ⚠️ DECLARED SLOTS — EP-040 AC7 / AC5: Export and the text-size lens; ⛔ not built in this Epic.
     }
 
+    /// A toolbar button's label. Mac: the LARGE drawing aspect-fit in a box tied to the text size (user, 2026-11-24). iOS: the
+    /// Small drawing as a symbol — the iPhone's items live in the ⋯ overflow MENU, which takes the image alone, not a fitted view.
+    @ViewBuilder private func toolbarLabel(_ title: String, _ glyph: String) -> some View {
+        #if os(macOS)
+        Label { Text(title) } icon: { FittedGlyph(name: glyph) }
+        #else
+        Label(title, image: glyph).imageScale(.small)
+        #endif
+    }
+
+    /// The top of a toolbar menu: the button it opened from, then a divider. Choosing it does nothing, and choosing any item
+    /// closes a menu, so it dismisses the menu as a tap outside would (user, 2026-11-24 — as iOS shows an overflowed item's
+    /// submenu). Width compact (iPhone) leaves it out: its items are always in the ⋯ overflow, where the system already shows
+    /// this header. ⚠️ An iPad item the system overflows into ⋯ shows both.
+    @ViewBuilder private func menuHeader(_ title: String, _ glyph: String) -> some View {
+        if showInspectorPage == nil {
+            Button {} label: { Label(title, image: glyph) }
+            Divider()
+        }
+    }
+
     /// A menu entry for an existing closure, disabled where the platform has not wired it yet (SP-199 AC3).
-    private func item(_ title: String, _ symbol: String, _ action: (() -> Void)?) -> some View {
-        Button { action?() } label: { Label(title, systemImage: symbol) }
+    private func item(_ title: String, _ glyph: String, _ action: (() -> Void)?) -> some View {
+        Button { action?() } label: { Label(title, image: glyph) }
             .disabled(action == nil)
     }
 

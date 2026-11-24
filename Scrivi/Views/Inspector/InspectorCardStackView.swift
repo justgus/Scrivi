@@ -59,12 +59,13 @@ struct InspectorCardStackView: View {
                             layout.addCard(typeID: card.typeID, sceneID: sceneID, stack: stack)
                         } label: {
                             Label(card.title, glyph: card.systemImage)
+                                .labelStyle(.titleAndIcon)   // EP-060 Q1: a menu may drop item icons by default
                         }
                         .disabled(sceneID == nil || isPresent(card.typeID))
                     }
                 }
             } label: {
-                Label("Add Card", systemImage: "plus")
+                Label("Add Card", image: "inkwyn.add.create")
                     .labelStyle(.iconOnly)
             }
             .menuStyle(.borderlessButton)
@@ -88,7 +89,7 @@ struct InspectorCardStackView: View {
                 Button("Apply Layout to All Scenes…") { applyToAllScenes() }
                     .disabled(sceneID == nil || allSceneIDs.isEmpty)
             } label: {
-                Label("Stack Options", systemImage: "ellipsis.circle")
+                Label("Stack Options", image: "inkwyn.more.options")
                     .labelStyle(.iconOnly)
             }
             .menuStyle(.borderlessButton)
@@ -197,7 +198,7 @@ struct InspectorCardStackView: View {
                     Button {
                         layout.removeCard(typeID: typeID, sceneID: sceneID, stack: stack)
                     } label: {
-                        Image(systemName: "xmark")
+                        Image("inkwyn.close")
                             .font(.caption2.weight(.semibold))
                             .foregroundStyle(.secondary)
                     }
@@ -294,7 +295,9 @@ private struct InspectorCardView: View {
     private var header: some View {
         HStack(spacing: 6) {
             Button(action: onToggleCollapsed) {
-                Image(systemName: entry.collapsed ? "chevron.right" : "chevron.down")
+                // EP-060 ruling (b): the chapter chevrons, at Small.
+                Image(entry.collapsed ? "inkwyn.chapter.collapsed" : "inkwyn.chapter.expanded.automatic")
+                    .imageScale(.small)
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
                     .frame(width: 14)
@@ -312,7 +315,7 @@ private struct InspectorCardView: View {
             Spacer(minLength: 0)
 
             Button(action: onRemove) {
-                Image(systemName: "xmark")
+                Image("inkwyn.close")
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(.secondary)
             }
@@ -378,7 +381,7 @@ private struct CardFailureView: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 5) {
-            Image(systemName: "exclamationmark.triangle")
+            Image("inkwyn.warnings")
                 .font(.caption)
                 .foregroundStyle(.orange)
             Text("“\(cardTitle)” couldn't be displayed. Other cards are unaffected.")

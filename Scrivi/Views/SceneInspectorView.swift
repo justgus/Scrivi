@@ -177,8 +177,13 @@ struct SceneInspectorView: View {
                     layout.setSelectedTab(tab)
                 } label: {
                     VStack(spacing: 2) {
-                        Image(systemName: tab.systemImage)
-                            .font(.system(size: 13, weight: .medium))
+                        // An Inkwyn glyph is drawn to fit the tab's icon box (the tree is wide); an SF Symbol as before.
+                        if tab.systemImage.hasPrefix("inkwyn.") {
+                            FittedGlyph(name: tab.systemImage, scale: .small, height: 13, aspect: 1.3)
+                        } else {
+                            Image(systemName: tab.systemImage)
+                                .font(.system(size: 13, weight: .medium))
+                        }
                         Text(tab.title)
                             .font(.system(size: 10))
                             .lineLimit(1)

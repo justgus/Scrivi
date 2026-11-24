@@ -200,11 +200,11 @@ struct WorldsView: View {
 
     private func worldName(_ world: WorldEntry) -> some View {
         let isAvailable: Bool = world.worldStatus == .available
-        let symbol: String = isAvailable ? "globe" : "exclamationmark.triangle.fill"
+        let symbol: String = isAvailable ? "globe" : "inkwyn.warnings"
         let tint: Color = isAvailable ? Color.secondary : Color.orange
 
         return HStack(spacing: 8) {
-            Image(systemName: symbol)
+            Image(glyph: symbol)
                 .foregroundStyle(tint)
 
             VStack(alignment: .leading, spacing: 1) {
@@ -251,7 +251,7 @@ struct WorldsView: View {
         } label: {
             // ✅ Red (user request, 2026-09-30) — ⚠️ `role: .destructive` alone does
             // NOT tint a BORDERLESS image button on macOS, so it rendered grey.
-            Image(systemName: "minus.circle")
+            Image("inkwyn.remove.delete")
                 .foregroundStyle(.red)
         }
         .buttonStyle(.borderless)

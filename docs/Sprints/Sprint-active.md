@@ -1,5 +1,15 @@
 # Active Sprints
 
+*Last Updated: 2026-11-24 (**SP-242:** live pass ✅ (user, 2026-11-24: *"All steps pass on the Mac, iPad, and iPhone."*); AC1–AC4, AC6 [x]; T-0705 ✅ Verified; ⏳ AC5: CI on the push, then close.)*
+
+*Last Updated: 2026-11-24 (**SP-242:** built — the 10-item toolbar and the glyphs on the Mac and iOS; tests green; Q2 triggered (toolbar labels at Small); 4 deviations to rule; ⏳ live pass, CI on the push.)*
+
+*Last Updated: 2026-11-24 (**SP-242 → 🟡 ACTIVE** (user, 2026-11-24: *"Q1-Q6 as recommended, implement SP-242"*) → [`Sprint-SP-242.md`](Sprint-SP-242.md); Q1–Q6 as recommended.)*
+
+*Last Updated: 2026-11-24 (**SP-241 → ✅ CLOSED** (user, 2026-11-24: *"close SP-241, then plan Sprint 2"*) → `Closed/Sprint-SP-241.md`; T-0704 ✅ Verified, archived. No Sprint is active.)*
+
+*Last Updated: 2026-11-24 (**SP-241 🟠 Complete** — AC1–AC6 met; CI ✅ on `2892f96` (user, 2026-11-24: *"I committed and pushed. You can check the CI now."*); T-0704 ✅ Verified (the live pass). Awaiting close approval.)*
+
 *Last Updated: 2026-11-24 (**SP-241:** AC4 ✅ — the mapping approved (user, 2026-11-24: *"the proposed mapping is approved."*) with rulings (a)–(f): pips are art (a submenu marker), one Import/Export and one Tools toolbar button, the warnings glyph everywhere, card chevrons from the chapter glyphs, icons in Add Card. ⏳ AC6: CI on the push.)*
 
 *Last Updated: 2026-11-24 (**SP-241:** live pass ✅ (user, 2026-11-24: *"Step 3 passes now"*) — glyphs at 2× after runs 1–2; AC1–AC3, AC5 [x]; ⏳ AC4 (the mapping) and CI on the push.)*

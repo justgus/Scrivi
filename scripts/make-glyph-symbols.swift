@@ -158,9 +158,12 @@ final class SVGReader: NSObject, XMLParserDelegate {
                 shape = rx > 0 ? CGPath(roundedRect: r, cornerWidth: rx, cornerHeight: ry, transform: nil) : CGPath(rect: r, transform: nil)
             default: throw Failure(description: "\(file): unsupported element <\(name)>")
             }
-            // A pip is a small diamond at the tile's right edge (x ≥ 105 of 128), drawn in the group's own coordinates.
-            let isPip = dropPips && shape.map { $0.boundingBoxOfPath.minX >= 105 && $0.boundingBoxOfPath.width < 12 } == true
-            if let shape, group == nil || depthInGroup > 0, !isPip { paintShape(shape, paint) }
+            // A pip is a small diamond at the tile's right edge (x ≥ 105 of 128), drawn in the group's own coordinates — its own
+            // <path> (Worlds) or a subpath inside the glyph's main path (Close).
+            if var shape, group == nil || depthInGroup > 0 {
+                if dropPips { shape = withoutPipSubpaths(shape) }
+                if !shape.isEmpty { paintShape(shape, paint) }
+            }
         } catch {
             self.error = error; parser.abortParsing()
         }
@@ -188,13 +191,56 @@ final class SVGReader: NSObject, XMLParserDelegate {
     }
 }
 
+func isPip(_ box: CGRect) -> Bool { box.minX >= 105 && box.width < 12 && box.height < 12 }
+
+func subpaths(of path: CGPath) -> [CGMutablePath] {
+    var subpaths = [CGMutablePath]()
+    path.applyWithBlock { e in
+        let p = e.pointee.points
+        switch e.pointee.type {
+        case .moveToPoint: let m = CGMutablePath(); m.move(to: p[0]); subpaths.append(m)
+        case .addLineToPoint: subpaths.last?.addLine(to: p[0])
+        case .addQuadCurveToPoint: subpaths.last?.addQuadCurve(to: p[1], control: p[0])
+        case .addCurveToPoint: subpaths.last?.addCurve(to: p[2], control1: p[0], control2: p[1])
+        case .closeSubpath: subpaths.last?.closeSubpath()
+        @unknown default: break
+        }
+    }
+    return subpaths
+}
+
+/// The path without the subpaths that are pips.
+func withoutPipSubpaths(_ path: CGPath) -> CGPath {
+    let kept = CGMutablePath()
+    for sp in subpaths(of: path) where !isPip(sp.boundingBoxOfPath) { kept.addPath(sp) }
+    return kept
+}
+
+/// The drawing without stray specks: a tiny piece — under 0.15% of the canvas — that is ISOLATED, i.e. near no other piece (within
+/// 2% of the canvas). Merge-Large's and Import-Export-Large's slivers sit alone in empty space; a pip is ~0.5%; Item's handle diamond
+/// and Vehicles' edge knots are as small but touch neighbouring ink, so they stay. A speck widens the drawing, so aspect fit shrank
+/// the whole glyph (user, 2026-11-24: "Have the script ignore the stray specks").
+func withoutSpecks(_ path: CGPath, canvas: CGRect) -> CGPath {
+    let pieces = subpaths(of: path), boxes = pieces.map(\.boundingBoxOfPath)
+    let near = 0.02 * max(canvas.width, canvas.height)
+    let kept = CGMutablePath()
+    for (i, sp) in pieces.enumerated() {
+        let b = boxes[i]
+        let tiny = b.width * b.height < 0.0015 * canvas.width * canvas.height
+        let alone = !boxes.indices.contains { $0 != i && boxes[$0].intersects(b.insetBy(dx: -near, dy: -near)) }
+        if !(tiny && alone) { kept.addPath(sp) }
+    }
+    return kept
+}
+
 func readGlyph(_ url: URL, group: String? = nil, dropPips: Bool = false) throws -> CGPath {
     let reader = SVGReader(file: url.lastPathComponent + (group.map { " <g id=\($0)>" } ?? ""), group: group, dropPips: dropPips)
     let parser = XMLParser(data: try Data(contentsOf: url))
     parser.delegate = reader
     if !parser.parse() { throw reader.error ?? Failure(description: "\(url.lastPathComponent): \(parser.parserError?.localizedDescription ?? "unreadable")") }
     // An <svg> shows only what lies inside its viewBox (Item-Small nests one whose viewBox hides a leftover shape).
-    let visible = reader.result.intersection(CGPath(rect: reader.viewBox, transform: nil), using: .winding)
+    let visible = withoutSpecks(reader.result.intersection(CGPath(rect: reader.viewBox, transform: nil), using: .winding),
+                                canvas: reader.viewBox)
     if reader.viewBox.isEmpty { throw Failure(description: "\(reader.file): no viewBox\(group.map { " (no <view id=\"\($0)-view\">)" } ?? "")") }
     if visible.boundingBoxOfPath.isEmpty { throw Failure(description: "\(reader.file): draws nothing") }
     return visible
@@ -204,9 +250,9 @@ func readGlyph(_ url: URL, group: String? = nil, dropPips: Bool = false) throws 
 
 // Template geometry, taken from the template SF Symbols.app ships (point size 100): baseline → cap height is 70.459.
 let capHeight: CGFloat = 70.459
-// Medium: the ink fits a box this tall, or this wide for wide glyphs, centred on the cap height. TWICE Apple's kind symbols at
-// 100 pt (building.2 96×113, mappin.and.ellipse 92×106 ink): the art is detailed and read too small at their size (user, SP-241).
-let boxHeight: CGFloat = 212, boxWidth: CGFloat = 280
+// Medium: the ink fits a box this tall, or this wide for wide glyphs, centred on the cap height. 1.5× Apple's kind symbols at
+// 100 pt (building.2 96×113, mappin.and.ellipse 92×106 ink): 1× read too small (SP-241), 2× a bit oversized (user, SP-242).
+let boxHeight: CGFloat = 159, boxWidth: CGFloat = 210
 // Small and Large relative to Medium, measured from system symbols at 100 pt (circle.fill 93/117/151, person.fill 85/108/138).
 let scales: [(id: String, factor: CGFloat, baseline: CGFloat)] = [("S", 0.79, 696), ("M", 1.0, 1126), ("L", 1.29, 1556)]
 let regularX: CGFloat = 1394.4
@@ -334,12 +380,14 @@ func writeSheet(_ glyphs: [(name: String, drawings: [String: CGPath])], to url: 
 // MARK: - Self-check
 
 func selfCheck() throws {
-    // A 40×20 filled rect, a 10-wide stroked line below it, and a white square knocked out of the rect.
+    // A 40×20 filled rect, a 10-wide stroked line below it, a white square knocked out of the rect, and a lone 1×1 speck at
+    // (90, 2) that must be dropped — the box would reach x = 91 if it were kept.
     let svg = """
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
       <rect x="10" y="10" width="40" height="20"/>
       <rect x="20" y="15" width="10" height="10" fill="white"/>
       <g transform="translate(0 50)"><path d="M10 0 H50" fill="none" stroke="black" stroke-width="10"/></g>
+      <rect x="90" y="2" width="1" height="1"/>
     </svg>
     """
     let url = FileManager.default.temporaryDirectory.appendingPathComponent("glyph-selfcheck.svg")
@@ -371,9 +419,9 @@ do {
     // A set's glyphs get this prefix after "inkwyn." — the Runic Whimsy set is the toolbar's menu buttons, and its Close
     // is different art from the Utility set's Close.
     let setPrefix = ["Inkwyn_Runic_Whimsy_Glyphs": "Menu-"]
-    // The diamond pips mean "this button opens a menu". Worlds opens a sheet, so it is drawn without them
-    // (user, 2026-11-24: "drop the pips for worlds").
-    let withoutPips: Set<String> = ["Menu-Worlds"]
+    // The diamond pips mean "this button opens a menu". Worlds opens a sheet (user, 2026-11-24: "drop the pips for worlds") and
+    // Close Project closes the window, so both are drawn without them.
+    let withoutPips: Set<String> = ["Menu-Worlds", "Menu-Close"]
 
     // Anywhere under Resources/Icons → [Name: [Size: [(file, sprite group)]]]
     var found = [String: [String: [(url: URL, group: String?)]]]()

@@ -232,12 +232,12 @@ struct ObjectDetailSheet: View {
                 // specific object; tell her about THAT object.
                 unavailableView(unavailableStatus)
             } else if let loadError {
-                message(loadError, systemImage: "exclamationmark.triangle")
+                message(loadError, glyph: "inkwyn.warnings")
             } else if let detail {
                 content(for: detail)
             } else {
                 message("Select an object to see its details.",
-                        systemImage: "square.dashed")
+                        glyph: "square.dashed")
             }
 
             // ⚠️ [I-0246] — bottom status banner. See `actionStatus`.
@@ -496,7 +496,7 @@ struct ObjectDetailSheet: View {
         // key actually reaches. See `sheetObservers`.
         ToolbarItem(placement: .confirmationAction) {
             Button { requestClose() } label: {
-                Image(systemName: "xmark")
+                Image("inkwyn.close")
             }
             .help("Close the detail view (Esc)")
         }
@@ -551,7 +551,7 @@ struct ObjectDetailSheet: View {
                 // greyed-out field that explains nothing is the defect, not the
                 // fix — "disabled AND explained" is the rule.
                 if let banner = readOnlyBanner(for: detail) {
-                    Label(banner, systemImage: "lock")
+                    Label(banner, image: "inkwyn.locked")
                         .font(.callout)
                         .foregroundStyle(.secondary)
                         .padding(8)
@@ -579,7 +579,7 @@ struct ObjectDetailSheet: View {
                         "Your unsaved changes are held here only. "
                         + "They will be saved when this object's world is available "
                         + "again — but they will be lost if Inkwyn quits first.",
-                        systemImage: "exclamationmark.triangle.fill"
+                        image: "inkwyn.warnings"
                     )
                     .font(.callout)
                     .foregroundStyle(.orange)
@@ -688,7 +688,7 @@ struct ObjectDetailSheet: View {
                 }
 
                 if let saveError {
-                    Label(saveError, systemImage: "exclamationmark.triangle")
+                    Label(saveError, image: "inkwyn.warnings")
                         .font(.callout)
                         .foregroundStyle(.orange)
                 }
@@ -842,9 +842,9 @@ struct ObjectDetailSheet: View {
         return "This object's world is \(status.writerDescription)."
     }
 
-    private func message(_ text: String, systemImage: String) -> some View {
+    private func message(_ text: String, glyph: String) -> some View {
         VStack(spacing: 8) {
-            Image(systemName: systemImage).font(.title2)
+            Image(glyph: glyph).font(.title2)
             Text(text).multilineTextAlignment(.center)
         }
         .foregroundStyle(.secondary)
@@ -1158,7 +1158,7 @@ struct ObjectDetailSheet: View {
             }
             Button("Delete \(detail?.kind.capitalized ?? "Object")…", role: .destructive) { confirmingDelete = true }
         } label: {
-            Image(systemName: "ellipsis.circle")
+            Image("inkwyn.more.options")
         }
         .disabled(detail == nil || isSaving || isReadOnlyNow)
         .help("More")

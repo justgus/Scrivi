@@ -83,7 +83,7 @@ struct ObjectImageSection: View {
             controls
 
             if let actionError {
-                Label(actionError, systemImage: "exclamationmark.triangle")
+                Label(actionError, image: "inkwyn.warnings")
                     .font(.caption)
                     .foregroundStyle(.orange)
             }

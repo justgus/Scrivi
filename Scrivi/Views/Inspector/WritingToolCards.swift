@@ -300,7 +300,7 @@ private struct TodoCardBody: View {
                             Button {
                                 model.removeTodo(at: index)
                             } label: {
-                                Image(systemName: "xmark")
+                                Image("inkwyn.close")
                                     .font(.caption2)
                                     .foregroundStyle(.secondary)
                             }
@@ -354,7 +354,7 @@ struct CardErrorView: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 5) {
-            Image(systemName: "exclamationmark.triangle")
+            Image("inkwyn.warnings")
                 .font(.caption)
                 .foregroundStyle(.orange)
             Text(message)

@@ -18,25 +18,25 @@ PUBLIC "-//W3C//DTD SVG 1.1//EN"
   <line id="Baseline-S" style="fill:none;stroke:#27AAE1;opacity:1;stroke-width:0.5;" x1="263" x2="3036" y1="696" y2="696"/>
   <line id="Capline-S" style="fill:none;stroke:#27AAE1;opacity:1;stroke-width:0.5;" x1="263" x2="3036" y1="625.541" y2="625.541"/>
   <line id="left-margin-Regular-S" style="fill:none;stroke:#00AEEF;stroke-width:0.5;opacity:1.0;" x1="1394.4" x2="1394.4" y1="600.541" y2="721"/>
-  <line id="right-margin-Regular-S" style="fill:none;stroke:#00AEEF;stroke-width:0.5;opacity:1.0;" x1="1615.6" x2="1615.6" y1="600.541" y2="721"/>
+  <line id="right-margin-Regular-S" style="fill:none;stroke:#00AEEF;stroke-width:0.5;opacity:1.0;" x1="1560.3" x2="1560.3" y1="600.541" y2="721"/>
   <line id="Baseline-M" style="fill:none;stroke:#27AAE1;opacity:1;stroke-width:0.5;" x1="263" x2="3036" y1="1126" y2="1126"/>
   <line id="Capline-M" style="fill:none;stroke:#27AAE1;opacity:1;stroke-width:0.5;" x1="263" x2="3036" y1="1055.541" y2="1055.541"/>
   <line id="left-margin-Regular-M" style="fill:none;stroke:#00AEEF;stroke-width:0.5;opacity:1.0;" x1="1394.4" x2="1394.4" y1="1030.541" y2="1151"/>
-  <line id="right-margin-Regular-M" style="fill:none;stroke:#00AEEF;stroke-width:0.5;opacity:1.0;" x1="1674.4" x2="1674.4" y1="1030.541" y2="1151"/>
+  <line id="right-margin-Regular-M" style="fill:none;stroke:#00AEEF;stroke-width:0.5;opacity:1.0;" x1="1604.4" x2="1604.4" y1="1030.541" y2="1151"/>
   <line id="Baseline-L" style="fill:none;stroke:#27AAE1;opacity:1;stroke-width:0.5;" x1="263" x2="3036" y1="1556" y2="1556"/>
   <line id="Capline-L" style="fill:none;stroke:#27AAE1;opacity:1;stroke-width:0.5;" x1="263" x2="3036" y1="1485.541" y2="1485.541"/>
   <line id="left-margin-Regular-L" style="fill:none;stroke:#00AEEF;stroke-width:0.5;opacity:1.0;" x1="1394.4" x2="1394.4" y1="1460.541" y2="1581"/>
-  <line id="right-margin-Regular-L" style="fill:none;stroke:#00AEEF;stroke-width:0.5;opacity:1.0;" x1="1755.6" x2="1755.6" y1="1460.541" y2="1581"/>
+  <line id="right-margin-Regular-L" style="fill:none;stroke:#00AEEF;stroke-width:0.5;opacity:1.0;" x1="1665.3" x2="1665.3" y1="1460.541" y2="1581"/>
  </g>
  <g id="Symbols">
   <g id="Regular-S" transform="matrix(1 0 0 1 1394.4 696)">
-   <path class="monochrome-0 multicolor-0:tintColor hierarchical-0:primary" d="M110.6 -27.097L172.406 -101.915L221.2 -101.915L110.6 31.456L0 -101.915L48.794 -101.915Z"/>
+   <path class="monochrome-0 multicolor-0:tintColor hierarchical-0:primary" d="M82.95 -29.13L129.304 -85.243L165.9 -85.243L82.95 14.784L0 -85.243L36.596 -85.243Z"/>
   </g>
   <g id="Regular-M" transform="matrix(1 0 0 1 1394.4 1126)">
-   <path class="monochrome-0 multicolor-0:tintColor hierarchical-0:primary" d="M184 -31.23C160 -1.896 145.333 24.77 140 48.77C132 24.77 117.333 -1.896 96 -31.229C66.667 -60.563 34.667 -89.896 0 -119.229C42.667 -108.563 69.333 -101.896 80 -99.229L140 -19.23L200 -99.23C210.667 -101.896 237.333 -108.563 280 -119.23C245.333 -89.896 213.333 -60.563 184 -31.23Z"/>
+   <path class="monochrome-0 multicolor-0:tintColor hierarchical-0:primary" d="M138 -32.23C120 -10.23 109 9.77 105 27.77C99 9.77 88 -10.23 72 -32.229C50 -54.23 26 -76.23 0 -98.229C32 -90.229 52 -85.229 60 -83.229L105 -23.23L150 -83.23C158 -85.23 178 -90.23 210 -98.23C184 -76.23 160 -54.23 138 -32.23Z"/>
   </g>
   <g id="Regular-L" transform="matrix(1 0 0 1 1394.4 1556)">
-   <path class="monochrome-0 multicolor-0:tintColor hierarchical-0:primary" d="M242.384 -30.477C210.7 4.376 190.105 37.644 180.6 69.328C171.095 37.644 150.5 4.376 118.816 -30.477C83.963 -65.329 44.358 -101.766 0 -139.787C47.526 -120.777 82.379 -112.856 104.558 -116.024C133.074 -84.34 158.421 -51.072 180.6 -16.219C202.779 -51.072 228.126 -84.34 256.642 -116.024C278.821 -112.856 313.674 -120.777 361.2 -139.787C316.842 -101.766 277.237 -65.329 242.384 -30.477Z"/>
+   <path class="monochrome-0 multicolor-0:tintColor hierarchical-0:primary" d="M181.788 -31.665C158.025 -5.526 142.579 19.426 135.45 43.189C128.321 19.426 112.875 -5.526 89.112 -31.665C62.972 -57.804 33.268 -85.132 0 -113.648C35.645 -99.39 61.784 -93.449 78.418 -95.826C99.805 -72.062 118.816 -47.111 135.45 -20.972C152.084 -47.111 171.095 -72.062 192.482 -95.826C209.116 -93.449 235.255 -99.39 270.9 -113.648C237.632 -85.132 207.928 -57.805 181.788 -31.665Z"/>
   </g>
  </g>
 </svg>

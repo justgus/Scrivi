@@ -62,34 +62,34 @@ struct ObjectCardKind: Sendable, Hashable {
     /// (§3.1.1), not as a per-kind worldbuilding card.
     static let all: [ObjectCardKind] = [
         .init(kind: "character", typeID: "objects.characters", title: "Characters",
-              systemImage: "inkwyn.characters",   // EP-060 SP-241 spike
+              systemImage: "inkwyn.characters",
               preferredRelationType: "appears-in"),
         .init(kind: "location", typeID: "objects.locations", title: "Locations",
-              systemImage: "mappin.and.ellipse",
+              systemImage: "inkwyn.locations",
               preferredRelationType: "located-at"),
         .init(kind: "building", typeID: "objects.buildings", title: "Buildings",
-              systemImage: "building.2",
+              systemImage: "inkwyn.buildings",
               preferredRelationType: "appears-in"),
         .init(kind: "vehicle", typeID: "objects.vehicles", title: "Vehicles",
-              systemImage: "car",
+              systemImage: "inkwyn.vehicles",
               preferredRelationType: "appears-in"),
         .init(kind: "item", typeID: "objects.items", title: "Items",
-              systemImage: "shippingbox",
+              systemImage: "inkwyn.item",
               preferredRelationType: "appears-in"),
         .init(kind: "map", typeID: "objects.maps", title: "Maps",
-              systemImage: "map",
+              systemImage: "inkwyn.maps",
               preferredRelationType: "appears-in"),
         .init(kind: "artifact", typeID: "objects.artifacts", title: "Artifacts",
-              systemImage: "crown",
+              systemImage: "inkwyn.artifact",
               preferredRelationType: "appears-in"),
         .init(kind: "chronicle", typeID: "objects.chronicles", title: "Chronicles",
-              systemImage: "book.closed",
+              systemImage: "inkwyn.chronicles",
               preferredRelationType: "appears-in"),
         .init(kind: "faction", typeID: "objects.factions", title: "Factions",
-              systemImage: "flag.2.crossed",
+              systemImage: "inkwyn.factions",
               preferredRelationType: "appears-in"),
         .init(kind: "rule", typeID: "objects.rules", title: "Rules",
-              systemImage: "scroll",
+              systemImage: "inkwyn.rules",
               preferredRelationType: "appears-in"),
     ]
 
@@ -569,7 +569,7 @@ struct ObjectCardBody: View {
                     Button {
                         showPicker = true
                     } label: {
-                        Label("Add \(cardKind.title)…", systemImage: "plus")
+                        Label("Add \(cardKind.title)…", image: "inkwyn.add.create")
                             .font(.caption)
                     }
                     .buttonStyle(.borderless)
@@ -976,7 +976,7 @@ private struct PendingWorldFooter: View {
             VStack(alignment: .leading, spacing: 3) {
                 ForEach(groups, id: \.worldID) { group in
                     HStack(alignment: .firstTextBaseline, spacing: 5) {
-                        Image(systemName: "exclamationmark.triangle.fill")
+                        Image("inkwyn.warnings")
                             .font(.caption2)
                             .foregroundStyle(.orange)
                             // The icon is decorative; the sentence carries the meaning,
@@ -1096,7 +1096,7 @@ private struct ObjectCardRow: View {
             if entry.pending {
                 // ⚠ badge — the card is showing something it cannot currently
                 // reach (§7.2). Named, never a bare ID.
-                Image(systemName: "exclamationmark.triangle.fill")
+                Image("inkwyn.warnings")
                     .font(.caption2)
                     .foregroundStyle(.orange)
                     .help(pendingHelp)
@@ -1133,15 +1133,16 @@ private struct ObjectCardRow: View {
                         onViewDetail()
                     }
                 }
-                Button("Remove from Scene", systemImage: "minus.circle",
-                       role: .destructive, action: onRemove)
+                Button(role: .destructive, action: onRemove) {
+                    Label("Remove from Scene", image: "inkwyn.remove.delete")
+                }
                     .disabled(entry.pending)
             }
 
             Spacer(minLength: 4)
 
             Button(action: onRemove) {
-                Image(systemName: "minus.circle")
+                Image("inkwyn.remove.delete")
                     .font(.caption)
             }
             .buttonStyle(.borderless)

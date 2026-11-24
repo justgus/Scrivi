@@ -126,7 +126,7 @@ struct RelationTypesSection: View {
                     }
                     Spacer()
                     if type.builtIn {
-                        Image(systemName: "lock")
+                        Image("inkwyn.locked")
                             .foregroundStyle(.secondary)
                             .help("Built in: every project has it, and it can't be changed.")
                     } else {

@@ -199,7 +199,7 @@ private struct HistoryCardBody: View {
     private var staleSection: some View {
         VStack(alignment: .leading, spacing: 2) {
             Label("\(stale.count) abandoned \(stale.count == 1 ? "branch" : "branches")",
-                  systemImage: "exclamationmark.triangle")
+                  image: "inkwyn.warnings")
                 .font(.caption.weight(.medium))
                 .foregroundStyle(.secondary)
 

@@ -233,6 +233,7 @@ private struct ManuscriptEditorView: View {
                 .onChange(of: columnVisibility) { _, newValue in
                     session.navigatorVisible = (newValue != .detailOnly)
                 }
+                .onChange(of: session.navigatorVisible) { _, visible in followNavigatorVisible(visible) }
             }
         }
         .background(PanelSwipeInstaller { actions in actions.forEach(applyPanel) })
@@ -359,7 +360,8 @@ private struct ManuscriptEditorView: View {
             .toolbarRole(.editor)
             .toolbar {
                 ProjectToolbar(session: session, env: env,
-                               showInspectorPage: isCompact ? { applyPanel(.showInspector) } : nil)
+                               showInspectorPage: isCompact ? { applyPanel(.showInspector) } : nil,
+                               showNavigatorPage: isCompact ? { applyPanel(.showNavigator) } : nil)
             }
     }
 
@@ -382,6 +384,14 @@ private struct ManuscriptEditorView: View {
         case .hideInspector: session.inspectorVisible = false
         case .nextPage: break
         }
+    }
+
+    /// EP-060 SP-242, iPad: the toolbar's View ▸ Scene Navigator sets `session.navigatorVisible` and the sidebar follows it (the
+    /// Mac sends `toggleSidebar:` instead, as its menu bar does). A no-op when they already agree, so the recorder (sidebar →
+    /// session) and this (session → sidebar) cannot ping-pong.
+    private func followNavigatorVisible(_ visible: Bool) {
+        guard (columnVisibility != .detailOnly) != visible else { return }
+        columnVisibility = visible ? .all : .detailOnly
     }
     #endif
 

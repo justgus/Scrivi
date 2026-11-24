@@ -1,5 +1,13 @@
 # Active Epics
 
+*Last Updated: 2026-11-24 (**EP-060:** AC2, AC3 [x] — [SP-242] live pass ✅ on the Mac, iPad and iPhone; ⏳ its CI, then close. Next: Sprint 3, Linux.)*
+
+*Last Updated: 2026-11-24 (**EP-060:** [SP-242] 🟡 ACTIVE (user, 2026-11-24: *"Q1-Q6 as recommended, implement SP-242"*).)*
+
+*Last Updated: 2026-11-24 (**EP-060:** AC1, AC5 [x] ([SP-241]); [SP-242] (S2) created in 🔵 Planning (user, 2026-11-24: *"close SP-241, then plan Sprint 2"*); Q1–Q6 to rule.)*
+
+*Last Updated: 2026-11-24 (**EP-060:** [SP-241] ✅ closed (user, 2026-11-24: *"close SP-241, then plan Sprint 2"*); Sprint 2 planning.)*
+
 *Last Updated: 2026-11-24 (**EP-060:** the toolbar is reshaped on every platform — one Import/Export and one Tools button (user, 2026-11-24: *"same for all platforms."*); Worlds' glyph drawn without pips.)*
 
 *Last Updated: 2026-11-24 (**EP-060:** [SP-241] mapping approved with rulings (a)–(f) — ⚠️ Sprint 2 now also reshapes the toolbar (one Import/Export, one Tools button), and Sprint 3 (Linux) adopts that shape.)*
@@ -215,7 +223,7 @@
 
 ## EP-060: `[Cross]` **Inkwyn Look and Feel** — the Inkwyn app icon and glyph set on every platform
 
-**Status:** 🟡 **ACTIVE** 2026-11-24 (user, 2026-11-24: *"Ok we're activating EP-060 and planning the first sprint."*). ✅ Q1–Q7 as recommended (with [SP-241]'s activation, (user, 2026-11-24: *"Q1-Q7 as recommended, implement SP-241"*)); [SP-241] (S1) 🟡 Active, built.
+**Status:** 🟡 **ACTIVE** 2026-11-24 (user, 2026-11-24: *"Ok we're activating EP-060 and planning the first sprint."*). ✅ Q1–Q7 as recommended (with [SP-241]'s activation, (user, 2026-11-24: *"Q1-Q7 as recommended, implement SP-241"*)); [SP-241] (S1) ✅ closed 2026-11-24.
 **Goal:** Inkwyn looks like one app. The Inkwyn app icon replaces the Scrivi one, and wherever the Inkwyn glyph set has
 a glyph for a panel, toolbar verb or object kind, the app shows it — drawn from the SVG source, sharp at every size —
 in place of the generic SF Symbol (Apple) or Qt standard icon (Linux).
@@ -261,21 +269,22 @@ Sprints"*) — ⚠️ the Epic guidelines say one Epic per codebase; this follow
 
 | Sprint | Title | Status |
 |---|---|---|
-| [SP-241] | `[Apple]` S1: the glyph pipeline and the Inkwyn app icon ([T-0704]) | 🟡 Active, built → [`../Sprints/Sprint-SP-241.md`](../Sprints/Sprint-SP-241.md) |
+| [SP-241] | `[Apple]` S1: the glyph pipeline and the Inkwyn app icon ([T-0704]) | ✅ Closed 2026-11-24 → [`../Sprints/Closed/Sprint-SP-241.md`](../Sprints/Closed/Sprint-SP-241.md) |
+| [SP-242] | `[Apple]` S2: the glyphs in the app, and the smaller toolbar ([T-0705]) | 🟡 Active → [`../Sprints/Sprint-SP-242.md`](../Sprints/Sprint-SP-242.md) |
 
 Still to plan:
 
 1. ~~**[Apple] the pipeline and the icon**~~ = [SP-241] — the Q1 spike, the import script, the Q4 mapping table, the app icon.
-2. **[Apple] the glyphs** — swap the mapped call sites on macOS and iOS (one shared catalog), per [SP-241]'s approved mapping and rulings (a)–(f): ⚠️ including ONE Import/Export and ONE Tools toolbar button in place of six, the warnings glyph everywhere, and icons in Add Card.
+2. ~~**[Apple] the glyphs**~~ = [SP-242] — swap the mapped call sites on macOS and iOS (one shared catalog), per [SP-241]'s approved mapping and rulings (a)–(f): ⚠️ including ONE Import/Export and ONE Tools toolbar button in place of six, the warnings glyph everywhere, and icons in Add Card.
 3. **[Linux] the glyphs and the window icon** — Q6, and the same toolbar shape as Sprint 2.
 
 ### Acceptance Criteria (draft)
 
-- [ ] **AC1** The Mac and iOS apps show the Inkwyn app icon (Dock, Finder, Home Screen, App Switcher); no Scrivi icon art remains for macOS or iOS (visionOS's stays until visionOS is built: Q3, [SP-241] Q7).
-- [ ] **AC2** Every glyph in the approved mapping (Q4) is shown at every mapped place on the Mac and iOS, sharp at 1×/2×/3× and in light and dark.
-- [ ] **AC3** Small/Medium/Large are chosen by size, not by hand at each call site.
+- [x] **AC1** The Mac and iOS apps show the Inkwyn app icon (Dock, Finder, Home Screen, App Switcher); no Scrivi icon art remains for macOS or iOS (visionOS's stays until visionOS is built: Q3, [SP-241] Q7).
+- [x] **AC2** Every glyph in the approved mapping (Q4) is shown at every mapped place on the Mac and iOS, sharp at 1×/2×/3× and in light and dark.
+- [x] **AC3** Small/Medium/Large are chosen by size, not by hand at each call site.
 - [ ] **AC4** Linux shows the same mapped glyphs and the Inkwyn window icon, legible in light and dark themes.
-- [ ] **AC5** The glyphs are built from the SVG sources in `Resources/Icons/` by a repeatable step — re-running it after the artist changes a file updates every platform.
+- [x] **AC5** The glyphs are built from the SVG sources in `Resources/Icons/` by a repeatable step — re-running it after the artist changes a file updates every platform.
 
 ---
 

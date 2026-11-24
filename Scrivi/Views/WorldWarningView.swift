@@ -164,7 +164,7 @@ struct WorldWarningView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
-                Image(systemName: "exclamationmark.triangle.fill")
+                Image("inkwyn.warnings")
                     .foregroundStyle(.orange)
                     .accessibilityHidden(true)
                 Text(headline)
@@ -179,7 +179,7 @@ struct WorldWarningView: View {
                 Button {
                     model.dismissed = true
                 } label: {
-                    Image(systemName: "xmark")
+                    Image("inkwyn.close")
                         .font(.caption2)
                 }
                 .buttonStyle(.borderless)
