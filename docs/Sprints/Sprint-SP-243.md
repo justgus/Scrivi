@@ -1,6 +1,6 @@
 # Sprint SP-243 — `[Linux]` [EP-060] S3: the Inkwyn glyphs and the 8-item toolbar on Linux
 
-**Status:** 🟡 **ACTIVE**, built 2026-11-24 (Docker + Qt 6.10 green; ⏳ CI on the push, the live pass on `scrivi-vm`). Activated 2026-11-24 (user, 2026-11-24: *"Q1-Q8 as recommended, implement SP-243"*); ✅ Q1–Q8 as recommended. Created 2026-11-24
+**Status:** 🟡 **ACTIVE** — AC1–AC5 ✅; live pass on `scrivi-vm` ✅ (user, 2026-11-24: *"Steps 1-11 pass."*); ⏳ AC6: CI on the push. Activated 2026-11-24 (user, 2026-11-24: *"Q1-Q8 as recommended, implement SP-243"*); ✅ Q1–Q8 as recommended. Created 2026-11-24
 (user, 2026-11-24: *"close SP-242, then plan Sprint 3"*).
 **Carries:** [T-0706].
 **Epic:** [EP-060] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md) — Sprint 3 of 3; closes AC4 (*"Linux shows the same mapped
@@ -61,12 +61,12 @@ shape) — the 8-item toolbar, the menu headers, the glyph mapping, 1.5×, Large
 
 ## Acceptance Criteria
 
-- [ ] **AC1** The toolbar is the Mac's 8 items in its order, every one on its Large glyph, each drop-down opening with its header and
+- [x] **AC1** The toolbar is the Mac's 8 items in its order, every one on its Large glyph, each drop-down opening with its header and
   working (Import/Export submenus, Tools); no Qt drop-down arrow; » shows `menu.expansion`.
-- [ ] **AC2** Cards, tabs, the detail bar, the Navigator's chapter arrows and every former "⚠" show their glyphs (Q6, Q7).
-- [ ] **AC3** Every glyph is legible in a light and a dark theme, and sharp at 1× and 2× (`GlyphIcon` tints and renders per paint).
-- [ ] **AC4** The window shows the Inkwyn icon.
-- [ ] **AC5** The Linux glyphs come from the same script run as the Apple symbols; a second run changes nothing.
+- [x] **AC2** Cards, tabs, the detail bar, the Navigator's chapter arrows and every former "⚠" show their glyphs (Q6, Q7).
+- [x] **AC3** Every glyph is legible in a light and a dark theme, and sharp at 1× and 2× (`GlyphIcon` tints and renders per paint).
+- [x] **AC4** The window shows the Inkwyn icon.
+- [x] **AC5** The Linux glyphs come from the same script run as the Apple symbols; a second run changes nothing.
 - [ ] **AC6** Docker build + ctest/smokes green (non-root); CI green on the push; live pass on `scrivi-vm`.
 
 ## What was built (2026-11-24)
@@ -107,3 +107,7 @@ shape) — the 8-item toolbar, the menu headers, the glyph mapping, 1.5×, Large
 - ✅ Also green (Docker, Qt 6.4, non-root): inspector_stack, inspector_objects, object_detail, world_warning, navigator_search, branch,
   buffers, settings.
 - ⚠️ `scrivi-vm` was not running, so nothing was built there; the live pass builds it.
+
+## Live pass (2026-11-24)
+
+✅ Steps 1–11 on `scrivi-vm` (user, 2026-11-24: *"Steps 1-11 pass."*) — the toolbar, headers, Import/Export, Tools, cards, tabs, the Navigator's chapter glyphs, dark theme, the window icon.

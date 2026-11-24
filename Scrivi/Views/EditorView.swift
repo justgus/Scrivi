@@ -237,6 +237,7 @@ private struct ManuscriptEditorView: View {
             }
         }
         .background(PanelSwipeInstaller { actions in actions.forEach(applyPanel) })
+        .background(ToolbarOverflowWatchInstaller())   // [I-0373]: is ⋯ the menu being opened
         .accessibilityAction(named: "Scene Navigator") { applyPanel(.showNavigator) }
         .accessibilityAction(named: "Scene Inspector") { applyPanel(.showInspector) }
         .accessibilityAction(named: session.timelineVisible ? "Hide Timeline" : "Show Timeline") {

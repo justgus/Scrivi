@@ -1,5 +1,7 @@
 # Active Sprints
 
+*Last Updated: 2026-11-24 (**SP-243:** live pass ✅ (user, 2026-11-24: *"Steps 1-11 pass."*); AC1–AC5 [x]; ⏳ AC6: CI on the push.)*
+
 *Last Updated: 2026-11-24 (**SP-243:** built — GlyphIcon, the 8-item toolbar and every mapped place on Linux; Docker (Qt 6.4) and Qt 6.10 green; ⏳ CI on the push, live pass on `scrivi-vm`.)*
 
 *Last Updated: 2026-11-24 (**SP-243 → 🟡 ACTIVE** (user, 2026-11-24: *"Q1-Q8 as recommended, implement SP-243"*) → [`Sprint-SP-243.md`](Sprint-SP-243.md); Q1–Q8 as recommended.)*

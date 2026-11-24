@@ -250,13 +250,9 @@ struct ProjectToolbar: ToolbarContent {
 
     /// The top of a toolbar menu: the button it opened from, then a divider. Choosing it does nothing, and choosing any item
     /// closes a menu, so it dismisses the menu as a tap outside would (user, 2026-11-24 — as iOS shows an overflowed item's
-    /// submenu). Width compact (iPhone) leaves it out: its items are always in the ⋯ overflow, where the system already shows
-    /// this header. ⚠️ An iPad item the system overflows into ⋯ shows both.
+    /// submenu). ✅ [I-0373]: left out while the iPhone's ⋯ overflow is open, where the system shows this header itself.
     @ViewBuilder private func menuHeader(_ title: String, _ glyph: String) -> some View {
-        if showInspectorPage == nil {
-            Button {} label: { Label(title, image: glyph) }
-            Divider()
-        }
+        ToolbarMenuHeader(title: title, glyph: glyph)
     }
 
     /// A menu entry for an existing closure, disabled where the platform has not wired it yet (SP-199 AC3).
@@ -275,3 +271,88 @@ struct ProjectToolbar: ToolbarContent {
         #endif
     }
 }
+
+/// A toolbar menu's own header (see `ProjectToolbar.menuHeader`).
+private struct ToolbarMenuHeader: View {
+    let title: String
+    let glyph: String
+    var body: some View {
+        #if os(iOS)
+        if !ToolbarOverflowWatch.shared.hidesMenuHeaders {
+            Button {} label: { Label(title, image: glyph) }
+            Divider()
+        }
+        #else
+        Button {} label: { Label(title, image: glyph) }
+        Divider()
+        #endif
+    }
+}
+
+#if os(iOS)
+import UIKit
+
+/// ✅ [I-0373] — whether the toolbar's ⋯ OVERFLOW is the menu being opened, on an iPhone-type device.
+///
+/// ⚠️ SwiftUI builds every toolbar menu ONCE (measured 2026-11-24: each menu's content and environment are identical on the bar
+/// and in ⋯, and opening one evaluates nothing), so a menu cannot ask where it is shown. When the iPhone overflows an item, the
+/// system pulls it into the top of its submenu as a header, and ours made two. ✅ What CAN be seen is the tap that opens a menu:
+/// a window recognizer (it never takes the touch) checks the touched navigation-bar button against the bar's own items
+/// (`UINavigationBar.topItem` item groups, public): the button showing one of OUR items' images is one of ours; any other is the
+/// overflow button. Menus re-read `hidesMenuHeaders` and SwiftUI rebuilds them before the submenu opens (14 ms, Duo simulator).
+/// ⚠️ iPhone-type devices only: the iPad's ⋯ opens a CASCADING submenu with NO system header (measured), so ours stays there.
+@Observable @MainActor final class ToolbarOverflowWatch {
+    static let shared = ToolbarOverflowWatch()
+    private(set) var overflowOpen = false
+    var hidesMenuHeaders: Bool { overflowOpen && UIDevice.current.userInterfaceIdiom == .phone }
+
+    fileprivate func touched(_ control: UIControl, in bar: UINavigationBar) {
+        func images(_ v: UIView) -> [UIImage] { ((v as? UIImageView)?.image.map { [$0] } ?? []) + v.subviews.flatMap(images) }
+        let shown = images(control)
+        let groups = (bar.topItem?.leadingItemGroups ?? []) + (bar.topItem?.centerItemGroups ?? [])
+            + (bar.topItem?.trailingItemGroups ?? [])
+        let ours = groups.flatMap(\.barButtonItems).contains { item in shown.contains { $0 === item.image } }
+        overflowOpen = !ours
+    }
+}
+
+/// Installs the recognizer that feeds `ToolbarOverflowWatch` on the editor's window (as `PanelSwipeInstaller` does).
+struct ToolbarOverflowWatchInstaller: UIViewRepresentable {
+    func makeUIView(context: Context) -> InstallerView {
+        let v = InstallerView()
+        v.isUserInteractionEnabled = false
+        return v
+    }
+    func updateUIView(_ v: InstallerView, context: Context) {}
+
+    final class InstallerView: UIView {
+        private let watcher = Watcher()
+        override func didMoveToWindow() {
+            super.didMoveToWindow()
+            watcher.view?.removeGestureRecognizer(watcher)
+            window?.addGestureRecognizer(watcher)
+        }
+    }
+
+    /// Looks at each touch's start and FAILS at once: it never recognizes, delays or cancels anything.
+    final class Watcher: UIGestureRecognizer {
+        init() {
+            super.init(target: nil, action: nil)
+            cancelsTouchesInView = false
+            delaysTouchesBegan = false
+            delaysTouchesEnded = false
+        }
+        override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent) {
+            defer { state = .failed }
+            var view = touches.first?.view
+            var control: UIControl?
+            while let v = view, !(v is UINavigationBar) {
+                if control == nil, let c = v as? UIControl { control = c }
+                view = v.superview
+            }
+            guard let bar = view as? UINavigationBar, let control else { return }
+            MainActor.assumeIsolated { ToolbarOverflowWatch.shared.touched(control, in: bar) }
+        }
+    }
+}
+#endif
