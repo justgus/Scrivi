@@ -1,5 +1,11 @@
 # Active Sprints
 
+*Last Updated: 2026-11-24 (**SP-241:** AC4 ✅ — the mapping approved (user, 2026-11-24: *"the proposed mapping is approved."*) with rulings (a)–(f): pips are art (a submenu marker), one Import/Export and one Tools toolbar button, the warnings glyph everywhere, card chevrons from the chapter glyphs, icons in Add Card. ⏳ AC6: CI on the push.)*
+
+*Last Updated: 2026-11-24 (**SP-241:** live pass ✅ (user, 2026-11-24: *"Step 3 passes now"*) — glyphs at 2× after runs 1–2; AC1–AC3, AC5 [x]; ⏳ AC4 (the mapping) and CI on the push.)*
+
+*Last Updated: 2026-11-24 (**SP-241 → 🟡 ACTIVE** (user, 2026-11-24: *"Q1-Q7 as recommended, implement SP-241"*) → [`Sprint-SP-241.md`](Sprint-SP-241.md); Q1–Q7 (and EP-060 Q1–Q7) as recommended. Built — AC1–AC3, AC5, AC6 met locally (CI on the push); ⏳ AC4 (the mapping) and the live pass; T-0704 → 🟠 `Task-unverified.md`.)*
+
 *Last Updated: 2026-11-23 (**SP-240 → ✅ CLOSED** (user, 2026-11-23: *"Step 2 passes now, close SP-240"*) → `Closed/Sprint-SP-240.md`; T-0703 and I-0372 ✅ Verified, archived. No Sprint is active.)*
 
 *Last Updated: 2026-11-23 (**SP-240 → 🟡 ACTIVE** (user, 2026-11-23: *"Q1-Q4 as recommended.  Implement SP-240"*) → [`Sprint-SP-240.md`](Sprint-SP-240.md); built — AC1–AC2 met; ⏳ AC4 live pass.)*

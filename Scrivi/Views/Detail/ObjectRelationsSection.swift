@@ -186,7 +186,7 @@ struct ObjectRelationsSection: View {
     @ViewBuilder
     private func row(_ edge: EdgeView) -> some View {
         HStack(spacing: 6) {
-            Image(systemName: edge.otherPending
+            Image(glyph: edge.otherPending
                   ? "exclamationmark.triangle.fill"
                   : symbol(for: edge.otherKind))
                 .font(.caption)

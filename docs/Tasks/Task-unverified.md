@@ -1,5 +1,7 @@
 # Unverified Tasks
 
+*Last Updated: 2026-11-24 (**T-0704 → 🟠** ([SP-241] built) (user, 2026-11-24: *"Q1-Q7 as recommended, implement SP-241"*).)*
+
 *Last Updated: 2026-11-23 (**T-0703 archived** → `Verified/Task-verified-0703.md` with [SP-240]'s close (user, 2026-11-23: *"Step 2 passes now, close SP-240"*).)*
 
 *Last Updated: 2026-11-23 (**T-0703 → ✅ Verified** (user, 2026-11-23: *"All steps pass on the Linux VM and the Mac."*); archived when [SP-240] closes.)*
@@ -192,6 +194,21 @@ in the backlog carrying a 🟠 status.
 
 
 
+
+## 🟠 T-0704 — `[Apple]` EP-060 S1: the glyph pipeline (SVG → custom SF Symbols) and the Inkwyn app icon
+
+**Epic:** [EP-060] · **Status:** 🟠 Implemented - Not Verified · **Sprint:** [SP-241] → [`../Sprints/Sprint-SP-241.md`](../Sprints/Sprint-SP-241.md)
+· **Date Requested:** 2026-11-24 (user, 2026-11-24: *"Ok we're activating EP-060 and planning the first sprint."*)
+
+**What:** `scripts/make-glyph-symbols.swift` turns `Resources/Icons` into 46 `inkwyn.*` custom symbols in the asset catalog;
+`inkwyn.characters` replaces `person.2` on the Characters card (the spike); `Scrivi/Inkwyn.icon` is the Mac and iOS app icon.
+
+**Built:** `scripts/make-glyph-symbols.swift`; `Scrivi/Assets.xcassets/Glyphs/` (generated); `Scrivi/Views/Glyph.swift`;
+`InspectorCardStackView.swift`, `ObjectRelationsSection.swift`, `ObjectCard.swift` (through the helper); `Scrivi/Inkwyn.icon`;
+`project.pbxproj` (Glyph.swift, Inkwyn.icon, the app-icon name); `AppIconMacOS`/`AppIconIOS` deleted; `.gitignore`.
+Details, the mapping and the live pass: the Sprint.
+
+---
 
 ## 🟠 T-0656 — `[Linux]` Landing: a warm grey background with a little depth
 

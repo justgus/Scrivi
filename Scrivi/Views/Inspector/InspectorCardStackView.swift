@@ -58,7 +58,7 @@ struct InspectorCardStackView: View {
                             guard let sceneID else { return }
                             layout.addCard(typeID: card.typeID, sceneID: sceneID, stack: stack)
                         } label: {
-                            Label(card.title, systemImage: card.systemImage)
+                            Label(card.title, glyph: card.systemImage)
                         }
                         .disabled(sceneID == nil || isPresent(card.typeID))
                     }
@@ -302,7 +302,7 @@ private struct InspectorCardView: View {
             .buttonStyle(.plain)
             .help(entry.collapsed ? "Expand" : "Collapse")
 
-            Image(systemName: card.systemImage)
+            Image(glyph: card.systemImage)
                 .font(.caption)
                 .foregroundStyle(.secondary)
 

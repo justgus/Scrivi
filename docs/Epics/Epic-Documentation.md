@@ -98,6 +98,7 @@ user-approved), ⛔ not from either copy.\*\* ⚠️ **The table is now ONE unbr
 | EP-058 | `[Cross]` **Authorship** — pen names, several ordered authors per project, authors for worlds, writing as the right author on every machine; blocks [EP-054] AC9 | ✅ **CLOSED** 2026-11-11 (user-approved) → [record](Closed/Epic-EP-058.md) | 2026-11-10 | 2026-11-11 |
 | EP-057 | `[Linux]` **Linux Rig Verification** — standing; every Linux live pass waiting for the rig, one Task each, so no Sprint is held open on the rig | 🟡 **ACTIVE** 2026-11-02 (standing, never completes) | — |
 | EP-059 | `[Linux]` **Linux catches up with the Mac** — every capability gap from the 2026-11-20 review (G1–G9): objects, detail sheet, relationships and sources (EP-035/036/037 carried in), world creation and warnings, untitled-scene titles, Go To, Navigator search | ✅ **CLOSED** 2026-11-23 (user-approved) → [record](Closed/Epic-EP-059.md) | 2026-11-20 | 2026-11-23 |
+| EP-060 | `[Cross]` **Inkwyn Look and Feel** — the Inkwyn app icon and the Inkwyn glyph set (47 glyphs, from SVG) in place of Scrivi art and generic SF Symbols / Qt icons; a Sprint per platform | 🟡 **ACTIVE** 2026-11-24 — Q1–Q7 as recommended | [SP-241] (S1, 🟡 Active) |
 
 ## Statistics
 

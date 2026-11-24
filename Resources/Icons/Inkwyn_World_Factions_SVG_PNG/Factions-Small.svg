@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 140">
+<!-- flared heraldic shield -->
+<path d="M60 6 Q75 21 92 23 L109 19 L108 82 Q105 111 60 135 Q15 111 12 82 L11 19 L28 23 Q45 21 60 6Z" fill="none" stroke="black" stroke-width="8" stroke-linejoin="round"/>
+<!-- crossed key shafts -->
+<g stroke="black" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round">
+<path d="M42 44 L82 98 M78 44 L38 98"/>
+</g>
+<!-- key bows, differentiated from X -->
+<circle cx="39" cy="40" r="12" fill="white" stroke="black" stroke-width="7"/>
+<circle cx="81" cy="40" r="12" fill="white" stroke="black" stroke-width="7"/>
+<!-- notched key bits -->
+<path d="M76 91 L91 96 L86 105 L82 102 L79 109 L70 102Z M44 91 L29 96 L34 105 L38 102 L41 109 L50 102Z" fill="black"/>
+<!-- top runic diamond -->
+<path d="M60 13 L66 23 L60 33 L54 23Z" fill="black"/>
+</svg>

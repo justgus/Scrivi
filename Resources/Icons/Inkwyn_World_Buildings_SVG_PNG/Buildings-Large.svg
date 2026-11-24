@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 104" width="512" height="512">
+<!-- Sweeping upturned eaves: primary recognizability -->
+<path d="M10 51 Q18 57 27 47 L52 19 L60 11 L68 19 L93 47 Q102 57 110 51 Q110 65 95 61 L87 56 L60 28 L33 56 L25 61 Q10 65 10 51Z" fill="black"/>
+<!-- crossed roof beams -->
+<path d="M50 7 L59 17 L69 7 L74 12 L64 22 L71 29 L66 34 L59 27 L52 34 L47 29 L54 22 L45 12Z" fill="black"/>
+<!-- gable inner timber frame -->
+<path d="M31 57 L31 88 M89 57 L89 88 M41 45 L41 88 M79 45 L79 88 M42 49 L60 31 L78 49 M46 43 L74 43" fill="none" stroke="black" stroke-width="4.8" stroke-linecap="round" stroke-linejoin="round"/>
+<!-- shoulders and foundation -->
+<path d="M23 62 L23 88 L8 88 L8 95 L112 95 L112 88 L97 88 L97 62 M8 88 L28 88 M92 88 L112 88" fill="none" stroke="black" stroke-width="5" stroke-linejoin="round"/>
+<!-- Center arch / doorway is a deep black silhouette -->
+<path d="M47 94 L47 70 Q47 59 60 52 Q73 59 73 70 L73 94Z" fill="black"/>
+<!-- runic roof diamond -->
+<path d="M60 32 L68 40 L60 48 L52 40Z M60 36 L56 40 L60 44 L64 40Z" fill="black" fill-rule="evenodd"/>
+<!-- diagonal structural braces -->
+<path d="M33 65 L43 55 M87 65 L77 55 M24 85 L32 76 M96 85 L88 76" fill="none" stroke="black" stroke-width="3.6" stroke-linecap="round"/>
+<!-- corner masonry indication -->
+<path d="M9 84 L23 84 M97 84 L111 84 M11 77 L23 77 M97 77 L109 77" fill="none" stroke="black" stroke-width="2.7" stroke-linecap="round"/>
+<!-- rustic timber ticks -->
+<path d="M36 70 L36 78 M84 70 L84 78 M15 85 L15 88 M105 85 L105 88" fill="none" stroke="black" stroke-width="2.2" stroke-linecap="round"/>
+</svg>

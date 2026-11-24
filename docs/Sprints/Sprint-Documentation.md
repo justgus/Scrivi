@@ -506,6 +506,7 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-238** | `[Linux]` **[EP-059] C5** — custom relationship types on Linux (T-0472) | EP-059 | 2026-11-23 | 2026-11-23 | ✅ **CLOSED** → [`Closed/Sprint-SP-238.md`](Closed/Sprint-SP-238.md) |
 | **SP-239** | `[Apple]` **[EP-059] A8** — Delete and Change Kind for objects on the Mac and iOS (T-0702) | EP-059 | 2026-11-23 | 2026-11-23 | ✅ **CLOSED** → [`Closed/Sprint-SP-239.md`](Closed/Sprint-SP-239.md) |
 | **SP-240** | `[Linux]` **[EP-059] A9** — Delete and Change Kind for objects on Linux (T-0703) | EP-059 | 2026-11-23 | 2026-11-23 | ✅ **CLOSED** → [`Closed/Sprint-SP-240.md`](Closed/Sprint-SP-240.md) |
+| **SP-241** | `[Apple]` **[EP-060] S1** — the glyph pipeline and the Inkwyn app icon (T-0704) | EP-060 | 2026-11-24 | — | 🟡 **ACTIVE** → [`Sprint-SP-241.md`](Sprint-SP-241.md) |
 | **SP-235** | `[Linux]` **[EP-059] B** — the object detail view and its image (T-0697) | EP-059 | 2026-11-22 | 2026-11-22 | ✅ **CLOSED** → [`Closed/Sprint-SP-235.md`](Closed/Sprint-SP-235.md) |
 | **SP-234** | `[Linux]` **[EP-059] A** — the object verbs on a card (T-0696) | EP-059 | 2026-11-22 | 2026-11-22 | ✅ **CLOSED** → [`Closed/Sprint-SP-234.md`](Closed/Sprint-SP-234.md) |
 | **SP-233** | `[Linux]` **[EP-059] A** — the Scene Inspector's card stacks (T-0695, T-0491) | EP-059 | 2026-11-21 | 2026-11-22 | ✅ **CLOSED** → [`Closed/Sprint-SP-233.md`](Closed/Sprint-SP-233.md) |
@@ -548,6 +549,10 @@ by status, read the table.**
 > on neither time. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-11-24 (**SP-241 → 🟡 ACTIVE**.)*
+
+*Last Updated: 2026-11-24 (**SP-241 created in 🔵 Planning** — EP-060 S1.)*
 
 *Last Updated: 2026-11-23 (**SP-240 → ✅ CLOSED** (user, 2026-11-23: *"Step 2 passes now, close SP-240"*).)*
 

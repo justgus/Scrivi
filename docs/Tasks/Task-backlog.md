@@ -1,5 +1,9 @@
 # Task Backlog
 
+*Last Updated: 2026-11-24 (**T-0704 removed** → `Task-unverified.md` ([SP-241] built) (user, 2026-11-24: *"Q1-Q7 as recommended, implement SP-241"*).)*
+
+*Last Updated: 2026-11-24 (**T-0704 filed** — EP-060 S1 ([SP-241], 🔵 Planning) (user, 2026-11-24: *"Ok we're activating EP-060 and planning the first sprint."*).)*
+
 *Last Updated: 2026-11-23 (**T-0703 removed** → `Task-unverified.md` ([SP-240] built) (user, 2026-11-23: *"Q1-Q4 as recommended.  Implement SP-240"*).)*
 
 *Last Updated: 2026-11-22 (**T-0700 → active** with [SP-237]'s activation (user, 2026-11-22: *"Q1-Q7 as recommended, implement SP-237"*); built the same day → 🟠 `Task-unverified.md`. T-0701 kept (Q5 as recommended).)*

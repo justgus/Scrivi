@@ -10,6 +10,8 @@
 		86BF02842FEDE0AE00531EAC /* Scrivi/Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = ASSETS_REF /* Scrivi/Assets.xcassets */; };
 		86BF02862FEDE0BF00531EAC /* Scrivi/Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = ASSETS_REF /* Scrivi/Assets.xcassets */; };
 		ASSETS_BF /* Scrivi/Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = ASSETS_REF /* Scrivi/Assets.xcassets */; };
+		ICON_BF1 /* Scrivi/Inkwyn.icon in Resources */ = {isa = PBXBuildFile; fileRef = ICON_REF /* Scrivi/Inkwyn.icon */; };
+		ICON_BF2 /* Scrivi/Inkwyn.icon in Resources */ = {isa = PBXBuildFile; fileRef = ICON_REF /* Scrivi/Inkwyn.icon */; };
 		C001_BF /* ScriviApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C001 /* ScriviApp.swift */; };
 		C002_BF /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = C002 /* AppEnvironment.swift */; };
 		C003_BF /* LandingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C003 /* LandingView.swift */; };
@@ -71,6 +73,7 @@
 		C091_BF /* ManuscriptUITextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C091 /* ManuscriptUITextView.swift */; };
 		C092_BF /* ProjectToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = C092 /* ProjectToolbar.swift */; };
 		C093_BF /* PanelSwipes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C093 /* PanelSwipes.swift */; };
+		C2A7_BF /* Glyph.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A7 /* Glyph.swift */; };
 		C094_BF /* ManuscriptStructure.swift in Sources */ = {isa = PBXBuildFile; fileRef = C094 /* ManuscriptStructure.swift */; };
 		C099_BF /* ScriviDiag.swift in Sources */ = {isa = PBXBuildFile; fileRef = C099 /* ScriviDiag.swift */; };
 		C210A_BF /* AuthorshipViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = C210A /* AuthorshipViews.swift */; };
@@ -144,6 +147,7 @@
 		D091_BF /* ManuscriptUITextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C091 /* ManuscriptUITextView.swift */; };
 		D092_BF /* ProjectToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = C092 /* ProjectToolbar.swift */; };
 		D093_BF /* PanelSwipes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C093 /* PanelSwipes.swift */; };
+		D2A7_BF /* Glyph.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A7 /* Glyph.swift */; };
 		D094_BF /* ManuscriptStructure.swift in Sources */ = {isa = PBXBuildFile; fileRef = C094 /* ManuscriptStructure.swift */; };
 		D099_BF /* ScriviDiag.swift in Sources */ = {isa = PBXBuildFile; fileRef = C099 /* ScriviDiag.swift */; };
 		D210A_BF /* AuthorshipViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = C210A /* AuthorshipViews.swift */; };
@@ -216,6 +220,7 @@
 		E091_BF /* ManuscriptUITextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C091 /* ManuscriptUITextView.swift */; };
 		E092_BF /* ProjectToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = C092 /* ProjectToolbar.swift */; };
 		E093_BF /* PanelSwipes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C093 /* PanelSwipes.swift */; };
+		E2A7_BF /* Glyph.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A7 /* Glyph.swift */; };
 		E094_BF /* ManuscriptStructure.swift in Sources */ = {isa = PBXBuildFile; fileRef = C094 /* ManuscriptStructure.swift */; };
 		E099_BF /* ScriviDiag.swift in Sources */ = {isa = PBXBuildFile; fileRef = C099 /* ScriviDiag.swift */; };
 		E210A_BF /* AuthorshipViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = C210A /* AuthorshipViews.swift */; };
@@ -255,6 +260,7 @@
 
 /* Begin PBXFileReference section */
 		ASSETS_REF /* Scrivi/Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Scrivi/Assets.xcassets; sourceTree = SOURCE_ROOT; };
+		ICON_REF /* Scrivi/Inkwyn.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = Scrivi/Inkwyn.icon; sourceTree = SOURCE_ROOT; };
 		B010 /* ScriviEngine.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ScriviEngine.swift; path = Scrivi/Engine/ScriviEngine.swift; sourceTree = SOURCE_ROOT; };
 		B011 /* ScriviError.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ScriviError.swift; path = Scrivi/Engine/ScriviError.swift; sourceTree = SOURCE_ROOT; };
 		B012 /* ScriviEngineGraph.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ScriviEngineGraph.swift; path = Scrivi/Engine/ScriviEngineGraph.swift; sourceTree = SOURCE_ROOT; };
@@ -318,6 +324,7 @@
 		C091 /* ManuscriptUITextView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptUITextView.swift; path = Scrivi/Views/ManuscriptUITextView.swift; sourceTree = SOURCE_ROOT; };
 		C092 /* ProjectToolbar.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ProjectToolbar.swift; path = Scrivi/Views/ProjectToolbar.swift; sourceTree = SOURCE_ROOT; };
 		C093 /* PanelSwipes.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = PanelSwipes.swift; path = Scrivi/Views/PanelSwipes.swift; sourceTree = SOURCE_ROOT; };
+		C2A7 /* Glyph.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Glyph.swift; path = Scrivi/Views/Glyph.swift; sourceTree = SOURCE_ROOT; };
 		C094 /* ManuscriptStructure.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptStructure.swift; path = Scrivi/Views/ManuscriptStructure.swift; sourceTree = SOURCE_ROOT; };
 		C099 /* ScriviDiag.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ScriviDiag.swift; path = Scrivi/App/ScriviDiag.swift; sourceTree = SOURCE_ROOT; };
 		C210A /* AuthorshipViews.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = AuthorshipViews.swift; path = Scrivi/Views/AuthorshipViews.swift; sourceTree = SOURCE_ROOT; };
@@ -435,6 +442,7 @@
 				C094 /* ManuscriptStructure.swift */,
 				C092 /* ProjectToolbar.swift */,
 				C093 /* PanelSwipes.swift */,
+				C2A7 /* Glyph.swift */,
 				C091 /* ManuscriptUITextView.swift */,
 				C078 /* ManuscriptEscapes.swift */,
 				C079 /* MarkdownBlocks.swift */,
@@ -486,6 +494,7 @@
 				G001 /* ScriviManuscriptTests-iOS.swift */,
 				CORPUS_REF /* manuscript_format_corpus.json */,
 				ASSETS_REF /* Scrivi/Assets.xcassets */,
+				ICON_REF /* Scrivi/Inkwyn.icon */,
 				FONTS_REF /* Fonts */,
 			);
 			name = Sources;
@@ -637,6 +646,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				86BF02842FEDE0AE00531EAC /* Scrivi/Assets.xcassets in Resources */,
+				ICON_BF2 /* Scrivi/Inkwyn.icon in Resources */,
 				FONTS_BF2 /* Fonts in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -655,6 +665,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				ASSETS_BF /* Scrivi/Assets.xcassets in Resources */,
+				ICON_BF1 /* Scrivi/Inkwyn.icon in Resources */,
 				FONTS_BF1 /* Fonts in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -760,6 +771,7 @@
 				C094_BF /* ManuscriptStructure.swift in Sources */,
 				C092_BF /* ProjectToolbar.swift in Sources */,
 				C093_BF /* PanelSwipes.swift in Sources */,
+				C2A7_BF /* Glyph.swift in Sources */,
 				C010_BF /* ScriviEngine.swift in Sources */,
 				C011_BF /* ScriviError.swift in Sources */,
 				C012_BF /* ScriviEngineGraph.swift in Sources */,
@@ -839,6 +851,7 @@
 				D094_BF /* ManuscriptStructure.swift in Sources */,
 				D092_BF /* ProjectToolbar.swift in Sources */,
 				D093_BF /* PanelSwipes.swift in Sources */,
+				D2A7_BF /* Glyph.swift in Sources */,
 				D010_BF /* ScriviEngine.swift in Sources */,
 				D011_BF /* ScriviError.swift in Sources */,
 				D012_BF /* ScriviEngineGraph.swift in Sources */,
@@ -918,6 +931,7 @@
 				E094_BF /* ManuscriptStructure.swift in Sources */,
 				E092_BF /* ProjectToolbar.swift in Sources */,
 				E093_BF /* PanelSwipes.swift in Sources */,
+				E2A7_BF /* Glyph.swift in Sources */,
 				E010_BF /* ScriviEngine.swift in Sources */,
 				E011_BF /* ScriviError.swift in Sources */,
 				E012_BF /* ScriviEngineGraph.swift in Sources */,
@@ -1023,7 +1037,7 @@
 		C_BC_DEBUG /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIconMacOS;
+				ASSETCATALOG_COMPILER_APPICON_NAME = Inkwyn;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				AUTOMATION_APPLE_EVENTS = NO;
 				CODE_SIGN_ENTITLEMENTS = "$(SRCROOT)/Scrivi/App/Scrivi.entitlements";
@@ -1081,7 +1095,7 @@
 		C_BC_RELEASE /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIconMacOS;
+				ASSETCATALOG_COMPILER_APPICON_NAME = Inkwyn;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				AUTOMATION_APPLE_EVENTS = NO;
 				CODE_SIGN_ENTITLEMENTS = "$(SRCROOT)/Scrivi/App/Scrivi.entitlements";
@@ -1138,7 +1152,7 @@
 		D_BC_DEBUG /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIconIOS;
+				ASSETCATALOG_COMPILER_APPICON_NAME = Inkwyn;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -1174,7 +1188,7 @@
 		D_BC_RELEASE /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIconIOS;
+				ASSETCATALOG_COMPILER_APPICON_NAME = Inkwyn;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
 				GENERATE_INFOPLIST_FILE = YES;

@@ -62,7 +62,7 @@ struct ObjectCardKind: Sendable, Hashable {
     /// (§3.1.1), not as a per-kind worldbuilding card.
     static let all: [ObjectCardKind] = [
         .init(kind: "character", typeID: "objects.characters", title: "Characters",
-              systemImage: "person.2",
+              systemImage: "inkwyn.characters",   // EP-060 SP-241 spike
               preferredRelationType: "appears-in"),
         .init(kind: "location", typeID: "objects.locations", title: "Locations",
               systemImage: "mappin.and.ellipse",
