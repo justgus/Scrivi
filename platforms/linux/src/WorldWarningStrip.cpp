@@ -1,4 +1,5 @@
 #include "WorldWarningStrip.hpp"
+#include "GlyphIcon.hpp"
 
 #include "ThemeColours.hpp"
 #include "WorldStatusText.hpp"
@@ -31,9 +32,7 @@ WorldWarningStrip::WorldWarningStrip(QWidget* parent, std::function<void()> onMa
     column->setSpacing(2);
     auto* top = new QHBoxLayout;
     top->setSpacing(6);
-    auto* mark = new QLabel(QStringLiteral("▲"), this);
-    ThemeColours::applyTextColour(mark, amber);
-    top->addWidget(mark);
+    top->addWidget(GlyphIcon::mark(QStringLiteral("inkwyn.warnings"), QSize(16, 16), this, amber));   // EP-060 SP-243 Q6: was "▲"
     headline_ = new QLabel(this);
     QFont bold = headline_->font();
     bold.setBold(true);
@@ -47,7 +46,7 @@ WorldWarningStrip::WorldWarningStrip(QWidget* parent, std::function<void()> onMa
     top->addWidget(manage);
     auto* close = new QToolButton(this);
     close->setObjectName(QStringLiteral("worldWarningDismiss"));
-    close->setText(QStringLiteral("×"));
+    close->setIcon(GlyphIcon::icon(QStringLiteral("inkwyn.close"), GlyphIcon::Drawing::Small));
     close->setAutoRaise(true);
     close->setFocusPolicy(Qt::NoFocus);
     close->setToolTip(tr("Hide this notice. It returns if another world becomes unavailable."));

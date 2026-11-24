@@ -63,4 +63,5 @@ private:
     QLabel* notice_ = nullptr;
     QLabel* truncated_ = nullptr;
     QLabel* stale_ = nullptr;
+    QWidget* staleMark_ = nullptr;   // EP-060 SP-243: the warnings glyph beside stale_
 };

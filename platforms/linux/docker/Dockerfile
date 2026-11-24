@@ -27,6 +27,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libssl-dev \
         qt6-base-dev \
         qt6-declarative-dev \
+        qt6-svg-dev \
         qml6-module-qtquick \
         qml6-module-qtquick-controls \
         qml6-module-qtquick-templates \

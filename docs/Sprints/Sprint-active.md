@@ -1,5 +1,13 @@
 # Active Sprints
 
+*Last Updated: 2026-11-24 (**SP-243:** built — GlyphIcon, the 8-item toolbar and every mapped place on Linux; Docker (Qt 6.4) and Qt 6.10 green; ⏳ CI on the push, live pass on `scrivi-vm`.)*
+
+*Last Updated: 2026-11-24 (**SP-243 → 🟡 ACTIVE** (user, 2026-11-24: *"Q1-Q8 as recommended, implement SP-243"*) → [`Sprint-SP-243.md`](Sprint-SP-243.md); Q1–Q8 as recommended.)*
+
+*Last Updated: 2026-11-24 (**SP-242 → ✅ CLOSED** (user, 2026-11-24: *"close SP-242, then plan Sprint 3"*) → `Closed/Sprint-SP-242.md`; T-0705 ✅ Verified, archived. No Sprint is active.)*
+
+*Last Updated: 2026-11-24 (**SP-242 🟠 Complete** — AC1–AC6 met; CI ✅ on `dc4e983` (user, 2026-11-24: *"I pushed. the CI shoudl be done."*). Awaiting close approval.)*
+
 *Last Updated: 2026-11-24 (**SP-242:** live pass ✅ (user, 2026-11-24: *"All steps pass on the Mac, iPad, and iPhone."*); AC1–AC4, AC6 [x]; T-0705 ✅ Verified; ⏳ AC5: CI on the push, then close.)*
 
 *Last Updated: 2026-11-24 (**SP-242:** built — the 10-item toolbar and the glyphs on the Mac and iOS; tests green; Q2 triggered (toolbar labels at Small); 4 deviations to rule; ⏳ live pass, CI on the push.)*

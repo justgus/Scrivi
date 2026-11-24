@@ -27,6 +27,8 @@
 #include <QPainter>
 #include <QToolButton>
 #include <QToolBar>
+
+#include "GlyphIcon.hpp"
 #include <QIcon>
 #include <QMessageBox>
 #include <QPointer>
@@ -535,6 +537,7 @@ void ScriviWindow::buildMenuBar(QMainWindow* host, ScriviWindow* w, AppEnvironme
     QMenu* importMenu = file->addMenu(tr("Import"));
     // [SP-218] Q2: with no project open it makes one.
     QAction* importManuscript = importMenu->addAction(tr("Manuscript…"));
+    importManuscript->setIcon(GlyphIcon::icon(QStringLiteral("inkwyn.manuscript")));   // EP-060 SP-243
     connect(importManuscript, &QAction::triggered, host, [=]() {
         if (w != nullptr) { w->flushEditor(); }
         if (shell() != nullptr) { shell()->importManuscript(ed()); }
@@ -545,10 +548,12 @@ void ScriviWindow::buildMenuBar(QMainWindow* host, ScriviWindow* w, AppEnvironme
         if (shell() != nullptr) { shell()->importManuscript(ed(), true); }
     });
     QAction* importTimeline = importMenu->addAction(tr("Timeline…"));
+    importTimeline->setIcon(GlyphIcon::icon(QStringLiteral("inkwyn.timeline")));
     connect(importTimeline, &QAction::triggered, host,
             [=]() { if (ed() != nullptr) { ed()->importTimeline(); } });
     editorOnlyActions.append(importTimeline);
     QAction* importArchive = importMenu->addAction(tr("Archive…"));
+    importArchive->setIcon(GlyphIcon::icon(QStringLiteral("inkwyn.archive")));
     connect(importArchive, &QAction::triggered, host,
             [=]() { if (shell() != nullptr) { shell()->importArchive(); } });
 
@@ -570,10 +575,12 @@ void ScriviWindow::buildMenuBar(QMainWindow* host, ScriviWindow* w, AppEnvironme
         }
     };
     QMenu* manuscriptMenu = exportMenu->addMenu(tr("Manuscript"));
+    manuscriptMenu->setIcon(GlyphIcon::icon(QStringLiteral("inkwyn.manuscript")));
     addFormats(manuscriptMenu, false);
     editorOnlyActions.append(manuscriptMenu->menuAction());
     // Q3: the caret's chapter — greyed when there is none, so it is set as the menu opens (not in editorOnlyActions).
     QMenu* chapterMenu = exportMenu->addMenu(tr("Current Chapter"));
+    chapterMenu->setIcon(GlyphIcon::icon(QStringLiteral("inkwyn.chapter")));
     addFormats(chapterMenu, true);
     QAction* exportChapter = chapterMenu->menuAction();
     exportChapter->setObjectName(QStringLiteral("exportCurrentChapterAction"));
@@ -582,10 +589,12 @@ void ScriviWindow::buildMenuBar(QMainWindow* host, ScriviWindow* w, AppEnvironme
         exportChapter->setEnabled(ed() != nullptr && w->stack_->currentWidget() == ed() && ed()->caretChapter());
     });
     QAction* exportTimeline = exportMenu->addAction(tr("Timeline…"));
+    exportTimeline->setIcon(GlyphIcon::icon(QStringLiteral("inkwyn.timeline")));
     connect(exportTimeline, &QAction::triggered, host,
             [=]() { if (ed() != nullptr) { ed()->exportTimeline(); } });
     editorOnlyActions.append(exportTimeline);
     QAction* exportArchive = exportMenu->addAction(tr("Archive…"));
+    exportArchive->setIcon(GlyphIcon::icon(QStringLiteral("inkwyn.archive")));
     connect(exportArchive, &QAction::triggered, host,
             [=]() { if (ed() != nullptr) { w->flushEditor(); ed()->exportArchive(); } });
     editorOnlyActions.append(exportArchive);
@@ -990,12 +999,15 @@ void ScriviWindow::buildMenuBar(QMainWindow* host, ScriviWindow* w, AppEnvironme
         w->showBuffersAction_ = showBuffers;
         w->showMarkupHintsAction_ = showMarkupHints;
         w->showToolbarAction_ = showToolbar;
-        w->toolbar_ = buildToolbar(host, {showNavigator, showInspector, showTimeline, settings, worldsAction,
+        w->toolbar_ = buildToolbar(host, {{showNavigator, showInspector, showTimeline, nullptr,
+                                           showWorldWarnings, showMarkupHints, showBuffers},
+                                          worldsAction,
                                           {goToSceneStart, goToSceneEnd, goToChapterStart, goToChapterEnd,
                                            goToManuscriptStart, goToManuscriptEnd},
                                           {splitScene, splitChapter}, {mergeScene, mergeChapter},
-                                          {showWorldWarnings, showMarkupHints, showBuffers}, importMenu, exportMenu, copyAsHtml,
-                                          closeProj, purgeStale, about});
+                                          importMenu, exportMenu, copyAsHtml,
+                                          {settings, appSettings, purgeStale, nullptr, about},
+                                          closeProj});
     } else {
         for (QAction* a : startWindowProjectOnly) {
             a->setEnabled(false);
@@ -1015,7 +1027,8 @@ QIcon themeIcon(std::initializer_list<const char*> names)
     return {};
 }
 
-// [SP-232]: the toolbar's overflow button, drawn — "»" in the text colour — so it is never blank.
+// [SP-232]: the toolbar's overflow button — never blank. ✅ EP-060 SP-243: the glyph set's own `menu.expansion`, replacing the
+// drawn "»" (the shortcut's upgrade: "until the app's glyph set has its icon").
 class OverflowIconStyle : public QProxyStyle {
 public:
     QIcon standardIcon(StandardPixmap which, const QStyleOption* option, const QWidget* widget) const override
@@ -1023,19 +1036,7 @@ public:
         if (which != SP_ToolBarHorizontalExtensionButton && which != SP_ToolBarVerticalExtensionButton) {
             return QProxyStyle::standardIcon(which, option, widget);
         }
-        const QPalette pal = widget != nullptr ? widget->palette() : QApplication::palette();
-        QPixmap pm(32, 32);
-        pm.fill(Qt::transparent);
-        QPainter painter(&pm);
-        painter.setRenderHint(QPainter::TextAntialiasing);
-        QFont f = painter.font();
-        f.setPixelSize(28);
-        f.setBold(true);
-        painter.setFont(f);
-        painter.setPen(pal.color(QPalette::ButtonText));
-        painter.drawText(pm.rect(), Qt::AlignCenter, QStringLiteral("»"));
-        painter.end();
-        return QIcon(pm);
+        return GlyphIcon::icon(QStringLiteral("inkwyn.menu.expansion"), GlyphIcon::Drawing::Large);
     }
 };
 
@@ -1056,58 +1057,86 @@ QToolBar* ScriviWindow::buildToolbar(QMainWindow* host, const ToolbarActions& a)
     bar->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);   // Q2: the word under the theme's icon, alone when it has none
     host->addToolBar(Qt::TopToolBarArea, bar);
 
-    // An item: the action itself, with the toolbar's short word and the Mac's help; no icon in the menus (as the Mac's).
+    // EP-060 SP-243 (the Mac's [SP-242] shape, Q3): 8 items — View▾ (leading, with the panels), Worlds, Navigate▾, New▾, Merge▾,
+    // Import/Export▾, Tools▾, Close Project — on Large glyphs, the word under each ([SP-232] Q2, kept: Q4). Icons on the menus'
+    // actions show in the menu bar too: they are the same actions (Q5).
+    bar->setIconSize(QSize(34, 24));   // wider than tall, as the Mac's fitted box: a glyph's pips sit beside the art
+    auto glyph = [](const char* name) { return GlyphIcon::icon(QString::fromLatin1(name)); };
+    auto large = [](const char* name) { return GlyphIcon::icon(QString::fromLatin1(name), GlyphIcon::Drawing::Large); };
     auto item = [bar](QAction* action, const QString& word, const QString& help, QIcon icon) {
         action->setIcon(icon);
-        action->setIconVisibleInMenu(false);
         action->setIconText(word);
         action->setToolTip(help);
         bar->addAction(action);
     };
-    // A drop-down of the menus' actions.
-    auto dropDown = [bar](const char* name, const QString& word, const QString& help, QIcon icon, QMenu* menu) {
+    // A drop-down: its header (its own word and glyph, then a rule — choosing it only closes the menu, as an item the Mac's
+    // overflow pulls out), then the actions. No Qt drop-down arrow: the glyph's pips already say "menu".
+    auto dropDown = [bar, host, large](const char* name, const QString& word, const QString& help, const char* glyphName,
+                                       const QList<QAction*>& actions, const QList<QMenu*>& submenus = {}) {
+        auto* menu = new QMenu(host);
+        menu->addAction(large(glyphName), word);   // the header: triggered does nothing, and any choice closes a menu
+        menu->addSeparator();
+        for (QMenu* sub : submenus) { menu->addMenu(sub); }
+        for (QAction* a : actions) {
+            if (a == nullptr) { menu->addSeparator(); } else { menu->addAction(a); }
+        }
         auto* button = new QToolButton(bar);
         button->setObjectName(QString::fromLatin1(name));
         button->setText(word);
         button->setToolTip(help);
-        button->setIcon(icon);
+        button->setIcon(large(glyphName));
         button->setPopupMode(QToolButton::InstantPopup);
         button->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+        button->setStyleSheet(QStringLiteral("QToolButton::menu-indicator { image: none; width: 0px; }"));
         button->setMenu(menu);
         bar->addWidget(button);
-    };
-    auto menuOf = [host](const QList<QAction*>& actions) {
-        auto* menu = new QMenu(host);
-        menu->addActions(actions);
         return menu;
     };
 
-    // Q4: the Navigator first, where the Mac's sidebar button sits.
-    item(a.navigator, tr("Navigator"), tr("Show or hide the Scene Navigator"), themeIcon({"sidebar-show", "view-sidebar"}));
-    item(a.inspector, tr("Inspector"), tr("Show or hide the Scene Inspector"),
-         themeIcon({"sidebar-show-right", "view-right-pane", "view-sidebar"}));
-    item(a.timeline, tr("Timeline"), tr("Show or hide the Timeline"), themeIcon({"x-office-calendar", "office-calendar"}));
-    item(a.settings, tr("Project Settings"), tr("Project Settings… (Ctrl+Alt+,)"),
-         themeIcon({"document-properties", "preferences-system"}));
-    item(a.worlds, tr("Worlds"), tr("Manage Worlds…"), themeIcon({"applications-internet", "emblem-web"}));
+    // The glyphs of the menus' own actions (Apple: the same names in `ProjectToolbar.swift`).
+    const std::pair<QAction*, const char*> glyphs[] = {
+        {a.view.value(0), "inkwyn.left.sidebar"}, {a.view.value(1), "inkwyn.right.sidebar"}, {a.view.value(2), "inkwyn.timeline"},
+        {a.view.value(4), "inkwyn.warnings"}, {a.view.value(5), "inkwyn.hints"}, {a.view.value(6), "inkwyn.buffers"},
+        {a.navigate.value(0), "inkwyn.scene.start"}, {a.navigate.value(1), "inkwyn.scene.end"},
+        {a.navigate.value(2), "inkwyn.chapter.start"}, {a.navigate.value(3), "inkwyn.chapter.end"},
+        {a.navigate.value(4), "inkwyn.manuscript.start"}, {a.navigate.value(5), "inkwyn.manuscript.end"},
+        {a.create.value(0), "inkwyn.new.scene"}, {a.create.value(1), "inkwyn.new.chapter"},
+        {a.merge.value(0), "inkwyn.merge.scene.with.previous"}, {a.merge.value(1), "inkwyn.merge.chapter.with.previous"},
+        {a.tools.value(4), "inkwyn.info"},
+    };
+    for (const auto& [action, name] : glyphs) {
+        if (action != nullptr) { action->setIcon(glyph(name)); }
+    }
+    // Tools' items with no Inkwyn glyph keep a theme icon (the Mac keeps its system symbols there).
+    a.tools.value(0)->setIcon(themeIcon({"document-properties", "preferences-system"}));
+    a.tools.value(1)->setIcon(themeIcon({"preferences-system", "preferences-desktop"}));
+    a.tools.value(2)->setIcon(themeIcon({"edit-clear-all", "edit-clear"}));
+
+    dropDown("toolbarView", tr("View"), tr("Show or hide the Navigator, Inspector and Timeline; view options"),
+             "inkwyn.menu.view", a.view);
+    item(a.worlds, tr("Worlds"), tr("Manage Worlds…"), large("inkwyn.menu.worlds"));
     dropDown("toolbarNavigate", tr("Navigate"), tr("Go to a scene, chapter or manuscript start or end"),
-             themeIcon({"go-jump"}), menuOf(a.navigate));
+             "inkwyn.menu.navigate", a.navigate);
     dropDown("toolbarNew", tr("New"), tr("New Scene (Ctrl+Return) or New Chapter (Ctrl+Shift+Return)"),
-             themeIcon({"list-add", "document-new"}), menuOf(a.create));
+             "inkwyn.menu.create", a.create);
     dropDown("toolbarMerge", tr("Merge"), tr("Merge Scene (Ctrl+Backspace) or Merge Chapter (Ctrl+Shift+Backspace) with the "
                                              "previous one"),
-             themeIcon({"object-merge", "merge"}), menuOf(a.merge));
-    dropDown("toolbarView", tr("View"), tr("View options"), themeIcon({"view-reveal", "view-visible"}), menuOf(a.view));
-    dropDown("toolbarImport", tr("Import"), tr("Import"), themeIcon({"document-import", "document-open"}), a.importMenu);
-    QMenu* exportDrop = menuOf(a.exportMenu->actions());   // File ▸ Export's items, then Copy as HTML (as the Mac's)
-    exportDrop->addSeparator();
-    exportDrop->addAction(a.copyAsHtml);
-    dropDown("toolbarExport", tr("Export"), tr("Export"), themeIcon({"document-export", "document-send", "document-save-as"}),
-             exportDrop);
-    item(a.closeProject, tr("Close Project"), tr("Close Project (Ctrl+W)"), themeIcon({"window-close", "document-close"}));
-    item(a.purgeStale, tr("Purge Stale History Branches…"), tr("Purge Stale History Branches…"),
-         themeIcon({"edit-clear-all", "edit-clear"}));
-    item(a.about, tr("About Inkwyn"), tr("About Inkwyn"), themeIcon({"help-about"}));
+             "inkwyn.menu.merge", a.merge);
+    // Import/Export (ruling (e)): File ▸ Import as the Import submenu; the Export submenu is File ▸ Export's items, then Copy as
+    // HTML (as the Mac's). Both submenus carry their ship glyphs.
+    auto* importSub = new QMenu(tr("Import"), host);
+    importSub->setIcon(glyph("inkwyn.import"));
+    importSub->addActions(a.importMenu->actions());
+    auto* exportSub = new QMenu(tr("Export"), host);
+    exportSub->setIcon(glyph("inkwyn.export"));
+    exportSub->addActions(a.exportMenu->actions());
+    exportSub->addSeparator();
+    exportSub->addAction(a.copyAsHtml);
+    dropDown("toolbarImportExport", tr("Import/Export"), tr("Import or Export"), "inkwyn.menu.import.export", {},
+             {importSub, exportSub});
+    dropDown("toolbarTools", tr("Tools"), tr("Project Settings, Settings, Purge Stale History Branches, About Inkwyn"),
+             "inkwyn.menu.tools", a.tools);
+    item(a.closeProject, tr("Close Project"), tr("Close Project (Ctrl+W)"), large("inkwyn.menu.close"));
     // The » overflow button: the theme's icon drew NOTHING on the VM ([SP-232] live pass, twice), so the toolbar's style gives
     // it ours. shortcut: a drawn chevron, until the app's glyph set has its icon (user, 2026-11-21).
     if (auto* more = bar->findChild<QToolButton*>(QStringLiteral("qt_toolbar_ext_button"))) {

@@ -1,11 +1,11 @@
 # Sprint SP-242 — `[Apple]` [EP-060] S2: the glyphs in the app, and the smaller toolbar (Mac and iOS)
 
-**Status:** 🟡 **ACTIVE** — AC1–AC4, AC6 ✅ (live pass (user, 2026-11-24: *"All steps pass on the Mac, iPad, and iPhone."*)); ⏳ AC5: CI on the push. Activated 2026-11-24 (user, 2026-11-24: *"Q1-Q6 as recommended, implement SP-242"*); ✅ Q1–Q6 as recommended. Created 2026-11-24
+**Status:** ✅ **CLOSED** 2026-11-24 (user, 2026-11-24: *"close SP-242, then plan Sprint 3"*). Was 🟠 Complete 2026-11-24. AC1–AC6 ✅ — CI ✅ on `dc4e983` (Scrivi Apple CI guards; no C++ or Linux change) (user, 2026-11-24: *"I pushed. the CI shoudl be done."*); AC1–AC4, AC6 ✅ (live pass (user, 2026-11-24: *"All steps pass on the Mac, iPad, and iPhone."*)); ⏳ AC5: CI on the push. Activated 2026-11-24 (user, 2026-11-24: *"Q1-Q6 as recommended, implement SP-242"*); ✅ Q1–Q6 as recommended. Created 2026-11-24
 (user, 2026-11-24: *"close SP-241, then plan Sprint 2"*).
-**Carries:** [T-0705].
-**Epic:** [EP-060] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md) — Sprint 2 of 3. ⛔ Sprint 3 (`[Linux]`, the same toolbar
+**Carries:** [T-0705] (✅ Verified 2026-11-24 → [`../../Tasks/Verified/Task-verified-0705.md`](../../Tasks/Verified/Task-verified-0705.md)).
+**Epic:** [EP-060] → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md) — Sprint 2 of 3. ⛔ Sprint 3 (`[Linux]`, the same toolbar
 shape and glyphs) is blocked by this one: Linux adopts the shape built here.
-**Builds from:** [SP-241]'s approved mapping and rulings (a)–(f) → [`Closed/Sprint-SP-241.md`](Closed/Sprint-SP-241.md) §"The mapping"
+**Builds from:** [SP-241]'s approved mapping and rulings (a)–(f) → [`Closed/Sprint-SP-241.md`](Sprint-SP-241.md) §"The mapping"
 and §"Rulings".
 **Size:** L, but mostly mechanical. The risk is in three places, so each is proved before the bulk of the work: menu-item icons on the
 Mac (Q1), the 2× glyphs at toolbar size (Q2), and the toolbar's new shape (Q3).
@@ -68,7 +68,7 @@ Mac (Q1), the 2× glyphs at toolbar size (Q2), and the toolbar's new shape (Q3).
 - [x] **AC3** Every mapped place shows its glyph: the 10 kinds, warnings (Q4), the utility glyphs, the chevrons (ruling (b)), and menu
   items as far as Q1 allows. A grep finds none of the replaced SF Symbol names left in `Scrivi/` outside tests.
 - [x] **AC4** The Add Card menu shows the kind glyphs on iOS, and on the Mac if Q1's spike works (otherwise the reason is recorded).
-- [ ] **AC5** macOS and iOS build with no new warnings; interop and iOS tests green; CI green on the push.
+- [x] **AC5** macOS and iOS build with no new warnings; interop and iOS tests green; CI green on the push.
 - [x] **AC6** Live pass on the Mac and iOS.
 
 ## What was built (2026-11-24)
@@ -167,3 +167,11 @@ printing every dropped piece, then replaced. ✅ Now only `inkwyn.menu.merge` an
 gained a lone 1×1 speck that must vanish, and a mutant without the filter fails it (run in a scratch copy). Mac rebuilt; interop green.
 
 **Run 2** ✅ (user, 2026-11-24: *"All steps pass on the Mac, iPad, and iPhone."*).
+
+## Retrospective
+
+- **What worked:** rendering each visual change against the built app before handing it over (toolbar sizes, tabs, cards), and
+  diffing all 54 symbols after every script change — it caught the first speck rule eating real art before you saw it.
+- **What the live pass changed:** the toolbar shape again (8 items, View▾ leading with the panels), 2× → 1.5×, aspect-fit Large
+  toolbar glyphs with the system chevron hidden, menu headers that dismiss, the Navigator chevron pairing, the tree tab.
+- **Carried to Sprint 3 (Linux):** the 8-item toolbar shape, the menu headers, and the glyphs.

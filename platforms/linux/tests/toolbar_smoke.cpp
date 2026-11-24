@@ -4,7 +4,8 @@
 // A REAL project window through `AppEnvironment`, and the Landing window.
 //
 // ✅ What it proves:
-//   §1 the toolbar is on the project window, with the Mac's items in its order (Q1, Q4), the word under each (Q2);
+//   §1 the toolbar is on the project window, with the Mac's items in its order (EP-060 SP-243: 8, View leading), the word
+//      under each ([SP-232] Q2);
 //   §2 each button IS its menu item's action; each drop-down holds the menus' own actions; the Q3 names in the menus;
 //   §3 a toggle on the toolbar changes the pane and the menu's check; a Navigate item moves the caret;
 //   §4 a narrow window moves items behind the overflow button; View ▸ Show Toolbar hides and shows it (Q5);
@@ -111,26 +112,18 @@ int main(int argc, char** argv)
     };
     QStringList words;
     for (QAction* a : bar->actions()) { words << word(a); }
-    const QStringList expected = {QStringLiteral("Navigator"), QStringLiteral("Inspector"), QStringLiteral("Timeline"),
-                                  QStringLiteral("Project Settings"), QStringLiteral("Worlds"), QStringLiteral("Navigate"),
-                                  QStringLiteral("New"), QStringLiteral("Merge"), QStringLiteral("View"), QStringLiteral("Import"),
-                                  QStringLiteral("Export"), QStringLiteral("Close Project"),
-                                  QStringLiteral("Purge Stale History Branches…"), QStringLiteral("About Inkwyn")};
+    // EP-060 SP-243: the Mac's [SP-242] shape — 8 items, View leading.
+    const QStringList expected = {QStringLiteral("View"), QStringLiteral("Worlds"), QStringLiteral("Navigate"),
+                                  QStringLiteral("New"), QStringLiteral("Merge"), QStringLiteral("Import/Export"),
+                                  QStringLiteral("Tools"), QStringLiteral("Close Project")};
     check(words == expected, QStringLiteral("§1 the items: %1").arg(words.join(QStringLiteral(" | "))));
 
     // ── §2 the menus' own actions ──────────────────────────────────────────────────────────────────────────────────────
     const QList<QAction*> items = bar->actions();
-    const QStringList menuTexts = {QStringLiteral("Show Scene Navigator"), QStringLiteral("Show Inspector"),
-                                   QStringLiteral("Show Timeline"), QStringLiteral("Project Settings…"),
-                                   QStringLiteral("Manage Worlds…")};
-    for (int i = 0; i < menuTexts.size() && i < items.size(); ++i) {
-        check(items.at(i) == menuAction(menus, menuTexts.at(i)), QStringLiteral("§2 %1 is the menu's own action").arg(menuTexts.at(i)));
-    }
     if (items.size() == expected.size()) {
-        check(items.at(11) == menuAction(menus, QStringLiteral("Close Project"))
-                  && items.at(12) == menuAction(menus, QStringLiteral("Purge Stale History Branches…"))
-                  && items.at(13) == menuAction(menus, QStringLiteral("About Inkwyn")),
-              QStringLiteral("§2 Close Project, Purge Stale, About are the menus' own actions"));
+        check(items.at(1) == menuAction(menus, QStringLiteral("Manage Worlds…"))
+                  && items.at(7) == menuAction(menus, QStringLiteral("Close Project")),
+              QStringLiteral("§2 Worlds and Close Project are the menus' own actions"));
     }
     auto dropDown = [bar](const char* name) {
         auto* button = bar->findChild<QToolButton*>(QString::fromLatin1(name));
@@ -144,25 +137,50 @@ int main(int argc, char** argv)
         }
         check(all, QStringLiteral("§2 %1 holds the menus' %2").arg(QString::fromLatin1(name), texts.join(QStringLiteral(", "))));
     };
+    holds("toolbarView", {QStringLiteral("Show Scene Navigator"), QStringLiteral("Show Inspector"), QStringLiteral("Show Timeline"),
+                          QStringLiteral("Show World Warnings"), QStringLiteral("Show Markup Hints"), QStringLiteral("Show Buffers")});
     holds("toolbarNavigate", {QStringLiteral("Go to Scene Start"), QStringLiteral("Go to Scene End"),
                               QStringLiteral("Go to Chapter Start"), QStringLiteral("Go to Chapter End"),
                               QStringLiteral("Go to Manuscript Start"), QStringLiteral("Go to Manuscript End")});
     holds("toolbarNew", {QStringLiteral("New Scene"), QStringLiteral("New Chapter")});
     holds("toolbarMerge", {QStringLiteral("Merge Scene with Previous"), QStringLiteral("Merge Chapter with Previous")});
-    holds("toolbarView", {QStringLiteral("Show World Warnings"), QStringLiteral("Show Markup Hints"), QStringLiteral("Show Buffers")});
-    holds("toolbarExport", {QStringLiteral("Copy as HTML")});
-    check(dropDown("toolbarImport") != nullptr && dropDown("toolbarImport")->title() == QStringLiteral("Import"),
-          QStringLiteral("§2 Import is File ▸ Import itself"));
+    holds("toolbarTools", {QStringLiteral("Project Settings…"), QStringLiteral("Settings…"),
+                           QStringLiteral("Purge Stale History Branches…"), QStringLiteral("About Inkwyn")});
+    // Each drop-down opens with its header (its own word), then a rule; no Qt drop-down arrow; a glyph on every button.
+    for (const char* name : {"toolbarView", "toolbarNavigate", "toolbarNew", "toolbarMerge", "toolbarImportExport", "toolbarTools"}) {
+        auto* button = bar->findChild<QToolButton*>(QString::fromLatin1(name));
+        QMenu* m = button != nullptr ? button->menu() : nullptr;
+        const QList<QAction*> acts = m != nullptr ? m->actions() : QList<QAction*>();
+        check(acts.size() > 2 && acts.at(0)->text() == button->text() && !acts.at(0)->icon().isNull() && acts.at(1)->isSeparator(),
+              QStringLiteral("§2 %1 opens with its header and a rule").arg(QString::fromLatin1(name)));
+        check(button != nullptr && !button->icon().isNull() && button->styleSheet().contains(QStringLiteral("menu-indicator")),
+              QStringLiteral("§2 %1 has its glyph and no Qt arrow").arg(QString::fromLatin1(name)));
+    }
+    check(!items.value(1)->icon().isNull() && !items.value(7)->icon().isNull(), QStringLiteral("§2 Worlds and Close have glyphs"));
+    // Import/Export: an Import submenu with File ▸ Import's items, an Export submenu with File ▸ Export's and Copy as HTML.
+    QMenu* io = dropDown("toolbarImportExport");
+    QMenu* importSub = nullptr;
+    QMenu* exportSub = nullptr;
+    for (QAction* a : io != nullptr ? io->actions() : QList<QAction*>()) {
+        if (a->menu() != nullptr && a->menu()->title() == QStringLiteral("Import")) { importSub = a->menu(); }
+        if (a->menu() != nullptr && a->menu()->title() == QStringLiteral("Export")) { exportSub = a->menu(); }
+    }
+    check(importSub != nullptr && importSub->actions().contains(menuAction(menus, QStringLiteral("Manuscript…")))
+              && !importSub->icon().isNull(),
+          QStringLiteral("§2 Import/Export ▸ Import holds File ▸ Import's items, with its glyph"));
+    check(exportSub != nullptr && exportSub->actions().contains(menuAction(menus, QStringLiteral("Copy as HTML")))
+              && !exportSub->icon().isNull(),
+          QStringLiteral("§2 Import/Export ▸ Export holds Copy as HTML, with its glyph"));
     check(menuAction(menus, QStringLiteral("Split Scene")) == nullptr && menuAction(menus, QStringLiteral("Merge Scene")) == nullptr,
           QStringLiteral("§2 Q3: the Linux names are gone from the menus"));
 
     // ── §3 they act ────────────────────────────────────────────────────────────────────────────────────────────────────
     QAction* inspectorMenu = menuAction(menus, QStringLiteral("Show Inspector"));
     const bool before = shell->isInspectorVisible();
-    items.at(1)->trigger();
+    inspectorMenu->trigger();   // the View drop-down's item IS this action (§2)
     check(shell->isInspectorVisible() != before && inspectorMenu->isChecked() == shell->isInspectorVisible(),
-          QStringLiteral("§3 the toolbar's Inspector toggles the pane and the menu's check"));
-    items.at(1)->trigger();
+          QStringLiteral("§3 View ▸ Show Inspector toggles the pane and the menu's check"));
+    inspectorMenu->trigger();
     auto* editor = shell->findChild<ManuscriptEditor*>();
     QTextCursor c(editor->document());
     c.movePosition(QTextCursor::End);
@@ -188,7 +206,7 @@ int main(int argc, char** argv)
         }
     }
     check(inked && overflow != nullptr && qobject_cast<QProxyStyle*>(overflow->style()) != nullptr,
-          QStringLiteral("§4 the overflow button draws the app's own chevron, never blank"));
+          QStringLiteral("§4 the overflow button draws the app's own glyph (menu.expansion), never blank"));
     w->resize(1400, 700);
     QTest::qWait(50);
     auto* showToolbar = w->findChild<QAction*>(QStringLiteral("showToolbarAction"));
@@ -206,7 +224,7 @@ int main(int argc, char** argv)
     check(landing.findChild<QToolBar*>() == nullptr && landingShowToolbar != nullptr && !landingShowToolbar->isEnabled(),
           QStringLiteral("§5 the Landing window has no toolbar, and Show Toolbar greyed ([SP-216]: one menu bar)"));
     QPointer<QToolBar> guard(bar);
-    items.at(11)->trigger();   // Close Project
+    items.at(7)->trigger();   // Close Project
     for (int i = 0; i < 300 && !guard.isNull() && guard->isVisible(); ++i) {
         QTest::qWait(10);
     }

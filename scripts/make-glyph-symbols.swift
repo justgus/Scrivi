@@ -341,6 +341,17 @@ func svgNumber(_ v: CGFloat) -> String {
     return s
 }
 
+/// A drawing as a plain SVG: the path moved to the origin, the viewBox its own box.
+func plainSVG(_ path: CGPath) -> String {
+    let b = path.boundingBoxOfPath
+    var t = CGAffineTransform(translationX: -b.minX, y: -b.minY)
+    let moved = path.copy(using: &t)!
+    return """
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 \(svgNumber(b.width)) \(svgNumber(b.height))"><path fill="#000000" d="\(svgPathData(moved))"/></svg>
+
+    """
+}
+
 // MARK: - Contact sheet
 
 func writeSheet(_ glyphs: [(name: String, drawings: [String: CGPath])], to url: URL) throws {
@@ -463,6 +474,17 @@ do {
         let contents = #"{"info":{"author":"xcode","version":1},"symbols":[{"filename":"\#(symbol).svg","idiom":"universal"}]}"#
         try (contents + "\n").write(to: dir.appendingPathComponent("Contents.json"), atomically: true, encoding: .utf8)
         print(symbol)
+    }
+    // Linux (EP-060 SP-243 Q1): the same cleaned drawings as plain SVGs — one filled black path per size, its viewBox the
+    // drawing's own box — for platforms/linux's GlyphIcon, which aspect-fits and tints them. One pipeline for both platforms.
+    let linux = repo.appendingPathComponent("platforms/linux/resources/glyphs")
+    if only == nil, FileManager.default.fileExists(atPath: linux.path) { try FileManager.default.removeItem(at: linux) }
+    try FileManager.default.createDirectory(at: linux, withIntermediateDirectories: true)
+    for g in glyphs {
+        let symbol = "inkwyn." + g.name.lowercased().replacingOccurrences(of: "-", with: ".")
+        for (id, size) in [("S", "small"), ("M", "medium"), ("L", "large")] {
+            try plainSVG(g.drawings[id]!).write(to: linux.appendingPathComponent("\(symbol)-\(size).svg"), atomically: true, encoding: .utf8)
+        }
     }
     if let sheet { try writeSheet(glyphs, to: sheet) }
     print("\(glyphs.count) symbol(s) written to \(catalog.path)")

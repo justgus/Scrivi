@@ -1,5 +1,11 @@
 # Active Epics
 
+*Last Updated: 2026-11-24 (**EP-060:** [SP-243] 🟡 ACTIVE (user, 2026-11-24: *"Q1-Q8 as recommended, implement SP-243"*).)*
+
+*Last Updated: 2026-11-24 (**EP-060:** [SP-243] (S3, Linux) created in 🔵 Planning (user, 2026-11-24: *"close SP-242, then plan Sprint 3"*); Q1–Q8 to rule.)*
+
+*Last Updated: 2026-11-24 (**EP-060:** [SP-242] ✅ closed (user, 2026-11-24: *"close SP-242, then plan Sprint 3"*); Sprint 3 (Linux) planning.)*
+
 *Last Updated: 2026-11-24 (**EP-060:** AC2, AC3 [x] — [SP-242] live pass ✅ on the Mac, iPad and iPhone; ⏳ its CI, then close. Next: Sprint 3, Linux.)*
 
 *Last Updated: 2026-11-24 (**EP-060:** [SP-242] 🟡 ACTIVE (user, 2026-11-24: *"Q1-Q6 as recommended, implement SP-242"*).)*
@@ -270,13 +276,14 @@ Sprints"*) — ⚠️ the Epic guidelines say one Epic per codebase; this follow
 | Sprint | Title | Status |
 |---|---|---|
 | [SP-241] | `[Apple]` S1: the glyph pipeline and the Inkwyn app icon ([T-0704]) | ✅ Closed 2026-11-24 → [`../Sprints/Closed/Sprint-SP-241.md`](../Sprints/Closed/Sprint-SP-241.md) |
-| [SP-242] | `[Apple]` S2: the glyphs in the app, and the smaller toolbar ([T-0705]) | 🟡 Active → [`../Sprints/Sprint-SP-242.md`](../Sprints/Sprint-SP-242.md) |
+| [SP-242] | `[Apple]` S2: the glyphs in the app, and the smaller toolbar ([T-0705]) | ✅ Closed 2026-11-24 → [`../Sprints/Closed/Sprint-SP-242.md`](../Sprints/Closed/Sprint-SP-242.md) |
+| [SP-243] | `[Linux]` S3: the Inkwyn glyphs and the 8-item toolbar on Linux ([T-0706]) | 🟡 Active → [`../Sprints/Sprint-SP-243.md`](../Sprints/Sprint-SP-243.md) |
 
 Still to plan:
 
 1. ~~**[Apple] the pipeline and the icon**~~ = [SP-241] — the Q1 spike, the import script, the Q4 mapping table, the app icon.
 2. ~~**[Apple] the glyphs**~~ = [SP-242] — swap the mapped call sites on macOS and iOS (one shared catalog), per [SP-241]'s approved mapping and rulings (a)–(f): ⚠️ including ONE Import/Export and ONE Tools toolbar button in place of six, the warnings glyph everywhere, and icons in Add Card.
-3. **[Linux] the glyphs and the window icon** — Q6, and the same toolbar shape as Sprint 2.
+3. ~~**[Linux] the glyphs and the window icon**~~ = [SP-243] — — Q6, and the same toolbar shape as Sprint 2.
 
 ### Acceptance Criteria (draft)
 

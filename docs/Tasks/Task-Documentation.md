@@ -845,7 +845,8 @@ archive files reconstructed after the fact from secondary sources.
 | T-0702 | `[Apple]` EP-059 A8: Delete and Change Kind for objects on the Mac and iOS | ✅ SP-239 | **EP-059** | ✅ Verified 2026-11-23 | [`Verified/Task-verified-0702.md`](Verified/Task-verified-0702.md) |
 | T-0703 | `[Linux]` EP-059 A9: Delete and Change Kind for objects on Linux, as the Mac's | ✅ SP-240 | **EP-059** | ✅ Verified 2026-11-23 | [`Verified/Task-verified-0703.md`](Verified/Task-verified-0703.md) |
 | T-0704 | `[Apple]` EP-060 S1: the glyph pipeline (SVG → custom SF Symbols) and the Inkwyn app icon | ✅ SP-241 | **EP-060** | ✅ Verified 2026-11-24 | [`Verified/Task-verified-0704.md`](Verified/Task-verified-0704.md) |
-| T-0705 | `[Apple]` EP-060 S2: the glyphs in the app, and the 10-item toolbar on the Mac and iOS | SP-242 | **EP-060** | ✅ Verified 2026-11-24 | [`Task-unverified.md`](Task-unverified.md) (archived at [SP-242]'s close) |
+| T-0705 | `[Apple]` EP-060 S2: the glyphs in the app, and the 10-item toolbar on the Mac and iOS | ✅ SP-242 | **EP-060** | ✅ Verified 2026-11-24 | [`Verified/Task-verified-0705.md`](Verified/Task-verified-0705.md) |
+| T-0706 | `[Linux]` EP-060 S3: the Inkwyn glyphs and the 8-item toolbar on Linux | SP-243 | **EP-060** | 🟡 Active | [`Task-active.md`](Task-active.md) |
 | T-0685 | `[Apple]` EP-055 S3a: undo/redo, structural edits, cross-scene clipboard on iOS | ✅ SP-222 | **EP-055** | ✅ Verified | [`Verified/Task-verified-0685.md`](Verified/Task-verified-0685.md) |
 | T-0690 | `[Apple]` EP-055 S8: TestFlight for iPad, iPhone and the Mac | 🔵 SP-228 | **EP-055** | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
 | T-0689 | `[Apple]` EP-055 S7: the whole app at iPhone width | ✅ SP-227 | **EP-055** | ✅ Verified | [`Verified/Task-verified-0689.md`](Verified/Task-verified-0689.md) |
@@ -896,6 +897,10 @@ archive files reconstructed after the fact from secondary sources.
 ⚠️ **This index ended at `T-0485 (next available)` until 2026-09-10 — ✅ that was STALE.** ⚠️ **T-0485–T-0498 had all been taken**, and T-0485–T-0490/T-0492–T-0496 are archived as Verified. ⚠️ **Rows for T-0486–T-0497 are NOT reconstructed here** — ✅ **their Sprints' closed records are authoritative** (`feedback_archive_on_close`).
 
 ---
+
+*Last Updated: 2026-11-24 (**T-0706 filed** ([SP-243], 🔵 Planning).)*
+
+*Last Updated: 2026-11-24 (**T-0705 → ✅ Verified**, archived ([SP-242] closed).)*
 
 *Last Updated: 2026-11-24 (**T-0705 → ✅ Verified** ([SP-242] live pass).)*
 

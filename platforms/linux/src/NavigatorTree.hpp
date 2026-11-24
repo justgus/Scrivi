@@ -72,6 +72,9 @@ protected:
     // thing that changes it. We also latch the dragged sceneID from the grabbed row here
     // (stable for the whole drag, unlike currentIndex() at drop time).
     void startDrag(Qt::DropActions supportedActions) override;
+    // EP-060 SP-243 Q7: a chapter's arrow is an Inkwyn chapter glyph — collapsed; open because she keeps it open
+    // (`expanded.automatic`); open only because it is current or searched (`expanded.manual`) — as the Mac's.
+    void drawBranches(QPainter* painter, const QRect& rect, const QModelIndex& index) const override;
     void dragMoveEvent(QDragMoveEvent* event) override;
     void dropEvent(QDropEvent* event) override;
 

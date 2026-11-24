@@ -1,5 +1,7 @@
 # Unverified Tasks
 
+*Last Updated: 2026-11-24 (**T-0705 archived** → `Verified/Task-verified-0705.md` with [SP-242]'s close (user, 2026-11-24: *"close SP-242, then plan Sprint 3"*).)*
+
 *Last Updated: 2026-11-24 (**T-0705 → ✅ Verified** (user, 2026-11-24: *"All steps pass on the Mac, iPad, and iPhone."*); archived when [SP-242] closes.)*
 
 *Last Updated: 2026-11-24 (**T-0704 archived** → `Verified/Task-verified-0704.md` with [SP-241]'s close (user, 2026-11-24: *"close SP-241, then plan Sprint 2"*).)*
@@ -200,22 +202,6 @@ in the backlog carrying a 🟠 status.
 
 
 
-
-## ✅ T-0705 — `[Apple]` EP-060 S2: the glyphs in the app, and the smaller toolbar (Mac and iOS)
-
-**Epic:** [EP-060] · **Status:** ✅ Verified (user, 2026-11-24: *"All steps pass on the Mac, iPad, and iPhone."*) · archived when [SP-242] closes · **Sprint:** [SP-242] →
-[`../Sprints/Sprint-SP-242.md`](../Sprints/Sprint-SP-242.md) · **Date Requested:** 2026-11-24 (user, 2026-11-24: *"close SP-241, then plan Sprint 2"*)
-
-**What:** the 8-item toolbar (View▾ leading with the panels, Worlds, Navigate▾, New▾, Merge▾, Import/Export▾, Tools▾, Close) with
-fitted Large glyphs and a dismissing header in each menu; every mapped place on its glyph at 1.5×; menu-item icons on the Mac; the
-chapter chevrons; the tree on the Worldbuilding tab; the script's pip and speck rules.
-
-**Built:** `ProjectToolbar.swift`, `Glyph.swift` (`FittedGlyph`), `EditorView.swift` (iPad Navigator follows the session),
-`ProjectArchiveFlow.swift`, `SceneInspectorView.swift`, `SceneNavigatorView.swift`, `InspectorCard*.swift`, `ObjectCard.swift`, the
-detail views and cards with warnings/utility glyphs; `scripts/make-glyph-symbols.swift`; `Assets.xcassets/Glyphs/` regenerated.
-Details: the Sprint.
-
----
 
 ## 🟠 T-0656 — `[Linux]` Landing: a warm grey background with a little depth
 

@@ -67,7 +67,7 @@ jobs:
             sudo timeout 300 apt-get install -y --no-install-recommends -o Acquire::Retries=3 -o Acquire::http::Timeout=15 \
               build-essential cmake ninja-build \
               libssl-dev \
-              qt6-base-dev qt6-declarative-dev \
+              qt6-base-dev qt6-declarative-dev qt6-svg-dev \
               qml6-module-qtquick qml6-module-qtquick-controls \
               qml6-module-qtquick-templates \
               qml6-module-qtquick-layouts qml6-module-qtquick-window \
@@ -371,6 +371,12 @@ jobs:
           platforms/linux/tests/toolbar_smoke.sh \
             ./build/platforms/linux/scrivi_linux_toolbar_smoke
 
+      # EP-060 SP-243: the Inkwyn glyphs (load, draw, palette tint light/dark/disabled, HiDPI, the app icon).
+      - name: Glyph smoke test
+        run: |
+          platforms/linux/tests/glyph_smoke.sh \
+            ./build/platforms/linux/scrivi_linux_glyph_smoke
+
       - name: Inspector card stacks smoke test
         run: |
           platforms/linux/tests/inspector_stack_smoke.sh \
@@ -482,7 +488,7 @@ jobs:
         run: |
           sudo apt-get update -o Acquire::Retries=3
           sudo timeout 600 apt-get install -y --no-install-recommends -o Acquire::Retries=3 -o Acquire::http::Timeout=15 \
-            build-essential cmake ninja-build libssl-dev qt6-base-dev qt6-declarative-dev \
+            build-essential cmake ninja-build libssl-dev qt6-base-dev qt6-declarative-dev qt6-svg-dev \
             qml6-module-qtquick qml6-module-qtquick-controls qml6-module-qtquick-templates \
             qml6-module-qtquick-layouts qml6-module-qtquick-window \
             qml6-module-qtqml-workerscript qml6-module-qtqml-models libgl1-mesa-dev

@@ -1,5 +1,9 @@
 #include "WorldsDialog.hpp"
 
+#include "GlyphIcon.hpp"
+
+#include <QToolButton>
+
 #include "AsyncCall.hpp"
 #include "AuthorshipDialogs.hpp"
 
@@ -308,12 +312,17 @@ QWidget* WorldsDialog::makeRow(const Entry& e)
 
     const bool available = WorldStatusText::isAvailable(e.status);
 
-    // ⚠️ A text marker rather than an icon: the rig is driven over RDP where icon
-    // themes vary, and a glyph that fails to load leaves NO signal at all.
-    auto* marker = new QLabel(available ? QStringLiteral("●") : QStringLiteral("▲"), row);
-    ThemeColours::applyTextColour(
-        marker, available ? ThemeColours::deemphasised(marker->palette())
-                          : ThemeColours::attention(marker->palette()));
+    // ⚠️ Not a THEME icon: the rig is driven over RDP where icon themes vary, and a glyph that fails to load leaves NO signal at
+    // all. ✅ EP-060 SP-243 Q6: the unavailable marker is the BUNDLED `inkwyn.warnings` (it cannot fail to load), in the
+    // attention colour; the available one stays the text "●" (the Mac keeps a system globe there).
+    QWidget* marker = nullptr;
+    if (available) {
+        auto* dot = new QLabel(QStringLiteral("●"), row);
+        ThemeColours::applyTextColour(dot, ThemeColours::deemphasised(dot->palette()));
+        marker = dot;
+    } else {
+        marker = GlyphIcon::mark(QStringLiteral("inkwyn.warnings"), QSize(16, 16), row, ThemeColours::attention(row->palette()));
+    }
     marker->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Preferred);  // I-0184
     h->addWidget(marker);
 

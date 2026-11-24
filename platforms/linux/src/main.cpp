@@ -17,6 +17,7 @@
 #include "AppEnvironment.hpp"
 #include "AppSupport.hpp"
 #include "LandingWindow.hpp"
+#include "GlyphIcon.hpp"
 #include "ManuscriptAccessibility.hpp"
 #include "RecentsStore.hpp"
 #include "ScriviWindow.hpp"
@@ -80,7 +81,9 @@ int main(int argc, char* argv[])
     // which Qt takes from the desktop file name (else the binary's, `scrivi_linux`). The launcher is `scrivi.desktop`
     // (docs/Scrivi_Linux_Rig_Setup_v0_1.md §5), its icon `scrivi` in the theme.
     QGuiApplication::setDesktopFileName(QStringLiteral("scrivi"));
-    QApplication::setWindowIcon(QIcon::fromTheme(QStringLiteral("scrivi")));
+    // EP-060 SP-243 Q8: the bundled Inkwyn icon, so a window has it with or without an installed theme icon; an installed
+    // `scrivi` theme icon (the launcher's, [EP-056]) still wins where the theme provides one.
+    QApplication::setWindowIcon(QIcon::fromTheme(QStringLiteral("scrivi"), GlyphIcon::appIcon()));
     // ✅ EP-048 S5a ([SP-182]): the bundled manuscript faces (compiled in from Resources/Fonts, `fonts.json`'s list).
     BundledFonts::registerAll();
     // ✅ EP-050 S4 ([SP-203]): Orca reads the manuscript as the page shows it, not as it is stored.

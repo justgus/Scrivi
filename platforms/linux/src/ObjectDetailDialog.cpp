@@ -1,4 +1,6 @@
 #include "ObjectDetailDialog.hpp"
+
+#include "GlyphIcon.hpp"
 #include "RelationTypes.hpp"
 
 #include "AsyncCall.hpp"
@@ -274,16 +276,14 @@ ObjectDetailDialog::ObjectDetailDialog(ScriviBridge* bridge, const QString& proj
     more_ = new QToolButton(bar);
     more_->setObjectName(QStringLiteral("detailMore"));
     more_->setText(QStringLiteral("⋯"));   // shown when the theme has no `view-more` (Qt has no standard "more" icon)
-    more_->setIcon(QIcon::fromTheme(QStringLiteral("view-more")));
+    more_->setIcon(GlyphIcon::icon(QStringLiteral("inkwyn.more.options")));   // EP-060 SP-243 Q7
     more_->setToolTip(tr("More"));
     more_->setPopupMode(QToolButton::InstantPopup);
     more_->setMenu(new QMenu(more_));
     more_->menu()->setObjectName(QStringLiteral("detailMoreMenu"));
     connect(more_->menu(), &QMenu::aboutToShow, this, &ObjectDetailDialog::fillMoreMenu);
     bar->addWidget(more_);
-    closeAction_ = bar->addAction(QIcon::fromTheme(QStringLiteral("window-close"),
-                                                   style()->standardIcon(QStyle::SP_DialogCloseButton)),
-                                  tr("Close"));
+    closeAction_ = bar->addAction(GlyphIcon::icon(QStringLiteral("inkwyn.close")), tr("Close"));
     closeAction_->setObjectName(QStringLiteral("detailClose"));
     closeAction_->setToolTip(tr("Close the detail view (Esc)"));
     addAction(saveAction_);   // Ctrl+S anywhere in the dialog
@@ -840,7 +840,7 @@ void ObjectDetailDialog::rebuildTags()
         if (!readOnly) {
             auto* x = new QToolButton(chip);
             x->setObjectName(QStringLiteral("tagRemove"));
-            x->setText(QStringLiteral("✕"));
+            x->setIcon(GlyphIcon::icon(QStringLiteral("inkwyn.close"), GlyphIcon::Drawing::Small));   // SP-243: the Mac's tag ×
             x->setAutoRaise(true);
             x->setToolTip(tr("Remove the tag “%1”").arg(tag));
             connect(x, &QToolButton::clicked, this, [this, tag] {
@@ -1545,8 +1545,9 @@ void ObjectDetailDialog::rebuildGraph()
         ++rows;
         for (const Edge* e : list) {
             // A pending far end stays listed, named and explained (Doc 3: absence is never deletion).
-            auto* item = new QTreeWidgetItem(group, {e->pending ? QStringLiteral("⚠ ") + edgeName(*e) : edgeName(*e),
+            auto* item = new QTreeWidgetItem(group, {edgeName(*e),
                                                      e->pending ? pendingSentence(*e) : capitalised(e->otherKind)});
+            if (e->pending) { item->setIcon(0, GlyphIcon::icon(QStringLiteral("inkwyn.warnings"))); }   // SP-243 Q6: was "⚠ "
             item->setData(0, Qt::UserRole, e->edgeID);
             item->setForeground(1, palette().brush(QPalette::PlaceholderText));
             item->setToolTip(0, e->pending ? pendingSentence(*e) : tr("Double-click to show %1").arg(edgeName(*e)));

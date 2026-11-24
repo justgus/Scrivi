@@ -171,21 +171,17 @@ public:
 private:
     // [SP-232] The toolbar's items, all the menus' own (`buildMenuBar` makes them, then the toolbar from them).
     struct ToolbarActions {
-        QAction* navigator;
-        QAction* inspector;
-        QAction* timeline;
-        QAction* settings;
+        // EP-060 SP-243 (the Mac's [SP-242] shape): a nullptr in a list is a separator.
+        QList<QAction*> view;        // the panels, —, the overlays
         QAction* worlds;
         QList<QAction*> navigate;
         QList<QAction*> create;
         QList<QAction*> merge;
-        QList<QAction*> view;
         QMenu* importMenu;
         QMenu* exportMenu;
         QAction* copyAsHtml;
+        QList<QAction*> tools;       // Project Settings, Settings, Purge, —, About
         QAction* closeProject;
-        QAction* purgeStale;
-        QAction* about;
     };
     static QToolBar* buildToolbar(QMainWindow* host, const ToolbarActions& actions);
 

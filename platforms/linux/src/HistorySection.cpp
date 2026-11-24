@@ -1,5 +1,7 @@
 #include "HistorySection.hpp"
 
+#include "GlyphIcon.hpp"
+
 #include <QCheckBox>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -172,7 +174,14 @@ HistorySection::HistorySection(QWidget* parent) : QWidget(parent)
     stale_->setObjectName(QStringLiteral("historyStale"));
     stale_->setWordWrap(true);
     stale_->setEnabled(false);
-    bodyLayout->addWidget(stale_);
+    // EP-060 SP-243 Q6: the warnings glyph beside the line (it was "⚠ " in the text); disabled, so greyed like the line.
+    staleMark_ = GlyphIcon::mark(QStringLiteral("inkwyn.warnings"), QSize(16, 16), body_);
+    staleMark_->setEnabled(false);
+    staleMark_->hide();
+    auto* staleRow = new QHBoxLayout;
+    staleRow->addWidget(staleMark_, 0, Qt::AlignTop);
+    staleRow->addWidget(stale_, 1);
+    bodyLayout->addLayout(staleRow);
 
     body_->setVisible(false);
     layout->addWidget(body_, 1);
@@ -310,6 +319,7 @@ void HistorySection::render()
     list_->clear();
     truncated_->clear();
     stale_->clear();
+    staleMark_->hide();
     count_->clear();
     const auto showNotice = [this](const QString& text) {
         notice_->setText(text);
@@ -378,7 +388,8 @@ void HistorySection::render()
                                 .arg(tree_.value(QStringLiteral("totalNodeCount")).toInt()));
     }
     if (staleCount_ > 0) {
-        stale_->setText((staleCount_ == 1 ? tr("⚠ 1 abandoned branch") : tr("⚠ %1 abandoned branches").arg(staleCount_)) +
+        staleMark_->show();
+        stale_->setText((staleCount_ == 1 ? tr("1 abandoned branch") : tr("%1 abandoned branches").arg(staleCount_)) +
                         QLatin1Char('\n') + tr("Across the whole project — Project ▸ Purge Stale History Branches…"));
     }
 }

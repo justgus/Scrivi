@@ -1,4 +1,7 @@
 #include "NavigatorTree.hpp"
+#include "GlyphIcon.hpp"
+#include <QFont>
+#include <QPainter>
 
 #include <QAbstractItemModel>
 #include <QDrag>
@@ -305,4 +308,24 @@ void NavigatorTree::dropEvent(QDropEvent* event)
     } else {
         event->ignore();
     }
+}
+
+void NavigatorTree::drawBranches(QPainter* painter, const QRect& rect, const QModelIndex& index) const
+{
+    if (model() == nullptr || !model()->hasChildren(index)) {
+        QTreeView::drawBranches(painter, rect, index);   // a scene row: the style's own (no arrow)
+        return;
+    }
+    // ⚠️ "Hers" is read from the font EditorShell gives a chapter she keeps open (bold, [SP-226] Q5) — the one place the
+    // Navigator records it; a second flag would be a second copy to keep in step.
+    const bool open = isExpanded(index);
+    const bool hers = index.data(Qt::FontRole).value<QFont>().bold();
+    const QString name = !open ? QStringLiteral("inkwyn.chapter.collapsed")
+                       : hers  ? QStringLiteral("inkwyn.chapter.expanded.automatic")
+                               : QStringLiteral("inkwyn.chapter.expanded.manual");
+    const int side = qMax(8, qMin(indentation(), rect.height()) - 4);
+    const QRect box(rect.right() - indentation() + (indentation() - side) / 2 + 1, rect.center().y() - side / 2 + 1,
+                    side, side);
+    GlyphIcon::icon(name, GlyphIcon::Drawing::Small)
+        .paint(painter, box, Qt::AlignCenter, isEnabled() ? QIcon::Normal : QIcon::Disabled);
 }

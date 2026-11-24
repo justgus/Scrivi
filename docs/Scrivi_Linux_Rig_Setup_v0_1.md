@@ -183,7 +183,7 @@ the machine**, not over SSH.
 ```bash
 sudo apt-get update && sudo apt-get install -y \
     build-essential cmake ninja-build git ca-certificates libssl-dev \
-    qt6-base-dev qt6-declarative-dev \
+    qt6-base-dev qt6-declarative-dev qt6-svg-dev \
     qml6-module-qtquick qml6-module-qtquick-controls \
     qml6-module-qtquick-templates qml6-module-qtquick-layouts \
     qml6-module-qtquick-window \

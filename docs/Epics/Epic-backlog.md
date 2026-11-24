@@ -46,6 +46,7 @@ reach the rig by `rig-build.sh` / `deploy-to-rig.sh` with a build stamp (`bump-b
 24.04 / Qt 6.4.2; the rig runs **Ubuntu 26.04 with Qt 6.10**. The diagnostic log is at `~/.local/state/scrivi/`.
 
 **Scope (draft):** `install()` rules (binary, QML, fonts and other resources); a `.desktop` entry and icon; the MIME type
+⚠️ **Runtime dependency added by [EP-060] [SP-243] (2026-11-24): `libqt6svg6`** (Qt SVG — the Inkwyn glyphs). The `.deb` must depend on it.
 for `.scrivi` projects (folders on Linux, so double-click needs care); the package with its Qt runtime dependencies; the
 version shown in Help ▸ About; upgrade and uninstall that never touch the writer's projects or settings; where testers
 download it.

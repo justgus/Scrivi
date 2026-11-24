@@ -1,4 +1,6 @@
 #include "SceneInspector.hpp"
+
+#include "GlyphIcon.hpp"
 #include "HistorySection.hpp"
 
 #include "AsyncCall.hpp"   // I-0193: core reads off the UI thread
@@ -127,6 +129,9 @@ SceneInspector::SceneInspector(QWidget* parent) : QWidget(parent)
     tabs_->addTab(buildWritingTab(),       tr("Writing"));
     tabs_->addTab(buildWorldbuildingTab(), tr("Worldbuilding"));
     tabs_->addTab(buildPropertiesTab(),    tr("Properties"));
+    // EP-060 SP-243 Q7, as the Mac's: the tree on Worldbuilding, `info` on Properties; Writing has no Inkwyn glyph.
+    tabs_->setTabIcon(TabWorldbuilding, GlyphIcon::icon(QStringLiteral("inkwyn.menu.worlds")));
+    tabs_->setTabIcon(TabProperties, GlyphIcon::icon(QStringLiteral("inkwyn.info")));
     tabs_->setCurrentIndex(TabWriting);   // Apple's default until a layout loads
 
     // ⚠️ At the panel's 200px default width, three full tab labels do NOT fit,
@@ -459,7 +464,17 @@ void SceneInspector::rebuildStack(StackUI& ui)
 
     int at = 0;
     bool historyOpen = false;
-    auto addCard = [&](const QString& type, const QString& title, bool collapsed, QWidget* body, bool isUnknown) {
+    // EP-060 SP-243 Q7: a world card's glyph is `inkwyn.<subdir>`, else `inkwyn.<kind>` (characters … but item, artifact) —
+    // DERIVED from the kind the core lists, never a restated kind table; a card with neither has none.
+    auto kindGlyph = [](const CardInfo& info) {
+        for (const QString& n : {QStringLiteral("inkwyn.") + info.type.section(QLatin1Char('.'), 1),
+                                 QStringLiteral("inkwyn.") + info.kind}) {
+            if (!info.kind.isEmpty() && GlyphIcon::exists(n)) { return GlyphIcon::icon(n); }
+        }
+        return QIcon();
+    };
+    auto addCard = [&](const QString& type, const QString& title, bool collapsed, QWidget* body, bool isUnknown,
+                       const QIcon& glyph = QIcon()) {
         auto* frame = new QFrame(ui.cardsHost);
         frame->setObjectName(QStringLiteral("card:") + type);
         frame->setFrameShape(QFrame::StyledPanel);
@@ -470,9 +485,17 @@ void SceneInspector::rebuildStack(StackUI& ui)
         auto* toggle = new QToolButton(frame);
         toggle->setObjectName(QStringLiteral("cardCollapse"));
         toggle->setAutoRaise(true);
-        toggle->setArrowType(collapsed ? Qt::RightArrow : Qt::DownArrow);
+        // Ruling (b), as the Mac's: the chapter chevrons at Small.
+        toggle->setIcon(GlyphIcon::icon(collapsed ? QStringLiteral("inkwyn.chapter.collapsed")
+                                                  : QStringLiteral("inkwyn.chapter.expanded.automatic"),
+                                        GlyphIcon::Drawing::Small));
         toggle->setToolTip(collapsed ? tr("Expand this card") : tr("Collapse this card"));
         toggle->setVisible(!isUnknown);
+        // A mark, not a QLabel pixmap: an icon is drawn at each paint, so it follows a theme switch.
+        auto* icon = GlyphIcon::mark(QString(), QSize(24, 18), frame);
+        icon->setObjectName(QStringLiteral("cardGlyph"));
+        icon->setIcon(glyph);
+        icon->setVisible(!glyph.isNull());
         auto* label = new QLabel(title, frame);
         QFont f = label->font();
         f.setBold(true);
@@ -480,10 +503,11 @@ void SceneInspector::rebuildStack(StackUI& ui)
         auto* remove = new QToolButton(frame);
         remove->setObjectName(QStringLiteral("cardRemove"));
         remove->setAutoRaise(true);
-        remove->setText(QStringLiteral("✕"));
+        remove->setIcon(GlyphIcon::icon(QStringLiteral("inkwyn.close"), GlyphIcon::Drawing::Small));
         remove->setToolTip(tr("Remove this card from the scene"));
         remove->setAccessibleName(tr("Remove %1").arg(title));
         h->addWidget(toggle);
+        h->addWidget(icon);
         h->addWidget(label, 1);
         h->addWidget(remove);
         v->addLayout(h);
@@ -511,7 +535,7 @@ void SceneInspector::rebuildStack(StackUI& ui)
     for (const auto& e : entries) {
         const CardInfo& info = known.value(e.type);
         QWidget* body = writing ? writingBodies_.value(e.type) : objectCardBody(info.kind, info.title, ui.cardsHost);
-        addCard(e.type, info.title, e.collapsed, body, false);
+        addCard(e.type, info.title, e.collapsed, body, false, kindGlyph(info));
     }
     // Apple's AC11: a card this build lacks is REPORTED and removable, never dropped.
     for (const auto& e : unknown) { addCard(e.type, e.type, false, nullptr, true); }
@@ -1056,7 +1080,7 @@ QWidget* SceneInspector::objectCardBody(const QString& kind, const QString& titl
         item->setData(0, kRoleEdgeID,   e.edgeID);
         item->setData(0, kRoleImagePath, e.imagePath);
         // A6: the object's image when the core has one; a row without one is unchanged (no blank gap, as Apple's).
-        if (!e.imagePath.isEmpty()) {
+        if (!e.imagePath.isEmpty() && !e.pending) {   // a pending row shows the warning glyph instead (below)
             if (thumbnails_.contains(e.imagePath)) {
                 item->setIcon(0, QIcon(thumbnails_.value(e.imagePath)));
             } else {
@@ -1077,7 +1101,8 @@ QWidget* SceneInspector::objectCardBody(const QString& kind, const QString& titl
         if (e.pending) {
             // ⚠️ Shown, named, and not modifiable — never hidden. The sentence
             // in the status line below names the world; this marks the row.
-            item->setText(0, tr("⚠ %1").arg(e.displayName));
+            item->setText(0, e.displayName);
+            item->setIcon(0, GlyphIcon::icon(QStringLiteral("inkwyn.warnings")));   // EP-060 SP-243 Q6: was "⚠ " in the text
             // Both facts, not one replacing the other: a pending row still
             // needs its full label readable (I-0173).
             item->setToolTip(0, tr("%1\n\nHeld pending — this object's world is %2.")
@@ -1572,7 +1597,9 @@ void SceneInspector::loadThumbnail(const QString& path)
             for (QTreeWidget* tree : findChildren<QTreeWidget*>(QStringLiteral("objectRows"))) {
                 for (int i = 0; i < tree->topLevelItemCount(); ++i) {
                     QTreeWidgetItem* item = tree->topLevelItem(i);
-                    if (item->data(0, kRoleImagePath).toString() == path) { item->setIcon(0, QIcon(thumbnails_.value(path))); }
+                    if (item->data(0, kRoleImagePath).toString() == path && !item->data(0, kRolePending).toBool()) {
+                        item->setIcon(0, QIcon(thumbnails_.value(path)));
+                    }
                 }
             }
         },

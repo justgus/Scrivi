@@ -24,7 +24,7 @@
 # ⚠️ A QTimer cannot fix that: the UI thread is INSIDE a blocking read(), so no
 # timer fires. Getting the call OFF the thread is what makes a timeout expressible
 # at all -- the async move is the mechanism, not preparation for it.
-find_package(Qt6 6.4 REQUIRED COMPONENTS Quick Widgets QuickWidgets Test Concurrent)
+find_package(Qt6 6.4 REQUIRED COMPONENTS Quick Widgets QuickWidgets Test Concurrent Svg)
 
 # Qt's AUTOMOC etc. are enabled per-target below via qt_standard_project_setup.
 qt_standard_project_setup(REQUIRES 6.4)
@@ -3137,3 +3137,44 @@ target_include_directories(scrivi_linux_diagnostic_log_smoke PRIVATE src)
 target_compile_features(scrivi_linux_diagnostic_log_smoke PRIVATE cxx_std_23)
 # Function names in the crash backtrace the smoke reads.
 set_property(TARGET scrivi_linux_diagnostic_log_smoke PROPERTY ENABLE_EXPORTS ON)
+
+# ── EP-060 SP-243: the Inkwyn glyphs ─────────────────────────────────────────────────────────────────────────────────────
+# GlyphIcon draws the SVGs scripts/make-glyph-symbols.swift writes to resources/glyphs (the same drawings as the Apple
+# symbols), bundled at :/glyphs/…, plus the app icon at :/icons/…. A static library, so the ~20 targets that restate the app's
+# source list need no edit: every target compiling a glyph user is linked to it by the loop below, read from its own SOURCES.
+file(GLOB SCRIVI_GLYPH_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/resources/glyphs/*.svg")
+add_library(scrivi_linux_glyphs STATIC src/GlyphIcon.cpp src/GlyphIcon.hpp)
+target_link_libraries(scrivi_linux_glyphs PUBLIC Qt6::Gui Qt6::Widgets Qt6::Svg)
+target_include_directories(scrivi_linux_glyphs PUBLIC src)
+qt_add_resources(scrivi_linux_glyphs "scrivi_glyphs" PREFIX "/glyphs" BASE "${CMAKE_CURRENT_SOURCE_DIR}/resources/glyphs"
+                 FILES ${SCRIVI_GLYPH_FILES})
+qt_add_resources(scrivi_linux_glyphs "scrivi_app_icon" PREFIX "/icons" BASE "${CMAKE_CURRENT_SOURCE_DIR}/resources"
+                 FILES "${CMAKE_CURRENT_SOURCE_DIR}/resources/inkwyn-256.png")
+
+# The sources that draw glyphs. ⚠️ A file that starts using GlyphIcon goes here, or its targets fail to LINK (loudly).
+set(SCRIVI_GLYPH_USERS main.cpp ScriviWindow.cpp SceneInspector.cpp ObjectDetailDialog.cpp HistorySection.cpp
+    EditorShell.cpp NavigatorTree.cpp LandingWindow.cpp WorldsDialog.cpp WorldWarningStrip.cpp glyph_smoke.cpp)
+get_property(_scriviTargets DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
+foreach(_t IN LISTS _scriviTargets)
+    if(_t STREQUAL "scrivi_linux_glyphs")
+        continue()
+    endif()
+    get_target_property(_type ${_t} TYPE)
+    if(NOT _type STREQUAL "EXECUTABLE")
+        continue()
+    endif()
+    get_target_property(_srcs ${_t} SOURCES)
+    foreach(_s IN LISTS _srcs)
+        get_filename_component(_n "${_s}" NAME)
+        if(_n IN_LIST SCRIVI_GLYPH_USERS)
+            target_link_libraries(${_t} PRIVATE scrivi_linux_glyphs)
+            break()
+        endif()
+    endforeach()
+endforeach()
+
+# glyph_smoke (EP-060 SP-243, T-0706) — every bundled glyph loads and draws; the palette tints it (light, dark, disabled); a tint
+# wins; HiDPI renders at full pixels; the app icon is bundled. Driven by glyph_smoke.sh (offscreen).
+qt_add_executable(scrivi_linux_glyph_smoke tests/glyph_smoke.cpp)
+target_link_libraries(scrivi_linux_glyph_smoke PRIVATE scrivi_linux_glyphs Qt6::Widgets)
+target_compile_features(scrivi_linux_glyph_smoke PRIVATE cxx_std_23)
