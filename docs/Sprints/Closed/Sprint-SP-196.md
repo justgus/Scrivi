@@ -118,7 +118,7 @@ User: *"mac live pass passes."* The rig pass remains; AC4 stays open until it is
 
 ### ✅ 2026-11-02 — Sprint CLOSED (user, 2026-11-02: *"on my authority, closed all the objects that have now tested completed"*)
 
-Every AC met; the rig AC passed on the Linux VM (`Rig-Live-Pass-Checklist-2026-11-02.md`: Pass; VM counts per
+Every AC met; the rig AC passed on the Linux VM (Pass; VM counts per
 Sprint-GUIDELINES rule 6). **Final status:** [T-0627] ✅ Verified 2026-11-02 · [T-0649] ✅ Verified 2026-11-02 (the rig AC, on the VM).
 
 **Retrospective.**

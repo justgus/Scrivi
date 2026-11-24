@@ -121,7 +121,7 @@ Then main-thread core calls waited up to 15 s for the project lock (`lockWaitMs`
 
 ### ✅ 2026-11-02 — Sprint CLOSED (user, 2026-11-02: *"on my authority, closed all the objects that have now tested completed"*)
 
-Every AC met; the rig AC passed on the Linux VM (`Rig-Live-Pass-Checklist-2026-11-02.md`: Pass; VM counts per
+Every AC met; the rig AC passed on the Linux VM (Pass; VM counts per
 Sprint-GUIDELINES rule 6). **Final status:** [T-0655] ✅ Verified 2026-11-02 (the rig AC, on the VM) · [I-0333], [I-0334] ✅ Verified 2026-11-02 · [I-0339] ✅ Verified 2026-11-02 (found and fixed during the VM pass).
 
 **Retrospective.**

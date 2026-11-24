@@ -12,5 +12,5 @@
 out of [SP-198] under the rig rule, user 2026-11-02: *"1 and 2 approved"*)
 
 **What:** the Linux live pass for [I-0326] (its Linux half), on the rig over the share. ⏳ The Mac pass is the
-Issue's own (not yet run); Linux's evidence is `replace_smoke` (a heading seed scene), in the smokes. **Steps:** [`Rig-Live-Pass-Checklist-2026-11-02.md`](../../Sprints/Rig-Live-Pass-Checklist-2026-11-02.md) (the steps as run) — section *T-0651*.
+Issue's own (not yet run); Linux's evidence is `replace_smoke` (a heading seed scene), in the smokes.
 **Done when:** the steps pass on a build that contains the work (Help ▸ About), recorded here; a failure is a NEW Issue.

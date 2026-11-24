@@ -1,5 +1,7 @@
 # Active Tasks
 
+*Last Updated: 2026-11-24 (**T-0706 removed** — ✅ Verified, archived with [SP-243]'s close.)*
+
 *Last Updated: 2026-11-24 (**T-0706 → active** with [SP-243]'s activation.)*
 
 *Last Updated: 2026-11-24 (**T-0705 removed** — ✅ Verified, archived with [SP-242]'s close.)*

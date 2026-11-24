@@ -1,11 +1,11 @@
 # Sprint SP-243 — `[Linux]` [EP-060] S3: the Inkwyn glyphs and the 8-item toolbar on Linux
 
-**Status:** 🟡 **ACTIVE** — AC1–AC5 ✅; live pass on `scrivi-vm` ✅ (user, 2026-11-24: *"Steps 1-11 pass."*); ⏳ AC6: CI on the push. Activated 2026-11-24 (user, 2026-11-24: *"Q1-Q8 as recommended, implement SP-243"*); ✅ Q1–Q8 as recommended. Created 2026-11-24
+**Status:** ✅ **CLOSED** 2026-11-24 (user, 2026-11-24: *"close SP-243, then complete EP-060"*). Was 🟠 Complete 2026-11-24. AC1–AC6 ✅ — Linux App CI ✅ on `31b74cb` (Qt 6.4 and the ASan job; the new Glyph smoke step ran) (user, 2026-11-24: *"I pushed. Check CI."*); live pass on `scrivi-vm` ✅ (user, 2026-11-24: *"Steps 1-11 pass."*); ⏳ AC6: CI on the push. Activated 2026-11-24 (user, 2026-11-24: *"Q1-Q8 as recommended, implement SP-243"*); ✅ Q1–Q8 as recommended. Created 2026-11-24
 (user, 2026-11-24: *"close SP-242, then plan Sprint 3"*).
-**Carries:** [T-0706].
-**Epic:** [EP-060] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md) — Sprint 3 of 3; closes AC4 (*"Linux shows the same mapped
+**Carries:** [T-0706] (✅ Verified 2026-11-24 → [`../../Tasks/Verified/Task-verified-0706.md`](../../Tasks/Verified/Task-verified-0706.md)).
+**Epic:** [EP-060] → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md) — Sprint 3 of 3; closes AC4 (*"Linux shows the same mapped
 glyphs and the Inkwyn window icon, legible in light and dark themes"*).
-**Adopts:** the Mac's shape from [SP-242] → [`Closed/Sprint-SP-242.md`](Closed/Sprint-SP-242.md) (memory: Linux always adopts Apple's
+**Adopts:** the Mac's shape from [SP-242] → [`Closed/Sprint-SP-242.md`](Sprint-SP-242.md) (memory: Linux always adopts Apple's
 shape) — the 8-item toolbar, the menu headers, the glyph mapping, 1.5×, Large in the toolbar.
 **Rig:** ⚠️ the live pass runs on the Linux VM (`scrivi-vm`); x86 / GPU are not involved. A rig-only check, if any, goes to EP-057.
 **Size:** M–L.
@@ -67,7 +67,7 @@ shape) — the 8-item toolbar, the menu headers, the glyph mapping, 1.5×, Large
 - [x] **AC3** Every glyph is legible in a light and a dark theme, and sharp at 1× and 2× (`GlyphIcon` tints and renders per paint).
 - [x] **AC4** The window shows the Inkwyn icon.
 - [x] **AC5** The Linux glyphs come from the same script run as the Apple symbols; a second run changes nothing.
-- [ ] **AC6** Docker build + ctest/smokes green (non-root); CI green on the push; live pass on `scrivi-vm`.
+- [x] **AC6** Docker build + ctest/smokes green (non-root); CI green on the push; live pass on `scrivi-vm`.
 
 ## What was built (2026-11-24)
 
@@ -111,3 +111,16 @@ shape) — the 8-item toolbar, the menu headers, the glyph mapping, 1.5×, Large
 ## Live pass (2026-11-24)
 
 ✅ Steps 1–11 on `scrivi-vm` (user, 2026-11-24: *"Steps 1-11 pass."*) — the toolbar, headers, Import/Export, Tools, cards, tabs, the Navigator's chapter glyphs, dark theme, the window icon.
+
+## Also in this Sprint's session
+
+[I-0373] (the iPhone ⋯ overflow's double menu header, an [SP-242] follow-on) — fixed by watching the overflow tap; ✅ Verified on Remus (user, 2026-11-24: *"Steps 1-4 pass on Remus."*); Apple CI ✅ on `a858907`.
+
+## Retrospective
+
+- **What worked:** one pipeline — the script writes the Linux SVGs too, so the art cannot drift; the new glyph smoke caught Qt's
+  `scaledPixmap` contract change (device pixels before 6.8) before any live pass; checking Qt's own source for both versions.
+- **What cost time:** Docker ran out of disk mid-build (19 GB of unused build cache cleared); `scrivi-vm` was down, so Qt 6.10 was
+  covered by the `scrivi-qt610` image instead.
+- **I-0373** (found in this session, an [SP-242] follow-on): I gave up on detection twice and offered fallbacks; the user's idea —
+  watch the overflow tap — was the answer.

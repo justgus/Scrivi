@@ -1,5 +1,9 @@
 # Active Sprints
 
+*Last Updated: 2026-11-24 (**SP-243 → ✅ CLOSED** (user, 2026-11-24: *"close SP-243, then complete EP-060"*) → `Closed/Sprint-SP-243.md`; T-0706 ✅ Verified, archived. No Sprint is active.)*
+
+*Last Updated: 2026-11-24 (**SP-243 🟠 Complete** — AC1–AC6 met; Linux App CI ✅ on `31b74cb` (user, 2026-11-24: *"I pushed. Check CI."*). Awaiting close approval. I-0373 ✅ Verified.)*
+
 *Last Updated: 2026-11-24 (**SP-243:** live pass ✅ (user, 2026-11-24: *"Steps 1-11 pass."*); AC1–AC5 [x]; ⏳ AC6: CI on the push.)*
 
 *Last Updated: 2026-11-24 (**SP-243:** built — GlyphIcon, the 8-item toolbar and every mapped place on Linux; Docker (Qt 6.4) and Qt 6.10 green; ⏳ CI on the push, live pass on `scrivi-vm`.)*

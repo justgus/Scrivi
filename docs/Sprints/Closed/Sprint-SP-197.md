@@ -197,7 +197,7 @@ moved. Spotlight never runs on the main thread: one serial queue, per-scene re-i
 
 ### ✅ 2026-11-02 — Sprint CLOSED (user, 2026-11-02: *"on my authority, closed all the objects that have now tested completed"*)
 
-Every AC met; the rig AC passed on the Linux VM (`Rig-Live-Pass-Checklist-2026-11-02.md`: Pass; VM counts per
+Every AC met; the rig AC passed on the Linux VM (Pass; VM counts per
 Sprint-GUIDELINES rule 6). **Final status:** [T-0629], [T-0630], [T-0631] ✅ Verified 2026-11-02 · [T-0650] ✅ Verified 2026-11-02 (the rig AC, on the VM) · [I-0316], [I-0324], [I-0330], [I-0331], [I-0332] ✅ Verified (I-0330/I-0331 2026-11-01; the rest 2026-11-02) · [I-0337] ✅ Verified 2026-11-02 (found and fixed during the VM pass).
 
 **Retrospective.**

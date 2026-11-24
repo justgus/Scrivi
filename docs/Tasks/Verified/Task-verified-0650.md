@@ -12,5 +12,5 @@
 out of [SP-197] AC5 under the rig rule, user 2026-11-02: *"1 and 2 approved"*)
 
 **What:** the Linux live pass for [T-0629], [T-0630], on the rig over the share. ✅ Mac passed; Linux's Docker evidence is in
-[SP-197]'s log. **Steps:** [`Rig-Live-Pass-Checklist-2026-11-02.md`](../../Sprints/Rig-Live-Pass-Checklist-2026-11-02.md) (the steps as run) — section *T-0650*.
+[SP-197]'s log.
 **Done when:** the steps pass on a build that contains the work (Help ▸ About), recorded here; a failure is a NEW Issue.

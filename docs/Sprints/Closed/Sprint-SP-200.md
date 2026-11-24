@@ -125,7 +125,7 @@ measure; its baseline is taken before T-0400 starts.
 
 ### ✅ 2026-11-02 — Sprint CLOSED (user, 2026-11-02: *"on my authority, closed all the objects that have now tested completed"*)
 
-Every AC met; the rig AC passed on the Linux VM (`Rig-Live-Pass-Checklist-2026-11-02.md`: Pass; VM counts per
+Every AC met; the rig AC passed on the Linux VM (Pass; VM counts per
 Sprint-GUIDELINES rule 6). **Final status:** [T-0400], [T-0643], [T-0644], [T-0645], [T-0646], [T-0647] ✅ Verified 2026-11-02 · [T-0653], [T-0654] ✅ Verified 2026-11-02 (the rig ACs, on the VM) · [I-0331], [I-0332] ✅ Verified.
 
 **Retrospective.**

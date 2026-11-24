@@ -172,7 +172,7 @@ it cannot land. Both platforms' own ordering code is gone (W6).
 
 ### ✅ 2026-11-02 — Sprint CLOSED (user, 2026-11-02: *"on my authority, closed all the objects that have now tested completed"*)
 
-Every AC met; the rig AC passed on the Linux VM (`Rig-Live-Pass-Checklist-2026-11-02.md`: Pass; VM counts per
+Every AC met; the rig AC passed on the Linux VM (Pass; VM counts per
 Sprint-GUIDELINES rule 6). **Final status:** [T-0625] ✅ Verified (2026-10-26) · [T-0626] ✅ Verified 2026-11-02 · [T-0648] ✅ Verified 2026-11-02 (the rig AC, on the VM) · [I-0322] ✅ Verified 2026-11-02 (folded in, Q3) · [I-0335], [I-0336] ✅ Verified 2026-11-02 (found and fixed during the VM pass) · [T-0628] stays in the backlog (EP-052, unscheduled: a held queue kept on local disk).
 
 **Retrospective.**
