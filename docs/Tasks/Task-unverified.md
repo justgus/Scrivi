@@ -1,5 +1,7 @@
 # Unverified Tasks
 
+*Last Updated: 2026-11-23 (**T-0702 → ✅ Verified** (user, 2026-11-23: *"Steps 3 through 11 also pass.  On all three platforms (mac, iPad, and iPhone)"*); archived when [SP-239] closes.)*
+
 *Last Updated: 2026-11-23 (**T-0702 → 🟠 Implemented - Not Verified** ([SP-239] built); the live pass is the user's.)*
 
 *Last Updated: 2026-11-23 (**T-0472 archived** → `Verified/Task-verified-0472.md` — [SP-238] closed (user, 2026-11-23: *"close SP-238"*).)*
@@ -180,9 +182,9 @@ in the backlog carrying a 🟠 status.
 
 ---
 
-## 🟠 T-0702 — `[Apple]` EP-059 A8: Delete and Change Kind for objects on the Mac and iOS
+## ✅ T-0702 — `[Apple]` EP-059 A8: Delete and Change Kind for objects on the Mac and iOS
 
-**Epic:** [EP-059] (A8) · **Status:** 🟠 Implemented - Not Verified · **Sprint:** [SP-239] (🟡 Active) →
+**Epic:** [EP-059] (A8) · **Status:** ✅ Verified (user, 2026-11-23: *"Steps 3 through 11 also pass.  On all three platforms (mac, iPad, and iPhone)"*) · **Sprint:** [SP-239] (🟡 Active) →
 [`../Sprints/Sprint-SP-239.md`](../Sprints/Sprint-SP-239.md) · **Date Requested:** 2026-11-21 (user, 2026-11-21: *"Build them on Linux and Mac and iOS"*)
 
 **What:** Delete <Kind>… and Change to Artifact / Item in the detail sheet's More menu (both endpoints existed, uncalled); the core

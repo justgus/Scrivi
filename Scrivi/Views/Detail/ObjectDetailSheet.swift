@@ -449,7 +449,10 @@ struct ObjectDetailSheet: View {
         // Save writes, re-reads disk and KEEPS THE SHEET OPEN ([I-0245]) — which is why
         // [I-0246]'s status banner exists to report it.
         // ✅ Enable/disable belongs HERE (user ruling).
-        ToolbarItemGroup(placement: .cancellationAction) {
+        // ⛔ [I-0371]: on macOS the sheet draws these in a BOTTOM bar that shows ONE view per placement — a
+        // `ToolbarItemGroup` showed only Save, and so did three separate items. So one item, one `HStack`.
+        ToolbarItem(placement: .cancellationAction) {
+          HStack {
             // ⚠️ `internaldrive` is a DISK (user correction, 2026-09-23).
             // ⛔ NOT `square.and.arrow.down` — that is the DOWNLOAD/export glyph, and
             // it says "bring this in", not "commit this to storage".
@@ -472,6 +475,7 @@ struct ObjectDetailSheet: View {
             .help("Undo Changes — discard your edits and return to the saved version")
 
             moreMenu
+          }
         }
 
         // ⚠️ **CLOSE IS THE CONFIRMATION ACTION** — it is what dismisses the sheet.

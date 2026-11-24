@@ -105,10 +105,12 @@ On `dumas-prose-timelines-history` (iCloud Drive ▸ Scrivi ▸ projects ▸ Scr
 - [x] AC3 — Both greyed while the object's world is away.
 - [x] AC4 — The core refuses a promote other than item ↔ artifact, tested through `scrivi_*`.
 - [~] AC5 — ctest, the interop tests and the iOS tests green; CI green. ✅ 882/882, 354/354, 38/38; ⏳ CI.
-- [ ] AC6 — Live pass on the Mac and iOS.
+- [x] AC6 — Live pass on the Mac and iOS. ✅ Mac, iPad and iPhone (user, 2026-11-23: *"Steps 3 through 11 also pass.  On all three platforms (mac, iPad, and iPhone)"*), after [I-0371].
 
 ## Progress log
 
+- **2026-11-23** — ✅ AC6: live pass steps 2–11 pass on the Mac, iPad and iPhone (user, 2026-11-23: *"Steps 3 through 11 also pass.  On all three platforms (mac, iPad, and iPhone)"*); I-0371 and T-0702 → ✅ Verified. ⏳ AC5 CI on the next push; close is the user's.
+- **2026-11-23** — Live pass, Mac step 2: only Save and Close showed. Filed [I-0371] ; separate items failed the same way (user: "Only disk and X"); now one item holding an HStack; macOS build green. ⏳ re-run from step 2.
 - **2026-11-23** — Built: AC1–AC4 met; AC5 green locally; T-0702 → 🟠. Fixed the interop test host's bundle ID (SP-229 regression). ⏳ AC6 live pass, CI.
 - **2026-11-23** — 🟡 **ACTIVE** (user, 2026-11-23: *"Q1-Q5 as recommended, implement SP-239"*); Q1–Q5 as recommended; T-0702 → active.
 - **2026-11-23** — 🔵 **Created in Planning** via `next-id.py` (user, 2026-11-23: *"plan A8"*); carries [T-0702] (new). Q1–Q5 to rule.
