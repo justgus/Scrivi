@@ -10,7 +10,7 @@ created: 2026-11-24
 
 **Status:** 🟡 **ACTIVE** 2026-11-24 (user, 2026-11-24: *"Q1-Q7 as recommended, implement SP-244"*); Q1–Q7 as recommended. Created 2026-11-24 (user: *"let's start planning the bug sprint"*).
 **Epic:** none — a sweep before [SP-228] (EP-055 AC9, TestFlight) archives the alpha.
-**Carries (Q1):** [I-0366], [I-0369], [I-0353], [I-0284], [I-0323], [I-0370].
+**Carries (Q1):** [I-0366], [I-0369], [I-0353], [I-0284], [I-0323], [I-0370]; ➕ [I-0374] (folded in 2026-11-24, user).
 **Size:** M — six Issues, two of them core changes, three on both platforms.
 
 ---
@@ -71,15 +71,15 @@ Each Issue's record was re-checked against today's code; all six are still as fi
 
 ## Acceptance Criteria
 
-- [ ] AC1 — [I-0366]: a save panel that returns another extension shows the alert and reopens; no "operation not permitted".
-- [ ] AC2 — [I-0369]: removing or replacing a shared image leaves the other object's image intact (interop test + Mac pass).
-- [ ] AC3 — [I-0353]: Heading 1–3, both lists and Body on an empty line succeed through `scrivi_*` (boundary tests) and on the
+- [x] AC1 — [I-0366]: a save panel that returns another extension shows the alert and reopens; no "operation not permitted".
+- [x] AC2 — [I-0369]: removing or replacing a shared image leaves the other object's image intact (interop test + Mac pass).
+- [x] AC3 — [I-0353]: Heading 1–3, both lists and Body on an empty line succeed through `scrivi_*` (boundary tests) and on the
       Mac, iOS and Linux, with no beep.
-- [ ] AC4 — [I-0284]: emphasis after a hard break renders on the Mac and iOS (and Linux, per Q6); the corpus test covers it.
+- [x] AC4 — [I-0284]: emphasis after a hard break renders on the Mac and iOS (and Linux, per Q6); the corpus test covers it.
 - [ ] AC5 — [I-0323]: the cause is named in the Issue; the message names the file; per Q3, the newer-version message.
-- [ ] AC6 — [I-0370]: a source's citation fields are entered and kept on the Mac, iOS and Linux; New Source…'s text is true.
+- [x] AC6 — [I-0370]: a source's citation fields are entered and kept on the Mac, iOS and Linux; New Source…'s text is true.
 - [ ] AC7 — ctest, the interop tests, the iOS tests and the Linux smokes green; CI green on the push.
-- [ ] AC8 — the live passes per Q7.
+- [x] AC8 — the live passes per Q7.
 
 ## Progress log
 
@@ -101,3 +101,13 @@ Each Issue's record was re-checked against today's code; all six are still as fi
     Mac interop 356/356; iOS 38/38; Linux smokes 50/50 (`object_detail_smoke` §10b new). ⚠️ One parallel ctest run on the
     Mac failed `T-0478` once and passed on re-run ([I-0355], the clock-named temp folders).
     ⏳ AC7: CI on the push · AC8: live passes.
+- **2026-11-24** — Mac live pass (user): steps 1–4 and 6–8 ✅ pass. ⚠️ Step 5 was WRONG: it said to TYPE `**two**`, which the
+  escape ruling stores as literal asterisks (the Mac and Linux did exactly that) — bold must come from Format ▸ Bold. Re-run
+  with the corrected step. The iPad turned typed asterisks INTO formatting → filed [I-0374] (backlog).
+- **2026-11-24** — corrected step 5 ✅ on the Mac (user, 2026-11-24: *"fold I-0374 into SP-244.  Step 5-1 to 5-4 pass."*) → [I-0284] ✅ Verified. ➕ [I-0374] folded into this Sprint.
+- **2026-11-24** — [I-0374] → 🟠: UIKit's own replacements (`replace(_:withText:)`) were stored unescaped; now escaped
+  through the rules. iOS tests 39/39. ⚠️ "a scene typed on iOS is autosaved" failed once and passed on re-run (a fixed 1.6 s wait).
+- **2026-11-24** — [I-0374] re-reported on the iPad's hardware keyboard; the device log showed a key reaches the delegate
+  with the raw `*` before `insertText`. The delegate now judges typed text escaped (`shouldChangeTyped`). iOS tests 40/40.
+- **2026-11-24** — [I-0374] ✅ Verified (user, 2026-11-24: *"Ok this now works on both the iPhone with a software keyboard and the iPad with the hardware keyboard."*).
+- **2026-11-24** — iOS and Linux live passes ✅ (user, 2026-11-24: *"we alerady verified all this.  These all passed."*) → [I-0353], [I-0370] ✅ Verified; AC1–AC4, AC6, AC8 met.

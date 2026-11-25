@@ -259,7 +259,7 @@ struct ManuscriptTextView: UIViewRepresentable {
         /// `shouldChangeText`.
         func textView(_ textView: UITextView, shouldChangeTextIn range: NSRange, replacementText text: String) -> Bool {
             guard let tv = textView as? ManuscriptUITextView else { return true }
-            return tv.shouldChange(range, to: text)
+            return tv.shouldChangeTyped(range, to: text)
         }
 
         /// ✅ Q3 (SP-222): the structural edits in the text's own edit menu, where the caret allows them. ✅ SP-223 Q2 / Q4: a
@@ -778,6 +778,12 @@ final class ManuscriptUITextView: UITextView {
         }
     }
 
+    /// [I-0374]: a HARDWARE key on iPad asks the delegate with the TYPED text before `insertText` — and a bare `*` judged
+    /// as markup was stored unescaped (`**two**` turned bold). Judge it as `insertText` will store it: escaped.
+    func shouldChangeTyped(_ range: NSRange, to typed: String) -> Bool {
+        shouldChange(range, to: MarkdownEscapes.escape(typed))
+    }
+
     /// Store `source` (already in stored form) over `range` — through the same rules, as the Mac's `insertVerbatim` goes
     /// through `shouldChangeText` — then tell the model sync, as a typed edit would.
     func store(_ source: String, over range: NSRange, selecting selection: NSRange, balanced: Bool = false) {
@@ -839,6 +845,19 @@ final class ManuscriptUITextView: UITextView {
         let source = MarkdownEscapes.escape(text)
         guard shouldChange(selectedRange, to: source) else { return }
         super.insertText(source)
+    }
+
+    /// [I-0374]: what UIKit puts in by ITSELF — autocorrect, predictive and inline completions, text replacements — arrives
+    /// here, not at `insertText`, and was stored as given: typed `**two**` became bold. Escaped and stored through the rules,
+    /// as `insertText` does.
+    override func replace(_ range: UITextRange, withText text: String) {
+        caretDiag("[SCRIVI-CARET] replace \(text.debugDescription) marked=\(markedTextRange != nil)")
+        if inputHeld { return }
+        guard markedTextRange == nil else { return super.replace(range, withText: text) }
+        let location = offset(from: beginningOfDocument, to: range.start)
+        let target = NSRange(location: location, length: offset(from: range.start, to: range.end))
+        let source = MarkdownEscapes.escape(text)
+        store(source, over: target, selecting: NSRange(location: location + source.utf16.count, length: 0))
     }
 
     override func deleteBackward() {

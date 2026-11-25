@@ -47,6 +47,10 @@
 
 *Last Updated: 2026-11-24 — **I-0366, I-0369, I-0353, I-0284, I-0323, I-0370 → `Issue-active.md`** with [SP-244]'s activation (user, 2026-11-24: *"Q1-Q7 as recommended, implement SP-244"*).*
 
+*Last Updated: 2026-11-24 — **I-0374 filed** (SP-244 live pass, iPad: typed asterisks become formatting).*
+
+*Last Updated: 2026-11-24 — **I-0374 → `Issue-active.md`**, folded into [SP-244] (user, 2026-11-24: *"fold I-0374 into SP-244.  Step 5-1 to 5-4 pass."*).*
+
 Issues listed here are open and documented but not currently assigned to a Sprint.
 
 | ID | Title | Severity | Sprint |

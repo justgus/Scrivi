@@ -55,6 +55,28 @@ struct IOSManuscriptStorageTests {
         #expect(tv.pasteboard === UIPasteboard.general)
     }
 
+    @Test("[I-0374] a replacement UIKit makes itself (autocorrect, predictive text, text replacement) is stored ESCAPED too")
+    func replacementEscapes() throws {
+        let f = IOSManuscriptFixture()
+        f.type("two ")
+        let start = try #require(f.tv.position(from: f.tv.beginningOfDocument, offset: 0))
+        let end = try #require(f.tv.position(from: f.tv.beginningOfDocument, offset: 3))
+        let range = try #require(f.tv.textRange(from: start, to: end))
+        f.tv.replace(range, withText: "**two**")   // UITextInput's own entry — not insertText
+        #expect(f.text == "\\*\\*two\\*\\* ", "stored: \(f.text.debugDescription)")
+        #expect(f.tv.selectedRange == NSRange(location: 11, length: 0), "the caret after what was put in, before the space")
+    }
+
+    @Test("[I-0374] a HARDWARE key asks the delegate with the typed text first — `**test**` is still stored escaped")
+    func hardwareKeyEscapes() {
+        let f = IOSManuscriptFixture("a ")
+        f.caret(2)
+        for c in "**test**" {   // as UIKit's key path does: the delegate's verdict, then insertText if allowed
+            if f.tv.shouldChangeTyped(f.tv.selectedRange, to: String(c)) { f.tv.insertText(String(c)) }
+        }
+        #expect(f.text == "a \\*\\*test\\*\\*", "stored: \(f.text.debugDescription)")
+    }
+
     @Test("typed Markdown characters are stored ESCAPED, as on the Mac (EP-045 AC4)")
     func typingEscapes() {
         let f = IOSManuscriptFixture()
