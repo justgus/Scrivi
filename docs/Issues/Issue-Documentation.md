@@ -173,8 +173,11 @@ stands as a marker.**
 | [`Issue-closed-0274.md`](Closed/Issue-closed-0274.md) | I-0274 — ⚪ **not a defect** (Control-Return mis-measured by a direct-`keyDown` harness; in the app it opens the context menu; closed 2026-10-04) |
 | [`Issue-closed-0202.md`](Closed/Issue-closed-0202.md) | I-0202 — ⚪ **not reachable** (`NSApplicationDelegate` is `NS_SWIFT_UI_ACTOR`; the `assumeIsolated` wrappers removed; closed 2026-10-24) |
 | [`Issue-closed-0312.md`](Closed/Issue-closed-0312.md) | I-0312 — ⚪ **OBE** (`keyBetween` vs legacy undotted keys; no project uses that scheme; closed 2026-10-24) |
+| [`Issue-closed-0375.md`](Closed/Issue-closed-0375.md) | I-0375 — ⚪ **Unreproducible** (the empty file an older build read opening a newer project — [I-0323]'s cause; investigated in [SP-244]; closed 2026-11-24) |
 
 ---
+
+*Last Updated: 2026-11-24 — **I-0375 filed and closed Unreproducible** (I-0323's cause; user-directed).*
 
 *Last Updated: 2026-11-24 — **I-0373 archived**; batch 38 2 → 3.*
 

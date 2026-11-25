@@ -107,6 +107,13 @@ When a new Issue is created:
 - ⚠️ **In Progress** - Actively being investigated, assigned to a Sprint
 - 🟠 **Resolved - Not Verified** - Fixed but not validated by user
 - ✅ **Resolved - Verified** - Fixed and verified by user
+- ⚪ **Closed — Unreproducible** - Thoroughly investigated and still not reproduced; closed only at the user's say-so
+
+**Unreproducible policy (user, 2026-11-24 — a policy change):** an Issue that cannot be reproduced is first investigated
+THOROUGHLY (reproduce with the reported build, inputs and platform; log the path). If it still cannot be reproduced, Claude
+reports that and the user decides: only the user closes it as **Unreproducible** (spelled so). It moves to `Closed/` with
+the investigation recorded and what evidence to capture if it recurs. Claude never closes one on its own, and never ships a
+guessed fix for an unreproduced cause.
 
 **Authorization Note:** Claude is authorized to mark Issues as "Resolved - Not Verified" (🟠) when implementation is complete, but Claude can only mark an Issue as "Resolved - Verified" (✅) after the user’s explicit direction.
 
