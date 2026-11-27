@@ -109,16 +109,16 @@ never used). **This is not a filing defect** — do not re-open it as one.
 | 26 | I-0251 – I-0260 | [`Issue-verified-0251-0260.md`](Verified/Issue-verified-0251-0260.md) | 10 |
 | 27 | I-0261 – I-0270 | [`Issue-verified-0261-0270.md`](Verified/Issue-verified-0261-0270.md) | 9 |
 | 28 | I-0271 – I-0280 | [`Issue-verified-0271-0280.md`](Verified/Issue-verified-0271-0280.md) | 8 |
-| 29 | I-0281 – I-0290 | [`Issue-verified-0281-0290.md`](Verified/Issue-verified-0281-0290.md) | 9 |
+| 29 | I-0281 – I-0290 | [`Issue-verified-0281-0290.md`](Verified/Issue-verified-0281-0290.md) | 10 |
 | 30 | I-0291 – I-0300 | [`Issue-verified-0291-0300.md`](Verified/Issue-verified-0291-0300.md) | 10 |
 | 31 | I-0301 – I-0310 | [`Issue-verified-0301-0310.md`](Verified/Issue-verified-0301-0310.md) | 8 |
 | 32 | I-0311 – I-0320 | [`Issue-verified-0311-0320.md`](Verified/Issue-verified-0311-0320.md) | 7 |
-| 33 | I-0321 – I-0330 | [`Issue-verified-0321-0330.md`](Verified/Issue-verified-0321-0330.md) | 9 |
+| 33 | I-0321 – I-0330 | [`Issue-verified-0321-0330.md`](Verified/Issue-verified-0321-0330.md) | 10 |
 | 34 | I-0331 – I-0340 | [`Issue-verified-0331-0340.md`](Verified/Issue-verified-0331-0340.md) | 10 |
 | 35 | I-0341 – I-0350 | [`Issue-verified-0341-0350.md`](Verified/Issue-verified-0341-0350.md) | 8 |
-| 36 | I-0351 – I-0360 | [`Issue-verified-0351-0360.md`](Verified/Issue-verified-0351-0360.md) | 3 |
-| 37 | I-0361 – I-0370 | [`Issue-verified-0361-0370.md`](Verified/Issue-verified-0361-0370.md) | 4 |
-| 38 | I-0371 – I-0380 | [`Issue-verified-0371-0380.md`](Verified/Issue-verified-0371-0380.md) | 3 |
+| 36 | I-0351 – I-0360 | [`Issue-verified-0351-0360.md`](Verified/Issue-verified-0351-0360.md) | 4 |
+| 37 | I-0361 – I-0370 | [`Issue-verified-0361-0370.md`](Verified/Issue-verified-0361-0370.md) | 7 |
+| 38 | I-0371 – I-0380 | [`Issue-verified-0371-0380.md`](Verified/Issue-verified-0371-0380.md) | 4 |
 
 ⚠️ **Rows 15 onward added 2026-09-30 ([SP-148] Audit Check A6)** — the table had stopped at batch 14. ✅ Each count is re-derived from the file (distinct IDs in its table rows ∪ `## I-0` sections), ⛔ never copied.
 
@@ -176,6 +176,8 @@ stands as a marker.**
 | [`Issue-closed-0375.md`](Closed/Issue-closed-0375.md) | I-0375 — ⚪ **Unreproducible** (the empty file an older build read opening a newer project — [I-0323]'s cause; investigated in [SP-244]; closed 2026-11-24) |
 
 ---
+
+*Last Updated: 2026-11-24 — **[SP-244] closed** (user, 2026-11-24: *"close SP-244"*): I-0284, I-0323, I-0353, I-0366, I-0369, I-0370, I-0374 archived; batches 29 → 10, 33 → 10, 36 → 4, 37 → 7, 38 → 4 (counted from table rows).*
 
 *Last Updated: 2026-11-24 — **I-0375 filed and closed Unreproducible** (I-0323's cause; user-directed).*
 

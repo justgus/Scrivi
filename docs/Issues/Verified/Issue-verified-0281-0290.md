@@ -14,6 +14,9 @@ Issues the user has VERIFIED, archived out of `Issue-active.md`.
 | **I-0288** | `[ScriviCore]` ⛔ **After an outside edit, undo in a LATER session restored a MIX of the old and new text — the `externalChange` repair re-floored the scene and the next open replayed the pre-change diffs onto it.** Measured 2026-10-12 through `scrivi_*`. ✅ Fixed: the repair's barrier carries the disk text; old logs' repair floors are read as that. → [details](#i-0288) | **High** | [SP-178] | ✅ **VERIFIED 2026-10-12** (user: *"mark I-0288 as verified"*) |
 | **I-0289** | `[Apple]` ⛔ **Copy buffers 1–9 skipped the emphasis balancing ⌘C / ⌘X / ⌘V do: ⌘N / ⌥N stored raw storage (one scene and across scenes), and ⌃N pasted with the caret's style instead of its own.** Found 2026-10-12 planning [SP-179]; measured by 4 interop tests that failed. ✅ Fixed: the buffers reuse ⌘C's balanced copy and ⌘V's own-copy paste. → [details](#i-0289) | **Medium** | [SP-179] | ✅ **VERIFIED 2026-10-12** |
 | **I-0290** | `[Apple]` ⛔ **Buffer paste ⌃1–9 collides with macOS Mission Control "Switch to Desktop N": ⌃1 never reaches Scrivi.** Found 2026-10-12 on the user's Mac during [I-0289]'s check. ✅ Fixed: paste moved to ⌃⌘1–9 (user: *"Option B"*). → [details](#i-0290) | **Medium** | [SP-179] | ✅ **VERIFIED 2026-10-12** |
+| **I-0284** | `[Apple]` ⚠️ **A paragraph containing a HARD BREAK renders NO emphasis — its `**`, `*`, `_` markers show raw.** ✅ **MEASURED 2026-10-08** (found by [SP-171]'s AC1 corpus test; `MarkdownBlocks.analyze`): `"A line\nthen _under_ and **b**."` → 4 markers; `"A hard break\\\nthen _under_ and **b**."` (the Option-Return form, [T-0584]) → **0 markers**. The presenter and the presented map agree (both show the markers), so it is the ANALYZER's result, not the drawing. ⚠️ Not yet checked: whether the whole block is affected or only lines after the break; whether headings/lists in such a block are affected; Linux (md4c) behaviour. ✅ Repro: type a bold word, then Option-Return, then another bold word in the same paragraph. ⚠️ Not in SP-171's scope (filed to the backlog first). | Medium | [SP-244] | ✅ **Verified 2026-11-24** |
+
+*Last Updated: 2026-11-24 (**I-0284** archived with [SP-244]'s close (user, 2026-11-24: *"close SP-244"*).)*
 
 ---
 
@@ -314,3 +317,17 @@ most 260 px tall).
 
 ---
 
+---
+
+## I-0284: `[Apple]` A paragraph containing a hard break renders no emphasis
+
+**Cause (measured 2026-11-24, [SP-244]):** after a hard break, Apple's Markdown parser keeps reporting the break's LINE, its
+columns running on past the line's end (the newline counted as one): in `"A hard break\⏎then _under_ and **b**."` it
+reports `then` at 1:15 (true: 2:1). `MarkdownBlocks.analyze`'s `offset()` clamped such a column to line 1's end, so every marker
+after the break landed in the wrong place and was dropped.
+**Fixed:** `offset()` carries a column past its line's end into the lines after it (`MarkdownBlocks.swift`). md4c (the core,
+Linux) was never wrong — the parity fixture's 152 `why: "I-0284"` lines were Apple's side; Q6: nothing to change on Linux.
+**Tests:** interop `analyzer()` (the I-0284 string: four markers, italic and bold), and four hard-break blocks added to the
+md4c ↔ MarkdownBlocks agreement corpus (one across two breaks, one in a list item, one bold ACROSS the break).
+**Status:** ✅ **Verified 2026-11-24** (user, 2026-11-24: *"fold I-0374 into SP-244.  Step 5-1 to 5-4 pass."*) — the corrected step 5 on the Mac (Linux: md4c, never wrong). iOS cannot
+reach it: it has no hard-break key ([I-0374]). Archived when [SP-244] closes.

@@ -1,14 +1,14 @@
 ---
 sprint: SP-244
 epic: none
-status: Active
+status: Closed
 platform: Cross
 created: 2026-11-24
 ---
 
 # SP-244 — `[Cross]` Pre-alpha bug sweep: the bugs a tester would meet first
 
-**Status:** 🟡 **ACTIVE** 2026-11-24 (user, 2026-11-24: *"Q1-Q7 as recommended, implement SP-244"*); Q1–Q7 as recommended. Created 2026-11-24 (user: *"let's start planning the bug sprint"*).
+**Status:** ✅ **CLOSED** 2026-11-24 (user, 2026-11-24: *"close SP-244"*). AC1–AC8 ✅; all seven Issues Verified and archived; I-0323's cause → [I-0375], closed Unreproducible. Was 🟡 **ACTIVE** 2026-11-24 (user, 2026-11-24: *"Q1-Q7 as recommended, implement SP-244"*); Q1–Q7 as recommended. Created 2026-11-24 (user: *"let's start planning the bug sprint"*).
 **Epic:** none — a sweep before [SP-228] (EP-055 AC9, TestFlight) archives the alpha.
 **Carries (Q1):** [I-0366], [I-0369], [I-0353], [I-0284], [I-0323], [I-0370]; ➕ [I-0374] (folded in 2026-11-24, user).
 **Size:** M — six Issues, two of them core changes, three on both platforms.
@@ -78,7 +78,7 @@ Each Issue's record was re-checked against today's code; all six are still as fi
 - [x] AC4 — [I-0284]: emphasis after a hard break renders on the Mac and iOS (and Linux, per Q6); the corpus test covers it.
 - [x] AC5 — [I-0323]: the cause is named in the Issue; the message names the file; per Q3, the newer-version message.
 - [x] AC6 — [I-0370]: a source's citation fields are entered and kept on the Mac, iOS and Linux; New Source…'s text is true.
-- [ ] AC7 — ctest, the interop tests, the iOS tests and the Linux smokes green; CI green on the push.
+- [x] AC7 — ctest, the interop tests, the iOS tests and the Linux smokes green; CI green on the push.
 - [x] AC8 — the live passes per Q7.
 
 ## Progress log
@@ -112,3 +112,5 @@ Each Issue's record was re-checked against today's code; all six are still as fi
 - **2026-11-24** — [I-0374] ✅ Verified (user, 2026-11-24: *"Ok this now works on both the iPhone with a software keyboard and the iPad with the hardware keyboard."*).
 - **2026-11-24** — iOS and Linux live passes ✅ (user, 2026-11-24: *"we alerady verified all this.  These all passed."*) → [I-0353], [I-0370] ✅ Verified; AC1–AC4, AC6, AC8 met.
 - **2026-11-24** — [I-0323] ✅ Verified, as built; its cause filed as [I-0375] and closed **Unreproducible** (user, 2026-11-24: *"I-0323 verified as built, file the cause to unreproducable.  close it on my authority."*) → AC5 met (amended: cause unreproducible).
+- **2026-11-25** — AC7 ✅: CI green on `c235d27` (Scrivi Apple CI); the only code since `b9244f9` (all three green) is under `Inkwyn/`, so Core and Linux CI did not run by their path filters. All ACs met.
+- **2026-11-24** — ✅ **CLOSED** (user, 2026-11-24: *"close SP-244"*). I-0284, I-0323, I-0353, I-0366, I-0369, I-0370, I-0374 → `docs/Issues/Verified/`.

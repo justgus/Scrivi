@@ -1,5 +1,7 @@
 # Active Sprints
 
+*Last Updated: 2026-11-24 (**SP-244 → ✅ CLOSED** (user, 2026-11-24: *"close SP-244"*) → `Closed/Sprint-SP-244.md`; I-0284, I-0323, I-0353, I-0366, I-0369, I-0370, I-0374 ✅ Verified, archived. No Sprint is active.)*
+
 *Last Updated: 2026-11-24 (**SP-244 → 🟡 ACTIVE** (user, 2026-11-24: *"Q1-Q7 as recommended, implement SP-244"*) → [`Sprint-SP-244.md`](Sprint-SP-244.md); Q1–Q7 as recommended.)*
 
 *Last Updated: 2026-11-24 (**SP-243 → ✅ CLOSED** (user, 2026-11-24: *"close SP-243, then complete EP-060"*) → `Closed/Sprint-SP-243.md`; T-0706 ✅ Verified, archived. No Sprint is active.)*

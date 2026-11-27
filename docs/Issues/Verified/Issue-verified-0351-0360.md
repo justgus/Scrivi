@@ -8,6 +8,9 @@ Issues the user has VERIFIED, archived out of `Issue-active.md`.
 | **I-0351** | `[Linux]` **Every repaint of the manuscript walks the whole document: the scene-break rules ask Qt for each separator's geometry, then drop the off-screen ones** — ~95,000 `blockBoundingRect` calls per keystroke on 1,186 scenes. Found in [SP-183] step 0. → [details](#i-0351) | Medium | [SP-183] | ✅ **Verified 2026-11-05** (the user's live pass on scrivi-vm: no lag) |
 | **I-0357** | `[Linux]` **Toggling "Show chapter titles in manuscript" styles the wrong lines until the project is reopened** | Medium | SP-207 | ✅ **Verified 2026-11-09** |
 | **I-0358** | `[CI]` ScriviCore CI's **macOS sanitizers** job takes 3 to 56+ minutes, almost all of it in Build. **Cause** (the 51-min Build of run "SP-208 Live pass 2", 2026-11-10): `cmake --build build --parallel` with no count is an **unbounded `make -j`** under the Makefile generator, so all 267 compiles started within 8 s, then nothing finished for 39 min — sanitized compiles thrashing a 3-core runner's memory (the scrivi-vm OOM of 2026-11-11, again). The Linux CI uses Ninja and is bounded. Still running 30 min in on `c979b63`. **Fix:** `--parallel "$(getconf _NPROCESSORS_ONLN)"` (`.github/workflows/scrivi-core-ci.yml:57`). **Verify:** the macOS sanitizers Build step in single-digit minutes on the next pushes. **First run with the fix** (`98fe9cf`, 2026-11-12): all four jobs green; macOS sanitizers Build **66 s**, the whole job 3 min 20 s. **Second** (`1aaffb3`): macOS sanitizers job **4 min** in all, green. (The plain macOS job of that run was cancelled before any runner took it — no steps ran; green on re-run.) ⚠️ Earlier unfixed runs also had fast Builds, so this needs a few more pushes in a row. | Low | — | ✅ **Verified 2026-11-24** (user, 2026-11-24: *"I-0358: Verified."*) |
+| **I-0353** | `[Cross]` **Every paragraph format (Heading 1–3, Bullet list, Numbered list, Body) is refused on an EMPTY line (the Mac flashes, Linux beeps): the writer must type the text first, then format it** (user, 2026-11-05, [SP-183] live pass). ✅ Ruled: what is typed next takes the format. → [details](#i-0353) | Medium | [SP-244] | ✅ **Verified 2026-11-24** |
+
+*Last Updated: 2026-11-24 (**I-0353** archived with [SP-244]'s close (user, 2026-11-24: *"close SP-244"*).)*
 
 ## I-0351: `[Linux]` Every repaint of the manuscript walks the whole document for the scene-break rules
 
@@ -65,3 +68,33 @@ at load, after titles off and after titles on. ✅ Red without the fix, on scriv
 Gamma one. | expected: "*; on → *"drawn: Gamma one. | expected: The Abbé / Chapter 2 / Chapter 3"* (the user's two symptoms).
 ✅ Green with it.
 **Status:** ✅ **Verified 2026-11-09** (user, 2026-11-09: *"I-0357 verified, close SP-207"*). Archived when [SP-207] closed.
+
+---
+
+## I-0353: `[Cross]` A paragraph format on an empty line is refused
+
+**Reported:** the user, 2026-11-05, during [SP-183]'s live pass: *"On the mac, when I select "Format->Heading 1" with nothing
+selected, the screen flashes at me. I have to type the text, and then select it, and then select heading 1."*
+**Measured** (`scrivi_markdown_paragraph_edit`, macOS build, 2026-11-05): **every paragraph format** — `heading1`, `heading2`,
+`heading3`, `bulletList`, `numberedList`, `body` — is `refused` on a blank line after a paragraph and in an empty scene. With the
+caret INSIDE a paragraph and nothing selected, it works (`heading1` on `First.` → `# First.`): no selection is needed, only
+text on the line. ✅ **Bold and Italic already behave as ruled:** on a blank line `word_range` finds no word, so the platform
+inserts the PENDING pair and what is typed next is bold or italic.
+**Where:** the core refuses (`ScriviCore/include/scrivi/scrivi.h:1248`, `paragraph_edit`); the Mac beeps on a refusal
+(`ManuscriptTextView.swift:2626`, `NSSound.beep()`), Linux too (`ManuscriptEditor.cpp:1517`, `QApplication::beep()`).
+✅ **RULED (user, 2026-11-05):** *"That is an excellent question. Your assumption of the scrivi functionality implies that it
+should be so."* · ✅ **Widened (user, 2026-11-05):** *"I-0353 should apply to all the format options."* — every Format command on
+an empty line applies to what is typed next, as word processors do, instead of refusing: Heading 1–3 and the two lists
+start the line as that kind (Bold and Italic already do, through the pending pair). ⚠️ **Body**, on a line that is already
+body, has nothing to change: under the ruling it succeeds silently rather than flashing — to confirm at planning. ⚠️ An empty `# ` line is stored Markdown, so it is a core change,
+made the same way on both platforms.
+**Fixed 2026-11-24 ([SP-244], Q2) in the core** (`paragraphEdit`, `markdown/Editing.cpp`), so the Mac, iOS and Linux all follow:
+- a caret on an EMPTY line (or in an empty scene): Heading 1–3 and the lists start the line with the marker alone (`# `, `- `,
+  `1. ` — numbered after an ordered list continues it); Body succeeds with nothing to change, and the hosts skip it (no
+  flash, no history event: `FormatStep.unchanged`; Linux `applyFormat`).
+- ➕ found on the way: a caret at the very END of a scene, after text, was refused too (no block starts there) — it now
+  formats that last paragraph. 12 lines of the parity fixture were Apple's old refusals; they carry `why: "I-0353"`.
+- a selection of blank lines is still refused.
+**Tests:** `markdown ABI: [I-0353] …` (every format, empty scene and blank line, numbering, Body, the refused selection);
+the parity fixture (165 recorded differences, was 153).
+**Status:** ✅ **Verified 2026-11-24** (user, 2026-11-24: *"we alerady verified all this.  These all passed."*). Archived when [SP-244] closes.

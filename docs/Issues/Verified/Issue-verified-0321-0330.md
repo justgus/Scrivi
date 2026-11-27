@@ -14,6 +14,9 @@ Issues the user has VERIFIED, archived out of `Issue-active.md`.
 | **I-0328** | `[Apple]` ⛔ **Closing a project (⌘W / Close Project) saved nothing: typing inside the 1 s autosave was LOST, and the project reopened where it had been opened, not where the writer left it.** Both platforms: `ProjectSession.close()`, the one chokepoint every close reaches, released the session without the save and resume stamp that quit and app-resign do. → [details](#i-0328) | High | [SP-198] | ✅ **Verified 2026-11-03** (user: Mac D1–D4, iPad A13, iPhone B7) |
 | **I-0329** | `[Apple]` ⛔ **iPad: dragging a Timeline scene dot a second time froze the whole UI for about 6 minutes** (no touch, keyboard or tap), then it recovered by itself. Found by the user on a real iPad with a hardware keyboard, 2026-10-31, in [SP-199]'s live pass, project `dumas-prose-timelines` (1,175 scenes). Steps: zoom the Timeline, drag a dot (it moves; on release the Time Delta Picker popover opens, as designed); dismiss it (the dot returns, as designed); drag a dot again → freeze. Evidence: the console logged `_UISystemGestureGateGestureRecognizer … has been in possible phase for 359.959951 seconds` and `Gesture: System gesture gate timed out`, which points to the main thread or the touch pipeline being stuck. ✅ **Cause found** (second `bt all`, taken WHILE frozen, 2026-10-31): the freeze starts when a Time Delta Picker choice is tapped ("that night"), not on the drag. `TimelineViewModel.setStoryTime` → `recomputeAndPersistFrom` (`TimelineStripView.swift:784`) calls `scrivi_set_scene_story_time` once for EVERY later scene, on the MAIN thread (~1,172 calls here). Each call's `StoryTimePatchGuard` (`scrivi_c_api.cpp:474`) drops the index BEFORE the write, so the core's `findSceneMetaPath` rebuilds the whole `ProjectIndex` (every sidecar, over iCloud) — ~1,172 full traversals ≈ 1.4M reads. The read-amplification class again; T-0549's patch saved only the AFTER rebuild. Linux `EditorShell.cpp:3763` runs the same chain loop. The dismiss "snap back" is by design (dismiss commits nothing); the moved position seen after reload is the "that night" write finishing. ✅ **Fix (user ruling: both halves, 2026-10-31):** (1) `StoryTimePatchGuard` no longer drops the index BEFORE the write (`scrivi_c_api.cpp:479`) — a warm index locates the scene, the after-write patch/drop is unchanged; (2) only the moved scene is saved — Apple `recomputeOffsetsFrom` (`TimelineStripView.swift:785`) recomputes later scenes in memory, Linux `showTimeDeltaPicker` (`EditorShell.cpp:3763`) dropped its re-save loop; both loads already derive offsets from the gap chain; (3) `exportProjectTimeline` derives scene starts from the gap chain instead of the stored `offsetMs` (`ScriviCore.cpp:1110`). Test: `ProjectIndexTests.cpp` "a story-time write keeps the WARM index (I-0329)". ctest 790/790, Mac interop 327, iOS 14/14, Mac build. ⚠️ Linux not built or smoked; no mutation check of the new test. iPad pass 1 (2026-10-31): steps 1, 2, 5 pass (no freeze on "that night"; the Mac step passes). Steps 3–4 were blocked: the picker showed only its first row of buttons. Cause: `.popover(arrowEdge: .top)` is honoured on iOS 18.1+, so the picker opened BELOW the dot, inside the bottom strip. Fix: `arrowEdge` is `nil` on iOS (`SceneDotView.pickerArrowEdge`); the Mac keeps `.top`. iPad pass 2: all steps pass, the picker fits. | High | — | ✅ **Verified** (user, 2026-10-31) |
 | **I-0330** | `[ScriviCore]` `[Apple]` ⛔ **The pending-edge sweep walked the whole manuscript (2,538 file operations on dumas) on every switch back into the app, and its answer is discarded unless a world is away.** Found in the SP-197 Mac live pass log, 2026-11-01. → [details](#i-0330) | Medium | [SP-197] | ✅ **Verified** (user, 2026-11-01: Mac re-check) |
+| **I-0323** | `[ScriviCore]` ⚠️ **An older Scrivi opening a project from a newer one shows a raw parser error** (`[json.exception.parse_error.101] … attempting to parse an empty input`), not a plain message. Found 2026-10-24 in [SP-193]'s Mac live pass (an old `/Applications` build). → [details](#i-0323) | Medium | [SP-244] | ✅ **Verified 2026-11-24** (as built; cause → [I-0375], Unreproducible) |
+
+*Last Updated: 2026-11-24 (**I-0323** archived with [SP-244]'s close (user, 2026-11-24: *"close SP-244"*).)*
 
 ---
 
@@ -304,3 +307,42 @@ heading) were not replayed. Backups: `dumas-manuscript-before-repair-2026-10-30.
 ➡️ The Linux half → [T-0651] ([EP-057], the rig); this Issue may be Verified on the Mac steps alone.
 
 *Last Updated: 2026-11-03 — **I-0326, I-0328** archived (user-verified: Mac D1–D4; I-0328 also iPad and iPhone).*
+
+---
+
+## I-0323
+
+**Title:** An older build opening a newer project shows a raw JSON parser error
+**Status:** ✅ **Verified 2026-11-24, as built** ([SP-244])
+**Platform:** `[ScriviCore]` (the message), shown by both apps
+**Component:** `util::parseJson` (`ScriviCore/src/util/Json.cpp:174`) returns `e.what()` as the error message; the
+caller that read an empty file is not yet named.
+**Severity:** Medium. Nothing is lost, but alpha testers on builds that fall behind each other will meet it, and the
+message tells them nothing.
+**Sprint:** Not Assigned
+**Date Identified:** 2026-10-24, [SP-193] Mac live pass step 4: a Finder double-click launched `/Applications/Scrivi.app`
+(a 2026-09-16 build, process 88249) on a current project. Filed by user request (2026-10-25).
+
+**What happened:** the open failed with *"[json.exception.parse_error.101] parse error at line 1, column 1: attempting to
+parse an empty input…"*.
+
+⚠️ **Cause not named.** "Empty input" means the old build read a file that was empty or absent, not a newer schema it
+could not understand. Which file is not known: reproduce with that build (or any build before the change) and log the
+path before fixing.
+
+**Fix direction (not ruled):** two parts. (1) The parse error names the file and reads as a plain sentence. (2) A
+project written by a newer format says so: *"This project was saved by a newer version of Scrivi"*, which needs the
+open path to check a format version before reading anything else.
+
+**SP-244 (2026-11-24) — the cause is NOT reproduced.** Built the 2026-09-16 code (`0a9e410`) in a scratch copy, its file reads logged:
+- the old APP opened today's `the-stairs-of-tintagael` and `sp220-every-case` (14,071 and 205 file reads, none empty);
+- the old CORE opened three of today's projects;
+- an AppleDouble `._*.meta.json` sidecar (I-0221's cause of the same message) did not fail either.
+So the empty file of 2026-10-24 is not something today's format makes; per Q3, the "saved by a newer version" message is
+**not built**.
+**Fixed (Q3 part 1):** `util::parseJson` reports a sentence — *"The file is empty."* / *"The file is damaged and could not be
+read."* — with the parser's text in `detail`; `util::inFile` names the file where the open path reads one
+(`project.json` in `ProjectOpener` and `scrivi_set_project_title`, chapter and scene sidecars in `ManuscriptOrderResolver`,
+`pen-names.json`): *"“project.json” is empty, so it could not be read."*, with `path` set. **Tests:** `[I-0323]` unit and ABI.
+⚠️ Other read sites still report the unnamed sentence (60+ schema reads); named here only on the open path.
+**Status:** ✅ **Verified 2026-11-24, as built** (user, 2026-11-24: *"I-0323 verified as built, file the cause to unreproducable.  close it on my authority."*). The cause → [I-0375], closed **Unreproducible**. Archived when [SP-244] closes.

@@ -509,7 +509,7 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-241** | `[Apple]` **[EP-060] S1** — the glyph pipeline and the Inkwyn app icon (T-0704) | EP-060 | 2026-11-24 | 2026-11-24 | ✅ **CLOSED** → [`Closed/Sprint-SP-241.md`](Closed/Sprint-SP-241.md) |
 | **SP-242** | `[Apple]` **[EP-060] S2** — the glyphs in the app, and the smaller toolbar (T-0705) | EP-060 | 2026-11-24 | 2026-11-24 | ✅ **CLOSED** → [`Closed/Sprint-SP-242.md`](Closed/Sprint-SP-242.md) |
 | **SP-243** | `[Linux]` **[EP-060] S3** — the Inkwyn glyphs and the 8-item toolbar on Linux (T-0706) | EP-060 | 2026-11-24 | 2026-11-24 | ✅ **CLOSED** → [`Closed/Sprint-SP-243.md`](Closed/Sprint-SP-243.md) |
-| **SP-244** | `[Cross]` Pre-alpha bug sweep — I-0366, I-0369, I-0353, I-0284, I-0323, I-0370 | — | 2026-11-24 | — | 🟡 **ACTIVE** → [`Sprint-SP-244.md`](Sprint-SP-244.md) |
+| **SP-244** | `[Cross]` Pre-alpha bug sweep — I-0366, I-0369, I-0353, I-0284, I-0323, I-0370, I-0374 | — | 2026-11-24 | 2026-11-24 | ✅ **CLOSED** → [`Closed/Sprint-SP-244.md`](Closed/Sprint-SP-244.md) |
 | **SP-235** | `[Linux]` **[EP-059] B** — the object detail view and its image (T-0697) | EP-059 | 2026-11-22 | 2026-11-22 | ✅ **CLOSED** → [`Closed/Sprint-SP-235.md`](Closed/Sprint-SP-235.md) |
 | **SP-234** | `[Linux]` **[EP-059] A** — the object verbs on a card (T-0696) | EP-059 | 2026-11-22 | 2026-11-22 | ✅ **CLOSED** → [`Closed/Sprint-SP-234.md`](Closed/Sprint-SP-234.md) |
 | **SP-233** | `[Linux]` **[EP-059] A** — the Scene Inspector's card stacks (T-0695, T-0491) | EP-059 | 2026-11-21 | 2026-11-22 | ✅ **CLOSED** → [`Closed/Sprint-SP-233.md`](Closed/Sprint-SP-233.md) |
@@ -552,6 +552,8 @@ by status, read the table.**
 > on neither time. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-11-24 (**SP-244 → ✅ CLOSED** (user, 2026-11-24: *"close SP-244"*).)*
 
 *Last Updated: 2026-11-24 (**SP-244 → 🟡 ACTIVE**.)*
 
